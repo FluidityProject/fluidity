@@ -18,3 +18,4 @@ std::string     PyH5PartRandomSampleAttributes_GetLogString();
 std::string     PyH5PartRandomSampleAttributes_ToString(const H5PartRandomSampleAttributes *, const char *);
 
 #endif
+

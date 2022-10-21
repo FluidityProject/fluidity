@@ -35,7 +35,7 @@ main (
 
         // open file and create first step
         h5_file_t file = H5OpenFile (fname, H5_O_WRONLY, H5_PROP_DEFAULT);
-        H5SetStep (file, 0);
+        H5SetStep (file, 0); 
 
         // define number of particles this process will write
         H5PartSetNumParticles (file, num_particles);

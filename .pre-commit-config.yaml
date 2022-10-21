@@ -1,4 +1,6 @@
-exclude: '[configure, *.rng]'
+# exclude auto generated files like configure and *.rng files
+# and any files from external libraries: h5hut/libjudy/libmba[23]d/libspud and spatialindex
+exclude: configure|\.*.rng|^h5hut/\.*|^libjudy\.*|^libmba2d\.*|^libmba3d\.*|^libspud\.*|^spatialindex-1.8.0\.*
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0

@@ -26,14 +26,14 @@ using std::string;
 // ****************************************************************************
 // Method: QvisH5PartRandomSampleWindow::QvisH5PartRandomSampleWindow
 //
-// Purpose:
+// Purpose: 
 //   Constructor
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//
+//   
 // ****************************************************************************
 
 QvisH5PartRandomSampleWindow::QvisH5PartRandomSampleWindow(const int type,
@@ -50,14 +50,14 @@ QvisH5PartRandomSampleWindow::QvisH5PartRandomSampleWindow(const int type,
 // ****************************************************************************
 // Method: QvisH5PartRandomSampleWindow::~QvisH5PartRandomSampleWindow
 //
-// Purpose:
+// Purpose: 
 //   Destructor
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//
+//   
 // ****************************************************************************
 
 QvisH5PartRandomSampleWindow::~QvisH5PartRandomSampleWindow()
@@ -68,14 +68,14 @@ QvisH5PartRandomSampleWindow::~QvisH5PartRandomSampleWindow()
 // ****************************************************************************
 // Method: QvisH5PartRandomSampleWindow::CreateWindowContents
 //
-// Purpose:
+// Purpose: 
 //   Creates the widgets for the window.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//
+//   
 // ****************************************************************************
 
 void
@@ -97,14 +97,14 @@ QvisH5PartRandomSampleWindow::CreateWindowContents()
 // ****************************************************************************
 // Method: QvisH5PartRandomSampleWindow::UpdateWindow
 //
-// Purpose:
+// Purpose: 
 //   Updates the widgets in the window when the subject changes.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//
+//   
 // ****************************************************************************
 
 void
@@ -144,14 +144,14 @@ QvisH5PartRandomSampleWindow::UpdateWindow(bool doAll)
 // ****************************************************************************
 // Method: QvisH5PartRandomSampleWindow::GetCurrentValues
 //
-// Purpose:
+// Purpose: 
 //   Gets values from certain widgets and stores them in the subject.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 16 10:26:55 PDT 2006
 //
 // Modifications:
-//
+//   
 // ****************************************************************************
 
 void
@@ -195,3 +195,5 @@ QvisH5PartRandomSampleWindow::factorProcessText()
     GetCurrentValues(0);
     Apply();
 }
+
+

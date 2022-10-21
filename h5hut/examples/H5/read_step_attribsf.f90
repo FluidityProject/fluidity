@@ -15,7 +15,7 @@
 #if defined(PARALLEL_IO)
     include 'mpif.h'
 #endif
-
+    
     ! the file name we want to read
     character (len=*), parameter :: FNAME =               "example_file_attribs.h5"
 
@@ -42,7 +42,7 @@
     ! H5hut file id
     integer*8 :: file_id
 
-    ! H5hut API status return
+    ! H5hut API status return 
     integer*8 status
 
     ! type of attribute
@@ -60,7 +60,7 @@
 
     call mpi_init (ierr)
 #endif
-
+    
     ! abort program on any H5hut error
     call h5_abort_on_error ()
 

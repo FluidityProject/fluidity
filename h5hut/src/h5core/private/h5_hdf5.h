@@ -655,7 +655,7 @@ hdf5_write_dataset (
 			H5_ERR_HDF5,
 			"Write to dataset '%s' failed.",
 			hdf5_get_objname (dataset_id));
-
+	
 	H5_RETURN (H5_SUCCESS);
 }
 
@@ -1251,7 +1251,7 @@ hdf5_get_object_count (
 			"Cannot get open object count for file %lld.",
 			(long long)file_id);
 	H5_RETURN (ret_value);
-
+	
 }
 
 static inline ssize_t
@@ -1274,7 +1274,7 @@ hdf5_get_object_ids (
 			(long long)file_id);
 	H5_RETURN (ret_value);
 }
-
+	
 static inline h5_err_t
 hdf5_close_file (
         hid_t file_id

@@ -37,7 +37,7 @@ build-libspud: config.status
 	$(MAKE) doc
 
 
-build-spud-diamond: build-spud-diamond-stamp
+build-spud-diamond: build-spud-diamond-stamp 
 build-spud-diamond-stamp: $(PYVERS:%=build-python%)
 	touch $@
 build-python%: config.status
@@ -67,7 +67,7 @@ install-prereq:
 	dh_testdir
 	dh_testroot
 	dh_clean -k
-	dh_installdirs -a
+	dh_installdirs -a 
 
 install-python%:
 # Force setuptools, but reset sys.argv[0] to 'setup.py' because setup.py files expect that.
@@ -91,12 +91,12 @@ install-dxdiff:
 binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs
+	dh_installchangelogs 
 	dh_installdocs
 	dh_installexamples
 #	dh_install
 #	dh_installmenu
-#	dh_installdebconf
+#	dh_installdebconf	
 #	dh_installlogrotate
 #	dh_installemacsen
 #	dh_installpam

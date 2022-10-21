@@ -6,7 +6,7 @@ C
       contains
 C
 C ================================================================
-      Subroutine LINTRP3D(
+      Subroutine LINTRP3D( 
 C ================================================================
      .           NT, tet, NV, vrt, LDF, F, NXYZ, xyz, G,
      .           imem,Nimem, dmem,Ndmem, iControl )
@@ -30,33 +30,33 @@ C       G(LDF, NXYZ) - the returned values of vector-function in given
 C                      points
 C
 C       imem(Nimem) - auxiliary array of integers of length Nimem
-C       dmem(Ndmem) - auxiliary array of double precision numbers of
+C       dmem(Ndmem) - auxiliary array of double precision numbers of 
 C                     length Ndmem
 C
 C       iContol - 4-digit integer representing 3 control parameters
 C            1st digit = 1 means "Initialisation is needed"
 C                      = 2 means "Initialisation is not needed"
 C                      otherwise the input is erroneous
-C            2nd digit  = 1 means  "Nearby a true curved boundary patch
-C                                   the domain is convex"
-C                         2 means  "Nearby a true curved boundary patch
+C            2nd digit  = 1 means  "Nearby a true curved boundary patch 
+C                                   the domain is convex" 
+C                         2 means  "Nearby a true curved boundary patch 
 C                                   the domain is not convex"
 C                        otherwise  the input is erroneous
 C            3,4 digits = 00 means "No output information is provided"
-C                  ab   > 00 means "Important warnings are written to
+C                  ab   > 00 means "Important warnings are written to 
 C                                   the channel (NUNIT=ab )"
 C ================================================================
 C  REMARK 1.
-C    If the domain is polyhedral, and for a given point there is no an
-C    element containing it within tolerance PREC=10^{-6} , then the ERROR
-C    is assumed. The code could not find an element within PREC tolerance
+C    If the domain is polyhedral, and for a given point there is no an 
+C    element containing it within tolerance PREC=10^{-6} , then the ERROR 
+C    is assumed. The code could not find an element within PREC tolerance 
 C    for MaxTrials.
 C
 C  REMARK 2.
-C    If the domain has a curved boundary, it is possible that a given
-C    point is in the domain but out of the mesh. In this case the tolerance
-C    PREC will be relaxed until an element will be found. Yet, the warning
-C    about the point will be issued if NUNIT > 0. That is why for the first
+C    If the domain has a curved boundary, it is possible that a given 
+C    point is in the domain but out of the mesh. In this case the tolerance 
+C    PREC will be relaxed until an element will be found. Yet, the warning 
+C    about the point will be issued if NUNIT > 0. That is why for the first 
 C    usages of the code NUNIT > 0 are recommended.
 C
 C ================================================================
@@ -70,7 +70,7 @@ C ================================================================
       integer imem(*)
       double precision dmem(*)
       integer iControl
-
+      
       double precision h(MaxH)
       integer i, NQT, QT, REF, ITET
       logical flags(2)
@@ -86,7 +86,7 @@ c ... decoding control parameters
       else
          Call errMes(6101, 'lintrp3D',
      .              'Wrong 1st digit in iControl')
-      end if
+      end if 
 
       i = (iControl-1000*(iControl/1000))/100
       if ( i .eq. 1 ) then
@@ -114,12 +114,12 @@ c ... distributing working memory
          NQT = imem(2)
          REF = imem(3)
          ITET =imem(4)
-
+         
          do i = 1, MaxH
             h(i) = dmem(i)
          end do
       end if
-
+      
       if (ITET+4*NT.gt.Nimem) then
          Call errMes(1001, 'lintrp3D',
      .              'not enough memory for Integer arrays')
@@ -130,12 +130,12 @@ c ... distributing working memory
       end if
 
 
-c ... calling the main module
+c ... calling the main module 
       call RESTORE( NT, tet, NV, vrt, LDF, F, NXYZ, xyz, G,
      .              imem(QT), dmem(MaxH + 1),
      .              imem(REF), imem(ITET),
      .              h, flags, imem(ITET+4*NT), Nimem-ITET-4*NT,
-     .              NUNIT )
+     .              NUNIT ) 
 
 
 c ... saving memory distribution
@@ -144,7 +144,7 @@ c ... saving memory distribution
          imem(2) = NQT
          imem(3) = REF
          imem(4) = ITET
-
+         
          do i = 1, MaxH
             dmem(i) = h(i)
          end do
@@ -625,7 +625,7 @@ C ================================================================
             enddo
          enddo
       end if
-
+      
       Do 10 i = 1, NXYZ
          PREC1 = PREC
          irel = 0
@@ -640,7 +640,7 @@ C Relaxation of PREC is applied
                else
                   PREC1 = PREC1*3.16
                end if
-
+               
                if (irel.lt.MaxRelax) then
                   irel = irel + 1
                   Goto 11
@@ -663,7 +663,7 @@ C of parameters in lintrp.fd. REINSTALL constants in lintrp.fd!
                write(NUNIT,24)
             end if
          end if
-
+         
          do j = 1, 4
             ip(j) = tet(j, idx)
          enddo
@@ -676,12 +676,12 @@ C of parameters in lintrp.fd. REINSTALL constants in lintrp.fd!
             G(j, i) = (a * F(j, ip(1)) + b * F(j, ip(2)) +
      .                 c * F(j, ip(3)) + d * F(j, ip(4))) / det
          end do
- 10   Continue
+ 10   Continue  
 
  21   Format('Caution! PREC1 was relaxed: ', F11.7, ' since')
  22   Format('the point ',3F9.5,' is probably out of the mesh')
  23   Format('After MaxTrials failed to find a host within ',F8.6,
-     &       ' tolerance')
+     &       ' tolerance') 
  24   Format('NEED TO REINSTALL constants in lintrp.fd')
 
       return
@@ -712,7 +712,7 @@ C ================================================================
 
       do i = 1, 4
          frac = calVol( XYZ(1), vrt(1,TET(Face(1,i))),
-     &                          vrt(1,TET(Face(2,i))),
+     &                          vrt(1,TET(Face(2,i))), 
      &                          vrt(1,TET(Face(3,i)))) /  Vlm
          if ( frac.LE.-PREC ) then
             ENCLOSE = .FALSE.
@@ -732,7 +732,7 @@ C ================================================================
       include 'lintrp.fd'
 C ================================================================
 C  The function returns the size of the octtree cell which contains
-C  the given point with coords point(3).
+C  the given point with coords point(3). 
 C
 C  PARAMETERS:
 C     point(3) - user given point inside the unit cube (0,1)^3

@@ -155,7 +155,7 @@ File: tets.png Graphic file (type png)
  <use tets.png> [1
 
 {/sw/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./tets.png>] (./tets.au
-x) )
+x) ) 
 Here is how much of TeX's memory you used:
  1200 strings out of 94500
  15321 string characters out of 1176113

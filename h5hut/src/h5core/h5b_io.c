@@ -37,7 +37,7 @@ h5bpriv_open_file (
 	const h5_file_p f		/*!< IN: file handle */
 	) {
 	H5_PRIV_API_ENTER (h5_err_t, "f=%p", f);
-	h5b_fdata_t* b;
+	h5b_fdata_t* b; 
 
 	if (f->b)
 		H5_LEAVE (H5_SUCCESS);
@@ -71,7 +71,7 @@ h5bpriv_open_file (
 
   \internal
 
-  De-initialize H5Block internal structure.  Open HDF5 objects are
+  De-initialize H5Block internal structure.  Open HDF5 objects are 
   closed and allocated memory freed.
 
   \return	H5_SUCCESS or error code
@@ -462,3 +462,4 @@ h5b_read_vector3d_data (
 
 	H5_RETURN (H5_SUCCESS);
 }
+

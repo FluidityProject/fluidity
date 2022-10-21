@@ -207,20 +207,20 @@ h5tpriv_calc_chunk_statistic (
 		for (int j = 0; j < m->chunks->num_chunks_p_level[i]; j++) {
 			num_elems_p_level[i] += m->chunks->chunks[counter].num_elems;
 			num_elems_p_level[m->chunks->num_levels] += m->chunks->chunks[counter].num_elems;
-                        min_elems_p_level[i] =
+                        min_elems_p_level[i] = 
                                 (min_elems_p_level[i] > m->chunks->chunks[counter].num_elems) ?
                                 m->chunks->chunks[counter].num_elems : 0;
-                        max_elems_p_level[i] =
+                        max_elems_p_level[i] = 
                                 max_elems_p_level[i] < m->chunks->chunks[counter].num_elems ?
                                 m->chunks->chunks[counter].num_elems : 0;
 			counter++;
 		}
 		avg_p_level[i] = num_elems_p_level[i] / (double) m->chunks->num_chunks_p_level[i];
 		avgfill_p_level[i] = avg_p_level[i] / max_num_elems_p_chunk;
-                min_elems_p_level[m->chunks->num_levels] =
+                min_elems_p_level[m->chunks->num_levels] = 
                         min_elems_p_level[m->chunks->num_levels] > min_elems_p_level[i] ?
                         min_elems_p_level[i] : 0;
-                max_elems_p_level[m->chunks->num_levels] =
+                max_elems_p_level[m->chunks->num_levels] = 
                         max_elems_p_level[m->chunks->num_levels] < max_elems_p_level[i] ?
                         max_elems_p_level[i] : 0;
 	}
@@ -1245,7 +1245,7 @@ h5t_pre_refine_chk (
 	// exchange list of marked entities
 	TRY (*point_list = h5_calloc (
 		     // alloc for maximal num elems to refine
-		     m->num_glb_leaf_elems[m->leaf_level-1], sizeof (**point_list)));
+		     m->num_glb_leaf_elems[m->leaf_level-1], sizeof (**point_list))); 
 
 	TRY (h5priv_exchange_loc_list_to_glb (m, glb_list));
 	h5_glb_idxlist_t* glb_marked_entities = *glb_list;
@@ -2506,7 +2506,7 @@ h5t_end_refine_elems (
         ) {
 	H5_CORE_API_ENTER (h5_err_t, "m=%p", m);
 	if (m->is_chunked) {
-#ifdef WITH_PARALLEL_H5GRID
+#ifdef WITH_PARALLEL_H5GRID		
 		TRY (h5priv_mpi_barrier (m->f->props->comm));
                 m->timing.measure[m->timing.next_time++] = MPI_Wtime();
 		h5_glb_idxlist_t* glb_list = NULL;

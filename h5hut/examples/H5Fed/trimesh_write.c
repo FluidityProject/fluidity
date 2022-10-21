@@ -7,12 +7,12 @@ const char* FNAME = "simple_triangle.h5";
 
 typedef struct vertex {
 	h5_float64_t P[3];
-} vertex_t;
+} vertex_t; 
 
 typedef struct elem {
 	h5_loc_idx_t vids[3];
 } elem_t;
-
+	       
 vertex_t Vertices[] = {
 	{ {-1.0,  0.0,  0.0} },
 	{ { 1.0,  0.0,  0.0} },

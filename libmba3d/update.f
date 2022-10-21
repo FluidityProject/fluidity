@@ -201,7 +201,7 @@ C ==========================================================
          End do
 
  10      If(IFE(i1, iE).NE.0) Then
-C  ...  analyzing the detailed structure of this face
+C  ...  analyzing the detailed structure of this face 
 C  ...  the face may be interior and with boundary points
             Call makSP(iP1, IEP, IPE, IEE, MaxS, kE, iEu)
             Do 15 k = 1, kE
@@ -212,7 +212,7 @@ C  ...  the face may be interior and with boundary points
                Do j1 = 1, 4
                   j2 = iref(j1 + 1)
                   j3 = iref(j2 + 1)
-
+                  
                   jP1 = IPE(j1, iEt)
                   jP2 = IPE(j2, iEt)
                   jP3 = IPE(j3, iEt)

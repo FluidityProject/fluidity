@@ -554,3 +554,4 @@ void h5u_test_read4(void)
 	status = H5CloseFile(file2);
 	RETURN(status, H5_SUCCESS, "H5CloseFile");
 }
+

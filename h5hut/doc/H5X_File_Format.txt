@@ -44,10 +44,10 @@ __stepnumwidth__ (optional)
 2.1.2 Members of the root group
 
 Members of the root group are special formated HDF5 groups called
-"step groups".  The name of a step group is "<name>#<number>".
+"step groups".  The name of a step group is "<name>#<number>". 
 Whereby <name> is either defined by the optional file attribute
-__stepname__ or set to "Step" by default. <number> is an
-unsigned integer less than 2^63.
+__stepname__ or set to "Step" by default. <number> is an 
+unsigned integer less than 2^63. 
 
 /
 +- Step#0
@@ -59,13 +59,13 @@ unsigned integer less than 2^63.
 
 The optional file attribute __stepnumwidth__ defines the minimum width
 of <number> in the name of the step group. The number is padded with
-'0'. The minimum width defaults to zero, so that no paddings occurs.
+'0'. The minimum width defaults to zero, so that no paddings occurs. 
 Example: With __stepnumwidth__ := 5 the name of the step group with
 number 42 is "Step#00042", with __stepnumwidth__ := 0 the name is
-"Step#42".
+"Step#42". 
 
 Step groups may be unsorted in the HDF5 file und needn't be number
-consecutively.
+consecutively. 
 
 2.1.3 Other members of the root group
 
@@ -85,7 +85,7 @@ as for file attributes:
 	* 64bit floating point number
 	* array of 64bit floating point number
 	* strings
-Note that array of strings are not supported!
+Note that array of strings are not supported! 
 
 2.2.2  Predefined step attributes
 
@@ -96,7 +96,7 @@ No predefined step attributes exists.
 
 Members of a step group are HDF5 datasets and optional one HDF5 group
 with the name "Block". HDF5 datasets in a step group are called "step
-datasets". The optional block group is called "block data".
+datasets". The optional block group is called "block data". 
 
 Mesh?!
 
@@ -167,3 +167,4 @@ Members are datasets
 Supported values are the same as for step attributes
 
 Mapping of value to step via object index of step group
+

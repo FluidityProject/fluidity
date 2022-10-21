@@ -88,5 +88,6 @@ Judy1Tables.c:
 	./Judy1TablesGen
 
 clean:
-	rm -f *.o
+	rm -f *.o 
 	rm -f Judy1Tables.c
+

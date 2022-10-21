@@ -25,17 +25,18 @@ C ==========================================================
        Integer   iSPLTE,     iCLPSR
        Parameter(iSPLTE = 7, iCLPSR = 8)
 
-
+ 
 C ...  available operations and their order (from 1 to 7 ONLY!)
        Integer   iF2Eop,     iE2Fop,     iSWAPop
        Parameter(iF2Eop = 2, iE2Fop = 3, iSWAPop = 5)
-
+ 
        Integer   iDELETop,     iINSRTop,     iMOVEop
        Parameter(iDELETop = 7, iINSRTop = 1, iMOVEop = 6)
-
+ 
        Integer   iCLPSRop
        Parameter(iCLPSRop = 4)
 
 C ...  number of operations
        Integer   NUMop
        Parameter(NUMop = 7)
+  

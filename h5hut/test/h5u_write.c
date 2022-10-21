@@ -421,7 +421,7 @@ void h5u_test_write3(void)
 #else
 	TEST("Opening file once, write-truncate, MPI-IO Independent VFD");
 #endif
-
+	
         h5_prop_t props = H5CreateFileProp ();
 
 #if defined(H5_HAVE_PARALLEL)
@@ -501,3 +501,4 @@ void h5u_test_write4(void)
 	status = H5CloseFile(file2);
 	RETURN(status, H5_SUCCESS, "H5CloseFile");
 }
+

@@ -37,7 +37,7 @@ program write_setnparticles
   call mpi_init (mpi_ierror)
   call mpi_comm_rank (comm, comm_rank, mpi_ierror)
 #endif
-
+  
   call h5_abort_on_error ()
   call h5_set_verbosity_level (h5_verbosity)
 
@@ -64,5 +64,5 @@ program write_setnparticles
 #if defined(PARALLEL_IO)
   call mpi_finalize (mpi_ierror)
 #endif
-
+  
 end program write_setnparticles

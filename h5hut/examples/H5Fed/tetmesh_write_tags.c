@@ -85,7 +85,7 @@ set_vertex_tags (
 		h5_debug ("Tagging %llx", (long long)local_id);
 	}
 	timer->stop(timer);
-	h5_info ("  Time to tag to all vertices: %fsec", timer->elapsed(timer));
+	h5_info ("  Time to tag to all vertices: %fsec", timer->elapsed(timer)); 
 	return H5FedEndTraverseEntities (iter);
 }
 
@@ -114,7 +114,7 @@ set_edge_tags (
 		}
 	}
 	timer->stop(timer);
-	h5_info ("  Time to tag all edges: %fsec", timer->elapsed(timer));
+	h5_info ("  Time to tag all edges: %fsec", timer->elapsed(timer)); 
 	return H5FedEndTraverseEntities (iter);
 }
 
@@ -143,7 +143,7 @@ set_tri_tags (
 		}
 	}
 	timer->stop(timer);
-	h5_info ("  Time to tag all triangles: %fsec", timer->elapsed(timer));
+	h5_info ("  Time to tag all triangles: %fsec", timer->elapsed(timer)); 
 	return H5FedEndTraverseEntities (iter);
 }
 
@@ -172,7 +172,7 @@ set_tet_tags (
 		}
 	}
 	timer->stop(timer);
-	h5_info ("  Time to tag to all tetrahedra: %fsec", timer->elapsed(timer));
+	h5_info ("  Time to tag to all tetrahedra: %fsec", timer->elapsed(timer)); 
 	return H5FedEndTraverseEntities (iter);
 }
 

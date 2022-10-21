@@ -49,7 +49,7 @@ program read_core_vfd
   num_particles = h5pt_getnpoints (file)
   write (*, "('[proc ', i4, ']: particles in view: ', i4)") &
        comm_rank, num_particles
-
+  
   ! read and print data
   allocate (data (num_particles))
   h5_ierror = h5pt_readdata_i4 (file, "data", data)

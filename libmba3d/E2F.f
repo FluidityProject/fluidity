@@ -16,7 +16,7 @@ C ================================================================
 C ================================================================
 c group (M)
      &           iwR, iwE,
-     &           nF, MaxF, nE,
+     &           nF, MaxF, nE, 
      &           XYP, IPF, IPE,
      &           hStar,
      &           ICP, IEP, IFE, IEE,
@@ -162,21 +162,21 @@ C ... checking for surrounding points
            iDs(1, 1) = iPa
            iDs(2, 1) = iPb
 
-           If(ifXnode(ICP(iPa), jBnode) .AND.
+           If(ifXnode(ICP(iPa), jBnode) .AND. 
      &        ifXnode(ICP(iPb), jInode)) Then
               Call chkSPf(1, iPa, iE2F, ICP, IEP, IPE, IEE, lP, iPs)
               Call chkSPb(2, 1, iDs, 0, iNs, iE2F,
      &                    ICP, IEP, IPE, IEE, lP, iPs, iPbad, flagBNDs)
               If(flagBNDs) Goto 1000
 
-           Else If(ifXnode(ICP(iPb), jBnode) .AND.
+           Else If(ifXnode(ICP(iPb), jBnode) .AND. 
      &             ifXnode(ICP(iPa), jInode)) Then
               Call chkSPf(1, iPb, iE2F, ICP, IEP, IPE, IEE, lP, iPs)
               Call chkSPb(2, 1, iDs, 0, iNs, iE2F,
      &                    ICP, IEP, IPE, IEE, lP, iPs, iPbad, flagBNDs)
               If(flagBNDs) Goto 1000
 
-           Else If(ifXnode(ICP(iPb), jBnode) .AND.
+           Else If(ifXnode(ICP(iPb), jBnode) .AND. 
      &             ifXnode(ICP(iPa), jBnode)) Then
               lP = 2
               iPs(1) = iPa

@@ -49,7 +49,7 @@ extern "C" {
   \see H5SetPropFileAlign()
   \see H5SetPropFileThrottle()
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -63,7 +63,7 @@ H5CreateFileProp (
 }
 
 /**
-  Stores MPI IO communicator information to given file property list. If used in
+  Stores MPI IO communicator information to given file property list. If used in 
   \ref H5OpenFile(), MPI collective IO will be used.
 
   \return \c H5_SUCCESS on success
@@ -73,7 +73,7 @@ H5CreateFileProp (
   \see H5SetPropFileMPIOPosix() (HDF5 <= 1.8.12 only)
   \see H5SetPropFileCoreVFD()
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				    |
   | \c 1.99.15 | Function introduced in this release. |
@@ -88,7 +88,7 @@ H5SetPropFileMPIOCollective (
 }
 
 /**
-  Stores MPI IO communicator information to given file property list. If used in
+  Stores MPI IO communicator information to given file property list. If used in 
   \ref H5OpenFile(), MPI independent IO will be used.
 
   \return \c H5_SUCCESS on success
@@ -98,7 +98,7 @@ H5SetPropFileMPIOCollective (
   \see H5SetPropFileMPIOPosix() (HDF5 <= 1.8.12 only)
   \see H5SetPropFileCoreVFD()
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -114,7 +114,7 @@ H5SetPropFileMPIOIndependent (
 
 #if H5_VERSION_LE(1,8,12)
 /**
-  Stores MPI IO communicator information to given file property list. If used in
+  Stores MPI IO communicator information to given file property list. If used in 
   \ref H5OpenFile(), MPI POSIX IO will be used.
 
 
@@ -126,9 +126,9 @@ H5SetPropFileMPIOIndependent (
   \see H5SetPropFileCoreVFD()
 
   \note This function is available only, if H5hut has been compiled with
-  HDF5 1.8.12 or older.
+  HDF5 1.8.12 or older. 
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -142,10 +142,10 @@ H5SetPropFileMPIOPosix (
         H5_API_RETURN (h5_set_prop_file_mpio_posix (prop, comm));
 }
 #endif
-
+	
 /**
   Modifies the file property list to use the \c H5FD_CORE driver.  The
-  \c H5FD_CORE driver enables an application to work with a file in memory.
+  \c H5FD_CORE driver enables an application to work with a file in memory. 
   File contents are stored only in memory until the file is closed.
 
   The increment by which allocated memory is to be increased each time more
@@ -154,7 +154,7 @@ H5SetPropFileMPIOPosix (
   \return \c H5_SUCCESS on success
   \return \c H5_FAILURE on error
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				    |
   | \c 1.99.15 | Function introduced in this release. |
@@ -188,7 +188,7 @@ H5SetPropFileCoreVFD (
 
   \see H5SetPropFileCoreVFD()
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -196,7 +196,7 @@ H5SetPropFileCoreVFD (
 static inline h5_err_t
 H5SetPropFileAlign (
         h5_prop_t prop,			///< [in,out] identifier for file property list
-        const h5_int64_t align		///< [in] alignment
+        const h5_int64_t align		///< [in] alignment 
         ) {
         H5_API_ENTER (h5_err_t, "prop=%p, align=%lld",
 		      (void*)prop, (long long int)align);
@@ -218,7 +218,7 @@ H5SetPropFileAlign (
   \return \c H5_SUCCESS on success
   \return \c H5_FAILURE on error
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----				      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -239,7 +239,7 @@ H5SetPropFileThrottle (
   \return \c H5_SUCCESS on success
   \return \c H5_FAILURE on error
 
-  \note
+  \note 
   | Release     | Change                               |
   | :------     | :-----			       |
   | \c 2.0.0rc5 | Function introduced in this release. |
@@ -256,7 +256,7 @@ H5SetPropFileFlush (
 /**
   Close file property list.
 
-  \note
+  \note 
   | Release    | Change                               |
   | :------    | :-----			  	      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -300,7 +300,7 @@ H5CloseProp (
 static inline h5_file_t
 H5OpenFile2 (
 	const char* const filename,	///< [in] name of file
-	const h5_int64_t mode,		///< [in] file mode
+	const h5_int64_t mode,		///< [in] file mode 
         const h5_prop_t props		///< [in] identifier for file property list
 	) {
 	H5_API_ENTER (h5_file_t,
@@ -386,7 +386,7 @@ static inline h5_err_t
 H5FlushStep (
 	const h5_file_t f		///< [in] file handle.
 	) {
-	H5_API_ENTER (h5_err_t,
+	H5_API_ENTER (h5_err_t, 
                       "f=%p",
                       (h5_file_p)f);
 	H5_API_RETURN (h5_flush_iteration (f));

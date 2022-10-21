@@ -116,7 +116,7 @@ C =========================================================
       i5 = 3 - i6
 
 
-      If(iF1.NE.0) Then
+      If(iF1.NE.0) Then 
          par(1) = parCrv(i1, iF1)
          par(2) = parCrv(i2, iF1)
       End if
@@ -139,7 +139,7 @@ C =========================================================
      &                 status)
 C =========================================================
 C Remark: The 1st column of the IPE is temporary overloaded.
-C         The negative values of IPE(1, *) are used for a
+C         The negative values of IPE(1, *) are used for a 
 C         quick search in the list iEs.
 C =========================================================
       include 'status.fd'
@@ -174,7 +174,7 @@ C =========================================================
       lE = 0
       Do 10 n = 1, kE
          iEt = iEs(n)
-         If(IPE(1, iEt).LT.0) goto 10
+         If(IPE(1, iEt).LT.0) goto 10 
 
          lE = lE + 1
          iEs(lE) = iEt
@@ -198,7 +198,7 @@ c ... adding elements adjacent by an edge (for local topological operations)
             Do 40 i = 1, 3
                jEt = IEE(i, iEt)
                If(jEt.LE.0) goto 40
-               If(IPE(1, jEt).LT.0) goto 40
+               If(IPE(1, jEt).LT.0) goto 40 
 
                lE = lE + 1
                iEs(lE) = jEt
@@ -224,13 +224,13 @@ c ... adding surface edges
       Do n = 1, lE
          kE = iEs(n)
          qEs(n) = qE(kE)
-         If(IPEs(1, n).EQ.0) Call errMes(6001,
-     &                            'makSE', 'System error')
+         If(IPEs(1, n).EQ.0) Call errMes(6001, 
+     &                            'makSE', 'System error') 
 
          Do 20 i = 1, 3
             iF = IFE(i, kE)
             If(iF.NE.0) Then
-               Do m = 1, lF
+               Do m = 1, lF 
                   If(iF.EQ.iFs(m)) goto 20
                End do
 
@@ -246,7 +246,7 @@ c ... adding surface edges
 
       Return
  1000 Continue
-      Call errMes(1007, 'makSE',
+      Call errMes(1007, 'makSE', 
      &           'local variable MaxS is too small')
       End
 
@@ -254,7 +254,7 @@ c ... adding surface edges
 C =========================================================
       Subroutine makSP(iP, IEP, IPE, IEE, MaxS, nS, iSE)
 C =========================================================
-C Remark: the 3rd column of IPE is overloaded to avoid
+C Remark: the 3rd column of IPE is overloaded to avoid 
 C         seachinf th ine list iSE.
 C =========================================================
 c group (M)
@@ -305,14 +305,14 @@ c              End do
       If(repeat) goto 1
 
 c ... restoring the overloaded values
-      Do k = 1, nS
+      Do k = 1, nS 
          iE = iSE(k)
          IPE(3, iE) = -IPE(3, iE)
       End do
 
       Return
  1000 Continue
-      Call errMes(1007, 'makSP',
+      Call errMes(1007, 'makSP', 
      &           'local variable MaxS is too small')
       End
 
@@ -367,7 +367,7 @@ C =========================================================
       Return
 
  1000 Continue
-      Call errMes(1007, 'chkSPf',
+      Call errMes(1007, 'chkSPf', 
      &           'local variable MaxS is too small')
       End
 
@@ -430,7 +430,7 @@ C =========================================================
                            Else If(iPt.EQ.iD2) Then
                               lPb = lPb + 2
                               If(lPb.GT.MaxS) goto 1000
-
+                              
                               iPb(lPb - 1) = iD2
                               iPb(lPb) = iD1
                            End if
@@ -460,7 +460,7 @@ C =========================================================
       Return
 
  1000 Continue
-      Call errMes(1007, 'chkSPb',
+      Call errMes(1007, 'chkSPb', 
      &           'local variable MaxS is too small')
       End
 
@@ -612,3 +612,5 @@ C =========================================================
       detGs = detGu
       Return
       End
+
+

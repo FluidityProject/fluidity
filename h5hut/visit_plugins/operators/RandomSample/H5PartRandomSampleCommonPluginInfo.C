@@ -39,7 +39,7 @@ H5PartRandomSampleCommonPluginInfo::AllocAttributes()
 //
 // ****************************************************************************
 
-void
+void 
 H5PartRandomSampleCommonPluginInfo::CopyAttributes(AttributeSubject *to,
     AttributeSubject *from)
 {

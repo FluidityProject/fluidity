@@ -98,7 +98,7 @@ C ================================================================
       Subroutine clrSR(iPa, iPb, ICP, IPF, IFE,
      &                 lF, iFs, lE, iEs, ICRab)
 C ================================================================
-C The color of edge {iPa, iPb} is computed.
+C The color of edge {iPa, iPb} is computed. 
 C
 C Remark: The superlement is not modified.
 C ================================================================

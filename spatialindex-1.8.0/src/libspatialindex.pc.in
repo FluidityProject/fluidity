@@ -3,9 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libspatialindex
+Name: libspatialindex 
 Description: Generic C/C++ library for spatial indexing
-Requires:
+Requires: 
 Version: @PACKAGE_VERSION@
 Libs: -L@libdir@ @LDFLAGS@
 Cflags: -I${includedir}/spatialindex @CFLAGS@ @CPPFLAGS@
+

@@ -1,7 +1,7 @@
 // @(#) $Revision: 4.20 $ $Source: /judy/test/manual/Judy1LHTime.c $
 //=======================================================================
 //   This program measures the performance of a Judy1 and JudyL Array.
-//                      -by-
+//                      -by- 
 //   Author Douglas L. Baskins, Aug 2003.
 //   Permission to use this code is freely granted, provided that this
 //   statement is retained.
@@ -25,16 +25,16 @@
 #endif
 
 //=======================================================================
-//   This program measures the performance of a Judy1, JudyL and
+//   This program measures the performance of a Judy1, JudyL and 
 //   limited to one size of string (sizeof Word_t) JudyHS Arrays.
 //
-// Compile:
+// Compile: 
 //
-//   cc -O Judy1LHTime.c -lm -lJudy -o Judy1LHTime
+//   cc -O Judy1LHTime.c -lm -lJudy -o Judy1LHTime 
 //           -or-
 //   cc -O -DCPUMHZ=2400 Judy1LHTime.c -lm -lJudy -o Judy1LHTime
 
-/* Notes:
+/* Notes:  
    1) Use '-DCPUMHZ=2400' in cc line if better clock resolution is desired
       and it compiles successfully.  The 2400 is the cpu MHz : 2400  -or-
       cat /proc/cpuinfo | grep "cpu MHz" in a Linux system.
@@ -285,7 +285,7 @@ Word_t    MagicList[] = {
     0xc4fb,                             // 21
     0xc4fb,                             // 22
     0xc4fb,                             // 23
-    0x13aab,                            // 24
+    0x13aab,                            // 24 
     0x11ca3,                            // 25
     0x11ca3,                            // 26
     0x11ca3,                            // 27
@@ -293,39 +293,39 @@ Word_t    MagicList[] = {
     0x11ca3,                            // 29
     0xc4fb,                             // 30
     0xc4fb,                             // 31
-    0x13aab,                            // 32
-    0x14e73,                            // 33
-    0x145d7,                            // 34
+    0x13aab,                            // 32 
+    0x14e73,                            // 33  
+    0x145d7,                            // 34  
     0x145f9,                            // 35  following tested with Seed=0xc1fc to 35 billion numbers
-    0x151ed,                            // 36 .. 41
-    0x151ed,                            // 37
-    0x151ed,                            // 38
-    0x151ed,                            // 39
-    0x151ed,                            // 40
-    0x146c3,                            // 41 .. 64
-    0x146c3,                            // 42
-    0x146c3,                            // 43
-    0x146c3,                            // 44
-    0x146c3,                            // 45
-    0x146c3,                            // 46
-    0x146c3,                            // 47
-    0x146c3,                            // 48
-    0x146c3,                            // 49
-    0x146c3,                            // 50
-    0x146c3,                            // 51
-    0x146c3,                            // 52
-    0x146c3,                            // 53
-    0x146c3,                            // 54
-    0x146c3,                            // 55
-    0x146c3,                            // 56
-    0x146c3,                            // 57
-    0x146c3,                            // 58
-    0x146c3,                            // 59
-    0x146c3,                            // 60
-    0x146c3,                            // 61
-    0x146c3,                            // 62
-    0x146c3,                            // 63
-    0x146c3                             // 64
+    0x151ed,                            // 36 .. 41 
+    0x151ed,                            // 37  
+    0x151ed,                            // 38  
+    0x151ed,                            // 39  
+    0x151ed,                            // 40  
+    0x146c3,                            // 41 .. 64 
+    0x146c3,                            // 42  
+    0x146c3,                            // 43  
+    0x146c3,                            // 44  
+    0x146c3,                            // 45  
+    0x146c3,                            // 46  
+    0x146c3,                            // 47  
+    0x146c3,                            // 48  
+    0x146c3,                            // 49  
+    0x146c3,                            // 50  
+    0x146c3,                            // 51  
+    0x146c3,                            // 52  
+    0x146c3,                            // 53  
+    0x146c3,                            // 54  
+    0x146c3,                            // 55  
+    0x146c3,                            // 56  
+    0x146c3,                            // 57  
+    0x146c3,                            // 58  
+    0x146c3,                            // 59  
+    0x146c3,                            // 60  
+    0x146c3,                            // 61  
+    0x146c3,                            // 62  
+    0x146c3,                            // 63  
+    0x146c3                             // 64  
 };
 
 // Routine to "mirror" the input data word
@@ -371,7 +371,7 @@ Word_t    J1Flag = 0;                   // time Judy1
 Word_t    JLFlag = 0;                   // time JudyL
 Word_t    JHFlag = 0;                   // time JudyHS
 Word_t    dFlag = 0;                    // time Judy1Unset JudyLDel
-Word_t    vFlag = 0;                    // time Searching
+Word_t    vFlag = 0;                    // time Searching 
 Word_t    CFlag = 0;                    // time Counting
 Word_t    cFlag = 0;                    // time Copy of Judy1 array
 Word_t    IFlag = 0;                    // time duplicate inserts/sets
@@ -388,7 +388,7 @@ Word_t    RandomBit = ~0UL / 2 + 1;
 Word_t    BValue = sizeof(Word_t) * 8;
 Word_t    Magic;
 
-// for error routines -- notice misspelling, name conflicts with some compilers
+// for error routines -- notice misspelling, name conflicts with some compilers 
 #undef __FUNCTI0N__
 #define __FUNCTI0N__ "Random"
 
@@ -474,7 +474,7 @@ main(int argc, char *argv[])
             SkipN = strtoul(optarg, NULL, 0);
             break;
 
-        case 'T':                      // Maximum retrieve tests for timing
+        case 'T':                      // Maximum retrieve tests for timing 
             TValues = strtoul(optarg, NULL, 0);
             break;
 

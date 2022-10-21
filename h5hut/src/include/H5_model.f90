@@ -9,7 +9,7 @@
   INTERFACE
      !> \addtogroup h5_model_f
      !! @{
-
+     
      !>
      !! See \ref H5HasStep
      !! \return 0 on success or H5_FAILURE
@@ -32,7 +32,7 @@
      !! See \ref H5GetStep
      !! \return the the current step or \c H5_FAILURE
 
-     INTEGER*8 FUNCTION h5_getstep (filehandle)
+     INTEGER*8 FUNCTION h5_getstep (filehandle)      
        INTEGER*8, INTENT(IN) :: filehandle         !< the handle returned during file open
      END FUNCTION h5_getstep
 
@@ -40,7 +40,7 @@
      !! See \ref H5GetNumSteps
      !! \return the number of steps or error code
 
-     INTEGER*8 FUNCTION h5_getnsteps (filehandle)
+     INTEGER*8 FUNCTION h5_getnsteps (filehandle)      
        INTEGER*8, INTENT(IN) :: filehandle         !< the handle returned during file open
      END FUNCTION h5_getnsteps
 

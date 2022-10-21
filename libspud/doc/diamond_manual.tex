@@ -48,12 +48,12 @@ current system. This is specified in the \verb+schemata+ subdirectory of:
 Directories are searched in the above order.  The file names in the
 \verb+schemata+ directory give the filename extension associated with a
 particular problem description language. If multiple files corresponding to a particular extension are found the last file takes
-precendence (i.e. a file found in a \verb+schemata+ subdirectory of \verb+$DIAMOND_CONFIG_PATH+ will take precendence over
-one in \verb+~/.diamond/schemata+).
+precendence (i.e. a file found in a \verb+schemata+ subdirectory of \verb+$DIAMOND_CONFIG_PATH+ will take precendence over 
+one in \verb+~/.diamond/schemata+).  
 
 The content of the file is two or
 more lines. The first line is the name of the problem description language,
-the remaining lines are key value pairs (key = value) of alias names and the
+the remaining lines are key value pairs (key = value) of alias names and the 
 path of the XML syntax (\verb+.rng+) version of the corresponding schema.
 A line with no "key =" part will be interpreted as "default =".
 
@@ -128,16 +128,16 @@ Diamond provides three views.
 \subsection{Main view}
 The main view shows the tree structure of the document on the left hand side and
 data and documentation for the currently selected element on the right hand side.
-The treeview can be traversed with either the mouse by clicking to open, close, add and
+The treeview can be traversed with either the mouse by clicking to open, close, add and 
 destroy elements or with the keyboard, using the arrows keys, enter and delete.
-Elements can be copied (puts the XML representation onto the clipboard) or XML can be pasted into
+Elements can be copied (puts the XML representation onto the clipboard) or XML can be pasted into 
 an element.
-Finally elements of the same type can be grouped together, this will bring all elements of the selected
+Finally elements of the same type can be grouped together, this will bring all elements of the selected 
 type to the top level and hide other elements. Ungroup will then return the view to normal.
 
 \subsection{Slice view}
-Slice view is opened by right clicking an element and selecting \verb+Slice+ or
-selecting an element and then selecting \verb+Slice+ in the \verb+Edit+ menu.
+Slice view is opened by right clicking an element and selecting \verb+Slice+ or 
+selecting an element and then selecting \verb+Slice+ in the \verb+Edit+ menu. 
 The slice view shows a list of a given type of element. Each item shows the path, data and attributes for that element.
 
 \subsection{Diff view}
@@ -148,7 +148,7 @@ used in the main view such as hiding certain elements (for example real\_value o
 The colours used in the diff view can be set in the settings file see \ref{sec:colour}.
 
 \subsection{Dynamic validation}
-Diamond uses the schema to guide the editing of valid documents that the schema
+Diamond uses the schema to guide the editing of valid documents that the schema 
 permits. When a blank document is opened, information necessary to make a valid
 document is missing and the document is thus invalid\footnote{This is true for all
 but a trivial schema which permits only one document.}. The invalidity of the document

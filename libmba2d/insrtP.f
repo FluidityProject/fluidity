@@ -37,7 +37,7 @@ C *** DATA FLOW CHART
 C
 C  -> check if the edge can be split
 C  -> check that 2-arm rule will be preserved
-C  -> insert a virtual point
+C  -> insert a virtual point 
 C  -> project the point onto curved boundary
 C
 C  -> virtual evaluation of the element quality
@@ -76,7 +76,7 @@ C group (Q)
       real  HesP(3, *), Quality, rQuality
       real  detG(*), qE(*)
       Logical flagAnalytic
-
+ 
       Integer  MetricFunction
       EXTERNAL MetricFunction
 
@@ -354,7 +354,7 @@ C ... updating the grid
 
             goto 1000
          End if
-      End if
+      End if 
 
 
       If(iF.NE.0) Then
@@ -425,3 +425,5 @@ C ... updating the grid
 
  1000 Return
       End
+
+

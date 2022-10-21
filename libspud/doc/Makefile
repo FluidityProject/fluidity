@@ -11,5 +11,5 @@ endif
 
 # We don't rm *.ps *.pdf because that might clobber image files. Instead, put any
 # ps files which should go in $(PSFILES)
-clean:
+clean: 
 	rm $(TARGETS) $(PSFILES) *.eps *.dvi *.aux *.log *.bbl *.blg *.out *.toc 2>/dev/null||true

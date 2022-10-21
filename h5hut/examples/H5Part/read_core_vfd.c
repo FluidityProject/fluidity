@@ -10,7 +10,7 @@
 /*
   Note:
   Running this example on more than one core is possible but the result
-  might not be what you expect. Please read the HDF5 documentation about
+  might not be what you expect. Please read the HDF5 documentation about 
   the VFD core driver.
 */
 #include "H5hut.h"
@@ -29,7 +29,7 @@ main (
         int argc,
 	char* argv[]
         ){
-
+	
         // initialize MPI & H5hut
         MPI_Init (&argc, &argv);
 	MPI_Comm comm = MPI_COMM_WORLD;
@@ -62,3 +62,4 @@ main (
 	MPI_Finalize ();
         return H5_SUCCESS;
 }
+

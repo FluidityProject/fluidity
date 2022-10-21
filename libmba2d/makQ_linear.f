@@ -8,8 +8,8 @@ C ================================================================
 C ================================================================
       Subroutine makQ(
 C ================================================================
-C Routine computes hStar and Quality of elements in the initial
-c mesh.
+C Routine computes hStar and Quality of elements in the initial 
+c mesh. 
 C ================================================================
 c group (M)
      &     nP, nE, XYP, IPE, IEE, nEV, IEV,
@@ -51,7 +51,7 @@ C ================================================================
       Do n = 1, nE
          dsum = 0D0
 
-         Do i1 = 1, 3
+         Do i1 = 1, 3 
             i2 = iref(i1 + 1)
             iP1 = IPE(i1, n)
             iP2 = IPE(i2, n)
@@ -138,7 +138,7 @@ C ================================================================
 C Routine computes determinat det(H) of matrix H where
 C       | HesP(1)  HesP(3) |
 C   H = |                  |
-C       | HesP(3)  HesP(2) |
+C       | HesP(3)  HesP(2) |  
 C ================================================================
       real  HesP(3), detG
 
@@ -155,7 +155,7 @@ C ================================================================
         A(1, 2) = HesP(3)
 
         Call dsyev('V', 'U', 2, A, 2, E, rW, 10, info)
-        If(info.NE.0) Call errMes(3011, 'calDet',
+        If(info.NE.0) Call errMes(3011, 'calDet', 
      &                    'Error in Lapack routine dsyev')
 
         E(1) = abs(E(1))
@@ -191,7 +191,7 @@ C that the metric is linear.
 C
 C *** Remarks:
 C        1. round-off errors require to use |Lk|
-C        2. moved division by 2 in HesAvg in calculation of Lk
+C        2. moved division by 2 in HesAvg in calculation of Lk 
 C ================================================================
       real Hes1(3), xy1(2)
       real Hes2(3), xy2(2)
@@ -265,7 +265,7 @@ C ================================================================
      &      Hes3, det3, xy3,
      &      hStar, iw)
 C ================================================================
-C Routine orders mesh edges in assending of their quality
+C Routine orders mesh edges in assending of their quality 
 C ================================================================
       real  Hes1(3), det1, xy1(2)
       real  Hes2(3), det2, xy2(2)
@@ -349,7 +349,7 @@ C ================================================================
 
 
 C ================================================================
-      Subroutine updQE(XYP, lE, iEs, IPEs,
+      Subroutine updQE(XYP, lE, iEs, IPEs, 
      &                 HesP, rQuality, detG, hStar, qEs, flag)
 C ================================================================
 C Routine is used for mesh smoothing (status & ANISmoothMesh = 1)
@@ -438,7 +438,7 @@ C ================================================================
       real Function avgQ(nE, qE, L1E, L2E)
 C ================================================================
       real  qE(*)
-      Integer L2E(*), L1E(2, *)
+      Integer L2E(*), L1E(2, *) 
 
       avgQ = 0D0
 
@@ -452,3 +452,4 @@ C ================================================================
 
       Return
       End
+

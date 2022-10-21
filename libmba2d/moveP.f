@@ -120,7 +120,7 @@ c ... removing elements from superelement
 
          Do i1 = 1, 3
             If(IPE(i1, iE).EQ.iP1) Then
-               i2 = ip(i1 + 1)
+               i2 = ip(i1 + 1) 
                i3 = ip(i2 + 1)
 
                iP2 = IPE(i2, iE)
@@ -137,9 +137,9 @@ c ... removing elements from superelement
          If(.NOT.ifXnode(status, ANISmoothMesh)) iEs(n) = 0
  10   Continue
 
-
+      
 C ... checking for inverted elements
-      flagTM = ifXnode(status, ANIUntangleMesh)
+      flagTM = ifXnode(status, ANIUntangleMesh) 
       if(flagTM) Then
          nBad = 0
          Do n = 1, lE
@@ -201,7 +201,7 @@ C ... computing the gradient
                ir = ILt(k)
                Call prjCrv(XYPs(1, i), prjXYPs(1, i), iFNCs(i), tc(i),
      &                                                          calCrv,
-     &                     L1Et(1, ir), L2Et(ir), nL2t(k),
+     &                     L1Et(1, ir), L2Et(ir), nL2t(k), 
      &                     nStept(1, k), nEt(k), tE(ir))
                Do j = 1, 2
                   XYPs(j, i) = prjXYPs(j, i)
@@ -312,7 +312,7 @@ C group(F)
 C group (ANI)
      &     XYP, IPE, IEE, HesP, hStar, status,
      &     lE, iEs, XYPs, IPEs, detGs, HesPs, qEs,
-     &     nPw, nEw, XYPw, HesPw, IPEw,
+     &     nPw, nEw, XYPw, HesPw, IPEw, 
      &     MetricFunction, flagAnalytic,
      &     iSE, rSE, iP1, iFNCs(iref), calCrv,
      &     L1Et, L2Et, tE,

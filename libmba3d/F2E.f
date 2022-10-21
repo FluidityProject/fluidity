@@ -171,8 +171,8 @@ C ... checking for boundary elements
       If(ifXnode(status, ANIForbidBoundaryElements) .AND.
      &  ifXnode(ICP(iPa), jBnode) .AND.
      &  ifXnode(ICP(iPb), jBnode)) Then
-        flag1 = ifXnode(ICP(iP1), jBnode)
-        flag2 = ifXnode(ICP(iP2), jBnode)
+        flag1 = ifXnode(ICP(iP1), jBnode)  
+        flag2 = ifXnode(ICP(iP2), jBnode) 
         If(flag1 .AND. flag2) Goto 1000
 
         flag3 = ifXnode(ICP(iP3), jBnode)

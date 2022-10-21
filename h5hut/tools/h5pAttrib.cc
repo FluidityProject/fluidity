@@ -82,10 +82,10 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
     static int sp = 1;    /* character index in current token */
     int opt_opt = '?';    /* option character passed back to user */
 
-    if (sp == 1)
+    if (sp == 1) 
     {
         /* check for more flag-like tokens */
-        if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0')
+        if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0') 
         {
             return EOF;
         }
@@ -96,7 +96,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
         }
     }
 
-    if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-')
+    if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-') 
     {
         /* long command line option */
         const char *arg = &argv[opt_ind][2];
@@ -205,7 +205,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 
             sp = 1;
         }
-        else
+        else 
         {
             /* set up to look at next char in token, next time */
             if (argv[opt_ind][++sp] == '\0')
@@ -227,7 +227,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 static struct arg_handler* function_assign(int argc, const char *argv[])
 {
     struct arg_handler   *hand = NULL;
-
+ 
     int                  i, option;
 
     /* this will be plenty big enough to hold the info */
@@ -1201,7 +1201,7 @@ static void free_handler(struct arg_handler *hand, int len)
 {
     int i;
 
-    for (i = 0; i < len; i++)
+    for (i = 0; i < len; i++) 
     {
         free(hand[i].obj);
     }
@@ -1221,7 +1221,7 @@ int main(int argc, const char *argv[])
    /* Take care of the command line options */
    hand = function_assign(argc, argv);
 
-    if (argc <= opt_ind)
+    if (argc <= opt_ind) 
     {
         fprintf(stdout, "missing file name\n");
         print_help();
@@ -1249,7 +1249,7 @@ int main(int argc, const char *argv[])
    {
       print_all(h5file);
    }
-   else
+   else 
    {
       for (i = 0; i < argc; i++)
       {

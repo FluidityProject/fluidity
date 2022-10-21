@@ -7,7 +7,7 @@
   License: see file COPYING in top level of source distribution.
 */
 
-#ifndef __H5CORE_H5T_TAGS_H
+#ifndef __H5CORE_H5T_TAGS_H 
 #define __H5CORE_H5T_TAGS_H
 
 #include "h5core/h5_types.h"

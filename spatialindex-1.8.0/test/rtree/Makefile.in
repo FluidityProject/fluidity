@@ -97,7 +97,7 @@ Exhaustive_DEPENDENCIES = ../../libspatialindex.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
-am__v_lt_1 =
+am__v_lt_1 = 
 am_Generator_OBJECTS = Generator.$(OBJEXT)
 Generator_OBJECTS = $(am_Generator_OBJECTS)
 Generator_DEPENDENCIES = ../../libspatialindex.la
@@ -117,11 +117,11 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 =
+am__v_GEN_1 = 
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 =
+am__v_at_1 = 
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -135,7 +135,7 @@ LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
-am__v_CXX_1 =
+am__v_CXX_1 = 
 CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -143,7 +143,7 @@ CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
-am__v_CXXLD_1 =
+am__v_CXXLD_1 = 
 SOURCES = $(Exhaustive_SOURCES) $(Generator_SOURCES) \
 	$(RTreeBulkLoad_SOURCES) $(RTreeLoad_SOURCES) \
 	$(RTreeQuery_SOURCES)
@@ -295,16 +295,16 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I../../include
-Generator_SOURCES = Generator.cc
+AM_CPPFLAGS = -I../../include 
+Generator_SOURCES = Generator.cc 
 Generator_LDADD = ../../libspatialindex.la
-Exhaustive_SOURCES = Exhaustive.cc
+Exhaustive_SOURCES = Exhaustive.cc 
 Exhaustive_LDADD = ../../libspatialindex.la
-RTreeLoad_SOURCES = RTreeLoad.cc
+RTreeLoad_SOURCES = RTreeLoad.cc 
 RTreeLoad_LDADD = ../../libspatialindex.la
-RTreeQuery_SOURCES = RTreeQuery.cc
+RTreeQuery_SOURCES = RTreeQuery.cc 
 RTreeQuery_LDADD = ../../libspatialindex.la
-RTreeBulkLoad_SOURCES = RTreeBulkLoad.cc
+RTreeBulkLoad_SOURCES = RTreeBulkLoad.cc 
 RTreeBulkLoad_LDADD = ../../libspatialindex.la
 all: all-am
 
@@ -350,23 +350,23 @@ clean-noinstPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-Exhaustive$(EXEEXT): $(Exhaustive_OBJECTS) $(Exhaustive_DEPENDENCIES) $(EXTRA_Exhaustive_DEPENDENCIES)
+Exhaustive$(EXEEXT): $(Exhaustive_OBJECTS) $(Exhaustive_DEPENDENCIES) $(EXTRA_Exhaustive_DEPENDENCIES) 
 	@rm -f Exhaustive$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(Exhaustive_OBJECTS) $(Exhaustive_LDADD) $(LIBS)
 
-Generator$(EXEEXT): $(Generator_OBJECTS) $(Generator_DEPENDENCIES) $(EXTRA_Generator_DEPENDENCIES)
+Generator$(EXEEXT): $(Generator_OBJECTS) $(Generator_DEPENDENCIES) $(EXTRA_Generator_DEPENDENCIES) 
 	@rm -f Generator$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(Generator_OBJECTS) $(Generator_LDADD) $(LIBS)
 
-RTreeBulkLoad$(EXEEXT): $(RTreeBulkLoad_OBJECTS) $(RTreeBulkLoad_DEPENDENCIES) $(EXTRA_RTreeBulkLoad_DEPENDENCIES)
+RTreeBulkLoad$(EXEEXT): $(RTreeBulkLoad_OBJECTS) $(RTreeBulkLoad_DEPENDENCIES) $(EXTRA_RTreeBulkLoad_DEPENDENCIES) 
 	@rm -f RTreeBulkLoad$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(RTreeBulkLoad_OBJECTS) $(RTreeBulkLoad_LDADD) $(LIBS)
 
-RTreeLoad$(EXEEXT): $(RTreeLoad_OBJECTS) $(RTreeLoad_DEPENDENCIES) $(EXTRA_RTreeLoad_DEPENDENCIES)
+RTreeLoad$(EXEEXT): $(RTreeLoad_OBJECTS) $(RTreeLoad_DEPENDENCIES) $(EXTRA_RTreeLoad_DEPENDENCIES) 
 	@rm -f RTreeLoad$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(RTreeLoad_OBJECTS) $(RTreeLoad_LDADD) $(LIBS)
 
-RTreeQuery$(EXEEXT): $(RTreeQuery_OBJECTS) $(RTreeQuery_DEPENDENCIES) $(EXTRA_RTreeQuery_DEPENDENCIES)
+RTreeQuery$(EXEEXT): $(RTreeQuery_OBJECTS) $(RTreeQuery_DEPENDENCIES) $(EXTRA_RTreeQuery_DEPENDENCIES) 
 	@rm -f RTreeQuery$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(RTreeQuery_OBJECTS) $(RTreeQuery_LDADD) $(LIBS)
 

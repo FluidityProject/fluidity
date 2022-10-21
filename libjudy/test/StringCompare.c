@@ -28,13 +28,13 @@
 */
 //=======================================================================
 //
-// Compile:
+// Compile: 
 //
-//   cc -O StringCompare.c -lm -lJudy -o StringCompare
+//   cc -O StringCompare.c -lm -lJudy -o StringCompare 
 //           -or-
 //   cc -O -DCPUMHZ=1299 StringCompare.c -lm -lJudy -o StringCompare
 
-/* Notes:
+/* Notes:  
    1) Use '-DCPUMHZ=1299' in cc line if better clock resolution is desired
       and it compiles successfully.  The 1299 is the cpu MHz : 1298.916 from
       cat /proc/cpuinfo in a Linux system.
@@ -66,7 +66,7 @@
 #include <Judy.h>                       // Judy arrays
 
 //=======================================================================
-//   D e f i n e:    T O   T U R N   O F F   A S S E R T I O N S !!!!!!!!
+//   D e f i n e:    T O   T U R N   O F F   A S S E R T I O N S !!!!!!!!     
 //=======================================================================
 //#define NDEBUG 1
 #include <assert.h>                     // assert(3)
@@ -221,7 +221,7 @@ static char *malStart;
 }
 
 //=======================================================================
-// This alternate form of JudyMalloc() is used to keep track how much ram is
+// This alternate form of JudyMalloc() is used to keep track how much ram is 
 // used on some of the below ADT's
 //=======================================================================
 
@@ -553,9 +553,9 @@ JLHashIns(PPvoid_t PPHash, uint8_t * String, Word_t Strlen, Word_t TblSize)
     uint32_t  hval;
 
     PHash = (Phinfo_t) * PPHash;        // core-dump if calling error
-    if (PHash == NULL)                  // if hash table not allocated
+    if (PHash == NULL)                  // if hash table not allocated 
     {
-//      allocate the header
+//      allocate the header 
         PHash = (Phinfo_t) JudyMalloc(HASHHEADSZ);
         if (PHash == NULL)
             MALLOCERROR;
@@ -783,9 +783,9 @@ HashIns(Phinfo_t * PPHash, uint8_t * String, Word_t Strlen, Word_t TblSize)
     uint32_t  hval;
 
     PHash = *PPHash;                    // core-dump if calling error
-    if (PHash == NULL)                  // if hash table not allocated
+    if (PHash == NULL)                  // if hash table not allocated 
     {
-//      allocate the header
+//      allocate the header 
         PHash = (Phinfo_t) JudyMalloc(HASHHEADSZ);
         if (PHash == NULL)
             MALLOCERROR;
@@ -925,7 +925,7 @@ HashFreeArray(Phinfo_t * PPHash)
 //  walk thru all table entrys
     for (ii = 0; ii < PHash->hi_tblsize; ii++)
     {
-        Phrec = Htbl[ii];               // next hash table entry
+        Phrec = Htbl[ii];               // next hash table entry 
 
         while (Phrec != NULL)           // walk the synonym linked list
         {
@@ -1610,7 +1610,7 @@ main(int argc, char *argv[])
             }
             break;
 
-        case 'T':                      // Maximum retrieve tests for timing
+        case 'T':                      // Maximum retrieve tests for timing 
             TValues = strtoul(optarg, NULL, 0);
             break;
 
@@ -2069,7 +2069,7 @@ main(int argc, char *argv[])
     {
         printf("# Pass %d\n", Pass);
 
-//      heading of table
+//      heading of table 
         Printf
             ("# TotInserts  DeltaGets  DupStrs InsTime GetTime HChainLen Ram/String\n");
         gStored = 0;                    // number of strings inserted
@@ -2159,7 +2159,7 @@ main(int argc, char *argv[])
                 break;
             }
 
-// NOTE:  the ADT's below here are so slow, that I did not add much effort
+// NOTE:  the ADT's below here are so slow, that I did not add much effort 
 // to clean them up. (dlb)
 
             case M_Splay:
@@ -2323,7 +2323,7 @@ main(int argc, char *argv[])
                 break;
             }
 
-// NOTE:  the ADT's below here are so slow, that I did not add much effort
+// NOTE:  the ADT's below here are so slow, that I did not add much effort 
 // to clean them up. (dlb)
 
             case M_Splay:

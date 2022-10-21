@@ -30,7 +30,7 @@ h5pt_setnpoints (
                       (h5_file_p)f, (long long)*num_items);
 	H5_API_RETURN (h5u_set_num_items (f, *num_items, 1));
 }
-
+                
 #define h5pt_setnpoints_strided FC_MANGLING (				\
                         h5pt_setnpoints_strided,                        \
                         H5PT_SETNPOINTS_STRIDED )
@@ -80,7 +80,7 @@ h5pt_setview_indices (
                       (h5_file_p)f, indices, (long long)*nelem);
         h5_size_t* findices;
         TRY (findices = h5_calloc (*nelem, sizeof (*indices)));
-        for (size_t i = 0; i < *nelem; i++)
+        for (size_t i = 0; i < *nelem; i++) 
                 findices[i] = indices[i] - 1;
         TRY (h5u_set_view_indices (f, findices, *nelem));
         TRY (h5_free (findices));

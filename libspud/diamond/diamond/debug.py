@@ -12,6 +12,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Debugging module. Stores the program debug level and provides debugging output
 functions. Only debugging output with level less than or equal to the current
@@ -20,138 +21,130 @@ current maximum debug level is treated as having a level equal to the current
 maximum debug level, and that debugging output with level less than zero is
 treated as having a level equal to zero.
 """
+
 import sys
 
-
 class DebugLevel:
+  """
+  Class used to store a debug level.
+  """
+
+  def __init__(self, level = 1, maxLevel = 3):
     """
-    Class used to store a debug level.
+    Initialise a debug level.
     """
 
-    def __init__(self, level=1, maxLevel=3):
-        """
-        Initialise a debug level.
-        """
+    self.SetLevel(level)
+    self.SetMaxLevel(maxLevel)
 
-        self.SetLevel(level)
-        self.SetMaxLevel(maxLevel)
+    return
 
-        return
+  def GetLevel(self):
+    """
+    Get the debug level.
+    """
 
-    def GetLevel(self):
-        """
-        Get the debug level.
-        """
+    return self._level
 
-        return self._level
+  def SetLevel(self, level = 1):
+    """
+    Set the debug level.
+    """
 
-    def SetLevel(self, level=1):
-        """
-        Set the debug level.
-        """
+    level = max(level, 0)
 
-        level = max(level, 0)
+    try:
+      self._level = min(level, self.GetMaxLevel())
+    except:
+      self._level = level
 
-        try:
-            self._level = min(level, self.GetMaxLevel())
-        except Exception:
-            self._level = level
+    return
 
-        return
+  def GetMaxLevel(self):
+    """
+    Get the maximum debug level.
+    """
 
-    def GetMaxLevel(self):
-        """
-        Get the maximum debug level.
-        """
+    return self._maxLevel
 
-        return self._maxLevel
+  def SetMaxLevel(self, maxLevel = 3):
+    """
+    Set the maximum debug level.
+    """
 
-    def SetMaxLevel(self, maxLevel=3):
-        """
-        Set the maximum debug level.
-        """
+    maxLevel = max(maxLevel, 0)
 
-        maxLevel = max(maxLevel, 0)
+    self._maxLevel = maxLevel
+    self.SetLevel(self._level)
 
-        self._maxLevel = maxLevel
-        self.SetLevel(self._level)
-
-        return
-
+    return
 
 # Stores the current module debug level
 _debugLevel = DebugLevel()
 
-
 def GetDebugLevel():
-    """
-    Get the current debug level.
-    """
+  """
+  Get the current debug level.
+  """
 
-    return _debugLevel.GetLevel()
+  return _debugLevel.GetLevel()
 
+def SetDebugLevel(level = 1):
+  """
+  Set the current debug level.
+  """
 
-def SetDebugLevel(level=1):
-    """
-    Set the current debug level.
-    """
+  _debugLevel.SetLevel(level)
 
-    _debugLevel.SetLevel(level)
-
-    return
-
+  return
 
 def GetMaxDebugLevel():
-    """
-    Get the current maximum debug level.
-    """
+  """
+  Get the current maximum debug level.
+  """
 
-    return _debugLevel.GetMaxLevel()
+  return _debugLevel.GetMaxLevel()
 
+def SetMaxDebugLevel(level = 3):
+  """
+  Set the current maximum debug level.
+  """
 
-def SetMaxDebugLevel(level=3):
-    """
-    Set the current maximum debug level.
-    """
+  _debugLevel.SetMaxLevel(level)
 
-    _debugLevel.SetMaxLevel(level)
+  return
 
-    return
+def dprint(msg, level = 1, newline = True, flush = True):
+  """
+  Print a debug message to standard output with supplied debug level.
+  """
 
+  dwrite(sys.stdout, msg, level, newline, flush)
 
-def dprint(msg, level=1, newline=True, flush=True):
-    """
-    Print a debug message to standard output with supplied debug level.
-    """
+  return
 
-    dwrite(sys.stdout, msg, level, newline, flush)
+def deprint(msg, level = 1, newline = True, flush = True):
+  """
+  Print a debug message to standard error with supplied debug level.
+  """
 
-    return
+  dwrite(sys.stderr, msg, level, newline, flush)
 
+  return
 
-def deprint(msg, level=1, newline=True, flush=True):
-    """
-    Print a debug message to standard error with supplied debug level.
-    """
+def dwrite(stream, msg, level = 1, newline = True, flush = True):
+  """
+  Print a debug message to the supplied file stream with supplied debug level.
+  """
 
-    dwrite(sys.stderr, msg, level, newline, flush)
+  level = max(level, 0)
+  level = min(level, GetMaxDebugLevel())
 
-    return
+  if level <= GetDebugLevel():
+    stream.write(str(msg))
+    if newline:
+      stream.write("\n")
+    if flush:
+      stream.flush()
 
-
-def dwrite(stream, msg, level=1, newline=True, flush=True):
-    """
-    Print a debug message to the supplied file stream with supplied debug level.
-    """
-
-    level = max(level, 0)
-    level = min(level, GetMaxDebugLevel())
-
-    if level <= GetDebugLevel():
-        stream.write(str(msg))
-        if newline:
-            stream.write("\n")
-        if flush:
-            stream.flush()
-
-    return
+  return

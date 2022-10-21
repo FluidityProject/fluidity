@@ -53,7 +53,7 @@ def show_mesh(file_name, ndim):
 
     # Setup MayaVi pipeline
     src = TriangleReader()
-
+    
     if (ndim == 2):
         src.initialize(file_name+'.edge') # Load the 2D .edge file
     else:

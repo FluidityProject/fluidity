@@ -12,7 +12,7 @@
 #include "h5core/h5b_attribs.h"
 
 /*
-   __ _ _   _  ___ _ __ _   _
+   __ _ _   _  ___ _ __ _   _ 
   / _` | | | |/ _ \ '__| | | |
  | (_| | |_| |  __/ |  | |_| |
   \__, |\__,_|\___|_|   \__, |
@@ -57,7 +57,7 @@ h5bl_getfieldattribinfo (
                       "attrib_name=%p, attrib_nelem=%p",
 		      (h5_file_p)f,
 		      l_field_name, field_name,
-		      (long long)*attrib_idx,
+		      (long long)*attrib_idx, 
 		      attrib_name, attrib_nelem);
 
 	char *field_name2 = h5_strdupfor2c ( field_name, l_field_name );
@@ -76,11 +76,11 @@ h5bl_getfieldattribinfo (
 }
 
 /*
-  _    __
- (_)  / /__
- | | / / _ \
+  _    __    
+ (_)  / /__  
+ | | / / _ \ 
  | |/ / (_) |
- |_/_/ \___/
+ |_/_/ \___/ 
 */
 static inline h5_int64_t
 write_field_attrib (
@@ -125,12 +125,12 @@ read_field_attrib (
 }
 
 /*
-      _        _
-  ___| |_ _ __(_)_ __   __ _
+      _        _             
+  ___| |_ _ __(_)_ __   __ _ 
  / __| __| '__| | '_ \ / _` |
  \__ \ |_| |  | | | | | (_| |
  |___/\__|_|  |_|_| |_|\__, |
-                       |___/
+                       |___/ 
 */
 #define h5bl_writefieldattrib_string FC_MANGLING (			\
                 h5bl_writefieldattrib_string,                           \
@@ -195,7 +195,7 @@ h5bl_readfieldattrib_string (
 }
 
 /*
-                 _
+                 _ 
   _ __ ___  __ _| |
  | '__/ _ \/ _` | |
  | | |  __/ (_| | |
@@ -316,11 +316,11 @@ h5bl_readfieldattrib_r4 (
 }
 
 /*
-  _       _
- (_)_ __ | |_ ___  __ _  ___ _ __
+  _       _                       
+ (_)_ __ | |_ ___  __ _  ___ _ __ 
  | | '_ \| __/ _ \/ _` |/ _ \ '__|
- | | | | | ||  __/ (_| |  __/ |
- |_|_| |_|\__\___|\__, |\___|_|
+ | | | | | ||  __/ (_| |  __/ |   
+ |_|_| |_|\__\___|\__, |\___|_|   
                   |___/
 */
 #define h5bl_writefieldattrib_i8 FC_MANGLING (			    \
@@ -752,7 +752,7 @@ h5bl_set_fieldzcoords (
                       coords, (long long unsigned)n_coords);
         H5_API_RETURN (set_field_coords (
                                f, 2,
-			       field_name, l_field_name,
+			       field_name, l_field_name, 
 			       H5BLOCK_FIELD_ZCOORD_NAME, sizeof (H5BLOCK_FIELD_ZCOORD_NAME),
                                coords, *n_coords));
 }

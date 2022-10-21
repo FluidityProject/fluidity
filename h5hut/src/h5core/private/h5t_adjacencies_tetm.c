@@ -799,3 +799,4 @@ get_adjacencies (
 struct h5t_adjacency_methods h5tpriv_tetm_adjacency_methods = {
 	get_adjacencies,
 };
+

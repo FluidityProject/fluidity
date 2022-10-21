@@ -21,7 +21,7 @@ const char*
 type2string (
         h5_int64_t type
         ) {
-        if (type == H5_FLOAT64_T)
+        if (type == H5_FLOAT64_T) 
                 return "H5_FLOAT64_T";
         if (type == H5_FLOAT32_T)
                 return "H5_FLOAT32_T";
@@ -92,11 +92,11 @@ query_step_attribs (
         // output name and type of all step attribute
         print_header (n);
         for (h5_int64_t i = 0; i < n; i++) {
-                H5GetStepAttribInfo (f, i, name, sizeof(name), &type, &dim);
+                H5GetStepAttribInfo (f, i, name, sizeof(name), &type, &dim); 
                 print_query_result (i, name, type, dim);
         }
 }
-
+        
 void
 query_file (
         const char* const fname
@@ -113,7 +113,7 @@ query_file (
         printf ("\tNumber of steps: %lld\n", (long long)n);
 
         if (n > 0) {
-                // go to first step
+                // go to first step 
                 h5_int64_t i = -1;
                 while (!H5HasStep (f, ++i));
 

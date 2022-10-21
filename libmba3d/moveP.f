@@ -17,7 +17,7 @@ c group (M)
      &           iwP, iwE,
      &           nE, XYP, IPF, IPE,
      &           hStar,
-     &           ICP, IFE,
+     &           ICP, IFE, 
      &           L1E, L2E, nL2, nStep,
      &           status,
 C group (Q)
@@ -332,7 +332,7 @@ C  ...   updating the spoiled values of qEs
 
 
       hMax = hMax - 0.2 * (hMax - hMin)
-      If(flagTM) hMax = 2 * hMax
+      If(flagTM) hMax = 2 * hMax 
 
 
       qMin = q(1)

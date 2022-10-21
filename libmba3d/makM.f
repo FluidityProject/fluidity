@@ -17,8 +17,8 @@ C ================================================================
       Subroutine makM(
 C ================================================================
 c group (M)
-     &      nP, nF, MaxF, nE, MaxE,
-     &      XYP, IPF, IPE,
+     &      nP, nF, MaxF, nE, MaxE, 
+     &      XYP, IPF, IPE, 
      &      ICP, IPP, IEP, IFE, IEE,
      &      IHolP, IHolF, IHolE,
      &      IEPw, nEPw,
@@ -32,7 +32,7 @@ C ================================================================
       include 'color.fd'
       include 'status.fd'
 C ================================================================
-C Routine analyses the initial geometry and creates auxiliary
+C Routine analyses the initial geometry and creates auxiliary 
 C cross-refrences.
 C
 C Pre-conditions:  1. connectivity structure {IPE(5, *), XYP(3, *)}
@@ -68,7 +68,7 @@ C group (Local variables)
 
 C ================================================================
       iERR = 0
-
+ 
       ip(1) = 1
       ip(2) = 2
       ip(3) = 3
@@ -249,7 +249,7 @@ c ... coloring the points (edge points)
       Do n = 1, nP
          If(.NOT.ifXnode(ICP(n), jBnode)) Call addXnode(ICP(n), jInode)
          If(cmpP(n, IEPw, nEPw, IPF))     Call addXnode(ICP(n), jRnode)
-         If(cmpR(n, IEPw, nEPw, XYP, IPF))
+         If(cmpR(n, IEPw, nEPw, XYP, IPF)) 
      &                                    Call addXnode(ICP(n), jRnode)
       End do
 
@@ -357,9 +357,9 @@ c ... array IPF(4, *) is overloaded to mark only boundary edges
  100  Continue
 
       Do n = 1, nP
-         If(IPP(n).GT.0) Then
+         If(IPP(n).GT.0) Then 
             Call addXnode(ICP(n), jTnode)
-            If(IEPw(n).EQ.0) Then
+            If(IEPw(n).EQ.0) Then 
                Call addXnode(ICP(n), jInode)
                Call delXnode(ICP(n), jBnode)
             End if
@@ -428,9 +428,9 @@ c ... order boundary faces clockwise looking from inside domain
                ip2 = IPF(2, iF)
                ip3 = IPF(3, iF)
 
-               If(calVol(XYP(1, ip1), XYP(1, ip2),
+               If(calVol(XYP(1, ip1), XYP(1, ip2), 
      &                   XYP(1, ip3), XYP(1, ip4)).GT.0D0) Then
-                  Call swapii(IPF(1, iF), IPF(2, iF))
+                  Call swapii(IPF(1, iF), IPF(2, iF))   
                End if
             End if
          End do
@@ -445,7 +445,7 @@ C ================================================================
       Subroutine updM(
 C ================================================================
 c group (M)
-     &           nP, nF, nE,
+     &           nP, nF, nE, 
      &           XYP, IPF, IPE,
      &           ICP, IPP, IFE, IEE,
      &           IHolP, IHolF, IHolE,
@@ -493,7 +493,7 @@ c ... recovering V-, VB- and I-points from TV-, TVB, and TB-points
       Do n = 1, nP
         Call delXnode(ICP(n), jTnode)
       End do
-
+ 
 
 c ... delete references to material or fictitious faces
       lE = nE + IHolE(1)
@@ -512,7 +512,7 @@ c ... delete all material faces
       lF = nF + IHolF(1)
       Do n = 1, lF
          If(IPF(4, n).GE.iMface) Then
-            Call facDel(n, nF, IPF, IHolF)
+            Call facDel(n, nF, IPF, IHolF) 
         End if
       End do
 
@@ -569,7 +569,7 @@ c ... fill-in holes in the list of mesh points
             Do i = 1, 3
                XYP(i, mP) = XYP(i, n)
             End do
-
+         
             ICP(mP) = ICP(n)
             IPP(mP) = IPP(n)
 
@@ -591,7 +591,7 @@ c ... fill-in holes in the list of mesh points
       Do n = 1, nF
          If(IPF(1, n).GT.0) Then
             Do i = 1, 3
-               IPF(i, n) = IPw(IPF(i, n))
+               IPF(i, n) = IPw(IPF(i, n)) 
             End do
          End if
       End do
@@ -739,14 +739,14 @@ C ================================================================
 
       rR = 0D0
       crvPREC = 2D-8
-
+      
       flagFBE = ifXnode(status, ANIForbidBoundaryElements)
 
 
 C ... check for face markers
       Do n = 1, nF
          iCLRf = IPF(4, n)
-         If(iCLRf.LE.0 .AND. iCheck.EQ.0)
+         If(iCLRf.LE.0 .AND. iCheck.EQ.0) 
      &      Call errMes(5001, 'chkM', 'wrong face ID')
          If(iCLRf.GT.MaxS)
      &      Call errMes(5002, 'chkM', 'face ID is out of limits')
@@ -758,7 +758,7 @@ C ... check for face markers
      &      Call errMes(5003, 'chkM', 'wrong point color')
 
          If(ifXnode(ICP(n), jBnode)) Then
-            If(.NOT.ifXnode(ICP(n), jSnode))
+            If(.NOT.ifXnode(ICP(n), jSnode)) 
      &         Call errMes(5103, 'chkM', 'wrong point color')
 
             If(ifXnode(ICP(n), jInode))
@@ -777,7 +777,7 @@ C ... check for face markers
             End if
          End do
 
-         If(iCheck.EQ.0 .AND. IPF(4, n).GE.iVface)
+         If(iCheck.EQ.0 .AND. IPF(4, n).GE.iVface) 
      &      Call errMes(4103, 'chkM',
      &                 'reserved boundary identificator is used')
       End do
@@ -800,7 +800,7 @@ C ... check for face markers
             If(.NOT.ifXnode(ICP(iPt), jBnode)) flag = .FALSE.
          End do
 
-         If(iCheck.EQ.0 .AND. flag)
+         If(iCheck.EQ.0 .AND. flag) 
      &      Call errMes(5022, 'chkM', 'boundary element')
 
 
@@ -911,7 +911,7 @@ C ... check for face markers
                      v2 = calVol(XYP(1, iP1), XYP(1, iP2),
      &                           XYP(1, iP3), XYP(1, jP4))
 
-                     If(v1 * v2.GE.0D0 .AND.
+                     If(v1 * v2.GE.0D0 .AND. 
      &                  .NOT.ifXnode(status, ANITangledMesh)) Then
                         iERR = 5020
                         Goto 500
@@ -946,7 +946,7 @@ C ... check color of edge points
 
          ic = countColors(i2 - i1 + 1, IEPw(i1))
          If(ic.GE.3 .AND.
-     &     .NOT.(ifXnode(ICP(n), jRnode) .OR.
+     &     .NOT.(ifXnode(ICP(n), jRnode) .OR. 
      &           ifXnode(ICP(n), jVnode))) Then
             Write(*,*) ic, ICP(n), n
             Call errMes(5008, 'chkM', 'wrong color of edge point')
@@ -996,8 +996,8 @@ C ... check color of edge points
 c     Do n = 1, nE
 c        IEPw(n) = 1
 c     End do
-c     Call saveMgmv(nP, nF, nE,
-c    &              XYP, IPF, IPE, IEPw, IEPw,
+c     Call saveMgmv(nP, nF, nE,  
+c    &              XYP, IPF, IPE, IEPw, IEPw, 
 c    &              'error.gmv', IEPw(nE+1))
 
       Call errMes(iERR, 'chkM', 'tetrahedra are wrong')
@@ -1062,7 +1062,7 @@ C group (Local variables)
 C ================================================================
       Logical Function cmpP(iP, IFP, nFP, IPF)
 C ================================================================
-C cmpP = TRUE if point iP belongs to a common edge of two faces
+C cmpP = TRUE if point iP belongs to a common edge of two faces 
 C with different color. Otherwise cmpP = FALSE.
 C
 C Remark: the routine doesn't say anything about cross points.
@@ -1097,7 +1097,7 @@ C ================================================================
       Logical Function cmpR(iP, IFP, nFP, XYP, IPF)
 C ================================================================
 C cmpR = TRUE if point iP belongs to a common edge of 2 flat faces
-C and the angle between these faces is smaller than 90 degrees.
+C and the angle between these faces is smaller than 90 degrees. 
 C ================================================================
       Real*8  XYP(3, *)
       Integer IFP(*), nFP(*), IPF(4, *)
@@ -1142,7 +1142,7 @@ C ================================================================
                      iP3 = IPF(i3, iF)
                      jP3 = IPF(j3, jF)
 
-                     c = angle2Faces(XYP(1, iP1), XYP(1, iP2),
+                     c = angle2Faces(XYP(1, iP1), XYP(1, iP2), 
      &                               XYP(1, iP3), XYP(1, jP3))
                      If(c.GT.0D0) Then
                         cmpR = .TRUE.
@@ -1150,7 +1150,7 @@ C ================================================================
                      End if
                   End if
                End do
-            End do
+            End do 
  10        Continue
  20   Continue
 
@@ -1164,17 +1164,17 @@ C ================================================================
       Logical function crossPoint(XYP, nF, IFP, iP, IPF)
 C ================================================================
 C The number of edges with end point iP is evaluated.
-C The array IFP is destroyed in out algorithm.
+C The array IFP is destroyed in out algorithm. 
 C ================================================================
       Real*8  XYP(3, *)
       Integer IFP(*), IPF(4, *)
 
       Integer iRs(3)
-      Real*8  ang
-
+      Real*8  ang   
+      
 C ================================================================
       crossPoint = .FALSE.
-
+      
 c ... analyze pairs of different faces
       lR = 0
       Do n = 1, nF
@@ -1187,7 +1187,7 @@ c ... analyze pairs of different faces
                iPt = IPF(i, iF1)
                If(iPt.EQ.iP) Goto 10
 
-               If(check13(iPt, IPF(1, iF2),
+               If(check13(iPt, IPF(1, iF2), 
      &                         IPF(2, iF2), IPF(3, iF2))) Then
                   Call findSE(lR, iRs, iPt, nPt)
                   If(nPt.EQ.0) Then
@@ -1285,7 +1285,7 @@ C ================================================================
 
 c  ...  add 5% for the bounding box
 c        Do i = 1, 3
-c           size = (maxXYP(i) - minXYP(i)) / 20
+c           size = (maxXYP(i) - minXYP(i)) / 20 
 c           minXYP(i) = minXYP(i) - size
 c           maxXYP(i) = maxXYP(i) + size
 c        End do
@@ -1327,7 +1327,7 @@ c        End do
 C ================================================================
       Subroutine scaleBack(XYPi, XYPo)
 C ================================================================
-C  Routine computes physical coordinates of point XYPi
+C  Routine computes physical coordinates of point XYPi 
 C ================================================================
       Real*8   XYPi(3), XYPo(3)
 
@@ -1345,7 +1345,7 @@ C ==============================================================
       Subroutine RandR(XY1, XY2, XY3, XY4, rOut, rIn)
 C ==============================================================
 C Computes curcumscribed and inscribed radii for the tetrahedron
-C given by forth vertices.
+C given by forth vertices. 
 C ==============================================================
       Real*8  XY1(3), XY2(3), XY3(3), XY4(3)
       Real*8  rOut, rIn
@@ -1362,7 +1362,7 @@ C ==============================================================
       Do i = 1, 3
          F(i) = 0D0
          Do j = 1, 3
-            F(i) = F(i) + v(i, j) * (XY1(j) + XY4(j))
+            F(i) = F(i) + v(i, j) * (XY1(j) + XY4(j)) 
          End do
          F(i) = F(i) / 2
       End do
@@ -1372,7 +1372,7 @@ C ==============================================================
       C(1) = calVol(F, v(1, 2), v(1, 3), v(1, 4)) / vol
       C(2) = calVol(v(1, 1), F, v(1, 3), v(1, 4)) / vol
       C(3) = calVol(v(1, 1), v(1, 2), F, v(1, 4)) / vol
-
+     
       rOut = calEdge(XY1, C)
 
       sqr = calSqr(XY1, XY2, XY3) + calSqr(XY2, XY3, XY4)
@@ -1385,7 +1385,7 @@ C ==============================================================
 
 
 C ==============================================================
-      Subroutine copyMeshData(nP, nE, XYP,  HesP,  IPE,
+      Subroutine copyMeshData(nP, nE, XYP,  HesP,  IPE, 
      &                                XYPw, HesPw, IPEw)
 C ==============================================================
       Integer IPE(4, *), IPEw(4, *)
@@ -1411,7 +1411,7 @@ C ==============================================================
 
       Return
       End Subroutine copyMeshData
-
+ 
 
 C ==============================================================
       Real*8  Function surfaceArea(nF, XYP, IPF, ic)
@@ -1446,7 +1446,7 @@ c (Local variables)
 C ==============================================================
       Real*8  Function fixedArea(nFv, XYP, IPF, IFV)
 C ==============================================================
-C The routine computes area of surface maked as ic.
+C The routine computes area of surface maked as ic. 
 C ==============================================================
       Real*8  XYP(3, *)
       Integer IPF(4, *), IFV(*)
@@ -1473,7 +1473,7 @@ c (Local variables)
 C ==============================================================
       Real*8  Function domainVolume(nE, XYP, IPE, ic)
 C ==============================================================
-C The routine computes volume of subdomain maked as ic.
+C The routine computes volume of subdomain maked as ic. 
 C If ic = 0, volume the whole domain is computed.
 C ==============================================================
       Real*8  XYP(3, *)
@@ -1492,12 +1492,12 @@ c (Local variables)
             iP3 = IPE(3, n)
             iP4 = IPE(4, n)
 
-            s = s + dabs(calVol(XYP(1, iP1), XYP(1, iP2),
+            s = s + dabs(calVol(XYP(1, iP1), XYP(1, iP2), 
      &                          XYP(1, iP3), XYP(1, iP4)))
          End if
  10   Continue
 
-      domainVolume = s
+      domainVolume = s 
       Return
       End Function domainVolume
 
@@ -1512,20 +1512,20 @@ C ==============================================================
 
 c (Local variables)
       Real*8  s
-
+                                                            
       s = 0D0
       Do 10 n = 1, nEv
          iE = IEV(n)
-
+                                                                     
          iP1 = IPE(1, iE)
          iP2 = IPE(2, iE)
          iP3 = IPE(3, iE)
          iP4 = IPE(4, iE)
-
+                                                     
          s = s + dabs(calVol(XYP(1, iP1), XYP(1, iP2),
      &                       XYP(1, iP3), XYP(1, iP4)))
  10   Continue
-
+                                                                   
       fixedVolume = s
       Return
       End Function fixedVolume

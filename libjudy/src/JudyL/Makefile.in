@@ -50,7 +50,7 @@ OBJS = JudyLByCount.o JudyLCount.o JudyLDecascade.o JudyLFirst.o j__udyLGet.o Ju
 default: $(OBJS)
 	cp *.o ../obj/
 
-.c.o:
+.c.o: 
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
 
@@ -87,5 +87,5 @@ JudyLTables.c:
 	./JudyLTablesGen
 
 clean:
-	rm -f *.o
+	rm -f *.o 
 	rm -f JudyLTables.c

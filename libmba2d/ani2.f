@@ -32,7 +32,7 @@ C ==========================================================
       include 'operat.fd'
       include 'magic.fd'
 C ==========================================================
-C The main driver routine.
+C The main driver routine. 
 C
 C *** DATA FLOW CHART
 C
@@ -40,7 +40,7 @@ C  -> put points in increasing order
 C  -> dublicate initial metric
 C  -> build various mesh structures (cross maps)
 C  -> check initial mesh and self-check other mesh structures
-C  -> add mesh points to satify 2-arm rule
+C  -> add mesh points to satify 2-arm rule  
 C
 C  -> compute qualities of mesh elements
 C  -> create a list of triangle qualities
@@ -62,7 +62,7 @@ C
 C  ---------> loop over vertices of E
 C  -------------> swap an edge ending at the vertex of E
 C  -------------> move the vertex of E
-C
+C  
 C  ---------> add E to the basket is the operations have failed
 C  ---------> terminate basket-loop if the basket is full
 C  -----> clean the basket
@@ -71,7 +71,7 @@ C  -> calculate the distribution of bad elements
 C  -> compress the mesh data structure (clean holes)
 C  -> check the final mesh
 C  -> check the area and the perimetr of the meshed area
-C
+C 
 C ==========================================================
 C group (M)
 C     Integer MaxP, MaxF, MaxE, nPv, nEStar
@@ -207,13 +207,13 @@ c group (iERR)
 
 
       If(nPVo.NE.nPV) Then
-         If(.NOT.flagAuto) Call errMes(4001, 'ani2',
+         If(.NOT.flagAuto) Call errMes(4001, 'ani2', 
      &                                'inconsistent input data')
          If(iPrint.GE.1) Write(*, 5007) nPV - nPVo
       End if
 
       If(nFo.NE.nF) Then
-         If(.NOT.flagAuto) Call errMes(4001, 'ani2',
+         If(.NOT.flagAuto) Call errMes(4001, 'ani2', 
      &                                'inconsistent input data')
          If(iPrint.GE.1) Write(*, 5008) nF - nFo
       End if
@@ -260,7 +260,7 @@ C group (S)
 C group (W)
      &           flagTest)
 
-!            If(.NOT.flagTest) Call errMes(4103, 'ani2.f',
+!            If(.NOT.flagTest) Call errMes(4103, 'ani2.f', 
 !     &                       'The input data contradicts status')
  20      Continue
       End if
@@ -289,21 +289,21 @@ c ... initilize the list
       Call DSORT(rSE, L2E, nE, 2, iERR)
       If(iERR.NE.0) goto 9000
 
-c nStep(1) - typical interval length
+c nStep(1) - typical interval length 
 c nStep(2) - rank of interval length is [nStep(1)-nStep(2),nStep(1)+nStep(2)]
 c nStep(3) - ipos2 of the second part of L2E
 c nStep(4) - output channel in case of debugging (=0 for no debugging)
 
 c     nStep(1) = sqrt(real(nEStar))
-c     nStep(2) = 0
-      nStep(1) = log(real(nEStar))
-      nStep(2) = nStep(1) / 4
+c     nStep(2) = 0 
+      nStep(1) = log(real(nEStar)) 
+      nStep(2) = nStep(1) / 4 
       nStep(3) = MaxE
       nStep(4) = 0
       Call lstMak(nEStar, nE, L1E, L2E, nL2, nStep, IHolE)
 
       If(iPrint.GE.3) Then
-         Call statistics(nE, L1E, L2E, Quality, qE)
+         Call statistics(nE, L1E, L2E, Quality, qE) 
       End if
 
 
@@ -327,7 +327,7 @@ c ... CURVILINEAR FACES
             nStept(1, n) = sqrt(real(nEt(n)))
             nStept(2, n) = 0
             nStept(3, n) = MaxF
-            nStept(4, n) = 0
+            nStept(4, n) = 0 
             Call lstMak(nEt(n), nEt(n), L1Et(1, ir), L2Et(ir),
      &                  nL2t(n), nStept(1, n), iDummy)
          End if
@@ -384,7 +384,7 @@ C ... main loop
       End do
 
 
-c ... check the tangled mesh
+c ... check the tangled mesh 
       If(qE(L2E(1)).GT.0D0 .AND. flagTM) Then
          flagTM = .FALSE.
 
@@ -428,7 +428,7 @@ c ... output statistics
 c group (M)
      &           iw(i), iwE,
      &           nP, nF, nE,
-     &           XYP, IPF, IPE,
+     &           XYP, IPF, IPE, 
      &           calCrv, parCrv, iFnc,
      &           hStar,
      &           ICP, IEP, IFE, IEE,
@@ -517,7 +517,7 @@ C group (W)
 c group (M)
      &           i, iwE,
      &           nP, nF, nE,
-     &           XYP, IPF, IPE,
+     &           XYP, IPF, IPE, 
      &           calCrv, parCrv, iFnc,
      &           hStar,
      &           ICP, IEP, IFE, IEE,
@@ -532,7 +532,7 @@ C group (Q)
      &           HesP, rQuality, detG, qE,
      &           MetricFunction, flagAnalytic,
 C group (S)
-     &           lE, iEu,
+     &           lE, iEu, 
 C group (W)
      &           nPw, nEw, XYPw, HesPw, IPEw,
      &           iSE, rSE,
@@ -579,7 +579,7 @@ C group (W)
 
       nNOTHING = nNOTHING + 1
 
- 400  Continue
+ 400  Continue 
       If(flagTest) goto 300
 
 
@@ -590,7 +590,7 @@ C group (W)
  1000 rQuality = qE(L2E(1))
 
       tm2 = ANItime(tmdata)
-      If(iPrint.GE.1)
+      If(iPrint.GE.1) 
      &   Write(*, 5000) nQItr - 1, qE(L2E(1)), nP, nF, nE, tm2 - tm1
 
 
@@ -601,12 +601,12 @@ C ... calculating the number of bad triangles
          Write(*,5003) nCLPS1, nINSRT, nSWAP, nCLPS2, nMOVE, nNOTHING,
      &                 mCLPS1, mINSRT, mSWAP, mCLPS2, mMOVE
 
-         Call statistics(nE, L1E, L2E, Quality, qE)
+         Call statistics(nE, L1E, L2E, Quality, qE) 
       End if
 
 
 C ... remove 'holes' from the final grid
-      nFo = nF
+      nFo = nF 
       Call updM(
 c group (M)
      &            nP, nF, nE, nPv,
@@ -630,7 +630,7 @@ c     Call draw_Q(nP, nE, XYP, IPE, qE, Quality, 'qE.eps')
          Write(*, 5006) averageQ, rR, status
       End if
 
-      If(nCrvFnc.EQ.0 .AND. nF.GT.0) Then
+      If(nCrvFnc.EQ.0 .AND. nF.GT.0) Then 
          dao_new = domainArea(nE, XYP, IPE)
          dpo_new = domainPerimetr(nF, XYP, IPF)
 
@@ -639,10 +639,10 @@ c     Call draw_Q(nP, nE, XYP, IPE, qE, Quality, 'qE.eps')
          dao = abs(dao - dao_new) / dao
          dpo = abs(dpo - dpo_new) / dpo
 
-c         If(dao.GT.1D-8) Call errMes(6005, 'ani2.f',
+c         If(dao.GT.1D-8) Call errMes(6005, 'ani2.f', 
 c     &                       'Lose of the domain area')
 
-c         If(dpo.GT.1D-8 .AND. nF.EQ.nFo) Call errMes(6005, 'ani2.f',
+c         If(dpo.GT.1D-8 .AND. nF.EQ.nFo) Call errMes(6005, 'ani2.f', 
 c     &                       'Lose of the total boundary lenght')
       End if
 
@@ -662,8 +662,8 @@ c     &                       'Lose of the total boundary lenght')
  5006 Format('Avg Quality  =', E11.4, ',  Maximal R/r =', E11.4,
      &       ',  status.fd:', I5)
 
- 5007 Format('Warning:', I6, ' new fix vertices have been added')
- 5008 Format('Warning:', I6, ' new edges have been added')
+ 5007 Format('Warning:', I6, ' new fix vertices have been added') 
+ 5008 Format('Warning:', I6, ' new edges have been added') 
 
  5009 Format('User time:', F7.2, ',  system time:', F7.2)
 
@@ -671,7 +671,7 @@ c     &                       'Lose of the total boundary lenght')
       End
 
 
-
+  
 C ==========================================================
       Subroutine statistics(nE, L1E, L2E, Quality, qE)
 C ==========================================================
@@ -707,7 +707,8 @@ C ==========================================================
 
  5003 Format(/, 'Distribution of triangles by the quality',/,
      &       F5.1,10F7.1,/, I5,10I7)
-
- 5004 Format('Number of bad triangles =', I5)
+ 
+ 5004 Format('Number of bad triangles =', I5) 
       Return
       End
+

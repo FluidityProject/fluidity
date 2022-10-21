@@ -13,47 +13,44 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
 
-
 class List:
-    def __init__(self, datatype, cardinality=""):
-        self.datatype = datatype
-        self.cardinality = cardinality
+  def __init__(self, datatype, cardinality=''):
+    self.datatype = datatype
+    self.cardinality = cardinality
 
-    # The input to call is a string containing a list of elements separated by "," or
-    # " ". It returns a string, containing the elements in val separated by " ".
-    def __call__(self, val):
-        val = val.strip()
-        if "," in val:
-            x = val.split(",")
-        else:
-            x = val.split(" ")
+  # The input to call is a string containing a list of elements seperated by "," or " ". It
+  # returns a string, containing the elements in val seperated by " ".
+  def __call__(self, val):
+    val = val.strip()
+    if "," in val:
+      x = val.split(",")
+    else:
+      x = val.split(" ")
 
-        # Perform some checks on the list cardinality, for oneOrMore elements ('+')
-        # and compulsory elements ('').
-        if self.cardinality == "+":
-            assert len(x) > 0
-        elif self.cardinality == "":
-            assert len(x) == 1
+    # Perform some checks on the list cardinality, for oneOrMore elements ('+')
+    # and compulsory elements ('').
+    if self.cardinality == '+':
+      assert len(x) > 0
+    elif self.cardinality == '':
+      assert len(x) == 1
 
-        # Check the list cardinality (as an integer) matches up with the number of
-        # elements in the separated val string.
-        try:
-            assert len(x) == int(self.cardinality)
-        except ValueError:
-            # The int conversion may fail (if cardinality is '+' or ''), so just ignore
-            # it.
-            pass
+    # Check the list cardinality (as an integer) matches up with the number of elements
+    # in the seperated val string.
+    try:
+      assert len(x) == int(self.cardinality)
+    except ValueError:
+      pass # The int conversion may fail (if cardinality is '+' or ''), so just ignore it.
 
-        # Make sure each element can be converted to type 'self.datatype'. An exception
-        # will be thrown if this is not possible.
-        for y in x:
-            self.datatype(y)
+    # Make sure each element can be converted to type 'self.datatype'. An exception will be
+    # thrown if this is not possible.
+    for y in x:
+      z = self.datatype(y)
 
-        # Return a string of the elements in val, separated by " ".
-        return " ".join(x)
+    # Return a string of the elements in val, seperated by " ".
+    return " ".join(x)
 
-    def __str__(self):
-        return "list of " + str(self.datatype) + " of cardinality: " + self.cardinality
+  def __str__(self):
+    return "list of " + str(self.datatype) + " of cardinality: " + self.cardinality
 
-    def __repr__(self):
-        return "list of " + str(self.datatype) + " of cardinality: " + self.cardinality
+  def __repr__(self):
+    return "list of " + str(self.datatype) + " of cardinality: " + self.cardinality

@@ -20,8 +20,8 @@ extern "C" {
 #endif
 
 /*
-   !   _                   _
-   !  (_)_ __   __ _ _   _(_)_ __ ___
+   !   _                   _          
+   !  (_)_ __   __ _ _   _(_)_ __ ___ 
    !  | | '_ \ / _` | | | | | '__/ _ \
    !  | | | | | (_| | |_| | | | |  __/
    !  |_|_| |_|\__, |\__,_|_|_|  \___|
@@ -167,8 +167,8 @@ H5GetStepAttribInfoByName (
 }
 
 /*
-  !                 _ _
-  !  __      ___ __(_) |_ ___
+  !                 _ _       
+  !  __      ___ __(_) |_ ___ 
   !  \ \ /\ / / '__| | __/ _ \
   !   \ V  V /| |  | | ||  __/
   !    \_/\_/ |_|  |_|\__\___|
@@ -244,7 +244,7 @@ H5WriteStepAttribString (
                       (h5_file_p)f, attrib_name, buffer);
 	H5_API_RETURN (
 		h5_write_iteration_attrib (
-			f,
+			f, 
 			attrib_name,
 			H5_STRING_T,
 			buffer,
@@ -328,7 +328,7 @@ H5WriteStepAttribInt32 (
 }
 
 /*
-  !                      _
+  !                      _ 
   !   _ __ ___  __ _  __| |
   !  | '__/ _ \/ _` |/ _` |
   !  | | |  __/ (_| | (_| |
@@ -397,7 +397,7 @@ H5ReadStepAttribString (
 		      (h5_file_p)f, attrib_name, buffer);
 	H5_API_RETURN (
 		h5_read_iteration_attrib (
-			f,
+			f, 
 			attrib_name,
 			H5_STRING_T,
 			(void*)buffer));

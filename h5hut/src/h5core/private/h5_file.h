@@ -76,7 +76,7 @@ is_appendonly (h5_file_p f) {
 #define check_iteration_handle_is_valid(f)	\
 	CHECK_FILEHANDLE(f);			\
 	CHECK_TIMEGROUP(f);
-
+	
 #define check_iteration_is_readable(f)		\
 	CHECK_FILEHANDLE(f);			\
 	CHECK_READABLE_MODE(f);			\

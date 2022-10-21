@@ -1,7 +1,7 @@
 TABLE OF CONTENTS
 --------------------
 
-[1] Quick Guide
+[1] Quick Guide 
 
 --- For h5pAttrib
 [2] To see number of timesteps in a h5part file
@@ -18,7 +18,7 @@ TABLE OF CONTENTS
 ************************************************************************************************
 
 
-[1] Quick Guide
+[1] Quick Guide 
 ------------------
 
 --> -h option will display a concise help page.
@@ -44,9 +44,9 @@ usage: h5pAttrib [OPTIONS] file
   2) Show step attribute names for time step 5 of sample.h5part
 
         h5pAttrib -a 5 -H sample.h5part
-
-
-
+        
+        
+        
 $>> ./h5pToGNUplot -h
 
 usage: h5pToGNUplot -t TIMESTEP -1 VARIABLE#1 -2 VARIABLE#2 -i INPUTFILE [OPTIONAL_FLAGS]
@@ -352,3 +352,5 @@ Terminal type set to 'x11'
 gnuplot> plot "output.txt"
 
 This will open a GNUplot window that plots output.txt.
+
+

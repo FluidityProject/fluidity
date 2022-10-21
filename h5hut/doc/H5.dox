@@ -40,13 +40,13 @@ For more information, please contact the
         \defgroup h5_file		File interface
 
 	In this section we document the interface for accessing H5hut files.
-
+	
         \defgroup h5_model          	Setting up the data model
 
 	The fundamental data model of H5hut is pretty simple. There
 	are (time-)steps to group data, that's it. In this section we
 	document the interface to these (time-)steps.
-
+	
         \defgroup h5_file_attribs   	File attributes interface
 
         File attributes are small datasets that can be used to
@@ -66,13 +66,13 @@ For more information, please contact the
 	additional information to H5hut files. H5hut provides
 	functions to attach other files to H5hut files. The attached
 	files can be of any type.
-
+	
         \defgroup h5_log            	Controlling verbosity level
 
 	Controlling the verbosity level of H5hut. By default only
 	error messages are printed. For debugging it might be helpful
 	to increase the verbosity level.
-
+	
         \defgroup h5_debug          	Controlling debug output
 
 	Debug output mainly intended for developers.
@@ -87,7 +87,7 @@ For more information, please contact the
 	properly. In certain use-cases it make sense just to abort the
 	program, so no additional error handling is needed.  H5hut
 	provides an abort error-handler for this use-cases-
-
+	
     @}
     \defgroup h5part_c_api              H5Part
     @{
@@ -95,7 +95,7 @@ For more information, please contact the
 
 	The H5Part data model interface provides functions to set and
 	inquire (per core) views on datasets.
-
+	
         \defgroup h5part_io         	Dataset interface
 
 	The dataset interface provides functions to read and write
@@ -115,7 +115,7 @@ For more information, please contact the
         \defgroup h5block_model         Setting up the data model
 
 	The H5Block data model interface provides functions to set and
-	inquire (per core) views on fields.
+	inquire (per core) views on fields. 
 
 	\defgroup h5block_io            Interface to block structured data
 
@@ -125,7 +125,7 @@ For more information, please contact the
 	- 3-dimensional fields with 3-dimensional vectors as values
 
 	The following datatypes are supported:
-
+	
 	- 64-bit floating point numbers (\c h5_float64_t)
 	- 32-bit floating point numbers (\c h5_float32_t)
 	- 64-bit integers (\c h5_int64_t)
@@ -137,7 +137,7 @@ For more information, please contact the
         describe specific properties of a field like origin, spacing
         or coordinates. The H5hut API provides functions to attach
         (write), read and inquire file attributes.
-
+                    
    @}
 @}
 */
@@ -150,7 +150,7 @@ For more information, please contact the
                         \defgroup h5_file_f             file interface
                         \defgroup h5_model_f            setting up the data model
                         \defgroup h5_file_attribs_f     reading and writing file attributes
-                        \defgroup h5_step_attribs_f     reading and writing step attributes
+                        \defgroup h5_step_attribs_f     reading and writing step attributes	
 			\defgroup h5_log_f		control verbosity level
 			\defgroup h5_debug_f		control debug output
 		        \defgroup h5_error_f            error handling interface
@@ -168,3 +168,4 @@ For more information, please contact the
                 @}
         @}
 */
+

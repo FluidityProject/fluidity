@@ -52,7 +52,7 @@ c ... save the mesh header
       kis = kfe + nEv + 2
 
       Open(10, file=fNameExt, status='UNKNOWN')
-      Write(10, '(3(A,I7),A)') 'T points:        ',
+      Write(10, '(3(A,I7),A)') 'T points:        ', 
      &          nP, ' (lines ', kps, ' - ', kps + nP - 1, ')'
       Write(10, '(3(A,I7),A)') 'T edges:         ',
      &          nF, ' (lines ', kfs, ' - ', kfs + nF - 1, ')'
@@ -74,17 +74,17 @@ c ... save the mesh header
       End if
 
       If(nFv.NE.0) Then
-         Write(10, '(3(A,I7),A)') 'T fixed edges:   ',
+         Write(10, '(3(A,I7),A)') 'T fixed edges:   ', 
      &             nFv, ' (lines ', kff, ' - ', kff + nFv - 1, ')'
       Else
          Write(10, '(A,I7)') 'T fixed edges:   ', nFv
       End if
 
       If(nEv.NE.0) Then
-         Write(10, '(3(A,I7),A)') 'T fixed elements:',
+         Write(10, '(3(A,I7),A)') 'T fixed elements:', 
      &             nEv, ' (lines ', kfe, ' - ', kfe + nEv - 1, ')'
       Else
-         Write(10, '(A,I7)') 'T fixed elements:', nEv
+         Write(10, '(A,I7)') 'T fixed elements:', nEv 
       End if
 
 
@@ -150,12 +150,12 @@ C ======================================================================
 C ======================================================================
 C group (Q)
       real  Sol(*)
-
+ 
       Character*(*) fName
-
+ 
 C group (Local variables)
       Character*30 fNameExt
-
+ 
 C ======================================================================
       i = 1
       Do while( fName(i:i+3) .NE. '.sol')
@@ -168,13 +168,13 @@ C ======================================================================
 C save the solution associated to the mesh
       Open(10, file=fNameExt, status='UNKNOWN')
       Write(10,*) nP
-
+ 
       Write(10,*)
       Do n = 1, nP
          Write(10,*) Sol(n)
       End do
       Close(10)
-
+ 
       Return
       End
 
@@ -183,7 +183,7 @@ C save the solution associated to the mesh
 C ======================================================================
       Subroutine saveMgmv(nP, nE, XYP, IPE, fName)
 C ======================================================================
-C Routine saves mesh in the GMV file.
+C Routine saves mesh in the GMV file. 
 C
 C *** Remarks:
 C        1. The size of the working memory is nE
@@ -223,3 +223,6 @@ c ... save faces
 
       Return
       End
+
+
+

@@ -36,7 +36,7 @@ avtBinnerFilter::avtBinnerFilter()
 	#ifdef PARALLEL_IO
 	nprocs = PAR_Size();
 	#endif
-	sgrid = NULL;
+	sgrid = NULL;	
 	dims[0] = 10;
 	dims[1] = 10;
 	dims[2] = 10;
@@ -123,7 +123,7 @@ avtBinnerFilter::Equivalent(const AttributeGroup *a)
 //      on and the data structures we use to count the density.
 //
 //  Programmer:
-//  Creation:
+//  Creation: 
 //
 // ****************************************************************************
 
@@ -150,7 +150,7 @@ avtBinnerFilter::PreExecute(void)
 #ifdef PARALLEL_IO
         UnifyMinMax(extents, 2*ndims, 0);
 #endif
-	for (int i=0; i < ndims; i++){
+	for (int i=0; i < ndims; i++){	
   	cout << "spatial extents:  " << extents[2*i+1] << " " << extents[2*i] << "\n";
 	}
 }
@@ -207,7 +207,7 @@ cout << "domain: " << domain << "\n";
 	int bin[3];
 	float delta[3];
 	for (vtkIdType i = 0; i < npoints; i++) {
-		in_ds->GetPoint(i, x);
+		in_ds->GetPoint(i, x); 
 
 		/* find the corresponding bin */
 		for (int j=0; j < ndims; j++){
@@ -220,7 +220,7 @@ cout << "domain: " << domain << "\n";
 
     /* 5 contribution */
     data[bin[0]+ dims[0] * ( dims[1] * bin[2] + bin[1])] += 1;
-	}
+	}	
 	float check_nptlc = 0.0;
 	for (vtkIdType i=0; i < grid_size; i++){
 		check_nptlc += data[i];
@@ -260,7 +260,7 @@ avtBinnerFilter::RefashionDataObjectInfo(void)
 	outAtts.GetCumulativeTrueSpatialExtents()->Set(extents);
  	outAtts.GetTrueSpatialExtents()->Set(extents);
 	outAtts.SetSpatialDimension(inAtts.GetSpatialDimension());
-	outAtts.SetTopologicalDimension(inAtts.GetSpatialDimension());
+	outAtts.SetTopologicalDimension(inAtts.GetSpatialDimension());			
 }
 
 // ****************************************************************************
@@ -274,7 +274,7 @@ avtBinnerFilter::VerifyInput(void)
 {
 	cout << "Checking Spatial Dimensions: " << GetInput()->GetInfo().GetAttributes().GetSpatialDimension() << "\n";
 	cout << "Checking Topological Dimensions: " << GetInput()->GetInfo().GetAttributes().GetTopologicalDimension() << "\n";
-
+		 	
 }
 
 
@@ -309,10 +309,10 @@ avtBinnerFilter::PostExecute(void)
   for ( int k=0; k<dims[2]; k++){
 		if (ndims == 2)
 			x[2] = 0;
-		else
+		else 
 			x[2]=step[2]*k + extents[4];
-
-    for (int j=0; j<dims[1]; j++){
+		
+    for (int j=0; j<dims[1]; j++){ 
 			x[1]=step[1]*j + extents[2];
       for (int i=0; i<dims[0]; i++){
 				x[0]=step[0]*i + extents[0];
@@ -339,12 +339,12 @@ cout << "drange: " << drange[0] << " " << drange[1] << "\n";
 	if (PAR_Rank() == 0){
 #endif
 	avtDataTree_p tree = new avtDataTree();
-	tree = new avtDataTree(sgrid, 0);
+	tree = new avtDataTree(sgrid, 0);	
 	SetOutputDataTree(tree);
 	sgrid->Delete();
 	sgrid = NULL;
 #ifdef PARALLEL_IO
-	}
+	} 
 #endif
 	RefashionDataObjectInfo();
 }

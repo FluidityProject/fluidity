@@ -4,3 +4,4 @@
 
 cd /scratch/agsell/H5Part/test
 yod -np 16 ./H5BlockParTestScalarField -w -g
+

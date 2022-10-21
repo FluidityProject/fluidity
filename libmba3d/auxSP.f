@@ -10,9 +10,9 @@ C ================================================================
 C ================================================================
 C Remark: the 3rd column of IPE is overloaded in makSE. If it is
 C         needed, the absolute value should be used.
-c
-c         We realize the same idea here by overloading the 3rd
-c         column of IPE.
+c 
+c         We realize the same idea here by overloading the 3rd 
+c         column of IPE. 
 C ================================================================
 c group (M)
       Integer IEP(*)
@@ -136,7 +136,7 @@ C ================================================================
 C ================================================================
       Subroutine info
 C ================================================================
-C Routines prints ANI's logo.
+C Routines prints ANI's logo. 
 C ================================================================
       Integer iDat(14)
       DATA iDat/83,  116, 111, 110, 101, 32, 70,
@@ -202,7 +202,7 @@ C ================================================================
      &                     iPt.EQ.iDs(1, k)) Goto 5
                      End do
 
-                     If(ifXnode(ICP(iPt), jInode)) Goto 10
+                     If(ifXnode(ICP(iPt), jInode)) Goto 10 
 
                      Call findSE(lPb, iPb, iPt, nPt)
                      If(nPt.NE.0) Goto 5
@@ -273,7 +273,7 @@ C ================================================================
 
 
 C ================================================================
-C  All operations with colors are binary operations.
+C  All operations with colors are binary operations. 
 C  The same operations go with status.
 C ================================================================
 
@@ -360,24 +360,24 @@ C ================================================================
 C ================================================================
       status = max(0, status)
 
-c ... remove obsolete and not-implemented input features
+c ... remove obsolete and not-implemented input features 
       If(status.GT.0) Then
          If(ifXnode(status, ANITangledMesh)) Then
             Call delXnode(status, ANITangledMesh)
-            If(iPrint.GE.2) Write(*, 5001)
+            If(iPrint.GE.2) Write(*, 5001) 
          End if
       End if
 
-
-c ... inform the user about requested features
+      
+c ... inform the user about requested features  
       If(iPrint.GE.2) Then
-         If(ifXnode(status, ANIForbidBoundaryElements)) Write(*, 5003)
+         If(ifXnode(status, ANIForbidBoundaryElements)) Write(*, 5003) 
          If(ifXnode(status, ANIFixBoundaryFaces))       Write(*, 5004)
          If(ifXnode(status, ANIFixSurfacePoints))       Write(*, 5007)
 
-         If(ifXnode(status, ANIMultiConnectedGeometry))
+         If(ifXnode(status, ANIMultiConnectedGeometry)) 
      &      Write(*, 5002) '[user]'
-         If(ifXnode(status, ANIUse2ArmRule))
+         If(ifXnode(status, ANIUse2ArmRule))      
      &      Write(*, 5005) '[user]'
          If(ifXnode(status, ANIDeleteTemporaryFaces))
      &      Write(*, 5006) '[user]'
@@ -399,13 +399,13 @@ c ... set up default features
          End if
       End if
 
-      If(iPrint.GE.2) Write(*,*)
+      If(iPrint.GE.2) Write(*,*) 
 
       Return
 
  5001 Format('status.fd: -512  [ANITangledMesh]            [research]')
  5002 Format('status.fd: +64   [ANIMultiConnectedGeometry] ', A)
- 5003 Format('status.fd: +1    [ANIForbidBoundaryElements] [user]')
+ 5003 Format('status.fd: +1    [ANIForbidBoundaryElements] [user]') 
  5004 Format('status.fd: +4    [ANIFixBoundaryFaces]       [user]')
  5005 Format('status.fd: +2    [ANIUse2ArmRule]            ', A)
  5006 Format('status.fd: +8    [ANIDeleteTemporaryFaces]   ', A)

@@ -359,7 +359,7 @@ h5t_get_loc_vertex_indices_of_edge (
 	                   vertex_indices);
 	h5_loc_idx_t face_idx = h5tpriv_get_face_idx (entity_id);
 	h5_loc_idx_t elem_idx = h5tpriv_get_elem_idx (entity_id);
-
+	
 	TRY (ret_value = h5t_get_loc_vertex_indices_of_edge2 (
 		     m, face_idx, elem_idx, vertex_indices));
 	H5_RETURN (ret_value);
@@ -578,3 +578,4 @@ h5priv_find_idlist (
        	}
        	H5_RETURN (-(low+1));  // not found
 }
+

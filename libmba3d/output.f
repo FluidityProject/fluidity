@@ -3,7 +3,7 @@ C
       contains
 C
 C ================================================================
-      Subroutine countBadElements(nE, L1E, L2E, qE, Quality,
+      Subroutine countBadElements(nE, L1E, L2E, qE, Quality, 
      &                            nLines, output, flagFILE)
 C ================================================================
       include 'output.fd'
@@ -15,7 +15,7 @@ C ================================================================
       Logical flagFILE
 
 c group (Local variables)
-      Integer nBad(10)
+      Integer nBad(10) 
       Character*(LineLenght) message
 
 C ================================================================

@@ -5,7 +5,7 @@
 				depending on your system. Also note if you
 				are doing a non-native compile you are
 				responsiable for setting the appropriate
-				CFLAGS. See README for more information.
+				CFLAGS. See README for more information. 
 2.  make
 3.  make check
 4.  make install                # NOTE: must be SUPERUSER for make install

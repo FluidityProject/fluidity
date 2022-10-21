@@ -66,7 +66,7 @@ main (
 	ssize_t j_end = dim_y - 1;
 	ssize_t k_start = start;
 	ssize_t k_end = end;
-
+	
 	// create fake data
 	ssize_t i_dim = i_end - i_start + 1;
 	ssize_t j_dim = j_end - j_start + 1;
@@ -82,11 +82,11 @@ main (
 
         // open file and create first step
         h5_file_t file = H5OpenFile (fname, H5_O_WRONLY, H5_PROP_DEFAULT);
-        H5SetStep (file, 0);
+        H5SetStep (file, 0); 
 
 	// set view on data for this core
 	H5Block3dSetView (file, i_start, i_end, j_start, j_end, k_start, k_end);
-
+	
         // write data
         H5Block3dWriteScalarFieldInt64 (file, "data", data);
 

@@ -24,7 +24,7 @@
 namespace optparse {
 
 /**
- * Action type.
+ * Action type. 
  * Use this type to determine what we're storing, naming
  * convention is the same as the optparse python module.
  * Even with STORE_FALSE and STORE_TRUE the values are
@@ -33,7 +33,7 @@ namespace optparse {
  */
 typedef enum {STORE_FALSE=0, STORE_TRUE, STORE} action_t;
 
-/**
+/** 
  * Option argument type.
  * Defines expected option argument type.
  */
@@ -46,10 +46,10 @@ public:
             std::string hlp, action_t act, std::string dfault, type_t type,
             std::string allowed_args);
     ~Option ();
-
+    
     /**
      * Validate option argument.
-     * Test if argument is valid for the option. The argument must be valid w.r.t.
+     * Test if argument is valid for the option. The argument must be valid w.r.t. 
      * to type_ and allowed_values_.
      * @param argument Argument to be tested.
      * @return true if argument is valid.
@@ -66,7 +66,7 @@ public:
      */
     std::string dfault_;
     /**
-     * Expected type the argument of this option should have.
+     * Expected type the argument of this option should have. 
      * Only relevant for STORE action.
      * Used for generating the usage string.
      */
@@ -107,7 +107,7 @@ public:
      * @param act Action, one of STORE, STORE_TRUE, STORE_FALSE.
      * @param type Type info of the expected option argument. One of INT, DOUBLE, STRING, BOOL.
      * @param dfault Default value. Value stored in the dictionary if the option is not given.
-     * @param allowed_values List of possible option values.
+     * @param allowed_values List of possible option values. 
      *                       A string of comma-separated allowed values. An empty string means
      *                       that any value is allowed.
      */
@@ -127,16 +127,16 @@ public:
     void parse_args (int argc, char **argv);
     /**
      * Write usage info to stream.
-     * The usage info includes a formatted list of all options the parser knows about,
+     * The usage info includes a formatted list of all options the parser knows about, 
      * including the help string, expected argument type and default value.
      * @param os Output stream the usage info is written to.
      */
     void help (std::ostream& os);
     /**
      * Convert type_t type to human-readable string.
-     * This is used for generating the usage string and also in
+     * This is used for generating the usage string and also in 
      * TypeOptionParser to encode the argument type in the options dictionary.
-     * @see help
+     * @see help 
      * @param type Type.
      * @return Converted string.
      */
@@ -150,7 +150,7 @@ public:
 protected:
     /**
      * Set option in dictionary.
-     * Function the parser uses to store an option argument or a default value in
+     * Function the parser uses to store an option argument or a default value in 
      * options dictionary. Can be overridden in a subclass to store additional info.
      * @param option Option object.
      * @param argument Option argument to store.

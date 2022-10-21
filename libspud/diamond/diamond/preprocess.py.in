@@ -79,10 +79,10 @@ def preprocess(schemafile):
     include_parent.remove(include)
 
   grammar_list = tree.xpath('/t:grammar', namespaces={'t': ns})
-
+  
   # If the .rnc didn't include a start = prefix, then no valid
   # grammar tag will be present. Let the user know.
-
+  
   if len(grammar_list) == 0:
   		debug.deprint("Error: No grammar tag present in schema.", 0)
 	  	sys.exit(1)
@@ -112,7 +112,7 @@ def preprocess(schemafile):
         matching_defn = defines[name]
         for child in define:
           matching_defn.append(copy.deepcopy(child))
-
+  
   #
   # deal with combine="choice"
   #
@@ -140,7 +140,7 @@ def preprocess(schemafile):
   for define in define_nodes:
     parent = define.getparent()
     parent.remove(define)
-
+  
   # add the modified defines back to the grammar
   for define in list(defines.values()):
     grammar.append(define)

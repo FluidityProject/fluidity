@@ -164,7 +164,7 @@ main (
 
         // open file and create first step
         h5_file_t file = H5OpenFile (fname, H5_O_RDWR, H5_PROP_DEFAULT);
-        H5SetStep (file, 0);
+        H5SetStep (file, 0); 
 
 	// test wheter field exists
 	const char field_name[] = "data";

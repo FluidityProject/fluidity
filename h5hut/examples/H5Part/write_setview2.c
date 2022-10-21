@@ -103,7 +103,7 @@ main (
 		for (int j = 0; j < num_particles_per_block; j++) {
 			data[j] = j + i*num_particles_per_block + offset;
 		}
-
+		
                 // set the "view" to select a subset of the dataset
                 H5PartSetViewOnDataset (
                         file,

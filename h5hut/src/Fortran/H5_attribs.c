@@ -14,13 +14,13 @@
 #include "h5core/h5_step_attribs.h"
 
 /*
-   __ _ _              _   _        _ _           _
-  / _(_) | ___    __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___
+   __ _ _              _   _        _ _           _            
+  / _(_) | ___    __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
  | |_| | |/ _ \  / _` | __| __| '__| | '_ \| | | | __/ _ \/ __|
  |  _| | |  __/ | (_| | |_| |_| |  | | |_) | |_| | ||  __/\__ \
  |_| |_|_|\___|  \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
 
-   __ _ _   _  ___ _ __ _   _
+   __ _ _   _  ___ _ __ _   _ 
   / _` | | | |/ _ \ '__| | | |
  | (_| | |_| |  __/ |  | |_| |
   \__, |\__,_|\___|_|   \__, |
@@ -100,17 +100,17 @@ h5_getfileattribinfo_by_name (
 }
 
 /*
-   __ _ _              _   _        _ _           _
-  / _(_) | ___    __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___
+   __ _ _              _   _        _ _           _            
+  / _(_) | ___    __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
  | |_| | |/ _ \  / _` | __| __| '__| | '_ \| | | | __/ _ \/ __|
  |  _| | |  __/ | (_| | |_| |_| |  | | |_) | |_| | ||  __/\__ \
  |_| |_|_|\___|  \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
 
-  _    __
- (_)  / /__
- | | / / _ \
+  _    __    
+ (_)  / /__  
+ | | / / _ \ 
  | |/ / (_) |
- |_/_/ \___/
+ |_/_/ \___/ 
 */
 static inline h5_int64_t
 write_file_attrib (
@@ -221,7 +221,7 @@ h5_readfileattrib_r8 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_file_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_FLOAT64_T,
                 (void*)buffer));
 }
@@ -264,7 +264,7 @@ h5_readfileattrib_r4 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_file_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_FLOAT32_T,
                 buffer));
 }
@@ -307,7 +307,7 @@ h5_readfileattrib_i8 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_file_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_INT64_T,
                 buffer));
 }
@@ -350,20 +350,20 @@ h5_readfileattrib_i4 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_file_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_INT32_T,
                 buffer));
 }
 
 /*
-      _                     _   _        _ _           _
-  ___| |_ ___ _ __     __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___
+      _                     _   _        _ _           _            
+  ___| |_ ___ _ __     __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
  / __| __/ _ \ '_ \   / _` | __| __| '__| | '_ \| | | | __/ _ \/ __|
  \__ \ ||  __/ |_) | | (_| | |_| |_| |  | | |_) | |_| | ||  __/\__ \
  |___/\__\___| .__/   \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
-             |_|
-
-   __ _ _   _  ___ _ __ _   _
+             |_|                                                    
+ 
+   __ _ _   _  ___ _ __ _   _ 
   / _` | | | |/ _ \ '__| | | |
  | (_| | |_| |  __/ |  | |_| |
   \__, |\__,_|\___|_|   \__, |
@@ -444,18 +444,18 @@ h5_getstepattribinfo_by_name (
 }
 
 /*
-      _                     _   _        _ _           _
-  ___| |_ ___ _ __     __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___
+      _                     _   _        _ _           _            
+  ___| |_ ___ _ __     __ _| |_| |_ _ __(_) |__  _   _| |_ ___  ___ 
  / __| __/ _ \ '_ \   / _` | __| __| '__| | '_ \| | | | __/ _ \/ __|
  \__ \ ||  __/ |_) | | (_| | |_| |_| |  | | |_) | |_| | ||  __/\__ \
  |___/\__\___| .__/   \__,_|\__|\__|_|  |_|_.__/ \__,_|\__\___||___/
-             |_|
+             |_|                                                    
 
-  _    __
- (_)  / /__
- | | / / _ \
+  _    __    
+ (_)  / /__  
+ | | / / _ \ 
  | |/ / (_) |
- |_/_/ \___/
+ |_/_/ \___/ 
 */
 
 static inline h5_int64_t
@@ -569,7 +569,7 @@ h5_readstepattrib_r8 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_iteration_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_FLOAT64_T,
                 (void*)buffer));
 }
@@ -612,7 +612,7 @@ h5_readstepattrib_r4 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_iteration_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_FLOAT32_T,
                 buffer));
 }
@@ -655,7 +655,7 @@ h5_readstepattrib_i8 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_iteration_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_INT64_T,
                 buffer));
 }
@@ -698,7 +698,7 @@ h5_readstepattrib_i4 (
 		      (h5_file_p)f, l_name, name, buffer);
         H5_API_RETURN (read_iteration_attrib(
 		f,
-                name, l_name,
+                name, l_name, 
                 H5_INT32_T,
                 buffer));
 }

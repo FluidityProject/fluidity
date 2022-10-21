@@ -111,7 +111,7 @@ AC_ARG_WITH(
 	[VTK installation path [default=""]])],
 	[VTK_PREFIX=$withval], [])
 
-# Determine a C/C++ compiler to use.
+# Determine a C/C++ compiler to use. 
 if test "x$ENABLE_PARALLEL" = "xyes"; then
    	if test "x$MPICC" != "x"; then
 	   	CC=$MPICC
@@ -196,7 +196,7 @@ PATH_Search() {
 
 AC_CANONICAL_HOST
 AC_PROG_MAKE_SET
-
+        
 CFLAGS="$CFLAGS -Wall"
 CXXFLAGS="$CFLAGS -Wall"
 FFLAGS="$FFLAGS -Wall"
@@ -249,7 +249,7 @@ AC_CHECK_FUNCS([memmove memset pow strchr strdup strerror strstr])
 
 # AC_DEFINE_UNQUOTED (variable, value, [description])
 # Define the C preprocessor variable variable to value
-# Use this macro instead of AC_DEFINE when variable or value is a shell variable.
+# Use this macro instead of AC_DEFINE when variable or value is a shell variable. 
 AC_DEFINE_UNQUOTED(MY_BUILD_VENDOR, "$host_vendor", "")
 AC_DEFINE_UNQUOTED(MY_BUILD_CPU, "$host_cpu", "")
 AC_DEFINE_UNQUOTED(MY_BUILD_OS, "$host_os", "")
@@ -277,7 +277,7 @@ if test -n "${HDF5_PREFIX}"; then
         LDFLAGS="$LDFLAGS -L$HDF5_PREFIX/lib"
 fi
 AC_CHECK_LIB([hdf5], [H5open])
-AS_IF([test "x$ac_cv_lib_hdf5_H5open" != xyes],
+AS_IF([test "x$ac_cv_lib_hdf5_H5open" != xyes], 
         [AC_MSG_ERROR([Cannot compile and link a HDF5 program])])
 AC_MSG_CHECKING([checking whether hdf5 lib supports parallel IO])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
@@ -335,7 +335,7 @@ AC_MSG_CHECKING([if fortran interface enabled])
 if test "X$ENABLE_FORTRAN" = "Xyes"; then
 	AC_MSG_RESULT([yes])
 	AC_LANG_PUSH(Fortran)
-
+	
 	# Query Fortran symbol mangling. __AC_FC_NAME_MANGLING sets
 	# ac_cv_{f77,fc}_mangling. The value contains three fields, separated
 	# by commas:
@@ -480,7 +480,7 @@ if test "X$ENABLE_VTKCONVERTER" = "Xyes"; then
 	VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=LINK 2>/dev/null`
 	if test "X$?" != "X0"; then
 		AC_MSG_RESULT([no])
-	        AC_MSG_ERROR([Cannot compile VTK to H5hut converter]);
+	        AC_MSG_ERROR([Cannot compile VTK to H5hut converter]); 
 	else
 		AC_MSG_RESULT([yes])
 	fi

@@ -15,7 +15,7 @@ program write_stridedf
 #if defined(PARALLEL_IO)
   include 'mpif.h'
 #endif
-
+  
   ! the file name we want to read
   character (len=*), parameter :: FNAME =       "example_strided.h5"
   integer*8, parameter :: NPOINTS =             99

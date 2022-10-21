@@ -16,7 +16,7 @@ To create 32bit DLL:
     Run vcbuild.exe /useenv spatialindex.sln "Debug|Win32"
 
 To create 64bit DLL:
-1. Open a Visual Studio x64 command prompt (or open any shell
+1. Open a Visual Studio x64 command prompt (or open any shell 
    and run vcvarsall.bat x64).
 
 2a. Release build:
@@ -25,3 +25,4 @@ To create 64bit DLL:
     Run vcbuild.exe /useenv spatialindex.sln "Debug|x64"
 
 Enjoy!
+

@@ -37,7 +37,7 @@ main (
 
         // open file and create first step
         h5_file_t file = H5OpenFile (fname, H5_O_RDONLY, H5_PROP_DEFAULT);
-        H5SetStep (file, 0);
+        H5SetStep (file, 0); 
 
 	if (!H5BlockHasFieldData (file)) {
 		goto done;

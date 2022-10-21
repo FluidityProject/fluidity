@@ -1,17 +1,17 @@
 Project name:  Ani3D-MBA
                (Generator of adaptive tetrahedral meshes)
-
-
+ 
+ 
 Contents:
  1. What is Ani3D?
  2. Main features of Ani3D.
  3. Installation guide.
  4. Available support.
  5. References.
-
-
+ 
+ 
 1. What is Ani3D?
-  The Fortran 77 package Ani3D generates unstructured tetrahedral
+  The Fortran 77 package Ani3D generates unstructured tetrahedral 
 meshes adapted to a solution function defined at mesh nodes. It
 can be shown that the resulting mesh is optimal in a sense that
 an interpolation error is minimized on such a grid (see references
@@ -27,7 +27,7 @@ below).
 
 (b) Robustness. The algorithm is a sequence of topological
     operations on mesh superelements. This enables a careful
-    treatment of complex situations which in turn results in
+    treatment of complex situations which in turn results in 
     algorithm robustness.
 
 (c) Careful checking the output mesh.
@@ -41,17 +41,17 @@ below).
     mesh generator. Recall that the main purpose of Ani3D is to
     adapt a mesh to the solution function.
 
-    The input mesh provides generator with information about the
+    The input mesh provides generator with information about the 
     computational domain. Apart the standard mesh data (list of node
     coordinates, connectivity table, list of boundary edges), we
     allow to provide more input data such as a list of fixed nodes,
-    surface tiangles, and tetrahedra which will be never touched.
-    These additional arrays of data may be empty. The detailed
+    surface tiangles, and tetrahedra which will be never touched. 
+    These additional arrays of data may be empty. The detailed 
     description of input parameters is given in file mba_solution.f.
 
 (e) Very simple output. We return the modified sets of data. In
-    addition, we provide routine for generating GMV-files of the
-    input and the output meshes which alleviates the process of
+    addition, we provide routine for generating GMV-files of the 
+    input and the output meshes which alleviates the process of 
     understanding how the code responses to different input data.
 
 (g) Ability to construct locally refined meshes, both isotropic
@@ -88,7 +88,7 @@ below).
 
 3. Installation guide.
   The detailed user guide is not available at the moment. Please
-refer to short documents in directory doc/ and to user guide for
+refer to short documents in directory doc/ and to user guide for 
 the package ani3D available at sourceforge.net.
 
 
@@ -125,3 +125,4 @@ information is
           differentiation of P_1 finite element functions,
           Computational Mathematics and Mathematical Physics,
           V.43,No.6,2003,827-835.
+

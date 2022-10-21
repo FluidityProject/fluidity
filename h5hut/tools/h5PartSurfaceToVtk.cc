@@ -40,7 +40,7 @@ static char* geo_name        = NULL;
 static char* output_name     = NULL;
 
 static bool flg_alive = false;
-static double z_pos = 0.0;
+static double z_pos = 0.0; 
 static int print_all = 0;
 static int step_ini = 1;
 static int dump_freq = 1;
@@ -88,8 +88,8 @@ static struct long_options l_opts[] =
 
 string convert2Int(int number) {
   stringstream ss;
-  ss <<   setw(5) << setfill('0') <<  number;
-  return ss.str();
+  ss <<   setw(5) << setfill('0') <<  number; 
+  return ss.str(); 
 }
 
 
@@ -98,10 +98,10 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
   static int sp = 1;    /* character index in current token */
   int opt_opt = '?';    /* option character passed back to user */
 
-  if (sp == 1)
+  if (sp == 1) 
     {
       /* check for more flag-like tokens */
-      if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0')
+      if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0') 
 	{
 	  return EOF;
 	}
@@ -112,7 +112,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 	}
     }
 
-  if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-')
+  if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-') 
     {
       /* long command line option */
       const char *arg = &argv[opt_ind][2];
@@ -221,7 +221,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 
 	  sp = 1;
 	}
-      else
+      else 
 	{
 	  /* set up to look at next char in token, next time */
 	  if (argv[opt_ind][++sp] == '\0')
@@ -258,28 +258,28 @@ static void variable_assign(int argc, const char *argv[])
 	case 'i': // Print shorter version without the values
 	  input_name = strdup(opt_arg);
 	  break;
-	case 'g': //
+	case 'g': // 
 	  { geo_name = strdup(opt_arg);
-
+                        
 	  }
-	  break;
-	case 'f': //
-	  {
+	  break;  
+	case 'f': // 
+	  { 	
 	    mytemp = strdup(opt_arg);
 	    step_ini = (int)strtod(mytemp,NULL);
 	    fprintf(stdout,"string=%s, %s \n",opt_arg, mytemp);
-	    fprintf(stdout,"step_ini=%i \n",step_ini);
+	    fprintf(stdout,"step_ini=%i \n",step_ini);                        
 	  }
-	  break;
-	case 'd': //
-	  {
+	  break;  
+	case 'd': // 
+	  { 	
 	    fprintf(stdout,"string=%s \n",opt_arg);
 	    mytemp = strdup(opt_arg);
 	    dump_freq = (int)strtod(mytemp,NULL);
 	    fprintf(stdout,"string=%s \n",opt_arg);
 	    fprintf(stdout,"dump_freq=%i \n",dump_freq);
 	  }
-	  break;
+	  break;  
 	default:
 	  print_help();
 	  exit(1);
@@ -298,22 +298,22 @@ static void print_help()
   fprintf(stdout, "   -i file, --input file      (REQUIRED) Takes input base file name to \"file\" (extension h5 is assumed \n");
   fprintf(stdout, "   -g file, --input geometry file      (REQUIRED) Takes input base file name to \"file\" (extension h5 is assumed \n");
   fprintf(stdout, "   -o file, --output file     (REQUIRED) Takes output base file name to \"file\" (extension vtk is added)\n");
-
+    
   fprintf(stdout, "\n");
   fprintf(stdout, "  Examples first dump step 100 and dump frequency 100:\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "        /h5SurfaceVtk -i Cavity_Mag_Surface -g ../10 -o p- -f 100 -d 100 \n");
   fprintf(stdout, "\n");
-
+    
 }
 
 
 int main(int argc, const char *argv[])
 {
   h5_file_t *h5file = NULL;
-
+    
   std::ofstream of, ofalive, ofenergy, ofpnum;
-
+   
   int j;
 
   int num_dataset;
@@ -327,17 +327,17 @@ int main(int argc, const char *argv[])
     print_help();
     exit(1);
   }
-
+   
   if(output_name == NULL) {
     fprintf(stdout, "missing output file name\n");
     print_help();
     exit(1);
   }
-
+   
   string ifn = string(input_name) + string(".h5");
-
+   
   h5file = H5OpenFile(ifn.c_str(), H5_O_WRONLY, 0);
-
+     
   if( h5file == NULL ) {
     fprintf(stdout, "unable to open file %s\n", input_name);
     print_help();
@@ -381,7 +381,7 @@ int main(int argc, const char *argv[])
     int nof_sym_m = 0; // Count number of symmetry planes.
     int const nogeosym_flag = 0; // heronion outputs a index, case 0 indicates no symmetry plane, 1 for (x,y) sym, 2 for (y,z), 3 for (z,x),none 0 means the current triangle is not on a real surface of geometry but on a symmetry plane.
 
-
+   
     for(int i = 0; i < numbfaces_global_m; i ++) {
       bfaces_idx_m[i] = i;
       if(allbfaces_m[4 * i] > nogeosym_flag) {
@@ -418,24 +418,24 @@ int main(int argc, const char *argv[])
     //H5Pset_dxpl_mpio(plist_id3, H5FD_MPIO_COLLECTIVE);
     status_c = H5Dread(dset_id_c, H5T_NATIVE_DOUBLE, H5S_ALL, filespace_c, plist_id3, point_coords);
     assert(status_c >= 0);
+    
 
-
-
-
+    
+    
     double **geo3Dcoords_m;//=  malloc(sizeof(double)*numpoints_global_m*3);
     geo3Dcoords_m = (double**)malloc(sizeof(double)*numpoints_global_m);
     for (int i=0;i<numpoints_global_m;i++) {
       geo3Dcoords_m[i] = (double*)malloc(sizeof(double)*3);
     }
-
+    
     for(int i = 0; i < numpoints_global_m; i++) {
       geo3Dcoords_m[i][0] = point_coords[3*i];
       geo3Dcoords_m[i][1] = point_coords[3*i+1];
       geo3Dcoords_m[i][2] = point_coords[3*i+2];
     }
-
-
-
+   
+    
+    
     // Close HDF5 stuff
     H5Dclose(dset_id_c);
     H5Sclose(filespace_c);
@@ -454,21 +454,21 @@ int main(int argc, const char *argv[])
       double    qi = 0.0;
       H5ReadStepAttribFloat64(h5file,"qi",&qi);
       cout << "Working on timestep " << step_local  << endl;
-
+		
       h5_float64_t* PrimaryLoss = (h5_float64_t*)malloc(sizeof(h5_float64_t)*triNum);
       H5PartReadDataFloat64(h5file, "PrimaryLoss", PrimaryLoss);
-
+	
       h5_float64_t* SecondaryLoss = (h5_float64_t*)malloc(sizeof(h5_float64_t)*triNum);
       H5PartReadDataFloat64(h5file, "SecondaryLoss", SecondaryLoss);
-
+	
       h5_float64_t* FNEmissionLoss = (h5_float64_t*)malloc(sizeof(h5_float64_t)*triNum);
       H5PartReadDataFloat64(h5file, "FNEmissionLoss", FNEmissionLoss);
-
+	
       h5_int64_t* TriID = (h5_int64_t*)malloc(sizeof(h5_int64_t)*triNum);
       H5PartReadDataInt64(h5file, "TriangleID", TriID);
-
+	
       string ffn = string("vtk/") + string(output_name) + string("Surface-") + convert2Int(j) + string(".vtk");
-
+	
       of.open(ffn.c_str());
       assert(of.is_open());
       of.precision(6);
@@ -505,11 +505,11 @@ int main(int argc, const char *argv[])
       for(int i = 0; i < numbfaces_global_m ; i ++)
 	of << fabs((FNEmissionLoss[i]+SecondaryLoss[i]+PrimaryLoss[i])/qi) << endl;
       of << endl;
-
+	
       of.close();
-
+	   
       //cout <<"ptype size = "<< sizeof(ptype) << endl;
-
+	
       free(PrimaryLoss);
       free(SecondaryLoss);
       free(FNEmissionLoss);
@@ -523,6 +523,6 @@ int main(int argc, const char *argv[])
     free(allbfaces_m);
     free(bfaces_idx_m);
 
-    H5CloseFile(h5file);
+    H5CloseFile(h5file);   
     return 0;
 }

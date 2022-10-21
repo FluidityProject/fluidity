@@ -13,7 +13,7 @@ echo Deleting Old Files
 del JudyCommon\*.obj JudySL\*.obj JudyHS\*.obj Judy1\*.obj JudyL\*.obj *.dll
 
 echo Giving Judy1 the proper Names
-copy JudyCommon\JudyByCount.c      	Judy1\Judy1ByCount.c
+copy JudyCommon\JudyByCount.c      	Judy1\Judy1ByCount.c   
 copy JudyCommon\JudyCascade.c      	Judy1\Judy1Cascade.c
 copy JudyCommon\JudyCount.c        	Judy1\Judy1Count.c
 copy JudyCommon\JudyCreateBranch.c 	Judy1\Judy1CreateBranch.c
@@ -36,7 +36,7 @@ copy JudyCommon\JudyPrevNextEmpty.c	Judy1\Judy1PrevEmpty.c
 copy JudyCommon\JudyTables.c	        Judy1\Judy1TablesGen.c
 
 echo Giving JudyL the proper Names
-copy JudyCommon\JudyByCount.c      	JudyL\JudyLByCount.c
+copy JudyCommon\JudyByCount.c      	JudyL\JudyLByCount.c   
 copy JudyCommon\JudyCascade.c           JudyL\JudyLCascade.c
 copy JudyCommon\JudyCount.c        	JudyL\JudyLCount.c
 copy JudyCommon\JudyCreateBranch.c 	JudyL\JudyLCreateBranch.c

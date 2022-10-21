@@ -234,11 +234,11 @@ avth5partFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int timeS
     // {
     //     char str[32];
     //     sprintf(str, "mat%d", i);
-    //     -- or --
+    //     -- or -- 
     //     strcpy(str, "Aluminum");
     //     mnames.push_back(str);
     // }
-    //
+    // 
     // Here's the call that tells the meta-data object that we have a mat:
     //
     // AddMaterialToMetaData(md, matname, mesh_for_mat, nmats, mnames);
@@ -261,7 +261,7 @@ avth5partFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int timeS
 #ifdef PARALLEL_IO
 		size = PAR_Size();
 #endif
-
+	
 
     if (!points.size()) {
       EXCEPTION1(InvalidFilesException, "Number of points is zero");
@@ -280,7 +280,7 @@ avth5partFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int timeS
 		pmesh->numBlocks = size;
 		pmesh->blockTitle = "subset";
 		pmesh->blockPieceName = "subset";
-		pmesh->hasSpatialExtents = false;
+		pmesh->hasSpatialExtents = false; 
 
     md->Add(pmesh);
 
@@ -330,7 +330,7 @@ avth5partFileFormat::GetMesh(int timestate, int domain, const char *meshname)
   int nspace = 3;
 	int nprocs = 1;
 #ifdef PARALLEL_IO
- 	nprocs = PAR_Size();
+ 	nprocs = PAR_Size();	
 #endif
 
   H5PartSetStep(file,timestate);
@@ -338,8 +338,8 @@ avth5partFileFormat::GetMesh(int timestate, int domain, const char *meshname)
   //points
   tnpoints= (int) H5PartGetNumParticles(file);
   h5part_int64_t idStart = (( h5part_int64_t)(tnpoints/nprocs))*domain;
-	h5part_int64_t idEnd;
-	if (domain < nprocs-1)
+	h5part_int64_t idEnd;	
+	if (domain < nprocs-1) 
   	idEnd   = ((h5part_int64_t)(tnpoints/nprocs))*(domain+1);
 	else if (domain == nprocs - 1)
   	idEnd   = tnpoints;
@@ -364,7 +364,7 @@ avth5partFileFormat::GetMesh(int timestate, int domain, const char *meshname)
   z = (h5part_float64_t *) malloc(sizeof(h5part_float64_t)*npoints);
 
 
-  h5part_int64_t status = H5PART_SUCCESS;
+  h5part_int64_t status = H5PART_SUCCESS; 
   status = H5PartReadDataFloat64(file, "x", x);
   if (status != H5PART_SUCCESS)
   EXCEPTION1(VisItException, "Could not read x coordinates");
@@ -470,7 +470,7 @@ avth5partFileFormat::GetVar(int timestate, int domain, const char *varname)
   int nspace = 3;
 	int nprocs = 1;
 #ifdef PARALLEL_IO
-  nprocs = PAR_Size();
+  nprocs = PAR_Size(); 
 #endif
 
   H5PartSetStep(file,timestate);
@@ -482,15 +482,15 @@ avth5partFileFormat::GetVar(int timestate, int domain, const char *varname)
   h5part_int64_t *idvar;
   double *data;
 	h5part_int64_t idStart = ((h5part_int64_t)(tnpoints/nprocs))*domain;
-  h5part_int64_t idEnd;
-  if (domain < nprocs-1)
+  h5part_int64_t idEnd; 
+  if (domain < nprocs-1) 
     idEnd   = ((h5part_int64_t)(tnpoints/nprocs))*(domain+1);
   else if (domain == nprocs - 1)
     idEnd   = (h5part_int64_t)tnpoints;
 
   H5PartSetView(file,idStart,idEnd);
 	npoints= H5PartGetNumParticles(file);
-	cout << "GetVar: npoints for domain " << domain << ": " << npoints << "\n";
+	cout << "GetVar: npoints for domain " << domain << ": " << npoints << "\n"; 
 
   for (size_t j=0; j < (size_t)(pointvarnames.size()); j++){
     status = H5PartGetDatasetName(file,j, name,64);
@@ -587,7 +587,7 @@ avth5partFileFormat::GetVectorVar(int timestate, int domain,const char *varname)
     //           one_entry[j] = ...
     //      for (j = ncomps ; j < ucomps ; j++)
     //           one_entry[j] = 0.;
-    //      rv->SetTuple(i, one_entry);
+    //      rv->SetTuple(i, one_entry); 
     // }
     //
     // delete [] one_entry;

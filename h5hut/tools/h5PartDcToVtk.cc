@@ -34,7 +34,7 @@ static void variable_assign(int argc, const char *argv[]);
 static char* input_name      = NULL;
 static char* output_name      = NULL;
 static bool flg_alive = false;
-static double z_pos = 0.0;
+static double z_pos = 0.0; 
 static int print_all = 0;
 
 /* `get_option' variables */
@@ -79,8 +79,8 @@ static struct long_options l_opts[] =
 
 string convert2Int(int number) {
   stringstream ss;
-  ss <<   setw(5) << setfill('0') <<  number;
-  return ss.str();
+  ss <<   setw(5) << setfill('0') <<  number; 
+  return ss.str(); 
 }
 
 
@@ -89,10 +89,10 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
   static int sp = 1;    /* character index in current token */
   int opt_opt = '?';    /* option character passed back to user */
 
-  if (sp == 1)
+  if (sp == 1) 
     {
       /* check for more flag-like tokens */
-      if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0')
+      if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0') 
 	{
 	  return EOF;
 	}
@@ -103,7 +103,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 	}
     }
 
-  if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-')
+  if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-') 
     {
       /* long command line option */
       const char *arg = &argv[opt_ind][2];
@@ -214,7 +214,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 
 	  sp = 1;
 	}
-      else
+      else 
 	{
 	  /* set up to look at next char in token, next time */
 	  if (argv[opt_ind][++sp] == '\0')
@@ -251,11 +251,11 @@ static void variable_assign(int argc, const char *argv[])
 	case 'i': // Print shorter version without the values
 	  input_name = strdup(opt_arg);
 	  break;
-	case 'a': //
+	case 'a': // 
 	  { flg_alive = true;
 	    z_pos = atof(strdup(opt_arg));
 	  }
-	  break;
+	  break;  
 	default:
 	  print_help();
 	  exit(1);
@@ -291,7 +291,7 @@ int main(int argc, const char *argv[])
   h5_file_t *h5file = NULL;
 
   std::ofstream of, ofalive, ofenergy, ofpnum;
-
+   
   int j;
 
   int num_dataset;
@@ -305,23 +305,23 @@ int main(int argc, const char *argv[])
     print_help();
     exit(1);
   }
-
+   
   if(output_name == NULL) {
     fprintf(stdout, "missing output file name\n");
     print_help();
     exit(1);
   }
-
+   
   string ifn = string(input_name) + string(".h5");
 
   h5file = H5OpenFile(ifn.c_str(), H5_O_WRONLY, 0);
-
+   
   if( h5file == NULL ) {
     fprintf(stdout, "unable to open file %s\n", input_name);
     print_help();
     exit(1);
   }
-
+   
   ntime_step = H5GetNumSteps(h5file);
 
   string ffenergy = string(output_name) + string("energy") + string(".dat");//new
@@ -336,14 +336,14 @@ int main(int argc, const char *argv[])
 	  << "# time" <<" partNum"<< endl;//new
 
   if (flg_alive) {
-
+       
     set<h5_int64_t> idSet;
-
+      
 
     H5SetStep(h5file, ntime_step-1);
     num_dataset = H5PartGetNumDatasets(h5file);
     h5_int64_t nparticles = H5PartGetNumParticles(h5file);
-
+     
     h5_int64_t* larray = (h5_int64_t*)malloc(sizeof(h5_int64_t)*nparticles);
     H5PartReadDataInt64(h5file, "id", larray);
 
@@ -354,24 +354,24 @@ int main(int argc, const char *argv[])
       if (z[n] >= z_pos)
 	idSet.insert(larray[n]);
     }
-
+       
     cout << "Last timestep contains " << nparticles << " particles" << endl;
-
+       
     for (size_t j = 0; j<ntime_step ; j ++) {
 
       H5SetStep(h5file,j);
       // char s_name[64]="ENERGY";//new
       //h5_float64_t Etmp=0.0;//new
-      //int var_readE=H5PartReadStepAttrib(h5file,s_name,&Etmp);//new
-      //num_dataset = H5PartGetNumDatasets(h5file);//new
+      //int var_readE=H5PartReadStepAttrib(h5file,s_name,&Etmp);//new 	
+      //num_dataset = H5PartGetNumDatasets(h5file);//new 
       //Etmp = (Etmp -  0.51099906)*1000000.0;//new eV
       h5_int64_t nparticles = H5PartGetNumParticles(h5file);
       //ofenergy<<Etmp<<" "<<nparticles<<endl;//new
       //cout<<"Read mean energy in step: "<<j<<" Energy: "<<Etmp<<endl;//new
-
+            
       h5_int64_t* larray = (h5_int64_t*)malloc(sizeof(h5_int64_t)*nparticles);
       H5PartReadDataInt64(h5file, "id", larray);
-
+	   
       h5_float64_t* x = (h5_float64_t*)malloc(sizeof(h5_float64_t)*nparticles);
       H5PartReadDataFloat64(h5file, "x", x);
       vector<h5_float64_t> x_alive;
@@ -402,7 +402,7 @@ int main(int argc, const char *argv[])
       assert(ofalive.is_open());
       ofalive.precision(6);
 
-      size_t alive_num =  x_alive.size();
+      size_t alive_num =  x_alive.size();           
 
       ofalive  << setprecision(5)
 	       << "# vtk DataFile Version 2.0" << endl
@@ -410,26 +410,26 @@ int main(int argc, const char *argv[])
 	       << "ASCII" << endl
 	       << "DATASET UNSTRUCTURED_GRID" << endl
 	       << "POINTS " <<  alive_num << " float" << endl;
-
+           
       // Particle positions
 
 
       for(size_t i = 0; i < alive_num; i++)
 	ofalive << x_alive[i] << "  " << y_alive[i] << "  " << z_alive[i] << endl;
-
+           
       ofalive << endl;            // defining VTK_poly_vertex
-
+           
       ofalive << "CELLS " << alive_num << " " << 2 * alive_num << endl;
-
+           
       for(size_t i = 0; i < alive_num; i++)
 	ofalive << "1 " << i << endl;
       ofalive << endl;
-
+           
       // defining Cell_types
       ofalive << "CELL_TYPES " << alive_num << endl;
       for(size_t i = 0; i < alive_num; i++)
 	ofalive << "2" << endl;
-
+           
       // defining Cell_types
       ofalive << "POINT_DATA " << alive_num << endl;
       ofalive << "SCALARS " << "Pointtype" << " float " << "1" << endl;
@@ -449,7 +449,7 @@ int main(int argc, const char *argv[])
 	}
 
       }
-
+           
       ofalive << "LOOKUP_TABLE " << "mytable " << 3 << endl ;
       ofalive << 1.0 <<" "<< 0.0 <<" "<< 0.0 <<" "<< 1.0 << endl;
       ofalive << 0.0 <<" "<< 1.0 <<" "<< 0.0 <<" "<< 1.0 << endl;
@@ -471,7 +471,7 @@ int main(int argc, const char *argv[])
     }
   }
 
-
+       
   else {
     vector<double>Esmall;//smaller than 28eV
     vector<double>Emultip;//Energy zone of SEY>1.
@@ -483,18 +483,18 @@ int main(int argc, const char *argv[])
       H5SetStep(h5file,j);
       // char s_name[64]="ENERGY";//new
       //h5_float64_t Etmp=0.0;//new
-      //int var_readE=H5PartReadStepAttrib(h5file,s_name,&Etmp);//new
-      //num_dataset = H5PartGetNumDatasets(h5file);//new
+      //int var_readE=H5PartReadStepAttrib(h5file,s_name,&Etmp);//new 	
+      //num_dataset = H5PartGetNumDatasets(h5file);//new 
       num_dataset = H5PartGetNumDatasets(h5file);
       h5_int64_t nparticles = H5PartGetNumParticles(h5file);
       //Etmp = (Etmp -  0.51099906)*1000000.0;//new eV
-      //ofenergy<<Etmp<<" "<<nparticles<<endl;//new
+      //ofenergy<<Etmp<<" "<<nparticles<<endl;//new          
       //cout<<"Read mean energy in step: "<<j<<" Energy: "<<Etmp<<endl;//new
-
+          
       cout << "Working on timestep " << j << " expecting " << nparticles << " particles " << endl;
       ofpnum  << j <<" "<<nparticles<<endl;//new
-
-
+            
+	   
       h5_float64_t* x = (h5_float64_t*)malloc(sizeof(h5_float64_t)*nparticles);
       H5PartReadDataFloat64(h5file, "x", x);
 
@@ -508,30 +508,30 @@ int main(int argc, const char *argv[])
       H5PartReadDataInt64(h5file, "ptype", ptype);
 
       string ffn = string("vtk/") + string(output_name)  + convert2Int(j) + string(".vtk");
-
+      
       of.open(ffn.c_str());
       assert(of.is_open());
       of.precision(6);
-
+       
       of  << setprecision(5)
 	  << "# vtk DataFile Version 2.0" << endl
 	  << "unstructured grid and vector field on the nodes" << endl
 	  << "ASCII" << endl
 	  << "DATASET UNSTRUCTURED_GRID" << endl
 	  << "POINTS " << nparticles << " float" << endl;
-
+       
       // Particle positions
       for(size_t i = 0; i < nparticles; i++)
 	of << x[i] << "  " << y[i] << "  " << z[i] << endl;
 
       of << endl;            // defining VTK_poly_vertex
-
+       
       of << "CELLS " << nparticles << " " << 2 * nparticles << endl;
 
       for(size_t i = 0; i < nparticles; i++)
 	of << "1 " << i << endl;
       of << endl;
-
+       
       // defining Cell_types
       of << "CELL_TYPES " << nparticles << endl;
       for(size_t i = 0; i < nparticles; i++)
@@ -568,7 +568,7 @@ int main(int argc, const char *argv[])
 
       h5_float64_t* larrayPx = (h5_float64_t*)malloc(sizeof(h5_float64_t)*nparticles);
       H5PartReadDataFloat64(h5file, "px", larrayPx);
-
+            
       h5_float64_t* larrayPy = (h5_float64_t*)malloc(sizeof(h5_float64_t)*nparticles);
       H5PartReadDataFloat64(h5file, "py", larrayPy);
 
@@ -582,8 +582,8 @@ int main(int argc, const char *argv[])
 	h5_int64_t* larray_temp = (h5_int64_t*)malloc(sizeof(h5_int64_t)*nparticles_temp);
 	H5PartReadDataInt64(h5file, "id", larray_temp);
 
-
-
+               
+                                
 	for (size_t i = 0; i < nparticles_temp ; i ++) {
 	  idSet.insert(larray_temp[i]);
 	}
@@ -618,7 +618,7 @@ int main(int argc, const char *argv[])
 	    }else {
 	      Elarge.push_back(Etemp);
 	    }
-
+                       
 
 	  }
 
@@ -626,7 +626,7 @@ int main(int argc, const char *argv[])
 	free(larray_temp);
       }
 
-
+    
       //cout <<"ptype size = "<< sizeof(ptype) << endl;
       free(x);
       free(y);
@@ -641,7 +641,7 @@ int main(int argc, const char *argv[])
       }
     }
     ofenergy<<Esmall.size()<<endl;//new
-    ofenergy<<Emultip.size()<<endl;//new
+    ofenergy<<Emultip.size()<<endl;//new   
     ofenergy<<Elarge.size()<<endl;//new
     ofenergy<<sey_num<<endl;
     ofenergy<<sey_num-int(Esmall.size()+Emultip.size()+Elarge.size())+1000<<endl;
@@ -650,6 +650,6 @@ int main(int argc, const char *argv[])
   }
 
 
-  H5CloseFile(h5file);
+  H5CloseFile(h5file);   
   return 0;
 }

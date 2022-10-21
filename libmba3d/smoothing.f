@@ -13,8 +13,8 @@ C ================================================================
      &           MaxWr, MaxWi, rW, iW)
 C ================================================================
 C Routine smoothes the nodal piecewise linear solution Sol by
-C averaging over superelements. The superelement for a point P is
-C defined as the union of tets having vertex P.
+C averaging over superelements. The superelement for a point P is 
+C defined as the union of tets having vertex P. 
 C ================================================================
       Real*8  XYP(3, *), Sol(*)
       Integer IPE(4, *)
@@ -81,7 +81,7 @@ C ... computing volumes of elemnts and superelements
          End do
          rW(iSup + n) = v
       End do
-
+      
 
 C ... itegrating the piecewise linear function SOL
       Do n = 1, nP
@@ -92,16 +92,16 @@ C ... itegrating the piecewise linear function SOL
          v = 0D0
          Do i = 1, 4
             iP1 = IPE(i, n)
-            v = v + Sol(iP1)
+            v = v + Sol(iP1) 
          End do
-         v = v * rW(iVol + n) / 4
+         v = v * rW(iVol + n) / 4 
 
          Do i = 1, 4
             iP1 = IPE(i, n)
             rW(iSol + iP1) = rW(iSol + iP1) + v  / rW(iSup + iP1)
          End do
       End do
-
+      
       Do n = 1, nP
          Sol(n) = rW(iSol + n)
       End do

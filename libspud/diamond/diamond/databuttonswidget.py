@@ -12,37 +12,34 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+
 from gi.repository import GObject as gobject
 from gi.repository import Gtk as gtk
 
-
 class DataButtonsWidget(gtk.HBox):
 
-    __gsignals__ = {
-        "revert": (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
-        "store": (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
-    }
+  __gsignals__ = { "revert" : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ()),
+                   "store"  : (gobject.SignalFlags.RUN_LAST, gobject.TYPE_NONE, ())}
 
-    def __init__(self):
-        gtk.HBox.__init__(self)
-        revertButton = gtk.Button()
-        revertButton.set_label("Revert data")
-        revertButton.connect("clicked", self._revert)
+  def __init__(self):
+    gtk.HBox.__init__(self)
+    revertButton = gtk.Button()
+    revertButton.set_label("Revert data")
+    revertButton.connect("clicked", self._revert)
 
-        storeButton = gtk.Button()
-        storeButton.set_label("Store data")
-        storeButton.connect("clicked", self._store)
+    storeButton = gtk.Button()
+    storeButton.set_label("Store data")
+    storeButton.connect("clicked", self._store)
 
-        self.pack_start(revertButton, True, True, 0)
-        self.pack_end(storeButton, True, True, 0)
+    self.pack_start(revertButton, True, True, 0)
+    self.pack_end(storeButton, True, True, 0)
 
-        return
+    return
 
-    def _revert(self, widget=None):
-        self.emit("revert")
+  def _revert(self, widget = None):
+    self.emit("revert")
 
-    def _store(self, widget=None):
-        self.emit("store")
-
+  def _store(self, widget = None):
+    self.emit("store")
 
 gobject.type_register(DataButtonsWidget)

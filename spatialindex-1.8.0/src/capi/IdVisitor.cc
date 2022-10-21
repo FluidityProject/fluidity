@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -45,7 +45,7 @@ void IdVisitor::visitNode(const SpatialIndex::INode& n)
 void IdVisitor::visitData(const SpatialIndex::IData& d)
 {
 	nResults += 1;
-
+	
 	m_vector.push_back(d.getIdentifier());
 }
 

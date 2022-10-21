@@ -12,210 +12,200 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+
+from gi.repository import Gtk as gtk
+from gi.repository import Gdk as gdk
+from gi.repository import Pango as pango
 import re
 import webbrowser
 
-from gi.repository import Gdk as gdk
-from gi.repository import Gtk as gtk
-from gi.repository import Pango as pango
-
-
 class DescriptionWidget(gtk.Frame):
 
-    fontsize = 12
+  fontsize = 12
 
-    def __init__(self):
-        gtk.Frame.__init__(self)
+  def __init__(self):
+    gtk.Frame.__init__(self)
 
-        scrolledWindow = gtk.ScrolledWindow()
-        scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
+    scrolledWindow = gtk.ScrolledWindow()
+    scrolledWindow.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
 
-        textView = self.textView = gtk.TextView()
-        textView.set_editable(False)
-        textView.set_wrap_mode(gtk.WrapMode.WORD)
-        textView.set_cursor_visible(False)
-        textView.modify_font(pango.FontDescription(str(self.fontsize)))
+    textView = self.textView = gtk.TextView()
+    textView.set_editable(False)
+    textView.set_wrap_mode(gtk.WrapMode.WORD)
+    textView.set_cursor_visible(False)
+    textView.modify_font(pango.FontDescription(str(self.fontsize)))
 
-        textView.set_buffer(gtk.TextBuffer())
-        textView.connect("button-release-event", self.mouse_button_release)
-        textView.connect("motion-notify-event", self.mouse_over)
+    textView.set_buffer(gtk.TextBuffer())
+    textView.connect("button-release-event", self.mouse_button_release)
+    textView.connect("motion-notify-event", self.mouse_over)
 
-        scrolledWindow.add(textView)
+    scrolledWindow.add(textView)
 
-        label = gtk.Label()
-        label.set_markup("<b>Description</b>")
+    label = gtk.Label()
+    label.set_markup("<b>Description</b>")
 
-        self.set_shadow_type(gtk.ShadowType.NONE)
-        self.set_label_widget(label)
-        self.add(scrolledWindow)
+    self.set_shadow_type(gtk.ShadowType.NONE)
+    self.set_label_widget(label)
+    self.add(scrolledWindow)
 
-        return
+    return 
 
-    def update(self, node):
-        if node is None:
-            self.set_description('<span foreground="grey">No node selected</span>')
-        elif node.doc is None:
-            self.set_description('<span foreground="red">No documentation</span>')
-        else:
-            self.set_description(node.doc)
+  def update(self, node):
+    if node is None:
+      self.set_description("<span foreground=\"grey\">No node selected</span>")
+    elif node.doc is None:
+      self.set_description("<span foreground=\"red\">No documentation</span>")
+    else:
+      self.set_description(node.doc)
 
-        return
+    return
 
-    def set_description(self, text):
-        """
-        Set the node description.
-        """
+  def set_description(self, text):
+    """
+    Set the node description.
+    """
+    
+    #text saved in self.text without markup
+    self.text = text = self.render_whitespace(text)
+    link_bounds = self.link_bounds = self.get_link_bounds(text)
 
-        # text saved in self.text without markup
-        self.text = text = self.render_whitespace(text)
-        link_bounds = self.link_bounds = self.get_link_bounds(text)
+    if link_bounds:
+      new_text = []
+      index = 0
+      for bounds in link_bounds:  
+        new_text.append(text[index:bounds[0]])
+        new_text.append("<span foreground=\"blue\" underline=\"single\">")
+        new_text.append(text[bounds[0]:bounds[1]])
+        new_text.append("</span>")
+        index = bounds[1]
+             
+      new_text.append(text[index:])
+      text = ''.join(new_text)
 
-        if link_bounds:
-            new_text = []
-            index = 0
-            for bounds in link_bounds:
-                new_text.append(text[index : bounds[0]])
-                new_text.append('<span foreground="blue" underline="single">')
-                new_text.append(text[bounds[0] : bounds[1]])
-                new_text.append("</span>")
-                index = bounds[1]
+    textbuffer = self.textView.get_buffer()
+    textbuffer.set_text("")
+    textbuffer.insert_markup(textbuffer.get_end_iter(), text, -1)
 
-            new_text.append(text[index:])
-            text = "".join(new_text)
+    return
 
-        textbuffer = self.textView.get_buffer()
-        textbuffer.set_text("")
-        textbuffer.insert_markup(textbuffer.get_end_iter(), text, -1)
+  def get_link_bounds(self, text):
+    """
+    Return a list of tuples corresponding to the start and end points of links in
+    the supplied string.
+    """
+    text = text.lower()
+    bounds = []
 
-        return
+    for match in re.finditer(r"\b(" #start at beginging of word
+                                +r"(?:https?://|www\.)" #http:// https:// or www.
+                                +r"(?:[a-z0-9][a-z0-9_\-]*[a-z0-9]\.)*" #Domains
+                                +r"(?:[a-z][a-z0-9\-]*[a-z0-9])" #TLD
+                                +r"(?:/([a-z0-9$_.+\\*'(),;:@&=\-]|%[0-9a-f]{2})*)*" #path
+                                +r"(?:\?([a-z0-9$_.+!*'(),;:@&=\-]|%[0-9a-f]{2})*)?" #query
+                                +r")", text):
+      bounds.append(match.span())
 
-    def get_link_bounds(self, text):
-        """
-        Return a list of tuples corresponding to the start and end points of links in
-        the supplied string.
-        """
-        text = text.lower()
-        bounds = []
+    return bounds   
 
-        for match in re.finditer(
-            r"\b("  # start at beginging of word
-            + r"(?:https?://|www\.)"  # http:// https:// or www.
-            + r"(?:[a-z0-9][a-z0-9_\-]*[a-z0-9]\.)*"  # Domains
-            + r"(?:[a-z][a-z0-9\-]*[a-z0-9])"  # TLD
-            + r"(?:/([a-z0-9$_.+\\*'(),;:@&=\-]|%[0-9a-f]{2})*)*"  # path
-            + r"(?:\?([a-z0-9$_.+!*'(),;:@&=\-]|%[0-9a-f]{2})*)?"  # query
-            + r")",
-            text,
-        ):
-            bounds.append(match.span())
+  def render_whitespace(self, desc):
+    ''' Render the line wrapping in desc as follows:
+    
+    * Newlines followed by 0-1 spaces are ignored, and 1 space is used.
+    * Blank lines start new paragraphs.
+    * Newlines followed by more than 1 space are honoured.
+    '''
+    
+    text = []
+    para = False
+    literal = False
 
-        return bounds
+    for line in desc.split("\n"):
 
-    def render_whitespace(self, desc):
-        """Render the line wrapping in desc as follows:
+      if line == "" or line.isspace(): #Blank line, start paragraph
+        if literal: #if following a literal line add newlines
+          text.append("\n")
+        para = True
 
-        * Newlines followed by 0-1 spaces are ignored, and 1 space is used.
-        * Blank lines start new paragraphs.
-        * Newlines followed by more than 1 space are honoured.
-        """
+      elif line[0] == " " and line[1] == " ": # >1 space, treat literaly
+        text.append("\n")
+        text.append(line)
+        para = False
+        literal = True
 
-        text = []
+      else: #normal case
+        if para: #add if starting a new paragraph
+          text.append("\n   ")
+        if not line.startswith(" "):
+          text.append(" ")
+        text.append(line)
         para = False
         literal = False
 
-        for line in desc.split("\n"):
+    return ''.join(text)
+ 
+  def get_hyperlink(self, x, y):
+    """
+    Given an x and y window position (eg from a mouse click) return the hyperlink
+    at that position if there is one. Else return None.
+    """
+    if self.text is None:
+      return None
+    
+    buffer_pos = self.textView.window_to_buffer_coords(gtk.TextWindowType.TEXT, x, y)
+    result = self.textView.get_iter_at_location(buffer_pos[0], buffer_pos[1])
+    if isinstance(result, tuple):
+      textiter = result[1]
+    else:
+      textiter = result
+    char_offset = textiter.get_offset()
 
-            if line == "" or line.isspace():  # Blank line, start paragraph
-                if literal:  # if following a literal line add newlines
-                    text.append("\n")
-                para = True
+    for bounds in self.link_bounds:
+      if char_offset >= bounds[0] and char_offset <= bounds[1]:
+        return self.text[bounds[0]:bounds[1]]
 
-            elif line[0] == " " and line[1] == " ":  # >1 space, treat literaly
-                text.append("\n")
-                text.append(line)
-                para = False
-                literal = True
+    return None
+                         
+  def mouse_over(self, widget, event):
+    """
+    Called when the mouse moves over the node description widget. Sets the cursor
+    to a hand if the mouse hovers over a link.
 
-            else:  # normal case
-                if para:  # add if starting a new paragraph
-                    text.append("\n   ")
-                if not line.startswith(" "):
-                    text.append(" ")
-                text.append(line)
-                para = False
-                literal = False
+    Based on code from HyperTextDemo class in hypertext.py from PyGTK 2.12 demos
+    """
 
-        return "".join(text)
+    if self.get_hyperlink(int(event.x), int(event.y)) is not None:
+      self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(gdk.Cursor(gdk.CursorType.HAND2))
+    else:
+      self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(gdk.Cursor(gdk.CursorType.XTERM))
 
-    def get_hyperlink(self, x, y):
-        """
-        Given an x and y window position (eg from a mouse click) return the hyperlink
-        at that position if there is one. Else return None.
-        """
-        if self.text is None:
-            return None
+    return
 
-        buffer_pos = self.textView.window_to_buffer_coords(
-            gtk.TextWindowType.TEXT, x, y
-        )
-        result = self.textView.get_iter_at_location(buffer_pos[0], buffer_pos[1])
-        if isinstance(result, tuple):
-            textiter = result[1]
-        else:
-            textiter = result
-        char_offset = textiter.get_offset()
+  def mouse_button_release(self, widget, event):
+    """
+    Called when a mouse button is released over the node description widget.
+    Launches a browser if the mouse release was over a link, the left mouse button
+    was released and no text was selected.
 
-        for bounds in self.link_bounds:
-            if char_offset >= bounds[0] and char_offset <= bounds[1]:
-                return self.text[bounds[0] : bounds[1]]
+    Based on code from HyperTextDemo class in hypertext.py from PyGTK 2.12 demos
+    """
 
-        return None
+    if not event.button == 1:
+      return
 
-    def mouse_over(self, widget, event):
-        """
-        Called when the mouse moves over the node description widget. Sets the cursor
-        to a hand if the mouse hovers over a link.
+    if self.textView.get_buffer().get_selection_bounds():
+      return
 
-        Based on code from HyperTextDemo class in hypertext.py from PyGTK 2.12 demos
-        """
+    hyperlink = self.get_hyperlink(int(event.x), int(event.y))
+    if hyperlink is not None:
+      webbrowser.open(hyperlink)
 
-        if self.get_hyperlink(int(event.x), int(event.y)) is not None:
-            self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(
-                gdk.Cursor(gdk.CursorType.HAND2)
-            )
-        else:
-            self.textView.get_window(gtk.TextWindowType.TEXT).set_cursor(
-                gdk.Cursor(gdk.CursorType.XTERM)
-            )
+    return
 
-        return
+  def increase_font(self):
+    self.fontsize = self.fontsize + 2
+    self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
 
-    def mouse_button_release(self, widget, event):
-        """
-        Called when a mouse button is released over the node description widget.
-        Launches a browser if the mouse release was over a link, the left mouse button
-        was released and no text was selected.
-
-        Based on code from HyperTextDemo class in hypertext.py from PyGTK 2.12 demos
-        """
-
-        if not event.button == 1:
-            return
-
-        if self.textView.get_buffer().get_selection_bounds():
-            return
-
-        hyperlink = self.get_hyperlink(int(event.x), int(event.y))
-        if hyperlink is not None:
-            webbrowser.open(hyperlink)
-
-        return
-
-    def increase_font(self):
-        self.fontsize = self.fontsize + 2
-        self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
-
-    def decrease_font(self):
-        if self.fontsize > 0:
-            self.fontsize = self.fontsize - 2
-            self.textView.modify_font(pango.FontDescription(str(self.fontsize)))
+  def decrease_font(self):
+    if self.fontsize > 0:
+      self.fontsize = self.fontsize - 2
+      self.textView.modify_font(pango.FontDescription(str(self.fontsize)))

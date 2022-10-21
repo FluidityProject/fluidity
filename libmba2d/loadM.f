@@ -13,7 +13,7 @@ C ==========================================================
 C group (M)
 C     Integer MaxP, MaxF, MaxE
       real  XYP(2, *)
-      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*)
+      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*) 
       Integer lbE(*)
 
       real  ParCrv(2, *)
@@ -35,7 +35,7 @@ C ==========================================================
       Write(*,'(A,A)') 'Loading mesh ', fNameExt
 
       Open(10, file=fNameExt, status='OLD', ERR=1000)
-      Read(10,*) flagP
+      Read(10,*) flagP 
       Read(10,*) flagF
       Read(10,*) flagE
       Read(10,*) flagC
@@ -52,7 +52,7 @@ C ==========================================================
       End do
 
 
-c ... reading the boundary edges:
+c ... reading the boundary edges: 
 c     indices of the edge ends,                  1 2
 c     number of respective line of curved edges  3
 c     dummy integer                              4
@@ -90,7 +90,7 @@ c     reference to the function of the parametrization      3
 c ... reading the fixed mesh points, faces and elements
       Read(10,*)
       Read(10,*) nPv
-      If(nPv.GT.MaxPv) Call errMes(1008, 'loadM',
+      If(nPv.GT.MaxPv) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxPV is small')
       Do n = 1, nPv
          Read(10,*) IPV(n)
@@ -99,7 +99,7 @@ c ... reading the fixed mesh points, faces and elements
 
       Read(10,*)
       Read(10,*) nFv
-      If(nFv.GT.MaxFV) Call errMes(1008, 'loadM',
+      If(nFv.GT.MaxFV) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxFV is small')
       Do n = 1, nFv
          Read(10,*) IFV(n)
@@ -108,7 +108,7 @@ c ... reading the fixed mesh points, faces and elements
 
       Read(10,*)
       Read(10,*) nEv
-      If(nEv.GT.MaxEV) Call errMes(1008, 'loadM',
+      If(nEv.GT.MaxEV) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxEV is small')
       Do n = 1, nEv
          Read(10,*) IEV(n)
@@ -147,7 +147,7 @@ C ==========================================================
 
       Open(10, file=fNameExt, status='UNKNOWN')
       Read(10,*) nPw
-      If(nPw.NE.nP) Call errMes(4003, 'loadS',
+      If(nPw.NE.nP) Call errMes(4003, 'loadS', 
      &                   'mesh & data files are incompartible')
 
       Read(10,*)
@@ -171,14 +171,14 @@ c group (M)
      &      ParCrv, iFnc,
      &      fName)
 C ==========================================================
-C Routines read the input mesh from files fName.*
-C
+C Routines read the input mesh from files fName.* 
+C 
 C *** Remark: no extension is required.
 C ==========================================================
 C group (M)
 C     Integer MaxP, MaxF, MaxE
       real  XYP(2, *)
-      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*)
+      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*) 
       Integer lbE(*)
 
       real  ParCrv(2, *)
@@ -196,7 +196,7 @@ c ... reading coordinates of the nodes
       fNameExt = fName // '.vrt'
       Open(10, file=fNameExt, status='OLD', ERR=1000)
       Read(10,*) nP
-      If(nP.GT.MaxP) Call errMes(1003, 'loadM',
+      If(nP.GT.MaxP) Call errMes(1003, 'loadM', 
      &                          'local parameter MaxP is small')
 
       Read(10,*)
@@ -212,7 +212,7 @@ c     label of the triangle      4
       fNameExt = fName // '.tri'
       Open(10, file=fNameExt, status='OLD', ERR=1000)
       Read(10,*) nE
-      If(nE.GT.MaxE) Call errMes(1006, 'loadM',
+      If(nE.GT.MaxE) Call errMes(1006, 'loadM', 
      &                          'local parameter MaxE is small')
 
       Read(10,*)
@@ -222,7 +222,7 @@ c     label of the triangle      4
       Close(10)
 
 
-c ... reading the boundary edges:
+c ... reading the boundary edges: 
 c     indices of the edge ends,                  1 2
 c     number of respective line in fname//.crv,  3
 c     dummy integer                              4
@@ -231,7 +231,7 @@ c     label of the edge                          5
       fNameExt = fName // '.bnd'
       Open(10, file=fNameExt, status='OLD', ERR=100)
       Read(10,*) nF
-      If(nF.GT.MaxF) Call errMes(1004, 'loadM',
+      If(nF.GT.MaxF) Call errMes(1004, 'loadM', 
      &                          'local parameter MaxF is small')
 
       Read(10,*)
@@ -244,7 +244,7 @@ c     label of the edge                          5
 c ... reading parametrization of the curved boundary edges:
 c     parametrization of the edge ends                      1 2
 c     reference to the function of the parametrization      3
- 100  nCrv = 0
+ 100  nCrv = 0 
       fNameExt = fName // '.crv'
       Open(10, file=fNameExt, status='OLD', ERR=200)
       Read(10,*) nCrv
@@ -261,7 +261,7 @@ c ... reading fixed (steady) nodes of the mesh
       fNameExt = fName // '.fix'
       Open(10, file=fNameExt, status='OLD', ERR=300)
       Read(10,*) nPv
-      If(nPv.GT.MaxPv) Call errMes(1008, 'loadM',
+      If(nPv.GT.MaxPv) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxPV is small')
 
       Read(10,*)
@@ -276,7 +276,7 @@ c ... reading fixed (steady) nodes of the mesh
       fNameExt = fName // '.ffv'
       Open(10, file=fNameExt, status='OLD', ERR=400)
       Read(10,*) nFv
-      If(nFv.GT.MaxFV) Call errMes(1008, 'loadM',
+      If(nFv.GT.MaxFV) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxFV is small')
 
       Read(10,*)
@@ -291,7 +291,7 @@ c ... reading fixed (steady) edges of the mesh
       fNameExt = fName // '.fev'
       Open(10, file=fNameExt, status='OLD', ERR=9000)
       Read(10,*) nEv
-      If(nEv.GT.MaxEV) Call errMes(1008, 'loadM',
+      If(nEv.GT.MaxEV) Call errMes(1008, 'loadM', 
      &                            'local parameter MaxEV is small')
 
       Read(10,*)
@@ -321,7 +321,7 @@ C ==========================================================
 C group (M)
 C     Integer MaxP, MaxF, MaxE
       real  XYP(2, *)
-      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*)
+      Integer IPE(3, *), IPF(4, *), IPV(*), IFV(*), IEV(*) 
       Integer lbE(*)
 
       real  ParCrv(2, *)
@@ -338,9 +338,9 @@ C ==========================================================
       Write(*,'(A,A)') 'Loading mesh ', fNameExt
 
       Open(10, file=fNameExt, status='OLD', ERR=1000)
-      Read(10,*)
-      Read(10,*)
-      Read(10,*)
+      Read(10,*) 
+      Read(10,*) 
+      Read(10,*) 
 
       Read(10,*) keyword, nP
       If(nP.GT.MaxP) Call errMes(1003, 'loadMgmv',
@@ -350,13 +350,13 @@ C ==========================================================
       End do
 
 
-c ... reading the boundary edges:
+c ... reading the boundary edges: 
       nF = 0
       If(nF.GT.MaxF) Call errMes(1004, 'loadMgmv',
      &                          'local parameter MaxF is small')
 
 
-c ... reading the elements:
+c ... reading the elements: 
       Read(10,*) keyword, nE
       If(nE.GT.MaxE) Call errMes(1006, 'loadMgmv',
      &                          'local parameter MaxE is small')
@@ -372,9 +372,9 @@ c ... reading parametrization of the curved boundary edges:
 
 
 c ... reading the fixed mesh points, faces and elements
-      nPv = 0
-      nFv = 0
-      nEv = 0
+      nPv = 0 
+      nFv = 0 
+      nEv = 0 
 
       Close(10)
 
@@ -385,3 +385,4 @@ c ... reading the fixed mesh points, faces and elements
 
       Return
       End
+

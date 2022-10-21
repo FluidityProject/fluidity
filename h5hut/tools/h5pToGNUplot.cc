@@ -77,10 +77,10 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
     static int sp = 1;    /* character index in current token */
     int opt_opt = '?';    /* option character passed back to user */
 
-    if (sp == 1)
+    if (sp == 1) 
     {
         /* check for more flag-like tokens */
-        if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0')
+        if (opt_ind >= argc || argv[opt_ind][0] != '-' || argv[opt_ind][1] == '\0') 
         {
             return EOF;
         }
@@ -91,7 +91,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
         }
     }
 
-    if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-')
+    if (sp == 1 && argv[opt_ind][0] == '-' && argv[opt_ind][1] == '-') 
     {
         /* long command line option */
         const char *arg = &argv[opt_ind][2];
@@ -200,7 +200,7 @@ int get_option(int argc, const char **argv, const char *opts, const struct long_
 
             sp = 1;
         }
-        else
+        else 
         {
             /* set up to look at next char in token, next time */
             if (argv[opt_ind][++sp] == '\0')
@@ -310,7 +310,7 @@ int main(int argc, const char *argv[])
 
    variable_assign(argc, argv);
 
-   if(input_name == NULL)
+   if(input_name == NULL) 
    {
        fprintf(stdout, "missing file name\n");
        print_help();

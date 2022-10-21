@@ -696,7 +696,7 @@ if (((LEAF_T *)((PJP)->jp_LIndex))[(IDX) - 1] == (LEAF_T)(INDEX))       \
 #endif
 
 #if (defined(JUDY1) && defined(JU_64BIT))
-        case cJ1_JPIMMED_3_05:
+        case cJ1_JPIMMED_3_05: 
             CHECKLEAFNONNAT(3, Pjp, Index, 5, JU_COPY3_PINDEX_TO_LONG);
         case cJ1_JPIMMED_3_04:
             CHECKLEAFNONNAT(3, Pjp, Index, 4, JU_COPY3_PINDEX_TO_LONG);

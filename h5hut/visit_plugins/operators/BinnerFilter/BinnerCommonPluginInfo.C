@@ -39,7 +39,7 @@ BinnerCommonPluginInfo::AllocAttributes()
 //
 // ****************************************************************************
 
-void
+void 
 BinnerCommonPluginInfo::CopyAttributes(AttributeSubject *to,
     AttributeSubject *from)
 {

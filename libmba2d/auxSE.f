@@ -5,7 +5,7 @@ C Routines returns .TRUE. is triangles iE1 and iE2 are inverted.
 C ================================================================
       real  XYP(2, *)
       Integer IPE(3, *)
-
+      
       Integer iref(4)
       real  calVol, v1, v2
       Logical check22
@@ -39,7 +39,7 @@ C ================================================================
 
                If(v1 * v2.GE.0D0) Then
                   tangled = .TRUE.
-                  goto 9000
+                  goto 9000 
                End if
             End if
          End do
@@ -74,3 +74,4 @@ C ================================================================
       End if
       Return
       End
+

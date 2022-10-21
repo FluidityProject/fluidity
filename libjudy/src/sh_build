@@ -17,7 +17,7 @@ echo "--- Compile JudyMalloc - common to Judy1 and JudyL"
 echo "--- cd JudyCommon"
 cd JudyCommon
 rm -f *.o
-$CC  $COPT $CPIC -I. -I.. -c JudyMalloc.c
+$CC  $COPT $CPIC -I. -I.. -c JudyMalloc.c 
 echo "--- cd .."
 cd ..
 
@@ -25,7 +25,7 @@ echo "--- Give Judy1 the proper names"
 echo "--- cd Judy1"
 cd Judy1
 rm -f *.o
-ln -sf ../JudyCommon/JudyByCount.c      	Judy1ByCount.c
+ln -sf ../JudyCommon/JudyByCount.c      	Judy1ByCount.c   
 ln -sf ../JudyCommon/JudyCascade.c      	Judy1Cascade.c
 ln -sf ../JudyCommon/JudyCount.c        	Judy1Count.c
 ln -sf ../JudyCommon/JudyCreateBranch.c 	Judy1CreateBranch.c
@@ -54,11 +54,11 @@ $CC $COPT  -I. -I.. -I../JudyCommon -DJUDY1 Judy1TablesGen.c -o Judy1TablesGen
 rm -f *.o
 ./Judy1TablesGen
 echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Tables.c"
-$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Tables.c
+$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Tables.c 
 
 echo "--- Compile the main line Judy1 modules"
-echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Test.c"
-$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Test.c
+echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Test.c" 
+$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Test.c 
 echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 -DJUDYGETINLINE j__udy1Test.c"
 $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 -DJUDYGETINLINE j__udy1Test.c
 echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDY1 Judy1Set.c"
@@ -104,7 +104,7 @@ echo "--- Give JudyL the proper names"
 echo "--- cd JudyL"
 cd JudyL
 rm -f *.o
-ln -sf ../JudyCommon/JudyByCount.c      	JudyLByCount.c
+ln -sf ../JudyCommon/JudyByCount.c      	JudyLByCount.c   
 ln -sf ../JudyCommon/JudyCascade.c              JudyLCascade.c
 ln -sf ../JudyCommon/JudyCount.c        	JudyLCount.c
 ln -sf ../JudyCommon/JudyCreateBranch.c 	JudyLCreateBranch.c
@@ -130,9 +130,9 @@ echo "--- This table is constructed from JudyL.h data to match malloc(3) needs"
 echo "--- $CC $COPT  -I. -I.. -I../JudyCommon -DJUDYL JudyLTablesGen.c -o JudyLTablesGen"
 $CC $COPT  -I. -I.. -I../JudyCommon -DJUDYL JudyLTablesGen.c -o JudyLTablesGen
 rm -f *.o
-./JudyLTablesGen
+./JudyLTablesGen 
 echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDYL JudyLTables.c"
-$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDYL JudyLTables.c
+$CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDYL JudyLTables.c 
 
 echo "--- Compile the main line JudyL modules"
 echo "--- $CC  $COPT $CPIC -I. -I.. -I../JudyCommon -c -DJUDYL JudyLGet.c"

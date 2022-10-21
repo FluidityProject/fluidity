@@ -15,7 +15,7 @@ program write_setview
 #if defined(PARALLEL_IO)
   include 'mpif.h'
 #endif
-
+  
   ! name of output file
   character (len=*), parameter :: fname = "example_setview.h5"
 
@@ -38,7 +38,7 @@ program write_setview
   call mpi_init (mpi_ierror)
   call mpi_comm_rank (comm, comm_rank, mpi_ierror)
 #endif
-
+  
   call h5_abort_on_error ()
   call h5_set_verbosity_level (h5_verbosity)
 
@@ -71,5 +71,5 @@ program write_setview
 #if defined(PARALLEL_IO)
   call mpi_finalize (mpi_ierror)
 #endif
-
+  
 end program write_setview

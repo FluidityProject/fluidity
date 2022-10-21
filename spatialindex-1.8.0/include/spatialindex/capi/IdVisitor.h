@@ -6,7 +6,7 @@
  * Copyright (c) 2009, Howard Butler
  *
  * All rights reserved.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -41,7 +41,7 @@ public:
 
     uint64_t GetResultCount() const { return nResults; }
     std::vector<uint64_t>& GetResults()  { return m_vector; }
-
+    
     void visitNode(const SpatialIndex::INode& n);
     void visitData(const SpatialIndex::IData& d);
     void visitData(std::vector<const SpatialIndex::IData*>& v);

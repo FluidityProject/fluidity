@@ -5,7 +5,7 @@
  * Copyright (c) 2002, Marios Hadjieleftheriou
  *
  * All rights reserved.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -96,7 +96,7 @@ bool TimePoint::operator==(const TimePoint& p) const
 	{
 		if (
 			m_pCoords[cDim] < p.m_pCoords[cDim] - std::numeric_limits<double>::epsilon() ||
-			m_pCoords[cDim] > p.m_pCoords[cDim] + std::numeric_limits<double>::epsilon())
+			m_pCoords[cDim] > p.m_pCoords[cDim] + std::numeric_limits<double>::epsilon()) 
 			return false;
 	}
 

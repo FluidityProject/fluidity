@@ -14,18 +14,18 @@ program read_stridedf
 #if defined(PARALLEL_IO)
   include 'mpif.h'
 #endif
-
+  
   ! name of input file
   character (len=*), parameter :: fname = "example_strided.h5"
 
   ! H5hut verbosity level
   integer*8, parameter :: h5_verbosity = H5_VERBOSE_DEFAULT
-
+  
   integer*8 :: file, h5_ierror
   integer*8 :: num_particles, num_particles_total
   real*8, allocatable :: data(:)
   integer*8 :: i, start
-
+  
   ! initialize MPI & H5hut
 #if defined(PARALLEL_IO)
   integer   :: comm, comm_size, comm_rank, mpi_ierror
@@ -37,7 +37,7 @@ program read_stridedf
   integer   :: comm_size = 1
   integer   :: comm_rank = 0
 #endif
-
+  
   call h5_abort_on_error ()
   call h5_set_verbosity_level (h5_verbosity)
 
@@ -73,7 +73,7 @@ program read_stridedf
      write (*, "('[proc ', i4, ']: global index = ', i4, '; local index = ', i4, ', value = ', f10.2)") &
           comm_rank, start+i-2, i, data(i)
   end do
-
+  
   ! cleanup
   deallocate (data)
   h5_ierror = h5_closefile (file)
@@ -81,5 +81,5 @@ program read_stridedf
 #if defined(PARALLEL_IO)
   call mpi_finalize (mpi_ierror)
 #endif
-
+  
 end program read_stridedf

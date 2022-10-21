@@ -3,7 +3,7 @@ SUBDIRS = src . include
 
 lib_LTLIBRARIES = libspatialindex.la libspatialindex_c.la
 
-libspatialindex_la_SOURCES =
+libspatialindex_la_SOURCES = 
 libspatialindex_la_LIBADD = \
 	src/spatialindex/liblibrary.la \
 	src/storagemanager/libstoragemanager.la \
@@ -17,7 +17,7 @@ libspatialindex_c_la_LIBADD = \
 	libspatialindex.la \
 	src/capi/libsidxc.la
 
-libspatialindex_la_LDFLAGS = -version-info 3:0:0
+libspatialindex_la_LDFLAGS = -version-info 3:0:0 
 libspatialindex_c_la_LDFLAGS = -version-info 3:0:0 -lstdc++
 
 EXTRA_DIST = INSTALL.WIN \

@@ -10,7 +10,7 @@ awk '{if ($1 == 2) print $0}' < d > queries
 rm -rf d
 
 echo Creating new R-Tree
-../RTreeBulkLoad data tree 1000 0.9
+../RTreeBulkLoad data tree 1000 0.9 
 
 echo Querying R-Tree
 ../RTreeQuery queries tree intersection > res

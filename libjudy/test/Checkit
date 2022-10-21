@@ -47,7 +47,7 @@ exit $?
 fi
 
 #  -OR-    if Judy is installed, these can be compiled from anywhere:
-#cc -O SLcompare.c -DJUDYMETHOD      -o SL_Judy      -lJudy -lm
+#cc -O SLcompare.c -DJUDYMETHOD      -o SL_Judy      -lJudy -lm 
 #cc -O Judy1LHCheck.c                -o Judy1LHCheck -lJudy -lm
 #cc -O Judy1LHTime.c                 -o Judy1LHTime  -lJudy -lm
 echo "===  Pass: Compile of tests"
@@ -97,7 +97,7 @@ echo "   lines avg_linelen  getline   StoreD RAMused/line  store/ln lookup/ln AD
 ./SL_Judy     StringCompare.c | grep JUDY
 RET=$?
 if [ $RET -ne 0 ] ; then
-echo "===  $? Failed: JudySL if StoreD numbers are all the same"
+echo "===  $? Failed: JudySL if StoreD numbers are all the same" 
 exit $?
 fi
 echo "===  Pass: JudySL if StoreD numbers are all the same"

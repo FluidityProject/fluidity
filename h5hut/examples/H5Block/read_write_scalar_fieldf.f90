@@ -18,7 +18,7 @@ program read_write_scalar_field
   integer :: comm = 0
   integer :: mpi_err
 #endif
-
+  
   integer :: nargs = 0
   integer :: comm_rank = 0
   integer :: comm_size = 1
@@ -37,7 +37,7 @@ program read_write_scalar_field
   integer*8 :: layout16g(6,16)
   integer*8 :: layout32 (6,32)
   integer*8 :: layout32g(6,32)
-
+  
   data layout1  / 1,64,  1,64,   1,512 /
 
   data layout8  / 1,64,  1,64,   1, 64, &
@@ -159,7 +159,7 @@ program read_write_scalar_field
                  32,64, 32,64, 448,512  /
   nargs = iargc ()
   if (nargs == 0) then
-     print *, "usage: read_write_scalarfield -w | -r [-g]"
+     print *, "usage: read_write_scalarfield -w | -r [-g]"      
      call exit (1)
   end if
   do i = 1, nargs
@@ -176,7 +176,7 @@ program read_write_scalar_field
         call exit (1)
      end if
   end do
-
+  
   ! init MPI & H5hut
 #if defined(PARALLEL_IO)
   comm = MPI_COMM_WORLD
@@ -203,7 +203,7 @@ program read_write_scalar_field
         fname = "blockfile8.h5"
         layout = layout8 (:, comm_rank+1)
      end if
-
+     
   case (16)
      if (opt_with_ghosts == 1) then
         fname = "blockfile16g.h5"
@@ -212,7 +212,7 @@ program read_write_scalar_field
         fname = "blockfile16.h5"
         layout = layout16 (:, comm_rank+1)
      end if
-
+     
   case (32)
      if (opt_with_ghosts == 1) then
         fname = "blockfile32g.h5"
@@ -235,13 +235,13 @@ program read_write_scalar_field
      if (h5_err < 0) then
         print "('[proc ', I3, ']: Faild to write file ', A, '!')", comm_rank, fname
      end if
-
+     
   else if (opt_read == 1) then
      h5_err = read_file (fname, comm_rank, layout)
      if (h5_err < 0) then
         print "('[proc ', I3, ']: Faild to read file ', A, '!')", comm_rank, fname
      end if
-
+     
   endif
   print "('[proc ', I3, ']: Cleanup.')", comm_rank
 #if defined(PARALLEL_IO)
@@ -298,7 +298,7 @@ program read_write_scalar_field
      integer*8 :: j_dims
      integer*8 :: k_dims
      real*8 :: value
-
+  
      real*8, dimension(:,:,:), allocatable :: data
 
      i_start = layout(1)
@@ -352,7 +352,7 @@ program read_write_scalar_field
 
      print "('[proc ', I3, ']: Writing string attribute ...')", comm_rank
      s_val = "42"
-     h5_err = h5bl_writefieldattrib_string ( file, "TestField", "TestString", s_val )
+     h5_err = h5bl_writefieldattrib_string ( file, "TestField", "TestString", s_val ) 
 
      print "('[proc ', I3, ']: Writing int64 attribute ...')", comm_rank
      i8_val(1) = 42
@@ -369,7 +369,7 @@ program read_write_scalar_field
      print "('[proc ', I3, ']: Writing float32 attribute ...')", comm_rank
      r4_val(1) = 42.0
      h5_err = h5bl_writefieldattrib_r4 ( file, "TestField", "TestFloat32", r4_val, 1_8 )
-
+ 
      write_attributes = 0
    end function write_attributes
 
@@ -417,7 +417,7 @@ program read_write_scalar_field
      integer*8 :: j_dims
      integer*8 :: k_dims
      real*8 :: value
-
+  
      real*8, dimension(:,:,:), allocatable :: data
 
      i_start = layout(1)
@@ -473,7 +473,7 @@ program read_write_scalar_field
      real*4 :: r4_val(1)
 
      print "('[proc ', I3, ']: Reading string attribute ...')", comm_rank
-     h5_err = h5bl_readfieldattrib_string ( file, "TestField", "TestString", s_val )
+     h5_err = h5bl_readfieldattrib_string ( file, "TestField", "TestString", s_val ) 
      IF ( s_val /= "42" ) THEN
         print "('[proc ', I3, ']: Error reading string attribute: Value is ', A, ' but should be 42')", &
              comm_rank, s_val

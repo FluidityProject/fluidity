@@ -106,7 +106,7 @@ C ================================================================
 
 
 C ... checking the case when swapping is impossible
-      If(ifXnode(ICP(iPa), jTnode) .AND.
+      If(ifXnode(ICP(iPa), jTnode) .AND. 
      &   ifXnode(ICP(iPb), jTnode)) Goto 1000
 
       Call clrSR(iPa, iPb, ICP, IPF, IFE, lF, iFs, lE, iEs, ICRab)
@@ -132,21 +132,21 @@ C ... checking for surrounding points
          iDPs(1, 1) = iPa
          iDPs(2, 1) = iPb
 
-         If(ifXnode(ICP(iPa), jBnode) .AND.
+         If(ifXnode(ICP(iPa), jBnode) .AND. 
      &      ifXnode(ICP(iPb), jInode)) Then
             Call chkSPf(1, iPa, iSWAP, ICP, IEP, IPE, IEE, lP, iPs)
             Call chkSPb(2, 1, iDPs, 0, iNPs, iSWAP,
      &                  ICP, IEP, IPE, IEE, lP, iPs, iPbad, flagBNDs)
             If(flagBNDs) Goto 1000
 
-         Else If(ifXnode(ICP(iPb), jBnode) .AND.
+         Else If(ifXnode(ICP(iPb), jBnode) .AND. 
      &           ifXnode(ICP(iPa), jInode)) Then
             Call chkSPf(1, iPb, iSWAP, ICP, IEP, IPE, IEE, lP, iPs)
             Call chkSPb(2, 1, iDPs, 0, iNPs, iSWAP,
      &                  ICP, IEP, IPE, IEE, lP, iPs, iPbad, flagBNDs)
             If(flagBNDs) Goto 1000
 
-         Else If(ifXnode(ICP(iPb), jBnode) .AND.
+         Else If(ifXnode(ICP(iPb), jBnode) .AND. 
      &           ifXnode(ICP(iPa), jBnode)) Then
             lP = 2
             iPs(1) = iPa
@@ -236,7 +236,7 @@ C ... array iLev is overloaded
          If(ICPs(n + 1).NE.ide) ICPs(n + 1) = ICPs(n + 1) + ide
       End do
 
-      If(flagLOOP .AND. ICPs(1).NE.ICPs(lR + 1))
+      If(flagLOOP .AND. ICPs(1).NE.ICPs(lR + 1)) 
      &   ICPs(1) = ICPs(1) + ICPs(lR + 1)
 
 
@@ -245,7 +245,7 @@ C ... checking that we have at most 2 different colors
          iLev(n) = ICPs(n)
       End do
 
-      ic = countColors(lPend, iLev)
+      ic = countColors(lPend, iLev) 
       If(ic.GT.3) Goto 1000
 
 
@@ -461,7 +461,7 @@ C ... analyzing curvilinear and plane faces
 
 
 c ... checking for boundary elements
-      If(ifXnode(status, ANIForbidBoundaryElements)) Then
+      If(ifXnode(status, ANIForbidBoundaryElements)) Then 
          Do 700 n = 2, lPend - 1
             nEt = iRs(1, n)
             Do i = 1, 4

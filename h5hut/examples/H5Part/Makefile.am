@@ -12,7 +12,7 @@ AM_CPPFLAGS += -I${abs_top_srcdir}/examples/include
 FFLAGS += -cpp $(AM_CPPFLAGS)
 AM_LDFLAGS += -L${abs_top_builddir}/src/h5core/.libs
 
-LDADD =
+LDADD = 
 
 if ENABLE_EXAMPLES
 if ENABLE_C
@@ -26,7 +26,7 @@ endif
 
 LDADD += -lH5hut
 
-noinst_PROGRAMS =
+noinst_PROGRAMS = 
 
 if ENABLE_C
 noinst_PROGRAMS +=		\
@@ -55,7 +55,7 @@ noinst_PROGRAMS +=		\
 	write_stridedf
 endif
 
-EXTRA_PROGRAMS =
+EXTRA_PROGRAMS = 
 
 read_core_vfdf_SOURCES = read_core_vfdf.f90
 read_canonicalviewf_SOURCES = read_canonicalviewf.f90
@@ -74,3 +74,5 @@ endif
 
 clean-local:
 	$(RM) -f *~
+
+

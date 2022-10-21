@@ -65,7 +65,7 @@ struct vertex {
 	h5_float64_t P[3];
 };
 
-typedef struct vertex vertex_t;
+typedef struct vertex vertex_t; 
 
 struct tet {
 	h5_glb_id_t global_id;
@@ -167,7 +167,7 @@ traverse_edges (
 		}
 		h5_size_t size = 3;
 		h5_int64_t tval[3];
-		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0)
+		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0) 
 			continue;	// not tagged
 		if (dumpit) {
 			printf (" (%llx, %llx, %llx) |",
@@ -231,7 +231,7 @@ traverse_triangles (
 		}
 		h5_size_t size = 3;
 		h5_int64_t tval[3];
-		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0)
+		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0) 
 			continue;	// not tagged
 		if (dumpit) {
 			printf (" (%llx, %llx, %llx) |",
@@ -293,7 +293,7 @@ traverse_tets (
 		}
 		h5_size_t size = 3;
 		h5_int64_t tval[3];
-		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0)
+		if ((local_id = H5FedGetTag (tagset, local_id, &size, tval)) < 0) 
 			continue;	// not tagged
 		if (dumpit) {
 			printf (" (%llx, %llx, %llx) |",
@@ -377,12 +377,12 @@ main (
 	int argc,
 	char* argv[]
 	) {
-
+	
 	/* abort program on error, so we don't have to handle them */
 	H5SetErrorHandler (H5AbortErrorhandler);
 	H5SetVerbosityLevel (h5_verbosity);
 	H5SetDebugMask (h5_debugmsk);
-
+	
 	/* open file and get number of meshes */
 	h5_file_t f = H5OpenFile (FNAME, H5_O_RDONLY, 0);
 	h5_size_t num_meshes = H5FedGetNumTetrahedralMeshes (f);

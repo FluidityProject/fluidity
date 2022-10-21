@@ -34,8 +34,8 @@
   \note
   The same layout can be used, if the size of the field matches the
   size of the layout.  If the size of the layout doesn't match the
-  size of the field, an error will be indicated.
-
+  size of the field, an error will be indicated. 
+ 
   \note In write mode views might be reduced to make them
   non-overlaping, i.e. ghost-zones are eliminated. This may shrink
   views in an unexpected way.

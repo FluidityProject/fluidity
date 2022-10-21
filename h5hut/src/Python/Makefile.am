@@ -8,7 +8,7 @@ pkgpyexec_LTLIBRARIES = _H5hut.la
 
 _H5hut_la_SOURCES = H5hut_wrap.c $(SWIG_SOURCES)
 _H5hut_la_LDFLAGS = -module
-_H5hut_la_LIBADD = $(top_builddir)/src/h5core/libH5hut.la
+_H5hut_la_LIBADD = $(top_builddir)/src/h5core/libH5hut.la 
 _H5hut_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS)
 _H5hut_la_CPPFLAGS += -I$(top_srcdir)/src/include
 _H5hut_la_CPPFLAGS += -I$(PYTHON_PREFIX)/include/python$(PYTHON_VERSION)/

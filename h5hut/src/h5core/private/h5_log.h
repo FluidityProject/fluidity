@@ -51,7 +51,7 @@
 #define H5_INLINE_FUNC_ENTER(type)			\
 	type ret_value = (type)H5_ERR; int __log__ = 0;
 #endif
-
+	
 #define HDF5_WRAPPER_ENTER(type, fmt, ...)			\
 	__FUNC_ENTER(type, H5_DEBUG_HDF5, fmt, __VA_ARGS__ )
 

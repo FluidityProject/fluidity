@@ -14,7 +14,7 @@ struct vertex {
 	h5_float64_t P[3];
 };
 
-typedef struct vertex vertex_t;
+typedef struct vertex vertex_t; 
 
 struct tet {
 	h5_glb_id_t global_id;

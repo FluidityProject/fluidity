@@ -166,9 +166,9 @@ done
 
 
 # Fix config files
-sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/etc/pango/pango.modules
+sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/etc/pango/pango.modules 
 sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
-sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/Resources/etc/pango/pango.modules
+sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/Resources/etc/pango/pango.modules 
 sed -i .bak 's#/opt/gtk/#'$APPDIR'/#' $INSTALLDIR/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
 
 
@@ -187,5 +187,5 @@ hdiutil create -srcfolder $APP Diamond-$VERSION.dmg
 
 # To test, temporarily move your /opt/gtk folder
 # Move the Diamond.app folder to /Applications and go
-# open -a Console
+# open -a Console 
 # helps to debug

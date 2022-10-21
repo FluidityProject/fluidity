@@ -15,33 +15,33 @@
 
 
 class Bimap:
-    """
-    Bimap is a simple wrapper class over two dicts,
-    it behaves as a bi-directional map.
-    """
+  """
+  Bimap is a simple wrapper class over two dicts,
+  it behaves as a bi-directional map.
+  """
 
-    def __init__(self):
-        self.left = {}
-        self.right = {}
+  def __init__(self):
+    self.left = {}
+    self.right = {}    
 
-    def __len__(self):
-        return len(self.left)
+  def __len__(self):
+    return len(self.left)
 
-    def __iter__(self):
-        # we iter over the left dict so that the left item is
-        # on the left side of the tuple returned
-        for item in self.left.items():
-            yield item
+  def __iter__(self):
+    # we iter over the left dict so that the left item is
+    # on the left side of the tuple returned
+    for item in self.left.items():
+      yield item
+  
+  def __contains__(self, item):
+    # check that the left dict contains left and points to right
+    try:
+      left, right = item
+      return self.left[left] == right
+    except KeyError:
+      return False
 
-    def __contains__(self, item):
-        # check that the left dict contains left and points to right
-        try:
-            left, right = item
-            return self.left[left] == right
-        except KeyError:
-            return False
-
-    def add(self, item):
-        x, y = item
-        self.left[x] = y
-        self.right[y] = x
+  def add(self, item):
+    x, y = item
+    self.left[x] = y
+    self.right[y] = x

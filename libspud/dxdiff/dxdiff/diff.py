@@ -12,13 +12,13 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Diamond.  If not, see <http://www.gnu.org/licenses/>.
+
 from . import fmes
 
-
 def diff(xmlold, xmlnew):
-    """
-    Compares two xml trees.
-    Returns an editscript to transform old into new.
-    """
+  """
+  Compares two xml trees.
+  Returns an editscript to transform old into new. 
+  """
 
-    return fmes.diff(xmlold, xmlnew)
+  return fmes.diff(xmlold, xmlnew)

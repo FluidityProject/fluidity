@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-h5_err_t
+h5_err_t 
 h5t_begin_store_vertices (
         h5t_mesh_t* const, const h5_size_t);
 

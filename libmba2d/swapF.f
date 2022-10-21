@@ -128,7 +128,7 @@ C ... skipping the inverted elements
 
 c ... checking for surrounding points
       If(ifXnode(status, ANIUse2ArmRule)) Then
-         If(ifXnode(ICP(iPa), jBnode) .OR.
+         If(ifXnode(ICP(iPa), jBnode) .OR. 
      &      ifXnode(ICP(iPb), jBnode)) Then
             Call chkSPf(iP1, iP2, ICP, IEP, IPE, IEE, lP, iPs)
             Call chkSPb(iP1, iP2, iPa, iPb, iSWAP,
@@ -179,7 +179,7 @@ c ... updating the quality
             flag = .FALSE.
             goto 1000
          End if
-      End if
+      End if 
 
 
       Call lstUpd(nE, L1E, nL2, L2E, nStep, qE, iEs(nE1), qEs(nE1))
@@ -195,3 +195,5 @@ c ... updating the quality
 
  1000 Return
       End
+
+

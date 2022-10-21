@@ -7,8 +7,8 @@
 #define SECS_PER_CLOCK (1./sysconf(_SC_CLK_TCK))
 
 #define seconds F77_FUNC(mba3d_seconds, MBA3d_SECONDS)
-//void seconds_( double *usecs, double *ssecs )
-void seconds( double *usecs )
+//void seconds_( double *usecs, double *ssecs ) 
+void seconds( double *usecs ) 
 {
    struct tms t;
    clock_t utime;
@@ -21,3 +21,5 @@ void seconds( double *usecs )
    *usecs = utime * SECS_PER_CLOCK;
    // *ssecs = stime * SECS_PER_CLOCK;
 }
+
+

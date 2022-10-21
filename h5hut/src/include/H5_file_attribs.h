@@ -20,8 +20,8 @@ extern "C" {
 #endif
 
 /*
-   !   _                   _
-   !  (_)_ __   __ _ _   _(_)_ __ ___
+   !   _                   _          
+   !  (_)_ __   __ _ _   _(_)_ __ ___ 
    !  | | '_ \ / _` | | | | | '__/ _ \
    !  | | | | | (_| | |_| | | | |  __/
    !  |_|_| |_|\__, |\__,_|_|_|  \___|
@@ -167,8 +167,8 @@ H5GetFileAttribInfoByName (
 }
 
 /*
-  !                 _ _
-  !  __      ___ __(_) |_ ___
+  !                 _ _       
+  !  __      ___ __(_) |_ ___ 
   !  \ \ /\ / / '__| | __/ _ \
   !   \ V  V /| |  | | ||  __/
   !    \_/\_/ |_|  |_|\__\___|
@@ -294,7 +294,7 @@ H5WriteFileAttribInt64 (
 	const h5_file_t f,
 	const char* const attrib_name,
 	const h5_int64_t* const buffers,
-	const h5_size_t nelems
+	const h5_size_t nelems	
 	) {
 	H5_API_ENTER (h5_err_t,
                       "f=%p, attrib_name='%s', buffers=%p, nelems=%llu",
@@ -328,7 +328,7 @@ H5WriteFileAttribInt32 (
 }
 
 /*
-  !                      _
+  !                      _ 
   !   _ __ ___  __ _  __| |
   !  | '__/ _ \/ _` |/ _` |
   !  | | |  __/ (_| | (_| |

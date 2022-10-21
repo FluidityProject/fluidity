@@ -20,8 +20,8 @@ extern "C" {
 #endif
 
 /*
-   !   _                   _
-   !  (_)_ __   __ _ _   _(_)_ __ ___
+   !   _                   _          
+   !  (_)_ __   __ _ _   _(_)_ __ ___ 
    !  | | '_ \ / _` | | | | | '__/ _ \
    !  | | | | | (_| | |_| | | | |  __/
    !  |_|_| |_|\__, |\__,_|_|_|  \___|
@@ -161,12 +161,12 @@ H5BlockGetFieldAttribInfoByName (
 }
 
 /*
-  !                       _       _         _   _
-  !   ___ _ __   ___  ___(_) __ _| |   __ _| |_| |_ _ __
+  !                       _       _         _   _        
+  !   ___ _ __   ___  ___(_) __ _| |   __ _| |_| |_ _ __ 
   !  / __| '_ \ / _ \/ __| |/ _` | |  / _` | __| __| '__|
-  !  \__ \ |_) |  __/ (__| | (_| | | | (_| | |_| |_| |
-  !  |___/ .__/ \___|\___|_|\__,_|_|  \__,_|\__|\__|_|
-  !      |_|
+  !  \__ \ |_) |  __/ (__| | (_| | | | (_| | |_| |_| |   
+  !  |___/ .__/ \___|\___|_|\__,_|_|  \__,_|\__|\__|_|   
+  !      |_|                                          
  */
 
 /**
@@ -194,7 +194,7 @@ H5Block3dSetFieldOrigin (
 			f,
 			field_name,
 			H5BLOCK_FIELD_ORIGIN_NAME,
-			H5_FLOAT64_T,
+			H5_FLOAT64_T, 
 			origin,
 			3));
 }
@@ -258,7 +258,7 @@ H5Block3dSetFieldSpacing (
 			f,
 			field_name,
 			H5BLOCK_FIELD_SPACING_NAME,
-			H5_FLOAT64_T,
+			H5_FLOAT64_T, 
 			spacing,
 			3));
 }
@@ -325,7 +325,7 @@ H5Block3dGetFieldSpacing (
   the X, Y respective Z dimension of the field. A warning will be
   printed if not.
 
-  \param f	    [in] file handle
+  \param f	    [in] file handle 
   \param field_name [in] field name
   \param coords	    [in] X, Y or Z coordinates
   \param n_coords   [in] number of coordinates
@@ -372,7 +372,7 @@ H5Block3dSetFieldYCoords (
 			f, 1, field_name, H5BLOCK_FIELD_YCOORD_NAME,
 			coords, n_coords));
 }
-
+	
 static inline h5_err_t
 H5Block3dSetFieldZCoords (
 	const h5_file_t f,
@@ -423,7 +423,7 @@ H5Block3dSetFieldZCoords (
   the X, Y respective Z dimension of the field. A warning will be
   printed if they differ.
 
-  \param f	    [in] file handle
+  \param f	    [in] file handle 
   \param field_name [in] field name
   \param coords	    [in] X, Y or Z coordinates
   \param n_coords   [in] number of coordinates
@@ -492,8 +492,8 @@ H5Block3dGetFieldZCoords (
 }
 
 /*
-  !                 _ _
-  !  __      ___ __(_) |_ ___
+  !                 _ _       
+  !  __      ___ __(_) |_ ___ 
   !  \ \ /\ / / '__| | __/ _ \
   !   \ V  V /| |  | | ||  __/
   !    \_/\_/ |_|  |_|\__\___|
@@ -681,13 +681,13 @@ H5BlockWriteFieldAttribInt32 (
 }
 
 /*
-  !                      _
+  !                      _ 
   !   _ __ ___  __ _  __| |
   !  | '__/ _ \/ _` |/ _` |
   !  | | |  __/ (_| | (_| |
   !  |_|  \___|\__,_|\__,_|
  */
-
+	
 
 /**
    \fn h5_err_t H5BlockReadFieldAttribString (

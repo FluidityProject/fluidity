@@ -12,7 +12,7 @@ RUN apt-get -y install gfortran g++ python3-setuptools python3-all-dev python3-d
 # Make sure the spud user has a userid matching the host system if you
 #   are exposing a volume into the container and need files to be
 #   writeable by the spud user.
-# Pass 'userid' as an argument at build time if you need to change the
+# Pass 'userid' as an argument at build time if you need to change the 
 #   default UID 1000 to another value
 ARG userid=1000
 RUN adduser --disabled-password --gecos "" -u $userid spud

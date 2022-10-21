@@ -175,7 +175,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-INCLUDES = -I.
+INCLUDES = -I. 
 AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 jhton_SOURCES = jhton.c
 DISTCLEANFILES = .deps Makefile
@@ -219,7 +219,7 @@ clean-noinstPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-jhton$(EXEEXT): $(jhton_OBJECTS) $(jhton_DEPENDENCIES)
+jhton$(EXEEXT): $(jhton_OBJECTS) $(jhton_DEPENDENCIES) 
 	@rm -f jhton$(EXEEXT)
 	$(LINK) $(jhton_OBJECTS) $(jhton_LDADD) $(LIBS)
 

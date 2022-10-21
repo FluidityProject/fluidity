@@ -13,11 +13,11 @@ C
 C  Data flow:
 C      1. calculate map E->E
 C      2. loop over triangles
-C         2.1 check criterium for sum of opposite angles
+C         2.1 check criterium for sum of opposite angles 
 C         2.2 swap triangles
 C         2.3 update the map
 C
-C  *** Remarks
+C  *** Remarks 
 C ================================================================
       Integer  nP, nE
 
@@ -66,34 +66,34 @@ c ... new loop
             i2 = iref(i1 + 1)
             i3 = iref(i2 + 1)
 
-            iP1 = IPE(i1, n)
-            iP2 = IPE(i2, n)
-            iP3 = IPE(i3, n)
+            iP1 = IPE(i1, n) 
+            iP2 = IPE(i2, n) 
+            iP3 = IPE(i3, n) 
 
             Do j1 = 1, 3
-               j2 = iref(j1 + 1)
+               j2 = iref(j1 + 1) 
 
                jP1 = IPE(j1, iE1)
                jP2 = IPE(j2, iE1)
                If(check22(iP1, iP2, jP1, jP2)) Then
-                  j3 = iref(j2 + 1)
+                  j3 = iref(j2 + 1) 
                   jP3 = IPE(j3, iE1)
-                  goto 10
+                  goto 10 
                End if
             End do
 
  10         Continue
-            flagDELONE = DelonePair(XYP(1, iP1), XYP(1, iP2),
+            flagDELONE = DelonePair(XYP(1, iP1), XYP(1, iP2), 
      &                              XYP(1, iP3), XYP(1, jP3), sa1)
 
             If(.NOT.flagDELONE) Then
                flagREPEAT = .TRUE.
 
-               flagDELONE = DelonePair(XYP(1, iP3), XYP(1, jP3),
+               flagDELONE = DelonePair(XYP(1, iP3), XYP(1, jP3), 
      &                                 XYP(1, iP1), XYP(1, jP2), sa2)
                If(flagDELONE .OR. sa2.GT.sa1) Then
                   nswap = nswap + 1
-                  iE2 = iW(iEmem + i2)
+                  iE2 = iW(iEmem + i2) 
 
                   jEmem = iIEE + 3 * (iE1 - 1) - 1
                   jE2 = iW(jEmem + j2)
@@ -110,7 +110,7 @@ c ... new loop
 
                   iW(iEmem + i2) = jE3
                   If(jE3.GT.0) Then
-                     kEmem = iIEE + 3 * (jE3 - 1) - 1
+                     kEmem = iIEE + 3 * (jE3 - 1) - 1 
                      Do k = 1, 3
                         If(iW(kEmem + k).EQ.iE1) Then
                            iW(kEmem + k) = n
@@ -119,7 +119,7 @@ c ... new loop
                      End do
 
 c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-                     Call errMes(6006,
+                     Call errMes(6006, 
      &                   'delaunay.f', 'Cannot build Delaunay mesh')
                   End if
 
@@ -129,13 +129,13 @@ c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
                      kEmem = iIEE + 3 * (iE2 - 1) - 1
                      Do k = 1, 3
                         If(iW(kEmem + k).EQ.n) Then
-                           iW(kEmem + k) = iE1
+                           iW(kEmem + k) = iE1 
                            goto 30
                         End if
                      End do
 
 c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-                     Call errMes(6006,
+                     Call errMes(6006, 
      &                   'delaunay.f', 'Cannot build Delaunay mesh')
                   End if
                End if
@@ -145,10 +145,10 @@ c                    Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
 
       If(flagREPEAT) Then
          nloop = nloop + 1
-
+ 
          If(nloop.GT.nE) Then
 c          Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
-           Call wrnMes(6006,
+           Call wrnMes(6006, 
      &                'delaunay.f', 'Cannot build Delaunay mesh')
            Return
          End if
@@ -156,7 +156,7 @@ c          Call draw_T(nP, 0, nE, XYP, iW, iW, IPE, 'fin.ps')
          nswapold = nswap
          goto 100
       End if
-
+ 
       Return
       End
 
@@ -177,11 +177,11 @@ C ================================================================
       ca = 0
       cb = 0
 
-      Do i = 1, 2
-         ca = ca + (xy4(i) - xy1(i)) * (xy4(i) - xy2(i))
-         cb = cb + (xy3(i) - xy1(i)) * (xy3(i) - xy2(i))
+      Do i = 1, 2 
+         ca = ca + (xy4(i) - xy1(i)) * (xy4(i) - xy2(i)) 
+         cb = cb + (xy3(i) - xy1(i)) * (xy3(i) - xy2(i)) 
       End do
-
+            
 c ... Delaunay condition fails
       If(ca.LT.0 .AND. cb.LT.0) goto 9000
 
@@ -192,18 +192,18 @@ c ... Delaunay condition true
       End if
 
 c ... the rest of the formula
-      sa = (xy4(1) - xy1(1)) * (xy4(2) - xy2(2))
+      sa = (xy4(1) - xy1(1)) * (xy4(2) - xy2(2)) 
      &   - (xy4(1) - xy2(1)) * (xy4(2) - xy1(2))
 
-      sb = (xy3(1) - xy1(1)) * (xy3(2) - xy2(2))
-     &   - (xy3(1) - xy2(1)) * (xy3(2) - xy1(2))
+      sb = (xy3(1) - xy1(1)) * (xy3(2) - xy2(2)) 
+     &   - (xy3(1) - xy2(1)) * (xy3(2) - xy1(2)) 
 
 c ... checking when swapping is not possible
 c     If(sa * sb.GE.0) goto 9000
 
       sa = abs(sa) * cb + ca * abs(sb)
       If(sa.GE.0) DelonePair = .TRUE.
-
+        
  9000 Return
       End
 
@@ -212,7 +212,7 @@ c     If(sa * sb.GE.0) goto 9000
 C ==============================================================
       Subroutine RandXY(xy1, xy2, xy3, xyc, r)
 C ==============================================================
-C Routine computes the center and radius of the circle
+C Routine computes the center and radius of the circle 
 c curcumscribed around triangle defined by three vertices.
 C ==============================================================
       real  xy1(2), xy2(2), xy3(2)
@@ -231,7 +231,7 @@ C ==============================================================
 
       a = x1 * y2 - y1 * x2
       b = r1 * y2 - r2 * y1
-      c = r1 * x2 - r2 * x1
+      c = r1 * x2 - r2 * x1  
 
       xyc(1) = b / (2 * a)
       xyc(2) =-c / (2 * a)
@@ -401,3 +401,4 @@ c ... draw the circumcribed circle
 
       Return
       End
+

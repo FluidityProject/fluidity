@@ -9,7 +9,7 @@
   INTERFACE
      !> \addtogroup h5_file_f
      !! @{
-
+     
      !>
      !! Create a new, empty file property list.
      !!
@@ -33,7 +33,7 @@
      END FUNCTION h5_createprop_file
 
      !>
-     !! Stores MPI IO communicator information to given file property list. If used in
+     !! Stores MPI IO communicator information to given file property list. If used in 
      !! \ref h5_openfile(), MPI collective IO will be used.
      !!
      !! \note This function deprecated. Use h5_setprop_file_mpio_collective() instead.
@@ -69,7 +69,7 @@
      END FUNCTION h5_setprop_file_mpio_collective
 
      !>
-     !! Stores MPI IO communicator information to given file property list. If used in
+     !! Stores MPI IO communicator information to given file property list. If used in 
      !! \ref h5_openfile(), MPI independent IO will be used.
      !!
      !! \return \c H5_SUCCESS on success
@@ -85,14 +85,14 @@
      END FUNCTION h5_setprop_file_mpio_independent
 
      !>
-     !! Stores MPI IO communicator information to given file property list. If used in
+     !! Stores MPI IO communicator information to given file property list. If used in 
      !! \ref h5_openfile(), MPI POSIX IO will be used.
      !!
      !! \return \c H5_SUCCESS on success
      !! \return \c H5_FAILURE on error
      !!
      !! \note This function is available only, if H5hut has been compiled with
-     !! HDF5 1.8.12 or older.
+     !! HDF5 1.8.12 or older. 
      !!
      !! \see h5_setprop_file_mpio_collective()
      !! \see h5_setprop_file_mpio_independent()
@@ -105,7 +105,7 @@
 
      !>
      !! Modifies the file property list to use the \c H5FD_CORE driver.  The
-     !! \c H5FD_CORE driver enables an application to work with a file in memory.
+     !! \c H5FD_CORE driver enables an application to work with a file in memory. 
      !! File contents are stored only in memory until the file is closed.
      !!
      !! The increment by which allocated memory is to be increased each time more

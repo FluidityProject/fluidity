@@ -23,8 +23,8 @@ extern "C" {
 #endif
 
 /*
-   !   _                   _
-   !  (_)_ __   __ _ _   _(_)_ __ ___
+   !   _                   _          
+   !  (_)_ __   __ _ _   _(_)_ __ ___ 
    !  | | '_ \ / _` | | | | | '__/ _ \
    !  | | | | | (_| | |_| | | | |  __/
    !  |_|_| |_|\__, |\__,_|_|_|  \___|
@@ -65,7 +65,7 @@ H5PartGetDatasetName (
 	char* const name,             	///< [out] name of dataset
 	const h5_size_t len     	///< [in]  size of buffer \c name
 	) {
-	H5_API_ENTER (h5_err_t,
+	H5_API_ENTER (h5_err_t, 
 		       "f=%p, "
 		       "idx=%lld, "
 		       "name='%p', len=%llu, ",
@@ -106,7 +106,7 @@ H5PartGetDatasetInfo (
 	h5_int64_t* type,       	///< [out] type of data in dataset
 	h5_size_t* nelems        	///< [out] number of elements
 	) {
-	H5_API_ENTER (h5_int64_t,
+	H5_API_ENTER (h5_int64_t, 
 		      "f=%p, "
 		      "idx=%lld, "
 		      "name='%p', len_name=%llu, "
@@ -135,7 +135,7 @@ H5PartHasDataset (
 	const h5_file_t f,           	///< [in]  file handle
 	const char* const name         	///< [in]  name of dataset
 	) {
-	H5_API_ENTER (h5_int64_t,
+	H5_API_ENTER (h5_int64_t, 
 		      "f=%p, name='%s'",
 		      (h5_file_p)f, name);
 	H5_API_RETURN (h5u_has_dataset (f, name));
@@ -165,7 +165,7 @@ H5PartGetDatasetInfoByName (
 	h5_int64_t* type,       	///< [out] type of data in dataset
 	h5_size_t* nelems        	///< [out] number of elements
 	) {
-	H5_API_ENTER (h5_int64_t,
+	H5_API_ENTER (h5_int64_t, 
 		      "f=%p, "
 		      "name='%s', "
 		      "type=%p, nelems=%p",
@@ -181,7 +181,7 @@ H5PartGetDatasetInfoByName (
 
 /**
   Set the number of items/particles for the current step/iteration.
-  After you call this subroutine, all subsequent
+  After you call this subroutine, all subsequent 
   operations will assume this number of particles will be written.
 
   For the parallel library, the \c nparticles value is the number of
@@ -197,7 +197,7 @@ H5PartGetDatasetInfoByName (
   contiguous 1D arrays.
   For instance, the fields \e x and \e y for your particles are stored
   in separate arrays \c x[] and \c y[].
-
+  
   If instead you store your particles as tuples, so that the values
   are arranged \f$ x_1,y_1,x_2,y_2\f$... than you need to setup striding
   (in this case with value 2) using \ref H5PartSetNumParticlesStrided.
@@ -245,7 +245,7 @@ H5PartSetNumParticles (
   Note that H5Part assumes that all data sets within a given step/iteration
   have the same number of particles (although the number particles can
   vary across steps/iteration).
-
+  
   If none of these conditions are met, an error is thrown.
 
   \return	number of elements in datasets in current step/iteration.
@@ -277,7 +277,7 @@ H5PartGetNumParticles (
 
 /**
   Set the number of particles for the current step/iteration.
-  After you call this subroutine, all subsequent
+  After you call this subroutine, all subsequent 
   operations will assume this number of particles will be written.
 
   For the parallel library, the \c nparticles value is the number of
@@ -293,7 +293,7 @@ H5PartGetNumParticles (
   stored tuples. For instance, the fields \e x and \e y of your
   particles are arranged \f$x_1,y_1,x_2,y_2\f$... in a single data
   array. In this example, the stride value would be 2.
-
+  
   If you instead have a separate array for each fields,
   such as \c x[] and \c y[],
   use \ref H5PartSetNumParticles().

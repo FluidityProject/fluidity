@@ -15,7 +15,7 @@ program write_core_vfd
 #if defined(PARALLEL_IO)
   include 'mpif.h'
 #endif
-
+  
   ! name of output file
   character (len=*), parameter :: fname = "example_core_vfd.h5"
 
@@ -38,7 +38,7 @@ program write_core_vfd
   call mpi_init (mpi_ierror)
   call mpi_comm_rank (comm, comm_rank, mpi_ierror)
 #endif
-
+  
   call h5_abort_on_error ()
   call h5_set_verbosity_level (h5_verbosity)
 
@@ -67,5 +67,5 @@ program write_core_vfd
 #if defined(PARALLEL_IO)
   call mpi_finalize (mpi_ierror)
 #endif
-
+  
 end program write_core_vfd

@@ -5,7 +5,7 @@ import os.path
 import glob
 
 # There are a number of local hacks in this file, to deal with the multiple
-# ways in which setup.py is called by various scripts and packaging methods
+# ways in which setup.py is called by various scripts and packaging methods 
 # that interact with spud, enabling setuptools to grok their intentions.
 
 # In some cases, we will be passed a 'DESTDIR' from an upstream packagaing
@@ -84,3 +84,4 @@ setup(
       scripts=["bin/diamond"],
       data_files = gui_data_files + plugin_data_files
      )
+

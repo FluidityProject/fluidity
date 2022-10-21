@@ -40,7 +40,7 @@ C group (Local variables)
       Integer Mlist(2, MaxS), Clist(MaxS)
       Integer IPFs(2)
 
-      Integer ip(4)
+      Integer ip(4) 
       Logical ifXnode, cmpP, cmpE, sharpAngle
 
 C ================================================================
@@ -117,7 +117,7 @@ c ... creating an auxiliary structure
          ICP(n) = 0
       End do
 
-C ... create IFE
+C ... create IFE  
       Do n = 1, nE
          Do i1 = 1, 3
             i2 = ip(i1 + 1)
@@ -150,7 +150,7 @@ c  ...  user-given interface
             End do
 
             Clist(ilist) = ic1
-            icmax = max(ic1, icmax)
+            icmax = max(ic1, icmax) 
          End if
       End do
 
@@ -209,7 +209,7 @@ c  ...  order materials such that ic1 > ic2
 
                i2 = ip(i1 + 1)
 
-               IPFs(1) = IPE(i1, n)
+               IPFs(1) = IPE(i1, n)  
                IPFs(2) = IPE(i2, n)
 
                Call facUpd(1, IPF, parCrv, iFnc,
@@ -225,7 +225,7 @@ c  ...  update IFE
             End if
  100     Continue
       End do
-
+      
 
 C ... create ICP
       Do n = 1, nF
@@ -292,7 +292,7 @@ c ... color the points (vertices)
 c ... color sharp angles
       Do n = 1, nP
          If(.NOT.ifXnode(ICP(n), jVnode)) Then
-            If(sharpAngle(n, IEPw, nEPw, XYP, IPF))
+            If(sharpAngle(n, IEPw, nEPw, XYP, IPF)) 
      &         Call addXnode(ICP(n), jVnode)
          End if
       End do
@@ -373,7 +373,7 @@ C group (W)
 
 C group (Local variables)
       Logical ifXnode
-
+ 
 C ================================================================
       Integer iDomBnd, iMatBnd
       Common /aniBND/ iDomBnd, iMatBnd
@@ -490,7 +490,7 @@ c ... fill in holes in edges
          End do
 
          IPF(1, kF) = 0
-200     nF = nF - 1
+ 200     nF = nF - 1
 
       icnt = 0
       Do n = 1, nF
@@ -589,21 +589,21 @@ C ================================================================
 
 c ... check color of mesh points
       Do n = 1, nP
-         If(ICP(n).LE.0)
+         If(ICP(n).LE.0) 
      &      Call errMes(5001, 'chkM', 'wrong point color')
 
-         If(ifXnode(ICP(n), jInode) .AND.
-     &      ifXnode(ICP(n), jBnode))
+         If(ifXnode(ICP(n), jInode) .AND. 
+     &      ifXnode(ICP(n), jBnode)) 
      &      Call errMes(5015, 'chkM', 'color contradiction')
       End do
 
 
 c ... check labels of mesh faces
       Do n = 1, nF
-         If(IPF(1, n).LE.0)
+         If(IPF(1, n).LE.0) 
      &      Call errMes(5002, 'chkM', 'wrong map edge -> points')
 
-         If(IPF(3, n).NE.0 .AND. iFnc(n).LE.0)
+         If(IPF(3, n).NE.0 .AND. iFnc(n).LE.0) 
      &      Call errMes(5003, 'chkM', 'wrong Id of curvilinear edge')
       End do
 
@@ -613,7 +613,7 @@ c ... check elements
          nTet = n
 
          Do i = 1, 3
-            If(IPE(1, n).LE.0)
+            If(IPE(1, n).LE.0) 
      &         Call errMes(5004, 'chkM', 'wrong map element -> points')
          End do
 
@@ -625,8 +625,8 @@ c ... check elements
             goto 500
          End if
 
-         If(lbE(n).LE.0)
-     &      Call errMes(5016, 'chkM',
+         If(lbE(n).LE.0) 
+     &      Call errMes(5016, 'chkM', 
      &                 'element identificator (lbE) is not positive')
 
          iF1 = IFE(1, n)
@@ -737,7 +737,7 @@ c ... check the parametrization
      &            Call errMes(5006, 'chkM', 'wrong parametrization')
             End do
          End if
-      End do
+      End do   
 
 
 c ... compute R / r
@@ -796,7 +796,7 @@ C ================================================================
 C ================================================================
 C Search for element iE2, other than iE1, in the intersection of
 C sublists associated with i1 and i2. The routine returns value
-C .FALSe. and iE2 = 0 when thre is no such element.
+C .FALSe. and iE2 = 0 when thre is no such element. 
 C ================================================================
       Integer IEP(*), nEP(*)
 
@@ -864,7 +864,7 @@ C ================================================================
 C ================================================================
       Logical Function cmpP(iP, IFP, nFP, IPF)
 C ================================================================
-C cmpP = TRUE if point iP belongs to two faces
+C cmpP = TRUE if point iP belongs to two faces 
 C with different colors. Otherwise cmpP = FALSE.
 C
 C Remark: new structure of IFP, nFP
@@ -940,13 +940,13 @@ c ... find two neighboring points for point n
       Do i = 1, 2
          v1(i) = XYP(i, iP1) - XYP(i, n)
          v2(i) = XYP(i, iP2) - XYP(i, n)
-      End do
+      End do  
 
       angle = DotMul(v1, v2)
       norms = calNorm(v1) * calNorm(v2)
 
       If(angle.LE.MaxSharpAngle*norms) goto 1000
-
+   
   500 sharpAngle = .TRUE.
 
  1000 Return
@@ -957,7 +957,7 @@ c ... find two neighboring points for point n
 C ==============================================================
       Subroutine RandR(XY1, XY2, XY3, rOut, rIn)
 C ==============================================================
-C Routine computes curcumscribed and inscribed radii for the
+C Routine computes curcumscribed and inscribed radii for the 
 c triangle defined by three vertices.
 C ==============================================================
       real  XY1(3), XY2(3), XY3(3)
@@ -970,8 +970,8 @@ C ==============================================================
       c = calEdge(XY2, XY3)
 
       s = (a + b + c) / 2
-
-      rOut = a * b * c / (4 * sqrt(s * (a + b - s) *
+ 
+      rOut = a * b * c / (4 * sqrt(s * (a + b - s) * 
      &                                  (a + c - s) * (b + c - s)))
 
       rIn = a * b * c / (4 * ROut * s)
@@ -1004,7 +1004,7 @@ c (Local variables)
      &                (XYP(2, iP2) - XYP(2, iP1)))
  10   Continue
 
-      domainArea = 5D-1 * s
+      domainArea = 5D-1 * s 
       Return
       End
 
@@ -1030,6 +1030,9 @@ c (Local variables)
      &                 (XYP(2, iP2) - XYP(2, iP1)) ** 2)
  10   Continue
 
-      domainPerimetr = s
+      domainPerimetr = s 
       Return
       End
+
+
+

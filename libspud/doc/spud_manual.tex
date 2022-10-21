@@ -304,7 +304,7 @@ element dump_format {
    element string_value{
       "fluidity dumpfile"|"vtk"
    }
-}
+}  
 \end{lstlisting}
 
 \subsection{Symmetric tensors}
@@ -331,13 +331,13 @@ which only permits the values 2 or 3 to be given.
 \begin{lstlisting}[language=rnc,frame=trBL]
 include "spud_base.rnc"
 
-start =
+start = 
    (
       # Outside wrapper element. Doesn't really matter what the name is.
       element model_options {
           comment,
-         ## Model output files are named according to the simulation name,
-         ## e.g. [simulation_name]_0.vtu. Non-standard characters in the
+         ## Model output files are named according to the simulation name, 
+         ## e.g. [simulation_name]_0.vtu. Non-standard characters in the 
          ## simulation name should be avoided.
          element simulation_name {
             anystring
@@ -355,7 +355,7 @@ start =
             }
          }
       }
-   )
+   )  
 \end{lstlisting}
 
   \caption{A trivial schema showing a schema comment, schema annotations and
@@ -393,7 +393,7 @@ be displayed to the model user by Diamond. The former comments are known as
 schema comments and are written with a single leading hash (\verb+#+)
 while the latter are known as schema annotations and are written with a
 double leading hash (\verb+##+). Schema annotations must be written
-immediately before the element they document.
+immediately before the element they document. 
 
 Finally, the \verb+comment+ named pattern will cause diamond to associate a
 user comment box with the parent element. This enables users to document
@@ -1147,19 +1147,19 @@ Prints the entire options tree to standard output. Useful for debugging.
 
 \section{Python binding for libspud}
 
-libspud also offers bindings for the Python programming language.  Users can use Python for accessing the options specified in a Spud XML file.  (This is done by the libspud.c module.  The module is written in C using the header file Python.h and spud.h.  It provides a Python interface to libspud; so that users could use Python codes to access the C codes in libspud.  The module takes in Python arguments, converts them into C arguments and then call the corresponding C functions with the converted C arguments.)
+libspud also offers bindings for the Python programming language.  Users can use Python for accessing the options specified in a Spud XML file.  (This is done by the libspud.c module.  The module is written in C using the header file Python.h and spud.h.  It provides a Python interface to libspud; so that users could use Python codes to access the C codes in libspud.  The module takes in Python arguments, converts them into C arguments and then call the corresponding C functions with the converted C arguments.) 
 
 \subsection{Errors}
 
-Python binding converts spud errors into exceptions, and that these exceptions match those listed in 3.5.2:  \\*
-SpudError; \\*
-SpudTypeError; \\*
-SpudKeyError; \\*
-SpudFileError; \\*
-SpudNewKeyWarning; \\*
-SpudAttrSetFailedWarning; \\*
-SpudShapeError; \\*
-SpudRankError;
+Python binding converts spud errors into exceptions, and that these exceptions match those listed in 3.5.2:  \\* 
+SpudError; \\* 
+SpudTypeError; \\* 
+SpudKeyError; \\* 
+SpudFileError; \\* 
+SpudNewKeyWarning; \\* 
+SpudAttrSetFailedWarning; \\* 
+SpudShapeError; \\* 
+SpudRankError; 
 
 \subsection{Data type parameters}\label{sec:types}
 
@@ -1213,7 +1213,7 @@ def get_child_name(string key, int index)
 return string
 \end{lstlisting}
 
-This function takes the key in the form of a Python string, and an integer index.
+This function takes the key in the form of a Python string, and an integer index. 
 It raises SpudKeyError if supplied key does not exist in the options tree.
 Otherwise, it retrieves the childname of the indexth of key , and then returns the childname as Python string.
 
@@ -1224,7 +1224,7 @@ def get_number_of_children(string key)
 return int
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It raises SpudKeyError if supplied key does not exist in the options tree.
 Otherwise, it returns the number of children of the key as Python integer.
 
@@ -1235,7 +1235,7 @@ def option_count(string key)
 return int
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It returns the number of options which match the key as Python integer.
 It returns 0 if key is not present in the dictionary.
 
@@ -1246,7 +1246,7 @@ def have_option(string key)
 return True or False
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It returns True if the key is present in the options dictionary, False otherwise.
 
 \subsection{get\_option\_type}
@@ -1256,7 +1256,7 @@ def get_option_type(string key)
 return PyObject_Type
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It raises SpudKeyError if the supplied key does not exist in the options tree.
 It returns the type of the key as one of the Python object types in 3.6.2.
 
@@ -1267,7 +1267,7 @@ def get_option_rank(string key)
 return int
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It raises SpudKeyError if the supplied key does not exist in the options tree.
 It returns the rank of the key as Python ints.
 0 for scalar, 1 for vector, 2 for tensor or matrix.
@@ -1279,7 +1279,7 @@ def get_option_shape(string key)
 return (int, int)
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It raises SpudKeyError if the supplied key does not exist in the options tree.
 It returns the shape of the key as Python two-tuple.
 If the option in question is rank 1 then the second component will be -1, if the option is rank 0 (a scalar) then both entries will be -1.
@@ -1291,7 +1291,7 @@ def get_option(string key)
 return optionvalue
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 If key matches an option but the shape, rank or type fails to match, appropriate error code will
 be set (see 3.6.1).
 If key fails to match but default is present, option is set to the value of default.
@@ -1305,7 +1305,7 @@ def add_option(string key)
 return None
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It creates a new option at the supplied key.
 If the option does not currently exist, creates the option
 (with data type SPUD\_NONE) and returns error code SpudNewKeyWarning.
@@ -1317,7 +1317,7 @@ def set_option(string key, valuetype value)
 return None
 \end{lstlisting}
 
-This function takes the key in the form of a Python string, and the value to be set.
+This function takes the key in the form of a Python string, and the value to be set. 
 Value could be of any type listed in 3.6.2.
 If key matches an option but the shape, rank or type fails to match currently existing option,
 returns an appropriate error code (see 3.6.1).
@@ -1332,7 +1332,7 @@ def set_option_attribute(string key, valuetype value)
 return None
 \end{lstlisting}
 
-This function takes the key in the form of a Python string, and the value to be set.
+This function takes the key in the form of a Python string, and the value to be set. 
 Value could be of any type listed in 3.6.2.
 If key matches an option but the shape, rank or type fails to match currently existing option,
 returns an appropriate error code (see 3.6.1).
@@ -1349,7 +1349,7 @@ def delete_option(string key)
 return None
 \end{lstlisting}
 
-This function takes the key in the form of a Python string.
+This function takes the key in the form of a Python string. 
 It raises SpudKeyError if the supplied key does not exist in the options tree.
 This function deletes the option in the options tree.
 

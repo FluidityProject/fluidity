@@ -1060,7 +1060,7 @@ h5tpriv_write_mesh (
 				TRY (h5priv_mpi_barrier (m->f->props->comm));
 				m->timing.measure[m->timing.next_time++] = MPI_Wtime();
 			}
-#endif
+#endif			
 		} else {
 			TRY (write_vertices (m));
 			TRY (write_elems (m));
@@ -1736,7 +1736,7 @@ read_octree (
                      oct_size,
                      size_userdata,
                      maxpoints,
-                     &octants,
+                     &octants, 
                      (void **) &userdata,
                      m->f->props->comm));
 	TRY (H5t_set_bounding_box (m->octree, bounding_box));
@@ -2635,7 +2635,7 @@ h5tpriv_read_chunked_mesh (
 
 	TRY (h5priv_mpi_barrier (m->f->props->comm));
 	m->timing.measure[m->timing.next_time++] = MPI_Wtime();
-#endif
+#endif	
 	H5_RETURN (H5_SUCCESS);
 }
 
@@ -2796,3 +2796,4 @@ h5tpriv_read_mesh_part (
 #endif
 	H5_RETURN (H5_SUCCESS);
 }
+

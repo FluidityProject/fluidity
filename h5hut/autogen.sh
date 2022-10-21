@@ -45,3 +45,4 @@ automake $AUTOMAKE_FLAGS || {
 	echo "automake failed"
 	exit 1
 }
+

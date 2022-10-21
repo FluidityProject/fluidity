@@ -9,7 +9,7 @@ C group(F)
 C group (ANI)
      &       XYP, IPE, IEE, HesP, hStar, status,
      &       lE, iEs, XYPs, IPEs, detGs, HesPs, qEs,
-     &       nPw, nEw, XYPw, HesPw, IPEw,
+     &       nPw, nEw, XYPw, HesPw, IPEw, 
      &       MetricFunction, flagAnalytic,
      &       iSE, rSE, iP1, iFNCs, calCrv,
      &       L1Et, L2Et, tE,
@@ -29,7 +29,7 @@ C group (ANI)
       Integer IPE(3, *), IEE(3, *)
       Integer iEs(*), IPEs(3, *), IPEw(3, *), iSE(*), status
       real  XYP(2, *),  HesP(3, *), hStar
-
+      
       real  XYPs(2, *), HesPs(*),   detGs, qEs(*)
       real  XYPw(2, *), HesPw(3, *), rSE(*)
       real  tE(*)
@@ -138,7 +138,7 @@ c  ...  checking for inverted elements
 c  ...  checking orientation of triangles
          Else
             Call calSO(XYP, IPE, lE, iEs, iOs)
-            Call chkSO(iP1, iP1, XYPs, XYP, IPE, lE, iEs, iOs,
+            Call chkSO(iP1, iP1, XYPs, XYP, IPE, lE, iEs, iOs, 
      &                 flagOrient)
             If(.NOT.flagOrient) f1 = f0 + 1D0
          End if
@@ -172,3 +172,7 @@ c  ...  checking orientation of triangles
 
  9000 Return
       End
+
+
+
+

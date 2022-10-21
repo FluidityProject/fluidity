@@ -4,10 +4,10 @@ C AniEigenvalue = the eigenvalue used when H is zero matrix
 C
 C MaxBaskets    = the maximal number of baskets
 C
-C DiscreteGrad  = mesh step for computing finite difference
+C DiscreteGrad  = mesh step for computing finite difference 
 C                 gradient of mesh quality function.
 C
-C MaxSharpAngle = cosine of the maximal permitable sharp
+C MaxSharpAngle = cosine of the maximal permitable sharp 
 c                 angle, default is 150 degrees
 C =========================================================
       Real*8    AniRatio
@@ -24,3 +24,4 @@ C =========================================================
 
       Real*8    MaxSharpAngle
       Parameter(MaxSharpAngle = -8.6603D-01)
+

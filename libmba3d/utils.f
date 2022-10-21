@@ -24,7 +24,7 @@ C ================================================================
       iIEP = inEP + nP
 
       Call backReferences(nP, nE, 4,4, IPE, iW(inEP + 1), iW(iIEP + 1))
-
+ 
 c ... main algorithm: array nEP is overloaded inside
       nL = 0
 
@@ -66,12 +66,12 @@ c  ...  recovering values of array nEP
       End Subroutine listP2P
 
 
-
+ 
 C ================================================================
       Subroutine listR2P(nP, nR, nE, MaxR, IPE, IPR, iW)
 C ================================================================
-C  The routine reates connectivity list R -> P for mesh edges.
-C  The algorithm has a linear arithmetical complexity.
+C  The routine reates connectivity list R -> P for mesh edges. 
+C  The algorithm has a linear arithmetical complexity. 
 C
 C  Parameters:
 C      nP, nR, nE - the number of points, edges and elements
@@ -94,7 +94,7 @@ C ================================================================
 
 c ... main algorithm: array nEP is overloaded inside
       nR = 0
-
+   
       i2 = 0
       Do n = 1, nP
          nRo = nR
@@ -111,7 +111,7 @@ c ... main algorithm: array nEP is overloaded inside
                If(iPt.GT.n .AND. iW(inEP + iPt).GT.0) Then
                   nR = nR + 1
                   If(nR.GT.MaxR) Then
-                     Call errMes(2011, 'listR2P',
+                     Call errMes(2011, 'listR2P', 
      &                          'user parameter MaxR is small')
                   End if
 
@@ -365,13 +365,13 @@ C ================================================================
 
 C ================================================================
       Subroutine listConv(
-     &           nP, nR, nE, nEP, IEP, L, IRE,
+     &           nP, nR, nE, nEP, IEP, L, IRE, 
      &           nX, MaxX, nRP, IRP, iW, iERR)
 C ================================================================
-C  The routine convolutes unstructured map X->Y and structured map
-C  Y->Z to get the map X->Z. For examples, if X means points (P),
-C  Y means elements (E), and Z means edges (R), we get the map from
-C  a point to all edges in the elements having this point.
+C  The routine convolutes unstructured map X->Y and structured map 
+C  Y->Z to get the map X->Z. For examples, if X means points (P), 
+C  Y means elements (E), and Z means edges (R), we get the map from 
+C  a point to all edges in the elements having this point.  
 C
 C  Routine returns 0 upon successful completion.
 C
@@ -400,7 +400,7 @@ C ================================================================
             iE = IEP(i)
 
             Do j = 1, L
-               iR = IRE(j, iE)
+               iR = IRE(j, iE)  
                If(iW(iR).GT.0) Then
                   nX = nX + 1
                   If(nX.GT.MaxX) Then
@@ -412,16 +412,16 @@ C ================================================================
                   iW(iR) = -iW(iR)
                End if
             End do
-         End do
+         End do 
 
          nRP(n) = nX
-
+        
 c ...    restore array iW
          Do i = nX0 + 1, nX
             iR = IRP(i)
             iW(iR) = -iW(iR)
-         End do
-      End do
+         End do 
+      End do      
 
  9000 Return
       End Subroutine listConv
@@ -496,7 +496,7 @@ C                         common point P.
 C ================================================================
       Integer IPE(M, *), nEP(*), IEP(*)
 
-      Do n = 1, nP
+      Do n = 1, nP 
          nEP(n) = 0
       End do
 
@@ -563,7 +563,7 @@ C (Local variables)
       Real*8  XYA(3), XYB(3), XYE(3), XYC(3), XYD(3)
       Real*8  XYM(3), XYN(3), XYR(3)
       Real*8  s
-
+ 
 C ================================================================
       inEP = 0
       iIEP = inEP + nP
@@ -602,15 +602,15 @@ C ================================================================
 
             If(icnt.NE.2) Goto 10
 
-c   ...   computing vertices of tet differ from iP1 & iP2
+c   ...   computing vertices of tet differ from iP1 & iP2  
             Do i = 1, 3
-               XYC(i) = (XYP(i, iP1) + XYP(i, iP2)
+               XYC(i) = (XYP(i, iP1) + XYP(i, iP2) 
      &                 + XYP(i, iP3) + XYP(i, iP4)) / 4
 
-               XYA(i) = (XYP(i, iP1) + XYP(i, iP2)
+               XYA(i) = (XYP(i, iP1) + XYP(i, iP2) 
      &                               + XYP(i, iP3)) / 3 - XYC(i)
 
-               XYB(i) = (XYP(i, iP1) + XYP(i, iP2)
+               XYB(i) = (XYP(i, iP1) + XYP(i, iP2) 
      &                               + XYP(i, iP4)) / 3 - XYC(i)
 
                XYD(i) = XYE(i) - XYC(i)
@@ -620,7 +620,7 @@ c   ...   computing vertices of tet differ from iP1 & iP2
             Call VecMul(XYD, XYB, XYN)
 
             s = s + calNorm(XYM) + calNorm(XYN)
-
+            
 c    ...    orienting the normal vector from iP1 to iP2
             If(DotMul(XYR, XYM).LT.0D0) Then
                Do i = 1, 3
@@ -658,8 +658,8 @@ c        End do
 C ================================================================
       Subroutine addBoundaryFaces(
 C ================================================================
-     &      nP, nF, MaxF, nE,
-     &      XYP, IPF, IPE, lbF, lbE,
+     &      nP, nF, MaxF, nE,  
+     &      XYP, IPF, IPE, lbF, lbE, 
      &      iW)
 C ================================================================
 C     iW(*) - working memory of size 2 * nP + 3 * nF + 4 * nE
@@ -680,7 +680,7 @@ C group (Local variables)
 
 C ================================================================
       iERR = 0
-
+ 
       ip(1) = 1
       ip(2) = 2
       ip(3) = 3
@@ -688,9 +688,9 @@ C ================================================================
       ip(5) = 1
 
       iIFP = 1
-      iIEP = iIFP + 3 * nF
+      iIEP = iIFP + 3 * nF 
       inFP = iIEP + 4 * nE
-      inEP = inFP + nP
+      inEP = inFP + nP 
 
 c ... checking that [iVface, MaxS] is clear
       Do n = 1, nF
@@ -740,8 +740,8 @@ C ... creating material and missing boundaries
 C ================================================================
       Subroutine addMaterialFaces(
 C ================================================================
-     &      nP, nF, MaxF, nE,
-     &      XYP, IPF, IPE, lbF, lbE,
+     &      nP, nF, MaxF, nE,  
+     &      XYP, IPF, IPE, lbF, lbE, 
      &      iW)
 C ================================================================
 C     iW(*) - working memory of size 2 * nP + 3 * nF + 4 * nE
@@ -764,7 +764,7 @@ C group (Local variables)
 
 C ================================================================
       iERR = 0
-
+ 
       ip(1) = 1
       ip(2) = 2
       ip(3) = 3
@@ -772,9 +772,9 @@ C ================================================================
       ip(5) = 1
 
       iIFP = 1
-      iIEP = iIFP + 3 * nF
+      iIEP = iIFP + 3 * nF 
       inFP = iIEP + 4 * nE
-      inEP = inFP + nP
+      inEP = inFP + nP 
 
 c ... checking that [iVface, MaxS] is clear
       Do n = 1, nF
@@ -849,30 +849,30 @@ C ================================================================
 C ================================================================
      &           myID, ICE,
 c group (Mg)
-     &           nP, nF, MaxF, nE,
+     &           nP, nF, MaxF, nE, 
      &           XYP, IPF, IPE, lbF, lbE,
      &           nPv, nFv, nEv, IPV, IFV, IEV,
 c group (Ml)
-     &           nPl, nFl, nEl,
+     &           nPl, nFl, nEl, 
      &           XYPl, IPFl, IPEl, lbFl, lbEl,
-     &           nPvl, nFvl, nEvl, IPVl, IFVl, IEVl,
+     &           nPvl, nFvl, nEvl, IPVl, IFVl, IEVl, 
 c group (I)
-     &           nFvi, IPPl, IFFl,
+     &           nFvi, IPPl, IFFl, 
 c group (W)
      &           IPw, IFw, IEw)
 C ================================================================
 C  The subroutine extracts a submesh from the global mesh using
-C  tetrahedra colored by myID color in array ICE.
+C  tetrahedra colored by myID color in array ICE. 
 C
-C  The fixed triangles are placed at the beginning of corresponding
-C  list. The interfaces triangles are created with utility
-C  addBoundaryFaces and are placed right after the fixed surface
-C  triangles. The number of these triangles equals to nFvi. Note
-C  that these triangles are not added to the list of fixed triangles.
+C  The fixed triangles are placed at the beginning of corresponding 
+C  list. The interfaces triangles are created with utility 
+C  addBoundaryFaces and are placed right after the fixed surface 
+C  triangles. The number of these triangles equals to nFvi. Note 
+C  that these triangles are not added to the list of fixed triangles. 
 C
 C  The intereface points are also placed at the beginning of list.
-C  The user don't need to include them in the list of fixed trianges.
-C  It will be done automatically when the interface triangles will
+C  The user don't need to include them in the list of fixed trianges. 
+C  It will be done automatically when the interface triangles will 
 C  be added to the list of fixed triangles.
 C
 C  IPFl(MaxF) - since we need to add interface triangles, nFl may be
@@ -889,16 +889,16 @@ C                  0 - the auxiliary interface triangle
 C                 >0 - splitted triangles from different meshes have
 C                      the same value of IFFl.
 C
-C  In order to use the information inside IPPl, the interface
+C  In order to use the information inside IPPl, the interface 
 C  triangles should not be modified and be always at the beginning
-C  of the corresponding list. The user has to add the interface
+C  of the corresponding list. The user has to add the interface 
 C  triangles (nFvi triangles) to the list of fixed triangles.
 C
 C  Working memory: IPw(2*nP), IFw(nF), IEw(2*nP + 3*nF + 4*nE)
 C
-C  Remarks: The number of interface triangles is correct if and
-C  only if the global mesh is complete, i.e. there are no missing
-C  surface triangles. If necessary, the user has to use utility
+C  Remarks: The number of interface triangles is correct if and 
+C  only if the global mesh is complete, i.e. there are no missing 
+C  surface triangles. If necessary, the user has to use utility 
 C  addBoundaryFaces before splitting the global mesh.
 C
 C ================================================================
@@ -925,7 +925,7 @@ C group (W)
       Integer IPw(*), IFw(*), IEw(*)
 
 c group (Local variables)
-      Logical flag
+      Logical flag 
 
 C ================================================================
       iP1 = 1
@@ -970,8 +970,8 @@ c ... coping points
       Do m = 1, 2
          Do n = 1, nP
             iPt = iP2 + n - 1
-            flag = (m.EQ.1 .AND. IPw(iPt).GT.0) .OR.
-     &             (m.EQ.2 .AND. IPw(iPt).EQ.0)
+            flag = (m.EQ.1 .AND. IPw(iPt).GT.0) .OR. 
+     &             (m.EQ.2 .AND. IPw(iPt).EQ.0)  
 
             If(IPw(n).NE.0 .AND. flag) Then
                nPl = nPl + 1
@@ -980,7 +980,7 @@ c ... coping points
                Do i = 1, 3
                   XYPl(i, nPl) = XYP(i, n)
                End do
-
+                                                                                                                           
                IPPl(nPl) = IPw(iP2 + n - 1)
             End if
          End do
@@ -1029,14 +1029,14 @@ c ... converting some surface triangles to interface triangles
       End do
 
       Do n = 1, nE
-         If(ICE(n).NE.myID) Then
+         If(ICE(n).NE.myID) Then 
             Do i = 1, 4
                iP1 = IPE(i, n)
                IPw(iP2 + iP1) = -IPw(iP2 + iP1)
-            End do
+            End do     
          End if
       End do
-
+      
       mFvi = 0
       Do 200 n = 1, nF
          If(IFw(n).GT.0) Goto 200
@@ -1096,15 +1096,15 @@ c ... computing local coordinates for elements
 c ... computing the interface triangles
       nFlo = nFl
       Call addBoundaryFaces(
-     &      nPl, nFl, MaxF, nEl,
-     &      XYPl, IPFl, IPEl, lbFl, lbEl,
+     &      nPl, nFl, MaxF, nEl,  
+     &      XYPl, IPFl, IPEl, lbFl, lbEl, 
      &      IEw)
 
       nFvi = nFl - nFlo
 
 
 c ... moving the fixed and interface triangles
-      m = nFvl + mFvi + 1
+      m = nFvl + mFvi + 1  
       Do n = nFl, nFlo + 1, -1
          Do i = 1, 3
             Call swapii(IPFl(i, n), IPFl(i, m))
@@ -1142,27 +1142,27 @@ c ... changing color of interface triangles (if possible)
 C ================================================================
       Subroutine local2global(
 C ================================================================
-     &           nMeshes,
+     &           nMeshes, 
 c group (Mg)
-     &           MaxP, MaxF, MaxE,
-     &           nP, nF, nE,
+     &           MaxP, MaxF, MaxE, 
+     &           nP, nF, nE, 
      &           XYP, IPF, IPE, lbF, lbE,
      &           nPv, nFv, nEv, IPV, IFV, IEV,
 c group (Ml)
-     &           nPl, nFl, nEl,
+     &           nPl, nFl, nEl, 
      &           XYPl, IPFl, IPEl, lbFl, lbEl,
      &           nPvl, nFvl, nEvl, IPVl, IFVl, IEVl,
 c group (I)
-     &           IPPl, IFFl,
+     &           IPPl, IFFl, 
 c group (W)
      &           IPs, IPw, IFw, IEw)
 C ================================================================
 C  The subroutine gathers submeshes into a global mesh using
-C  references to global enumeration of mesh points kept in array
+C  references to global enumeration of mesh points kept in array 
 C  IPPl(*) and the global enumeration of faces in array IFFl(*).
 C
 C  The meshes are kept as continuous lists of data. For instance,
-C  array XYP(1:3, 1:nP1) keeps coordinates of mesh points in the
+C  array XYP(1:3, 1:nP1) keeps coordinates of mesh points in the 
 C  first grid. Continuation of the array, XYP(1:3, nP1 : nP1 + nP2),
 C  keeps coordinates of the mesh points of the second grid. And
 C  so on. The array having such a structure are:
@@ -1173,10 +1173,10 @@ C    IPEl(4, *) - connectivity list for tetrahedra
 C
 C    IPVl(*) - list of fixed points
 C    IFVl(*) - list of fixed triangles
-C    IEVl(*) - list of fixed tetrahedra
+C    IEVl(*) - list of fixed tetrahedra  
 C
 C    IPPl(*) - references to global enumeration of mesh point
-C    IFFl(*) - references to global enumeration of mesh triangles
+C    IFFl(*) - references to global enumeration of mesh triangles 
 C
 C
 C  The necessary information to extract submesh data are kept in
@@ -1184,19 +1184,19 @@ C  the following arrays:
 C
 C    nPl(nMeshes)  - numbers of points
 C    nFl(nMeshes)  - numbers of faces
-C    nEl(nMeshes)  - numbers of tetrahedra
+C    nEl(nMeshes)  - numbers of tetrahedra 
 C
 C    nPvl(nMeshes) - numbers of fixed points
 C    nFvl(nMeshes) - numbers of fixed triangles
-C    nEvl(nMeshes) - numbers of fixed tetrahedra
+C    nEvl(nMeshes) - numbers of fixed tetrahedra 
 C
 C  Working memory: IPs(MaxP), IPw(MaxP), IFw(MaxF), IEw(4*MaxE)
-C
+C 
 C  Remark: Array IPFl is destroyed in the algorithm.
 C ================================================================
 C group (Mg)
       Real*8  XYP(3, *)
-      Integer IPF(3, *), IPE(4, *)
+      Integer IPF(3, *), IPE(4, *) 
       Integer lbF(*), lbE(*)
 
       Integer IPV(*), IFV(*), IEV(*)
@@ -1221,7 +1221,7 @@ c group (Local variables)
 C ================================================================
       mP = 0
       mF = 0
-      mE = 0
+      mE = 0     
       Do n = 1, nMeshes
          mP = mP + nPl(n)
          mF = mF + nFl(n)
@@ -1239,7 +1239,7 @@ C ================================================================
          IPw(n) = 0
       End do
 
-c ... counting points on interfeices
+c ... counting points on interfeices 
       kP = 0
       Do n = 1, mP
          If(IPPl(n).NE.0) Then
@@ -1370,7 +1370,7 @@ c ... making elements
       Do k = 1, nMeshes
          Do n = 1, nEl(k)
             nE = nE + 1
-
+            
             Do i = 1, 4
                IPE(i, nE) = IPw(mP + IPEl(i, nE))
             End do
@@ -1403,7 +1403,7 @@ C ================================================================
       Subroutine makTnode(nP, MaxP, nE, IPP, IPE, ICE)
 C ================================================================
 C   The T-nodes are marked. The original connectivity
-C   list IPE is used.
+C   list IPE is used. 
 C ================================================================
       Integer IPP(*), IPE(4, *), ICE(*)
 

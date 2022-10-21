@@ -25,7 +25,7 @@ extern "C" {
 
 #define H5_SUCCESS		0               ///< Function performs successfully
 #define H5_OK			H5_SUCCESS      ///< Alias for \c H5_SUCCESS
-#define H5_NOK			-1              ///<
+#define H5_NOK			-1              ///< 
 #define H5_FAILURE 		-2              ///< Function runs into an error
 #define H5_ERR			H5_FAILURE      ///< Alias for H5_FAILURE
 

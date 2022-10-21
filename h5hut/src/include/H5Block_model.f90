@@ -10,8 +10,8 @@
      !> \ingroup h5block_f90_api
      !! \addtogroup h5block_model_f
      !! @{
-
-     !      _       _                              _      _
+     
+     !      _       _                              _      _ 
      !   __| | __ _| |_ __ _   _ __ ___   ___   __| | ___| |
      !  / _` |/ _` | __/ _` | | '_ ` _ \ / _ \ / _` |/ _ \ |
      ! | (_| | (_| | || (_| | | | | | | | (_) | (_| |  __/ |
@@ -21,7 +21,7 @@
      !>
      !! See \ref H5Block3dSetView()
      !! \return 0 on success or error code
-
+ 
      INTEGER*8 FUNCTION h5bl_3d_setview ( filehandle, i_start, i_end, j_start, j_end, k_start, k_end )
        INTEGER*8, INTENT(IN) :: filehandle
        INTEGER*8, INTENT(IN) :: i_start
@@ -35,7 +35,7 @@
      !>
      !! See \ref H5Block3dGetView()
      !! \return 0 on success or error code
-
+ 
      INTEGER*8 FUNCTION h5bl_3d_getview ( filehandle, i_start, i_end, j_start, j_end, k_start, k_end )
        INTEGER*8, INTENT(IN) :: filehandle
        INTEGER*8, INTENT(OUT) :: i_start
@@ -101,5 +101,5 @@
      END FUNCTION h5bl_getfieldinfo
 
      !> @}
-
+     
   END INTERFACE

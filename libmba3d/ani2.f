@@ -21,8 +21,8 @@ C ================================================================
       Subroutine ani2(
 C ================================================================
 c group (M)
-     &      nP, MaxP, nF, MaxF, nE, MaxE,
-     &      XYP, IPF, IPE,
+     &      nP, MaxP, nF, MaxF, nE, MaxE, 
+     &      XYP, IPF, IPE, 
      &      nEStar, hStar,
      &      ICP, IPP, IEP, IFE, IEE,
      &      L1E, L2E,
@@ -31,10 +31,10 @@ c group (M)
      &      miLINTRP, mrLINTRP, IPEw, iSE,
      &      flagAuto, status,
 c group (Dev)
-     &      nPv, nFv, nEv, IPV, IFV, IEV,
+     &      nPv, nFv, nEv, IPV, IFV, IEV, 
 c group (Q)
      &      MaxSkipE, MaxQItr, MaxBaskets,
-     &      HesP, Quality, rQuality,
+     &      HesP, Quality, rQuality, 
      &      detG, qE, nPw, nEw, XYPw, HesPw, rSE,
      &      MetricFunction, flagAnalytic,
 c group (ERR)
@@ -83,7 +83,7 @@ C     Integer MaxP, MaxF, MaxE, nPv, nEStar
       Integer status
 
 C group (Dev)
-      Integer IFV(*), IEV(*)
+      Integer IFV(*), IEV(*) 
 
 C group (Q)
 C     Integer MaxSkipE, MaxQItr, MaxBaskets
@@ -116,7 +116,7 @@ C group (Local variables)
       Real*8  tm1, tm2
 
       Real*8  ver, dvo, sao
-      Real*8  aer, fvo, fao
+      Real*8  aer, fvo, fao  
       Real*8  s, sa, rR
       Real*8  aQuality
 
@@ -158,20 +158,20 @@ c ... Loop initialization
       nFo = nF
       Call makM(
 c group (M)
-     &      nP, nF, MaxF, nE, MaxE,
-     &      XYP, IPF, IPE,
+     &      nP, nF, MaxF, nE, MaxE, 
+     &      XYP, IPF, IPE, 
      &      ICP, IPP, IEP, IFE, IEE,
      &      IHolP, IHolF, IHolE,
      &      IEPw, nEPw,
      &      status,
-c group (Dev)
+c group (Dev) 
      &      nPv, nFv, nEv, IPV, IFV, IEV,
 c group (iERR)
      &      iERR)
       If(iERR.NE.0) Goto 9000
 
       If(nFo.NE.nF) Then
-         If(.NOT.flagAuto) Call errMes(4001, 'ani2',
+         If(.NOT.flagAuto) Call errMes(4001, 'ani2', 
      &                                'inconsistent input data')
          If(iPrint.GE.1) Then
             If(flagFILE) Then
@@ -263,7 +263,7 @@ c ... check the mesh (level 2)
       fao = fixedArea(  nFv, XYP, IPF, IFV)
 
 
-c ... output the statistics
+c ... output the statistics 
       If(iPrint.GE.2) Then
          If(flagFILE) Then
             Write(message, 5004) rR, status
@@ -281,7 +281,7 @@ c ... modify the grid to satisfy some restrictios (usually with FEs)
       If(flagUAR .OR. flagFBE) Then
          Call mba3d_seconds(tm2)
          If(iPrint.GE.2) Then
-            rQuality = 1D0
+            rQuality = 1D0 
             Do n = 1, nE
                rQuality = min(rQuality, qE(n))
             End do
@@ -294,7 +294,7 @@ c ... modify the grid to satisfy some restrictios (usually with FEs)
                Write(*, 5000) nQItr, rQuality, nP, nF, nE, tm2 - tm1
             End if
          End if
-
+         
          kE = nE
          Do 20 n = 1, kE
             Do i = 1, 4
@@ -332,7 +332,7 @@ c ... initialize the list
       End if
 
       Do n = 1, nE
-         rSE(n) = qE(n)
+         rSE(n) = qE(n) 
          L2E(n) = n
       End do
       Call DSORT(rSE, L2E, nE, 2, iERR)
@@ -350,7 +350,7 @@ c ... initialize the list
 c ... initialize the 8-tree
       LDH = 6
       nXY = 0
-      iControl = 1100 + chanelOUT
+      iControl = 1100 + chanelOUT 
 
       If( .NOT.flagAnalytic ) Then
          Call LINTRP3D(nEw, IPEw, nPw, XYPw, LDH, HesPw, nXY, XYPs,
@@ -358,12 +358,12 @@ c ... initialize the 8-tree
       End if
 
 c ... switch-off initialization
-      iControl = iControl + 1000
+      iControl = iControl + 1000 
 
 
 c ... output of initial qualities
-      If(iPrint.GE.2)
-     &   Call countBadElements(nE, L1E, L2E, qE, Quality,
+      If(iPrint.GE.2) 
+     &   Call countBadElements(nE, L1E, L2E, qE, Quality, 
      &                         nLines, output, flagFILE)
 
 
@@ -418,7 +418,7 @@ c ... check the mesh (level 3)
       End if
 
 
-c ... check for termination signals (dummy function for simulators)
+c ... check for termination signals (dummy function for simulators)   
       If((nQItr / 200) * 200.EQ.nQItr  .AND.  probeAny()) Then
          If(nQItrBig.EQ.1) Then
             nQItrAdd = nSkipE
@@ -458,14 +458,14 @@ c ... check for termination signals (dummy function for simulators)
             Call addOut(nLines, message, output)
             Write(message,6002)
             Call addOut(nLines, message, output)
-            Write(message,6003)
+            Write(message,6003) 
      &            nF2E, nE2F, nSWAP, nINSRT, nDELET, nMOVE, nCLPS
             Call addOut(nLines, message, output)
-            Write(message,6003)
+            Write(message,6003) 
      &            mF2E, mE2F, mSWAP, mINSRT, mDELET, mMOVE, mCLPS
             Call addOut(nLines, message, output)
          Else
-            Write(*, 5001)
+            Write(*, 5001) 
      &            nSkipE, nQItrBig, iwE,
      &            nF2E, nE2F, nSWAP, nINSRT, nDELET, nMOVE, nCLPS,
      &            mF2E, mE2F, mSWAP, mINSRT, mDELET, mMOVE, mCLPS
@@ -556,7 +556,7 @@ C ... analyze edges of the element
             Call E2F(
 c group (M)
      &           iwR(i), iwE,
-     &           nF, MaxF, nE,
+     &           nF, MaxF, nE, 
      &           XYP, IPF, IPE,
      &           hStar,
      &           ICP, IEP, IFE, IEE,
@@ -629,7 +629,7 @@ C group (W)
                nSWAP = nSWAP + 1
                Goto 400
             End if
-          End do
+          End do 
 
 C ... analyze points of the element
         Else If(iDELETop.EQ.iop) Then
@@ -665,7 +665,7 @@ c group (M)
      &           i, iwE,
      &           nE, XYP, IPF, IPE,
      &           hStar,
-     &           ICP, IFE,
+     &           ICP, IFE, 
      &           L1E, L2E, nL2, nStep,
      &           status,
 C group (Q)
@@ -726,22 +726,22 @@ C ... calculate the number of bad tetrahedrons
             Call addOut(nLines, message, output)
             Write(message,6002)
             Call addOut(nLines, message, output)
-            Write(message,6003)
+            Write(message,6003) 
      &            nF2E, nE2F, nSWAP, nINSRT, nDELET, nMOVE, nCLPS
             Call addOut(nLines, message, output)
-            Write(message,6003)
+            Write(message,6003) 
      &            mF2E, mE2F, mSWAP, mINSRT, mDELET, mMOVE, mCLPS
             Call addOut(nLines, message, output)
          Else
-            Write(*, 5001)
+            Write(*, 5001) 
      &            nSkipE, nQItrBig, iwE,
      &            nF2E, nE2F, nSWAP, nINSRT, nDELET, nMOVE, nCLPS,
      &            mF2E, mE2F, mSWAP, mINSRT, mDELET, mMOVE, mCLPS
          End if
       End if
 
-      If(iPrint.GE.2)
-     &   Call countBadElements(nE, L1E, L2E, qE, Quality,
+      If(iPrint.GE.2) 
+     &   Call countBadElements(nE, L1E, L2E, qE, Quality, 
      &                         nLines, output, flagFILE)
 
 
@@ -750,8 +750,8 @@ C ... update the mesh
       nFold = nF
       Call updM(
 c group (M)
-     &            nP, nF, nE,
-     &            XYP, IPF, IPE,
+     &            nP, nF, nE, 
+     &            XYP, IPF, IPE, 
      &            ICP, IPP, IFE, IEE,
      &            IHolP, IHolF, IHolE,
      &            status,
@@ -794,12 +794,12 @@ c ... print out details
                IEPw(mE) = IPE(5, n)
             End if
          End do
-
+                                      
          ic = countColors(mE, IEPw)
-
+                                               
          Do i = 1, ic
             s = domainVolume(nE, XYP, IPE, IEPw(i))
-
+                                    
             If(flagFILE) Then
                Write(message, 5002) i, ic, IEPw(i), s
                Call addOut(nLines, message, output)
@@ -811,7 +811,7 @@ c ... print out details
 
 
 c ... check the mesh (level 2)
-      If(nF.GT.0) Then
+      If(nF.GT.0) Then 
          If(iPrint.GE.3) Then
             If(flagFILE) Then
                Write(message, 5006) dvo, sao
@@ -822,13 +822,13 @@ c ... check the mesh (level 2)
          End if
          ver = dabs(dvo - domainVolume(nE, XYP, IPE, 0)) / dvo
          aer = dabs(sao - surfaceArea( nF, XYP, IPF, 0)) / sao
-         If(ver.GT.volPREC .OR.
-     &      aer.GT.volPREC .AND. nFold.EQ.nF) Call wrnMes(5201,
+         If(ver.GT.volPREC .OR. 
+     &      aer.GT.volPREC .AND. nFold.EQ.nF) Call wrnMes(5201, 
      &        'ani2', 'total volume or/and surface is not preserved')
 
          ver = dabs(fvo - fixedVolume(nEv, XYP, IPE, IEV)) / dvo
          aer = dabs(fao - fixedArea(  nFv, XYP, IPF, IFV)) / sao
-         If(ver.GT.volPREC .OR. aer.GT.volPREC) Call errMes(5201,
+         If(ver.GT.volPREC .OR. aer.GT.volPREC) Call errMes(5201, 
      &        'ani2', 'fixed volume or/and surface is not preserved')
 
       End if
@@ -863,7 +863,7 @@ c ... display output
  5007 Format( /,'Fixed domain:', I6, '  tets,   vol=', E12.6)
  5008 Format(   'Fixed  area: ', I6, ' faces,  area=', E12.6)
 
- 5009 Format('Warning:', I6, ' new faces have been added')
+ 5009 Format('Warning:', I6, ' new faces have been added') 
 
  5010 Format('Avg Quality is', E11.4, ',  Maximal R/r =', E11.4,
      &       ',  status.fd:', I5)

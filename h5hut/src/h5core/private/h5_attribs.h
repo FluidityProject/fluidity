@@ -57,7 +57,7 @@ h5priv_read_attrib (
 	  else
 		set mem type to normalized attrib_type
 
-	 */
+	 */	
 	hid_t normalized_type;
 	TRY (normalized_type = h5priv_map_enum_to_normalized_type (attrib_type));
 	hid_t file_type;
@@ -167,7 +167,7 @@ h5priv_append_attrib (
 
 
 /*
-  This is a helper function for
+  This is a helper function for 
 
   - h5priv_get_attrib_info_by_name()
   - h5priv_get_attrib_info_by_idx()

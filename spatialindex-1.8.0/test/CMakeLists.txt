@@ -1,7 +1,7 @@
 include_directories(../include)
 
 set (DIR rtree)
-set (SOURCES
+set (SOURCES 
         Exhaustive
         Generator
         RTreeBulkLoad
@@ -15,7 +15,7 @@ foreach (test ${SOURCES})
 endforeach()
 
 set (DIR mvrtree)
-set (SOURCES
+set (SOURCES 
         Exhaustive
         Generator
         MVRTreeLoad
@@ -29,7 +29,7 @@ foreach (test ${SOURCES})
 endforeach()
 
 set (DIR tprtree)
-set (SOURCES
+set (SOURCES 
         Exhaustive
         Generator
         TPRTreeLoad

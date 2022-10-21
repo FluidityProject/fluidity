@@ -1,6 +1,6 @@
 // @(#) $Revision: 4.15 $ $Source: /judy/test/manual/Judy1LHCheck.c $
 //      This program tests the accuracy of a Judy1 with a JudyL Array.
-//                      -by-
+//                      -by- 
 //      Douglas L. Baskins (8/2001)  doug@sourcejudy.com
 
 #include <stdlib.h>        // calloc()
@@ -54,7 +54,7 @@ TestJudyNextEmpty(void *J1, void *JL, Word_t LowIndex, Word_t Elements);
 int
 TestJudyPrevEmpty(void *J1, void *JL, Word_t HighIndex, Word_t Elements);
 
-Word_t MagicList[] =
+Word_t MagicList[] = 
 {
     0,0,0,0,0,0,0,0,0,0, // 0..9
     0x27f,      // 10
@@ -71,7 +71,7 @@ Word_t MagicList[] =
     0xc4fb,     // 21
     0xc4fb,     // 22
     0xc4fb,     // 23
-    0x13aab,    // 24
+    0x13aab,    // 24 
     0x11ca3,    // 25
     0x11ca3,    // 26
     0x11ca3,    // 27
@@ -79,39 +79,39 @@ Word_t MagicList[] =
     0x11ca3,    // 29
     0xc4fb,     // 30
     0xc4fb,     // 31
-    0x13aab,    // 32
-    0x14e73,    // 33
-    0x145d7,    // 34
+    0x13aab,    // 32 
+    0x14e73,    // 33  
+    0x145d7,    // 34  
     0x145f9,    // 35  following tested with Seed=0xc1fc to 35Gig numbers
-    0x151ed,    // 36 .. 41
-    0x151ed,    // 37
-    0x151ed,    // 38
+    0x151ed,    // 36 .. 41 
+    0x151ed,    // 37  
+    0x151ed,    // 38  
     0x151ed,    // 39  fails at 549751488512 (549Gig)
-    0x151ed,    // 40
-    0x146c3,    // 41 .. 64
-    0x146c3,    // 42
-    0x146c3,    // 43
-    0x146c3,    // 44
-    0x146c3,    // 45
-    0x146c3,    // 46
-    0x146c3,    // 47
-    0x146c3,    // 48
-    0x146c3,    // 49
-    0x146c3,    // 50
-    0x146c3,    // 51
-    0x146c3,    // 52
-    0x146c3,    // 53
-    0x146c3,    // 54
-    0x146c3,    // 55
-    0x146c3,    // 56
-    0x146c3,    // 57
-    0x146c3,    // 58
-    0x146c3,    // 59
-    0x146c3,    // 60
-    0x146c3,    // 61
-    0x146c3,    // 62
-    0x146c3,    // 63
-    0x146c3     // 64
+    0x151ed,    // 40  
+    0x146c3,    // 41 .. 64 
+    0x146c3,    // 42  
+    0x146c3,    // 43  
+    0x146c3,    // 44  
+    0x146c3,    // 45  
+    0x146c3,    // 46  
+    0x146c3,    // 47  
+    0x146c3,    // 48  
+    0x146c3,    // 49  
+    0x146c3,    // 50  
+    0x146c3,    // 51  
+    0x146c3,    // 52  
+    0x146c3,    // 53  
+    0x146c3,    // 54  
+    0x146c3,    // 55  
+    0x146c3,    // 56  
+    0x146c3,    // 57  
+    0x146c3,    // 58  
+    0x146c3,    // 59  
+    0x146c3,    // 60  
+    0x146c3,    // 61  
+    0x146c3,    // 62  
+    0x146c3,    // 63  
+    0x146c3     // 64  
 };
 
 // Routine to "mirror" the input data word
@@ -241,7 +241,7 @@ main(int argc, char *argv[])
         SkipN = strtoul(optarg, NULL, 0);
         break;
 
-    case 'P':        //
+    case 'P':        // 
         PtsPdec = strtoul(optarg, NULL, 0);
         break;
 
@@ -720,7 +720,7 @@ TestJudyCount(void *J1, void *JL, Word_t LowIndex, Word_t Elements)
     if (CountL == JERR)
         FAILURE("JudyLCount ret JERR", CountL);
 
-    if (CountL != (elm + 1))
+    if (CountL != (elm + 1)) 
         {
             printf("CountL = %lu, elm +1 = %lu\n", CountL, elm + 1);
             FAILURE("JLC at", elm);
@@ -861,7 +861,7 @@ TestJudyNextEmpty(void *J1, void *JL, Word_t LowIndex, Word_t Elements)
 #endif // SKIPMACRO
     if (PValue != (Word_t *) NULL)
         FAILURE("JLNE returned non-empty Index =", JLindex);
-
+    
     Seed1 = GetNextIndex(Seed1);
         J1index = JLindex = Seed1;
     }

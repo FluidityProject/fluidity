@@ -6,7 +6,7 @@
  * Copyright (c) 2010, Matthias (nitro)
  *
  * All rights reserved.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -34,7 +34,7 @@ namespace SpatialIndex
 	{
         struct CustomStorageManagerCallbacks
         {
-            CustomStorageManagerCallbacks()
+            CustomStorageManagerCallbacks() 
             : context(0)
             , createCallback(0)
             , destroyCallback(0)
@@ -79,3 +79,4 @@ namespace SpatialIndex
         IStorageManager* returnCustomStorageManager(Tools::PropertySet& in);
     }
 }
+
