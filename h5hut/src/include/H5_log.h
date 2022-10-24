@@ -43,7 +43,7 @@ extern "C" {
 
   \see H5GetVerbosityLevel()
 
-  \note 
+  \note
   | Release    | Change                               |
   | :------    | :-----			  	      |
   | \c 1.99.15 | Function cannot be used to set the debug level. |
@@ -116,7 +116,7 @@ H5GetVerbosityLevel (
 
   \see H5GetDebugMask()
 
-  \note 
+  \note
   | Release    | Change                               |
   | :------    | :-----			  	      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -135,7 +135,7 @@ H5SetDebugMask (
 
   \see H5SetDebugMask()
 
-  \note 
+  \note
   | Release    | Change                               |
   | :------    | :-----			  	      |
   | \c 1.99.15 | Function introduced in this release. |
@@ -155,4 +155,3 @@ H5GetDebugMask (
 
 
 #endif
-

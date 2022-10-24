@@ -192,7 +192,7 @@ void Memory::RemoveBlock (Block* pkBlock)
     {
         ms_pkHead = pkBlock->Next;
     }
-    
+
     if (pkBlock->Next)
     {
         pkBlock->Next->Prev = pkBlock->Prev;

@@ -51,12 +51,12 @@ void Graph::RepartRemap(vector<int>& vtxdist, vector<int>& noddom){
 
   int *vwgt   = NULL;
   int *adjwgt = NULL;
-  
+
   if(!nweight.empty())
     vwgt = &(nweight[0]);
   if(!eweight.empty())
     adjwgt = &(eweight[0]);
-  
+
   int wgtflag = 0;
   if((vwgt==NULL)&&(adjwgt!=NULL)){
     wgtflag = 1;
@@ -72,14 +72,14 @@ void Graph::RepartRemap(vector<int>& vtxdist, vector<int>& noddom){
     tpwgts[i] = 1.0/(float)(nparts);
   for (int i=0;i<ncon;i++)
     ubvec[i] = 1.05;
-  
+
   float ipc_factor = 100000.0;
   int options[4];
   options[0] = 0; // not using options
 
   int edgecut;
   int numflag = 0;
-  
+
   ParMETIS_V3_AdaptiveRepart(&(vtxdist[0]), &(bptr[0]), &(edges[0]), vwgt, NULL,
                              adjwgt, &wgtflag, &numflag, &ncon, &nparts, &(tpwgts[0]),
                              &(ubvec[0]), &ipc_factor, options, &edgecut, &(noddom[0]), &comm_world);
@@ -91,16 +91,16 @@ void Graph::Repart(vector<int>& vtxdist, vector<int>& noddom, int nparts){
   int edgecut;
   int options[4];
   int numflag = 0;
-  
+
   int MyRank, nprocs;
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
   vector<int> nnodes(nprocs, 0);
   nnodes[MyRank] = noddom.size();
-  
+
   MPI_Allgather(&(nnodes[MyRank]), 1, MPI_INT, &(nnodes[0]), 1, MPI_INT, MPI_COMM_WORLD);
-  
+
   vector<int> ranks;
   for(int i=0;i<nprocs;i++){
     if(nnodes[i])
@@ -113,19 +113,19 @@ void Graph::Repart(vector<int>& vtxdist, vector<int>& noddom, int nparts){
     exit(-1);
   }
 
-  MPI_Group world_group, sub_group; 
-  MPI_Comm world_comm=MPI_COMM_WORLD, sub_comm; 
-  MPI_Comm_group(world_comm, &world_group); 
+  MPI_Group world_group, sub_group;
+  MPI_Comm world_comm=MPI_COMM_WORLD, sub_comm;
+  MPI_Comm_group(world_comm, &world_group);
   MPI_Group_incl(world_group, ranks.size(), &(ranks[0]), &sub_group);
-  MPI_Comm_create(world_comm, sub_group, &sub_comm); 
-  
+  MPI_Comm_create(world_comm, sub_group, &sub_comm);
+
   int wgtflag = 0;
   if(eweight.empty()==false){
     wgtflag = 1;
   }
-  
+
   options[0] = 0;
-  
+
   int ncon=0;
 
   if(nnodes[MyRank]){
@@ -136,41 +136,3 @@ void Graph::Repart(vector<int>& vtxdist, vector<int>& noddom, int nparts){
     MPI_Comm_free(&sub_comm);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

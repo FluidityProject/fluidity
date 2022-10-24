@@ -55,10 +55,10 @@ class Node{
   Node();                                   // "No argument" constructor
   Node(const Node& node);                   // Copy constructor
   ~Node();                                  // destructer
-  
+
   // Overloaded operators.
   friend std::ostream &operator<<(std::ostream& out, const Node& n);
-  const Node& operator=(const Node &in); 
+  const Node& operator=(const Node &in);
   bool operator==(const Node& in) const;
   bool operator!=(const Node& in) const;
   bool operator<(const Node& in) const;
@@ -72,22 +72,22 @@ class Node{
 
   void set_unn(const unn_t&);
   unn_t get_unn() const;
-  
+
   void set_gnn(const gnn_t&);
   gnn_t get_gnn() const;
-  
+
   void set_flags(const unsigned char);
   unsigned char get_flags() const;
-  
+
   void set_current_owner(const unsigned short);
   unsigned short get_current_owner() const;
-  
+
   void set_owner(const unsigned short);
   unsigned short get_owner() const;
-   
+
   void set_future_owner(const unsigned short);
   unsigned short get_future_owner() const;
-  
+
   void set_CE(const std::vector<eid_t>&);
   const std::vector<eid_t>& get_CE() const;
   const eid_t* get_cptr_CE() const;
@@ -98,7 +98,7 @@ class Node{
 
   const std::vector<int>& get_ifields() const;
   const std::vector<samfloat_t>& get_fields() const;
-  
+
   int pop_ifield(void);
   samfloat_t pop_field(void);
 
@@ -123,30 +123,29 @@ class Node{
   const std::vector<samfloat_t>& get_metric() const;
   const samfloat_t* get_cptr_metric() const;
   unsigned get_size_metric() const;
-  
+
   void pack(char *buffer,   int& bsize, int& offset) const;
   void unpack(char *buffer, int& bsize, int& offset);
   unsigned pack_size() const;
-  
+
  private:
-  unn_t unn;                   // Universal Node Number.        
-  gnn_t gnn;                   // Partition-wide node number.   
-  unsigned char  flags;        // flags! 
-  unsigned short owner[2];     // owner[0] == current owner, owner[1] == future owner 
+  unn_t unn;                   // Universal Node Number.
+  gnn_t gnn;                   // Partition-wide node number.
+  unsigned char  flags;        // flags!
+  unsigned short owner[2];     // owner[0] == current owner, owner[1] == future owner
   std::vector<eid_t> CE;       // Connected elements
-  
+
   // Nodewise integer field values.
   std::vector<int> ifields;
 
   // Nodewise field values.
   std::vector<samfloat_t> fields;
-  
+
   // Position.
   std::vector<samfloat_t> x;
-  
+
   // Nodewise metric used for adaptivity
   std::vector<samfloat_t> metric;
 };
 
 #endif
-

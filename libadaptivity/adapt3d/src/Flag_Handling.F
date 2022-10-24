@@ -1,25 +1,25 @@
 ! Copyright (C) 2006 Imperial College London and others.
-! 
+!
 ! Please see the AUTHORS file in the main source directory for a full list
 ! of copyright holders.
-! 
+!
 ! Adrian Umpleby
 ! Applied Modelling and Computation Group
 ! Department of Earth Science and Engineering
 ! Imperial College London
-! 
+!
 ! adrian@Imperial.ac.uk
-! 
+!
 ! This library is free software; you can redistribute it and/or
 ! modify it under the terms of the GNU Lesser General Public
 ! License as published by the Free Software Foundation; either
 ! version 2.1 of the License.
-! 
+!
 ! This library is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ! Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public
 ! License along with this library; if not, write to the Free Software
 ! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -28,18 +28,18 @@
 #include "fdebug_adapt.h"
 
       module flag_handling
-      
+
         use addebug
 
         implicit none
-  
+
 #include "blkerr.i"
 #include "blkprm.i"
 
         private
-  
+
         public :: get_flag, set_flag
-        
+
         integer, parameter, public :: biglst_flag_index = 4
         integer, parameter, public :: nodlst_flag_index = 6
         integer, parameter, public :: max_biglst_flag_bit = 29
@@ -48,7 +48,7 @@
         interface get_flag
           module procedure get_biglst_flag, get_nodlst_flag
         end interface get_flag
-        
+
         interface set_flag
           module procedure set_biglst_flag, set_nodlst_flag
         end interface set_flag
@@ -83,60 +83,60 @@
 ! - Bit 6: used temporarily (by EDGTST) to flag surrounding elements during edge collapse
 !
 !-----------------------------------------------------------------------
-  
+
           integer, dimension(:, :), intent(in) :: biglst
           integer, intent(in) :: iptr
           integer, intent(in) :: ibit
-    
+
           logical :: get_flag
-    
+
           integer :: next_biglst_index, flag
-    
+
           ! Common block variables used:
           ! ierr    blkerr.i
           ! NXTBIG  blkprm.i
-    
+
           if(ierr /= 0) then
             get_flag = .false.
             return
           end if
-          
+
           assert(ibit > 0 .and. ibit <= max_biglst_flag_bit)  ! Invalid bit number
           assert(iptr > 0)  ! Invalid "pointer"
-    
+
           flag = biglst(biglst_flag_index, iptr)
-    
+
           if(flag == 0) then
             ! This flag is unset. We are only allowed to query the first bit
             ! of unset flags (the first bit indicates "set")
-          
+
             assert(ibit == 1)  ! Block is empty
-      
+
             get_flag = .false.
           else if(flag < 0) then
             ! A negative biglst_flag_index entry indicates that this block
             ! relates to an edge
-            
+
             get_flag =  btest(-flag, ibit - 1)
           else
             ! A positive biglst_flag_index entry indicates that this block
             ! relates to an element. The flag lives in the third element block,
             ! so we need to skip on a few entries in biglst.
-            
+
             next_biglst_index = biglst(NXTBIG, iptr)
-            assert(biglst(biglst_flag_index, next_biglst_index) > 0) 
+            assert(biglst(biglst_flag_index, next_biglst_index) > 0)
               ! Second block is not an element
-            
+
             next_biglst_index = biglst(NXTBIG, next_biglst_index)
             flag = biglst(biglst_flag_index, next_biglst_index)
             assert(flag > 0)
               ! Third block is not an element
-                          
+
             get_flag =  btest(flag, ibit - 1)
           end if
-          
+
         end function get_biglst_flag
-        
+
         subroutine set_biglst_flag(biglst, iptr, ibit, value)
 !-----------------------------------------------------------------------
 !
@@ -169,65 +169,65 @@
           integer, intent(in) :: iptr
           integer, intent(in) :: ibit
           logical, intent(in) :: value
-          
+
           integer :: flag, next_biglst_index
           logical :: current_value
-          
+
           ! Common block variables used:
           ! ierr    blkerr.i
           ! NXTBIG  blkprm.i
-          
+
           if(ierr /= 0) return
-          
+
           assert(ibit > 0 .and. ibit <= max_biglst_flag_bit)  ! Invalid bit number
           assert(iptr > 0)  ! Invalid "pointer"
-          
+
           flag = biglst(biglst_flag_index, iptr)
-          
+
           assert(flag /= 0)  ! Block is empty
-          
+
           if(flag < 0) then
             ! A negative biglst_flag_index entry indicates that this block
             ! relates to an edge
-                        
+
             flag = -flag
-            
+
             if(btest(flag, ibit - 1) .eqv. value) return
-                        
+
             if(value) then
               flag = ibset(flag, ibit - 1)
             else
               flag = ibclr(flag, ibit - 1)
             end if
-            
+
             biglst(biglst_flag_index, iptr) = -flag
           else
             ! A positive biglst_flag_index entry indicates that this block
             ! relates to an element. The flag lives in the third element block,
             ! so we need to skip on a few entries in biglst.
-          
+
             next_biglst_index = biglst(NXTBIG, iptr)
             assert(biglst(biglst_flag_index, next_biglst_index) > 0)
               ! Second block is not an element
-            
+
             next_biglst_index = biglst(NXTBIG, next_biglst_index)
             flag = biglst(biglst_flag_index, next_biglst_index)
             assert(flag > 0)
               ! Third block is not an element
-              
+
             if(btest(flag, ibit - 1) .eqv. value) return
-              
+
             if(value) then
               flag = ibset(flag, ibit - 1)
             else
               flag = ibclr(flag, ibit - 1)
             end if
-            
+
             biglst(biglst_flag_index, next_biglst_index) = flag
           end if
-          
+
         end subroutine set_biglst_flag
-        
+
         function get_nodlst_flag(nodlst, iptr, ibit) result(get_flag)
 !-----------------------------------------------------------------------
 !
@@ -248,40 +248,40 @@
 ! - Bit 9: used temporarily (by MKADPT) to flag halo nodes in a parallel problem
 !
 !-----------------------------------------------------------------------
-        
+
           real, dimension(:, :), intent(in) :: nodlst
           integer, intent(in) :: iptr
           integer, intent(in) :: ibit
-          
+
           logical :: get_flag
-          
+
           integer :: flag
-          
+
           ! Common block variables used:
           ! ierr    blkerr.i
-          
+
           if(ierr /= 0) then
             get_flag = .false.
             return
           end if
-          
+
           assert(ibit > 0 .and. ibit <= max_nodlst_flag_bit)  ! Invalid bit number
           assert(iptr > 0)  ! Invalid "pointer"
-          
+
           flag = nodlst(nodlst_flag_index, iptr)
-          
+
           if(flag == 0) then
             assert(ibit == 1)  ! Node block is empty
-            
+
             get_flag = .false.
           else
             assert(flag > 0)  ! Node block is invalid
-            
+
             get_flag = btest(flag, ibit - 1)
           end if
-        
+
         end function get_nodlst_flag
-     
+
         subroutine set_nodlst_flag(nodlst, iptr, ibit, value)
 !-----------------------------------------------------------------------
 !
@@ -302,37 +302,37 @@
 ! - Bit 9: used temporarily (by MKADPT) to flag halo nodes in a parallel problem
 !
 !-----------------------------------------------------------------------
-        
+
           real, dimension(:, :), intent(inout) :: nodlst
           integer, intent(in) :: iptr
           integer, intent(in) :: ibit
           logical, intent(in) :: value
-        
+
           integer :: flag
-        
+
           ! Common block variables used:
           ! ierr    blkerr.i
-          
+
           if(ierr /= 0) return
-      
+
           assert(ibit > 0 .and. ibit <= max_nodlst_flag_bit)  ! Invalid bit number
           assert(iptr > 0)  ! Invalid "pointer"
-          
+
           flag = nodlst(nodlst_flag_index, iptr)
-          
+
           assert(flag /= 0)  ! Node block is empty
           assert(flag > 0)  ! Node block is invalid
-          
+
           if(btest(flag, ibit - 1) .eqv. value) return
-          
+
           if(value) then
             flag = ibset(flag, ibit - 1)
           else
             flag = ibclr(flag, ibit - 1)
           end if
-          
+
           nodlst(nodlst_flag_index, iptr) = flag
-          
+
         end subroutine set_nodlst_flag
-        
+
       end module flag_handling

@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -42,18 +42,18 @@ namespace Fluidity {
   {
     public:
       Element1D(const int id, const double StartPoint, const double EndPoint);
-    
+
       int operator<(const Element1D &rhs) const;
       // element to the left of point
       int operator<(const double &rhs) const;
       // element to the right of point
       int operator>(const double &rhs) const;
-    
+
       double StartPoint, EndPoint;
       int id;
-    
+
   };
-  
+
   // Interface to spatialindex to calculate node ownership lists using bulk
   // storage
   // Uses code from gispatialindex.{cc,h} in Rtree 0.4.1
@@ -72,7 +72,7 @@ namespace Fluidity {
     protected:
       void Initialise();
       void Free();
-    
+
       int dim, loc;
       SpatialIndex::IStorageManager* storageManager;
       SpatialIndex::StorageManager::IBuffer* storage;
@@ -80,10 +80,10 @@ namespace Fluidity {
       ElementListVisitor visitor;
 
       int predicateCount;
-    
+
       std::vector<Element1D> mesh1d;
   };
-  
+
 }
 
 extern std::map<int, Fluidity::NodeOwnerFinder*> nodeOwnerFinder;
@@ -93,10 +93,10 @@ extern "C" {
   void cNodeOwnerFinderReset(const int* id);
 
 #define cNodeOwnerFinderSetInput F77_FUNC(cnode_owner_finder_set_input, CNODE_OWNER_FINDER_SET_INPUT)
-  void cNodeOwnerFinderSetInput(int* id, const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements);  
+  void cNodeOwnerFinderSetInput(int* id, const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements);
 
 #define cNodeOwnerFinderFind F77_FUNC(cnode_owner_finder_find, CNODE_OWNER_FINDER_FIND)
-  void cNodeOwnerFinderFind(const int* id, const double* position, const int* dim);  
+  void cNodeOwnerFinderFind(const int* id, const double* position, const int* dim);
 
 #define cNodeOwnerFinderQueryOutput F77_FUNC(cnode_owner_finder_query_output, CNODE_OWNER_FINDER_QUERY_OUTPUT)
   void cNodeOwnerFinderQueryOutput(const int* id, int* nelms);

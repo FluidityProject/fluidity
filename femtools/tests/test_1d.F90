@@ -1,5 +1,5 @@
 !    Copyright (C) 2006-2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -46,7 +46,7 @@ subroutine test_1d
        real, dimension(:), intent(in) :: X
      end function func_1d
   end interface
-  
+
   integer :: ele
   real, dimension(:,:), allocatable :: mass
   real, dimension(:), allocatable :: detwei
@@ -68,13 +68,13 @@ subroutine test_1d
 
   call report_test("[test_1d Integral]", fail, .false., "int_0^1 x dx should&
        & be 0.5.")
-  
+
   ! Test 2 Calculate the derivative of T over the interval.
 
   allocate(mass(node_count(T),node_count(T)))
   allocate(detwei(ele_ngi(T,1)))
   allocate(dT_ele(ele_loc(T,1), ele_ngi(T,1), X%dim))
-  
+
   dT=clone(T)
 
   call zero(dT)
@@ -82,7 +82,7 @@ subroutine test_1d
   mass=0.0
 
   do ele=1,element_count(T)
-     
+
      T_ele=>ele_nodes(T,ele)
      T_shape=>ele_shape(T,ele)
 
@@ -96,9 +96,9 @@ subroutine test_1d
           & ele_val(T, ele)))
 
   end do
-  
+
   call invert(mass)
-  
+
   dT%val=matmul(mass,dT%val)
 
   fail=any(abs(dT%val-1.0)>1e-14)
@@ -109,7 +109,7 @@ subroutine test_1d
   deallocate(detwei)
   deallocate(dT_ele)
 
-  
+
 end subroutine test_1d
 
 function func_1d(x)
@@ -117,5 +117,5 @@ function func_1d(x)
   real, dimension(:), intent(in) :: x
 
   func_1d=X(1)
-  
+
 end function func_1d

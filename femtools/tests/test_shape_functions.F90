@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -26,17 +26,17 @@
 !    USA
 
 subroutine test_shape_functions
-  !!< Generic element test function. 
+  !!< Generic element test function.
   use quadrature
   use shape_functions_test
   use unittest_tools
   type(element_type) :: element
   type(quadrature_type) :: quad
-  
+
   character(len=500) :: error_message, test_message
   integer :: dim, degree, vertices
   logical :: fail
-  
+
   ! Rounding error tolerance.
   real, parameter :: eps=1E-12
 
@@ -51,12 +51,12 @@ subroutine test_shape_functions
 
         element=make_element_shape(vertices=vertices, dim=dim, degree=degree,&
           quad=quad)
-          
+
         do power=0,degree
 
            ! Shape function itself
            if (.not.(abs(shape_integrate(monic, element)&
-                -simplex_answer(power, dim))<eps)) then 
+                -simplex_answer(power, dim))<eps)) then
               write(error_message,'(e15.7)') &
                    shape_integrate(monic, element)&
                    &-simplex_answer(power, dim)
@@ -75,7 +75,7 @@ subroutine test_shape_functions
 
            ! Derivative
            if (.not.(abs(shape_integrate_diff(monic, element,1)&
-                -power*simplex_answer(power-1, dim))<eps)) then 
+                -power*simplex_answer(power-1, dim))<eps)) then
               write(error_message,'(e15.7)') &
                    shape_integrate_diff(monic, element,1)&
                    &-power*simplex_answer(power-1, dim)
@@ -94,7 +94,7 @@ subroutine test_shape_functions
 
 
         end do
-          
+
         call deallocate(element)
 
      end do
@@ -114,12 +114,12 @@ subroutine test_shape_functions
 
         element=make_element_shape(vertices=vertices, dim=dim, degree=degree,&
            quad=quad)
-        
+
         do power=0,degree
 
            ! Shape function itself
            if (.not.(abs(shape_integrate(cube_monic, element)&
-                -cube_answer(power, dim))<eps)) then 
+                -cube_answer(power, dim))<eps)) then
               write(error_message,'(e15.7)') &
                    shape_integrate(cube_monic, element)&
                    &-cube_answer(power, dim)
@@ -138,7 +138,7 @@ subroutine test_shape_functions
 
            ! Derivative
            if (.not.(abs(shape_integrate_diff(cube_monic, element,1)&
-                -1*cube_danswer(power, dim))<eps)) then 
+                -1*cube_danswer(power, dim))<eps)) then
               write(error_message,'(e15.7)') &
                    shape_integrate_diff(cube_monic, element,1)&
                    -1*cube_danswer(power, dim)
@@ -157,15 +157,15 @@ subroutine test_shape_functions
         end do
 
         call deallocate(element)
-        
+
      end do
 
      call deallocate(quad)
 
-  end do    
-  
+  end do
+
 contains
-  
+
   function simplex_answer(power, dim)
     ! Analytic solution to integrating monic over a simplex.
     ! This formula is eq. 7.38 and 7.48 in Zienkiewicz and Taylor
@@ -191,7 +191,7 @@ contains
     ! hypercube.
     real :: cube_danswer
     integer, intent(in) :: power, dim
-    
+
     if (power==0) then
        cube_danswer=0
     else
@@ -214,6 +214,5 @@ contains
     end if
 
   end function factorial
-  
-end subroutine test_shape_functions
 
+end subroutine test_shape_functions

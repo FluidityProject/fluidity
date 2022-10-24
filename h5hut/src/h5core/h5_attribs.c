@@ -29,7 +29,7 @@ h5_has_file_attrib (
 	TRY (ret_value = hdf5_attribute_exists(f->root_gid, attrib_name));
 	H5_RETURN (ret_value);
 }
-	
+
 h5_err_t
 h5_has_iteration_attrib (
 	const h5_file_t f_,
@@ -210,7 +210,7 @@ h5_read_iteration_attrib (
 			   (long long int)attrib_type,
 			   attrib_value);
 	check_iteration_is_readable (f);
-	
+
 	TRY (ret_value = h5priv_read_attrib (
 		     f->iteration_gid,
 		     attrib_name,

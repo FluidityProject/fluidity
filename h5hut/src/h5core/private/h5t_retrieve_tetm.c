@@ -44,4 +44,3 @@ init_entity_iterator (
 struct h5t_retrieve_methods h5tpriv_tetm_retrieve_methods = {
 	init_entity_iterator
 };
-

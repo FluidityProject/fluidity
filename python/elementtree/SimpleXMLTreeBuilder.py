@@ -46,7 +46,6 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
 # Tools to build element trees from XML files, using <b>xmllib</b>.
 # This module can be used instead of the standard tree builder, for
@@ -56,10 +55,10 @@
 # not reliable (you can run the module as a script to find out exactly
 # how unreliable it is on your Python version).
 ##
-
 from __future__ import print_function
 
-import xmllib, string
+import string
+from xml.etree.ElementTree import XMLParser
 
 import ElementTree
 
@@ -68,14 +67,15 @@ import ElementTree
 #
 # @see elementtree.ElementTree
 
-class TreeBuilder(xmllib.XMLParser):
 
+class TreeBuilder(XMLParser):
     def __init__(self, html=0):
         self.__builder = ElementTree.TreeBuilder()
         if html:
-            import htmlentitydefs
-            self.entitydefs.update(htmlentitydefs.entitydefs)
-        xmllib.XMLParser.__init__(self)
+            from html.entities import entitydefs
+
+            self.entitydefs.update(entitydefs)
+        XMLParser.__init__(self)
 
     ##
     # Feeds data to the parser.
@@ -83,7 +83,7 @@ class TreeBuilder(xmllib.XMLParser):
     # @param data Encoded data.
 
     def feed(self, data):
-        xmllib.XMLParser.feed(self, data)
+        XMLParser.feed(self, data)
 
     ##
     # Finishes feeding data to the parser.
@@ -92,7 +92,7 @@ class TreeBuilder(xmllib.XMLParser):
     # @defreturn Element
 
     def close(self):
-        xmllib.XMLParser.close(self)
+        XMLParser.close(self)
         return self.__builder.close()
 
     def handle_data(self, data):
@@ -119,7 +119,6 @@ def fixname(name, split=string.split):
 
 
 if __name__ == "__main__":
-    import sys
     # sanity check: look for known namespace bugs in xmllib
     p = TreeBuilder()
     text = """\
@@ -143,4 +142,3 @@ if __name__ == "__main__":
             print("-", bug)
     else:
         print("congratulations; no problems found in xmllib")
-

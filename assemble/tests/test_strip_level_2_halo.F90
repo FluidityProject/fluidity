@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h" 
+#include "fdebug.h"
 
 subroutine test_strip_level_2_halo
 
@@ -39,7 +39,7 @@ subroutine test_strip_level_2_halo
   use spud
   use state_module
   use unittest_tools
-  
+
   implicit none
 
 #ifdef HAVE_ADAPTIVITY
@@ -207,7 +207,7 @@ subroutine test_strip_level_2_halo
   new_surfaceids = mesh%faces%boundary_ids
   ! Strip off the surface elements with ID 0 added by add_faces
   new_nsurfaceelems = 0
-  do i = 1, surface_element_count(mesh) 
+  do i = 1, surface_element_count(mesh)
     if(new_surfaceids(i) /= 0) then
       new_nsurfaceelems = new_nsurfaceelems + 1
       new_surfaceenlist((new_nsurfaceelems - 1) * face_loc(mesh, 1) + 1:new_nsurfaceelems * face_loc(mesh, 1)) = new_surfaceenlist((i - 1) * face_loc(mesh, 1) + 1:i * face_loc(mesh, 1))

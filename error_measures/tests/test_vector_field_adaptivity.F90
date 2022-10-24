@@ -61,7 +61,7 @@ subroutine test_vector_field_adaptivity
   call add_option("/whatever/virtual/adaptivity_options/absolute_measure", stat=stat)
 
   call set(vfield_weight, (/1.0, 1.0, 1.0/))
-  
+
   call insert(state(1), vfield, "VField")
   call insert(state(1), vfield_weight, "VFieldInterpolationErrorBound")
   positions => extract_vector_field(state(1), "Coordinate")
@@ -79,7 +79,7 @@ subroutine test_vector_field_adaptivity
   mesh => extract_mesh(state(1), "Mesh")
   positions => extract_vector_field(state(1), "Coordinate")
   vfield_pointer => extract_vector_field(state(1), "VField")
-  call vtk_write_fields("data/vfield_adapt", 1, positions,  mesh, vfields=(/vfield_pointer/)) 
+  call vtk_write_fields("data/vfield_adapt", 1, positions,  mesh, vfields=(/vfield_pointer/))
 
   call report_test("[adaptivity output]", .false., .false., "Congratulations! &
                    & The output from adaptivity might even be OK if you get this far.")

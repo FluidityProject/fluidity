@@ -19,7 +19,7 @@ subroutine test_fluxes_reader_wrapper
     fail = .false.
   else
     write(0,*) "Expected ", correct, ", got ", value
-  end if  
+  end if
   call report_test("[test_fluxes_reader_wrapper: GetScalar single point 1]", fail, .false., &
                      "Got incorrect value")
 
@@ -35,14 +35,14 @@ subroutine test_fluxes_reader_wrapper
     fail = .false.
   else
     write(0,*) "t expected ", correct, ", got ", value
-  end if  
+  end if
   call report_test("[test_fluxes_reader_wrapper: GetScalars single point: t]", fail, .false., &
                      "Got incorrect value")
   if(abs(values(2)-correct_d) < 0.001) then
     fail = .false.
   else
     write(0,*) "d expected ", correct, ", got ", value
-  end if 
+  end if
   call report_test("[test_fluxes_reader_wrapper: GetScalars single point: d]", fail, .false., &
                      "Got incorrect value")
 

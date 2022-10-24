@@ -41,7 +41,7 @@ subroutine test_adaptivity
 
   call allocate(pressure, mesh, "Pressure")
   call allocate(velocity, 3, mesh, "Velocity")
-  
+
   call allocate(metric, mesh, "Metric")
 
   do i=1,mesh%nodes
@@ -63,21 +63,21 @@ subroutine test_adaptivity
   call insert(state, velocity, "Velocity")
   call deallocate(pressure)
   call deallocate(velocity)
-  
+
   positions => extract_vector_field(state, "Coordinate")
 
   call adaptivity_bounds(state, 0.01, 1.0)
 
   state_array(1) = state
   call compute_domain_statistics(state_array)
-  
+
   call assemble_metric(state_array, metric)
-  
+
   call allocate(edgelen, mesh, "Edge lengths")
   call get_edge_lengths(metric, edgelen)
   call vtk_write_fields("data/adapt", 0, positions, mesh, sfields=(/edgelen/), vfields=(/velocity/), tfields=(/metric/))
   call deallocate(edgelen)
-  
+
   call adapt_state(state, metric)
 
   call report_test("[adaptivity runs]", .false., .false., "Congratulations! &
@@ -86,14 +86,14 @@ subroutine test_adaptivity
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
   velocity_pointer => extract_vector_field(state, "Velocity")
-  call vtk_write_fields("data/adapt", 1, positions,  mesh, vfields=(/velocity_pointer/)) 
+  call vtk_write_fields("data/adapt", 1, positions,  mesh, vfields=(/velocity_pointer/))
 
   call report_test("[adaptivity output]", .false., .false., "Congratulations! &
                    & The output from adaptivity might even be OK if you get this far.")
 
   call deallocate(metric)
   call deallocate(state)
-  
+
   call report_test_no_references()
 
 end subroutine test_adaptivity

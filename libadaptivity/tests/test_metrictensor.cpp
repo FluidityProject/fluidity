@@ -36,53 +36,53 @@ int main(){
                     -30857.1,    28800);
     Ma.write_vtk("M");
     cout<<"Ma =\n"<<Ma<<endl;
-    
+
     double D[2], V[4];
     Ma.eigen_decomp(D, V);
     Ma.eigen_undecomp(D, V);
     cout<<"Ma (after eigen decomposition and reforming matrix) =\n"<<Ma<<endl;
-    
+
     MetricTensor Mb(Ma);
-    
+
     MetricTensor limit(10000,
                         0, 30000);
     cout<<"limit =\n"<<limit<<endl;
     limit.write_vtk("limit");
-    
+
     Ma.circumscribe(limit);
     cout<<"circumscribed =\n"<<Ma<<endl;
     Ma.write_vtk("circumscribe");
-    
+
     Mb.inscribe(limit);
     cout<<"inscribe =\n"<<Mb<<endl;
     Mb.write_vtk("inscribe");
   }
-  
+
   {
     MetricTensor Ma(1.00467,
                     0.00162196, 6.2432,
                     -0.24383, -1.98199, 14.4226);
     Ma.write_vtk("M");
     cout<<"Ma =\n"<<Ma<<endl;
-    
+
     double D[3], V[9];
     Ma.eigen_decomp(D, V);
     Ma.eigen_undecomp(D, V);
     cout<<"Ma (after eigen decomposition and reforming matrix) =\n"<<Ma<<endl;
-    
+
     MetricTensor Mb(Ma);
-    
+
     MetricTensor limit(4.05543,
                         0.0983953, 1.34818,
                         0.643409, -0.989943, 4.09606);
-    
+
     cout<<"limit =\n"<<limit<<endl;
     limit.write_vtk("limit");
-    
+
     Ma.circumscribe(limit);
     cout<<"circumscribed =\n"<<Ma<<endl;
     Ma.write_vtk("circumscribe");
-    
+
     Mb.inscribe(limit);
     cout<<"inscribe =\n"<<Mb<<endl;
     Mb.write_vtk("inscribe");
@@ -94,25 +94,25 @@ int main(){
                      0.0, 0.0, 1.0);
     Ma.write_vtk("M");
     cout<<"Ma =\n"<<Ma<<endl;
-    
+
     double D[3], V[9];
     Ma.eigen_decomp(D, V);
     Ma.eigen_undecomp(D, V);
     cout<<"Ma (after eigen decomposition and reforming matrix) =\n"<<Ma<<endl;
-    
+
     MetricTensor Mb(Ma);
-    
+
     MetricTensor limit(0.5,
                         0.0, 0.5,
                         0.0, 0.0, 0.5);
-    
+
     cout<<"limit =\n"<<limit<<endl;
     limit.write_vtk("limit");
-    
+
     Ma.circumscribe(limit);
     cout<<"circumscribed =\n"<<Ma<<endl;
     Ma.write_vtk("circumscribe");
-    
+
     Mb.inscribe(limit);
     cout<<"inscribe =\n"<<Mb<<endl;
     Mb.write_vtk("inscribe");

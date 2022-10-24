@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -29,9 +29,9 @@
 
 module mpi_interfaces
   !!< Interfaces for MPI routines
-  
+
   implicit none
-  
+
 #ifdef HAVE_MPI
   include "mpif.h"
 
@@ -41,38 +41,38 @@ module mpi_interfaces
       integer, intent(in) :: communicator
       integer, intent(out) :: ierr
     end subroutine mpi_barrier
-    
+
     subroutine mpi_comm_rank(communicator, rank, ierr)
       implicit none
       integer, intent(in) :: communicator
       integer, intent(out) :: rank
       integer, intent(out) :: ierr
     end subroutine mpi_comm_rank
-    
+
     subroutine mpi_comm_size(communicator, size, ierr)
       implicit none
       integer, intent(in) :: communicator
       integer, intent(out) :: size
       integer, intent(out) :: ierr
     end subroutine mpi_comm_size
-  
+
     subroutine mpi_comm_test_inter(communicator, inter_communicator, ierr)
       implicit none
       integer, intent(in) :: communicator
       logical, intent(out) :: inter_communicator
       integer, intent(out) :: ierr
     end subroutine mpi_comm_test_inter
-    
+
     subroutine mpi_finalize(ierr)
       implicit none
       integer, intent(out) :: ierr
     end subroutine mpi_finalize
-    
+
     subroutine mpi_init(ierr)
       implicit none
       integer, intent(out) :: ierr
     end subroutine mpi_init
-    
+
     subroutine mpi_initialized(initialized, ierr)
       implicit none
       logical, intent(out) :: initialized
@@ -89,7 +89,7 @@ module mpi_interfaces
       integer, dimension(MPI_STATUS_SIZE), intent(out) :: status
       integer, intent(out) :: ierr
     end subroutine mpi_iprobe
-    
+
     function mpi_tick()
       use iso_c_binding, only: c_double
       implicit none
@@ -101,7 +101,7 @@ module mpi_interfaces
       integer, intent(in) :: type
       integer, intent(out) :: ierr
     end subroutine mpi_type_commit
-    
+
     subroutine mpi_type_indexed(displacements_size, entries_per_displacement, displacements, old_type, new_type, ierr)
       implicit none
       integer, intent(in) :: displacements_size
@@ -111,13 +111,13 @@ module mpi_interfaces
       integer, intent(out) :: new_type
       integer, intent(out) :: ierr
     end subroutine mpi_type_indexed
-    
+
     subroutine mpi_type_free(type, ierr)
       implicit none
       integer, intent(in) :: type
       integer, intent(out) :: ierr
     end subroutine mpi_type_free
-    
+
     subroutine mpi_type_vector(blocks, block_size, stride, old_type, new_type, ierr)
       implicit none
       integer, intent(in) :: blocks
@@ -128,7 +128,7 @@ module mpi_interfaces
       integer, intent(out) :: ierr
     end subroutine mpi_type_vector
   end interface
-  
+
   external :: mpi_allreduce
   !subroutine mpi_allreduce(send, receive, size, type, operation, communicator, ierr)
   !  implicit none
@@ -153,7 +153,7 @@ module mpi_interfaces
   !  integer, intent(in) :: communicator
   !  integer, intent(out) :: ierr
   !end subroutine mpi_alltoall
-  
+
   external :: mpi_bcast
   !subroutine mpi_bcast(buffer, buffer_size, type, source, communicator, ierr)
   !  implicit none
@@ -164,7 +164,7 @@ module mpi_interfaces
   !  integer, intent(in) :: communicator
   !  integer, intent(out) :: ierr
   !end subroutine mpi_bcast
-  
+
   external :: mpi_gather
   !subroutine mpi_gather(send_buffer, send_buffer_size, send_type, receive_buffer, receive_buffer_size, receive_type, source, communicator, ierr)
   !  implicit none
@@ -180,7 +180,7 @@ module mpi_interfaces
   !end subroutine mpi_gather
 
   external :: mpi_allgather
-  
+
   external :: mpi_irecv
   !subroutine mpi_irecv(buffer, buffer_size, type, source, tag, communicator, request, ierr)
   !  implicit none
@@ -193,7 +193,7 @@ module mpi_interfaces
   !  integer, intent(out) :: request
   !  integer, intent(out) :: ierr
   !end subroutine mpi_irecv
-  
+
   external :: mpi_isend
   !subroutine mpi_isend(buffer, buffer_size, type, destination, tag, communicator, request, ierr)
   !  implicit none
@@ -206,7 +206,7 @@ module mpi_interfaces
   !  integer, intent(out) :: request
   !  integer, intent(out) :: ierr
   !end subroutine mpi_isend
-  
+
   external :: mpi_scan
   !subroutine mpi_scan(send_buffer, receive_buffer, send_buffer_size, type, operation, communicator, ierr)
   !  implicit none
@@ -263,11 +263,11 @@ contains
     integer, intent(in) :: old_type
     integer, intent(out) :: new_type
     integer, intent(out) :: ierr
-    
+
     call mpi_type_indexed(displacements_size, &
       & spread(entries_per_displacement, 1, displacements_size), &
       & displacements, old_type, new_type, ierr)
-    
+
   end subroutine mpi_type_create_indexed_block
 #endif
 #endif

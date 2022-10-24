@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -32,7 +32,7 @@
 
 
 // Matches element type with number of nodes.
-int elemNumNodes[] = 
+int elemNumNodes[] =
   {2, 2, 3, 4, 4, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 
@@ -50,36 +50,36 @@ public:
   int ID, type, numTags, numNodes;
   vector <int> nodeIDs, tags;
   int physicalID, elementary;
-  
+
   // Read method
   int read(fstream *efile, int _elemType, int _numNodes, int _numTags)
   {
     int n, t;
-    
+
     type = _elemType;
     numNodes = _numNodes;
     numTags = _numTags;
 
     nodeIDs.resize(numNodes);
     tags.resize(numTags);
-    
+
     efile->read( (char *)&ID, sizeof(int) );
-    
+
     for(t=0; t<numTags; t++)
       efile->read( (char *)&tags[t], sizeof(int) );
 
     for(n=0; n<numNodes; n++)
       efile->read( (char *)&nodeIDs[n], sizeof(int) );
-    
+
     // Standard tags
     if(numTags >= 2)
       {
         physicalID = tags[0];
         elementary = tags[1];
       }
-    
+
     return 0;
-  };  
+  };
 
 };
 
@@ -97,31 +97,31 @@ public:
 
 
 void write_part_main_mesh( bool verbose, string filename, int part,
-                           const vector<double> *partX, 
-                           deque <int> *nodes, 
+                           const vector<double> *partX,
+                           deque <int> *nodes,
                            const int no_coords, const int nloc,
-                           deque <int> *elements, 
+                           deque <int> *elements,
                            const vector<int> *partENList,
                            const vector<int> *partRegionIds,
                            const int snloc, vector<int> *partSENList,
                            const vector <int> *partBoundaryIds,
                            const int normElemType, const int faceType )
 {
-  
+
   // Can toggle GMSH binary/ascii format for debugging.
   int binaryFile=1;
   ofstream gmshfile;
-  
+
   // Construct mesh file name from base name.
   ostringstream basename;
   basename << filename << "_" << part;
   string lfilename = basename.str() + ".msh";
-  
+
   if(verbose)
     cout<<"Writing out GMSH mesh for partition "<<part
         <<" to file "<<lfilename<<"\n";
 
-  
+
   // Open stream according to binary or ascii
   if(binaryFile)
     gmshfile.open( lfilename.c_str(), ios::binary | ios::out );
@@ -129,9 +129,9 @@ void write_part_main_mesh( bool verbose, string filename, int part,
     gmshfile.open( lfilename.c_str(), ios::out );
     gmshfile.precision(16);
   }
-  
+
   char newlineChar[2]="\n";
-  
+
   // GMSH format header
   if(binaryFile)
     {
@@ -146,24 +146,24 @@ void write_part_main_mesh( bool verbose, string filename, int part,
     gmshfile << "2.1 0 " << sizeof(double) << "\n";
     gmshfile << "$EndMeshFormat\n";
   }
-  
+
   // Nodes section
-  
+
   gmshfile << "$Nodes\n";
   gmshfile << nodes->size() << "\n";
 
   for(size_t j=0;j<nodes->size();j++)
     {
       int nodeID = j+1;
-  
+
       if(binaryFile) {
       // Binary format
 
         gmshfile.write( (char *)&nodeID, sizeof(int) );
-        
+
         for(int k=0;k<no_coords;k++)
           gmshfile.write( (char *)&(*partX)[j*no_coords+k], sizeof(double) );
-        
+
         for(int k=no_coords; k<3; k++)
           {
             double zeroFloat=0;
@@ -171,45 +171,45 @@ void write_part_main_mesh( bool verbose, string filename, int part,
           }
       } else {
         // ASCII format
-        
+
         gmshfile << nodeID;
         for(int k=0;k<no_coords;k++)
           gmshfile << " " << (*partX)[j*no_coords+k];
-        
+
         for(int k=no_coords; k<3; k++)
           gmshfile << " 0";
-        
+
         gmshfile << "\n";
       }
-      
+
     }
-  
-  
+
+
   if (binaryFile) gmshfile.write( (char *)&newlineChar, 1 );
   gmshfile << "$EndNodes\n";
-  
 
-  // GMSH element section, 
+
+  // GMSH element section,
   // which includes both faces and regular elements
 
   int totalElements = elements->size() + partSENList->size()/snloc;
-  
+
   gmshfile << "$Elements\n";
   gmshfile << totalElements << "\n";
-  
+
   // Write out faces
-  
+
   int nfacets = partSENList->size()/snloc;
   int numFaceTags;
 
-  // boundary IDs ? 
+  // boundary IDs ?
   // (GMSH format supports more element tags, but not needed yet)
 
   if (partBoundaryIds->size()>0 )
     numFaceTags=1;
   else
     numFaceTags=0;
-  
+
   // Print out faces
 
   if(binaryFile)
@@ -223,77 +223,77 @@ void write_part_main_mesh( bool verbose, string filename, int part,
   for(int i=0;i<nfacets;i++)
     {
       int faceID=i+1;
-      
+
       if(binaryFile) {
         // Binary format
 
         gmshfile.write( (char *)&faceID, sizeof(int) );
-        
+
         if(numFaceTags>0)
           gmshfile.write( (char *)&(*partBoundaryIds)[i], sizeof(int) );
-        
+
         for(int j=0;j<snloc;j++)
           gmshfile.write( (char *)&(*partSENList)[i*snloc+j], sizeof(int) );
 
       } else {
         // ASCII format
 
-        gmshfile << faceID << " " << faceType << " " 
+        gmshfile << faceID << " " << faceType << " "
                  << numFaceTags;
         if(numFaceTags>0)
           gmshfile << " " << (*partBoundaryIds)[i];
-        
+
         for(int j=0;j<snloc;j++)
           gmshfile << " " << (*partSENList)[i*snloc+j];
-        
+
         gmshfile << "\n";
       }
     }
-  
-  
-  
+
+
+
   // Regular elements now
 
   int nElems = elements->size();
   int numElemTags=0;
   if(partRegionIds->size()) numElemTags=1;
-  
+
   if(binaryFile)
     {
       gmshfile.write( (char *)&normElemType, sizeof(int) );
       gmshfile.write( (char *)&nElems, sizeof(int) );
       gmshfile.write( (char *)&numElemTags, sizeof(int) );
     }
-  
-  
+
+
   for(int i=0;i<nElems;i++)
     {
       // After the faces, so have to offset the ID counter
       int elementID=i+nfacets+1;
-      
+
       if(binaryFile) {
-        
+
         gmshfile.write( (char *)&elementID, sizeof(int) );
         if( numElemTags>0 )
           gmshfile.write( (char *)&(*partRegionIds)[i], sizeof(int) );
         for(int j=0;j<nloc;j++)
           gmshfile.write( (char *)&(*partENList)[i*nloc+j], sizeof(int) );
-          
+
       } else {
         gmshfile << elementID << " " << normElemType << " "
                  << numElemTags;
-        
+
         if( numElemTags>0 )
           gmshfile << " " << (*partRegionIds)[i];
-        
+
         for(int j=0;j<nloc;j++)
           gmshfile << " " << (*partENList)[i*nloc+j];
-        
+
         gmshfile << "\n";
       }
     }
-  
-  
+
+
   gmshfile << "\n$EndElements\n";
   gmshfile.close();
 }
@@ -309,7 +309,7 @@ void write_part_main_mesh( bool verbose, string filename, int part,
 
 void write_partitions_gmsh(bool verbose,
                            string filename, string file_format,
-                           const int nparts, const int nnodes, 
+                           const int nparts, const int nnodes,
                            const int dim, const int no_coords,
                            const vector<double>&x, const vector<int>& decomp,
                            const int nloc, const vector<int>& ENList,
@@ -354,13 +354,13 @@ void write_partitions_gmsh(bool verbose,
       {
         if(verbose)
           cout<<"Making partition "<<part<<endl;
-        
+
         deque<int> *nodes = new deque<int>;
         deque<int> *elements = new deque<int>;
-        
+
         vector<bool> *halo_nodes = new vector<bool>(nnodes, false);
         vector<bool> *more_halo_nodes = new vector<bool>(nnodes, false);
-        
+
         // Find owned nodes
         for(int nid=0; nid<nnodes; nid++){
           if(decomp[nid]==part)
@@ -369,7 +369,7 @@ void write_partitions_gmsh(bool verbose,
         npnodes[part] = nodes->size();
         if(verbose)
           cout<<"Found "<<npnodes[part]<<" owned nodes\n";
-        
+
         // Find elements with owned nodes and halo1
         deque< pair<int, int> > *sorted_elements = new deque< pair<int, int> >;
         for(int eid=0;eid<nelms;eid++)
@@ -378,7 +378,7 @@ void write_partitions_gmsh(bool verbose,
             pair<int, int> *owned_elm = new pair<int, int>(decomp[ENList[eid*nloc] - 1], eid);
             if(decomp[ENList[eid*nloc] - 1]!=part)
               halo_count++;
-            
+
             for(int j=1;j<nloc;j++)
               {
                 owned_elm->first = min(owned_elm->first, decomp[ENList[eid*nloc+j] - 1]);
@@ -386,7 +386,7 @@ void write_partitions_gmsh(bool verbose,
                   halo_count++;
                 }
               }
-            
+
             if(halo_count<nloc){
               sorted_elements->push_back(*owned_elm);
               if(halo_count>0){
@@ -404,10 +404,10 @@ void write_partitions_gmsh(bool verbose,
             }
             delete owned_elm;
           }
-        
+
         if(verbose)
           cout<<"Found halo1 nodes\n";
-        
+
         for(deque< pair<int, int> >::const_iterator it=sorted_elements->begin();it!=sorted_elements->end();++it)
           if(it->first==part)
             elements->push_back(it->second);
@@ -415,10 +415,10 @@ void write_partitions_gmsh(bool verbose,
           if(it->first!=part)
             elements->push_back(it->second);
         delete sorted_elements;
-        
+
         if(verbose)
           cout<<"Sorted elements\n";
-        
+
         // Find halo2 elements and nodes
         set<int> *halo2_elements = new set<int>;
         for(int eid=0; eid<nelms; eid++){
@@ -426,13 +426,13 @@ void write_partitions_gmsh(bool verbose,
           bool touches_halo1=false;
           for(int j=0;j<nloc;j++){
             int fnid = ENList[eid*nloc+j];
-            
+
             touches_halo1 = touches_halo1 || (*halo_nodes)[fnid-1];
-            
+
             if(decomp[fnid-1]==part)
               owned_node_count++;
           }
-          
+
           if(touches_halo1&&(owned_node_count==0)){
             halo2_elements->insert(halo2_elements->end(), eid);
             for(int j=0;j<nloc;j++){
@@ -444,13 +444,13 @@ void write_partitions_gmsh(bool verbose,
             }
           }
         }
-        
+
         if(verbose)
           cout<<"Found "<<halo2_elements->size()<<" halo2 elements\n";
-        
+
         for(int i=0;i<nparts;i++)
           halo2[part][i].insert(halo1[part][i].begin(), halo1[part][i].end());
-        
+
         for(int i=0;i<nnodes;i++)
           if((*halo_nodes)[i])
             nodes->push_back(i+1);
@@ -552,29 +552,29 @@ void write_partitions_gmsh(bool verbose,
         }
 
         // Write out GMSH mesh file for this partition
-        write_part_main_mesh( verbose, filename, part, 
-                              partX, 
-                              nodes, 
+        write_part_main_mesh( verbose, filename, part,
+                              partX,
+                              nodes,
                               no_coords,
-                              nloc, 
-                              elements, 
+                              nloc,
+                              elements,
                               partENList,
                               partRegionIds,
                               snloc, partSENList,
                               partBoundaryIds,
                               normElemType, faceType );
-      
+
         delete partNodesToEid;
 
         delete nodes;
         delete partX;
-      
+
         delete partSENList;
         delete partBoundaryIds;
-      
+
         delete elements;
         delete partENList;
-      
+
       }
   }
 
@@ -763,7 +763,7 @@ int read_gmsh_nodes(fstream &gmshfile, vector<int> &nodeIDs, vector<double> &x)
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-/* Read in elements section of element file, 
+/* Read in elements section of element file,
    returning a pointer to an array of Element objects */
 
 
@@ -958,7 +958,7 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
 
   // Close the GMSH file.
   gmshfile.close();
-  
+
 
 
 
@@ -1010,19 +1010,19 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
     }
 
 
-  
+
   // Preparing to partition the mesh.
 
   vector<int> decomp;
   int partition_method = -1;
-  
+
   if(flArgs.count('r')){
     partition_method = 0; // METIS PartGraphRecursive
     if(flArgs.count('k'))cerr<<"WARNING: should not specify both -k and -r. Choosing -r.\n";
   }
   if(flArgs.count('k')) partition_method = 1; // METIS PartGraphKway
 
-  
+
   vector<int> npartitions;
   if(ncores>1){
     npartitions.push_back(nparts/ncores);
@@ -1030,11 +1030,11 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
   }else{
     npartitions.push_back(nparts);
   }
-  
+
   int edgecut=0;
 
 
-    
+
   // Partition the mesh. Generates a map "decomp" from node number
   // (numbered from zero) to partition number (numbered from
   // zero).
@@ -1045,11 +1045,11 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
   if(flArgs.count('d')){
     cout<<"Edge-cut: "<<edgecut<<endl;
   }
-  
+
   // Process the partitioning
   if(verbose)
     cout<<"Processing the mesh partitions\n";
-  
+
   int no_coords=numDimen;
 
 
@@ -1065,4 +1065,3 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
   return(0);
 
 }
-

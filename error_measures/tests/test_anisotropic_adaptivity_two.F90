@@ -26,7 +26,7 @@ subroutine test_anisotropic_adaptivity_two
   real, dimension(4), target :: hmaxxx, hmaxxy, hmaxxz, hmaxyy, hmaxyz, hmaxzz
   logical :: fail = .false., warn = .false.
   integer :: i, nhsamp
-  real :: x, y, z 
+  real :: x, y, z
   integer :: ierr
 
   pseudo2d_coord = 3
@@ -82,5 +82,5 @@ subroutine test_anisotropic_adaptivity_two
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/anisotropic_adapt", 3, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("data/anisotropic_adapt", 3, positions,  mesh, sfields=(/ptr_field/))
 end subroutine test_anisotropic_adaptivity_two

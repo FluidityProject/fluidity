@@ -22,7 +22,7 @@ endif
 
 postprocess: envcheck
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@mkdir -p numpy_data 
+	@mkdir -p numpy_data
 	./postprocessor_3d.py
 
 input: clean

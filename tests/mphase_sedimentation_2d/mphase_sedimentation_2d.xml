@@ -1,63 +1,63 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <testproblem>
-   
+
   <name>mphase_sedimentation_2d</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
-  
+
   <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
     <!-- 2D multi-phase test case to check that the volume fraction fields are behaving properly. -->
-   
+
     <!-- The test case considers a square 2D domain filled with two incompressible fluids starting with a zero velocity ﬁeld. -->
     <!-- One liquid is denser than the other (\rho_1 = 1.0, \rho_2 = 1.1) and the volume fraction of each phase is initially set to 0.5 everywhere. -->
     <!-- The heavier liquid should sink beneath the lighter one as time progresses due to the density difference, causing the volume fraction -->
     <!-- of the heavier liquid to tend to 1.0 and 0.0 in the lower and upper half of the box respectively. -->
   </problem_definition>
-  
+
   <variables>
     <variable name="f1_vfrac_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_max = s["Fluid1"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
-    
+
     <variable name="f1_vfrac_min" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_min = s["Fluid1"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
-    
+
     <variable name="f2_vfrac_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_max = s["Fluid2"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
-    
+
     <variable name="f2_vfrac_min" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_min = s["Fluid2"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
-    
+
     <variable name="f1_vfrac_integral" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_integral = s["Fluid1"]["PhaseVolumeFraction"]["integral"][-1]
     </variable>
-    
+
     <variable name="f2_vfrac_integral" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_integral = s["Fluid2"]["PhaseVolumeFraction"]["integral"][-1]
     </variable>
-    
+
     <variable name="divergence" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_sedimentation_2d.stat")
 divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
     </variable>
-    
+
     <variable name="f1_vfrac" language="python">
 import vtktools
 
@@ -65,7 +65,7 @@ file = vtktools.vtu('mphase_sedimentation_2d_601.vtu')
 file.GetFieldNames()
 f1_vfrac = file.GetScalarField('Fluid1::PhaseVolumeFraction')
     </variable>
-    
+
     <variable name="f2_vfrac" language="python">
 import vtktools
 
@@ -73,7 +73,7 @@ file = vtktools.vtu('mphase_sedimentation_2d_601.vtu')
 file.GetFieldNames()
 f2_vfrac = file.GetScalarField('Fluid2::PhaseVolumeFraction')
     </variable>
-    
+
     <!-- Using y co-ordinates only here -->
     <variable name="positions" language="python">
 import vtktools
@@ -83,15 +83,15 @@ file.GetFieldNames()
 p = file.GetLocations()
 positions = p[:,1]
     </variable>
-    
+
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    
+
   </variables>
-    
+
   <pass_tests>
     <test name="Fluid 1 has max(vfrac) in [0.9, 1.0]" language="python">
 assert abs(f1_vfrac_max - 1.0) &lt; 1e-1
@@ -105,7 +105,7 @@ assert abs(f2_vfrac_max - 1.0) &lt; 1e-1
     <test name="Fluid 2 has min(vfrac) in [0.0, 0.1]" language="python">
 assert abs(f2_vfrac_min) &lt; 1e-1
     </test>
-    
+
     <test name="Fluid 1 has vfrac in [0.9, 1.0] in lower third of domain" language="python">
 nnodes = len(f1_vfrac)
 
@@ -151,24 +151,24 @@ print("Min vfrac in upper third of domain = ", min(vals))
 assert max(vals) &lt; 0.12
 assert min(vals) &gt; 0.0
 </test>
-    
+
     <test name="SumVelocityDivergence is less than 1e-9" language="python">
 assert abs(divergence) &lt; 1e-9
     </test>
-    
+
     <test name="PhaseVolumeFraction for Fluid 1 is conserved" language="python">
 assert abs(f1_vfrac_integral - 0.5) &lt; 1e-6
     </test>
     <test name="PhaseVolumeFraction for Fluid 2 is conserved" language="python">
 assert abs(f2_vfrac_integral - 0.5) &lt; 1e-6
     </test>
-    
+
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>

@@ -1,25 +1,25 @@
 /* Copyright (C) 2010- Imperial College London and others.
-   
+
    Please see the AUTHORS file in the main source directory for a full
    list of copyright holders.
-   
+
    Dr Gerard J Gorman
    Applied Modelling and Computation Group
    Department of Earth Science and Engineering
    Imperial College London
-   
+
    g.gorman@imperial.ac.uk
-   
+
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2.1 of the License.
-   
+
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
-   
+
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -44,8 +44,8 @@ double Profiler::get(const std::string &key) const{
     MPI_Reduce(&time, &gtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     return gtime;
   }
-  
-  return time; 
+
+  return time;
 }
 
 void Profiler::print() const{
@@ -117,17 +117,17 @@ int Profiler::getresidence(void *ptr){
   /* round memory address down to start of page */
   void *start_of_page =  (void *)(page_id*page_size);
 
-  /* If flags  specifies  both MPOL_F_NODE and MPOL_F_ADDR, 
-   * get_mempolicy() will return the node ID of the node on 
-   * which the address of the start of the page is allocated 
-   * into the location pointed to by mode 
+  /* If flags  specifies  both MPOL_F_NODE and MPOL_F_ADDR,
+   * get_mempolicy() will return the node ID of the node on
+   * which the address of the start of the page is allocated
+   * into the location pointed to by mode
    */
   unsigned long flags = MPOL_F_NODE|MPOL_F_ADDR;
 
   // if(get_mempolicy(&mode, NULL, 0, start_of_page, flags)){
   //   perror("get_mempolicy()");
   // }
-  // residence = mode;  
+  // residence = mode;
 #endif
   return residence;
 }

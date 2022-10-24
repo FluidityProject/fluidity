@@ -44,37 +44,20 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
 # Tools to build element trees from HTML files.
 ##
-
-import htmlentitydefs
-import re, string, sys
-import mimetools, StringIO
+import string
+import sys
+from email.parser import HeaderParser
+from html.entities import entitydefs
+from html.parser import HTMLParser
 
 import ElementTree
 
 AUTOCLOSE = "p", "li", "tr", "th", "td", "head", "body"
 IGNOREEND = "img", "hr", "meta", "link", "br"
 
-if sys.version[:3] == "1.5":
-    is_not_ascii = re.compile(r"[\x80-\xff]").search # 1.5.2
-else:
-    is_not_ascii = re.compile(eval(r'u"[\u0080-\uffff]"')).search
-
-try:
-    from HTMLParser import HTMLParser
-except ImportError:
-    from sgmllib import SGMLParser
-    # hack to use sgmllib's SGMLParser to emulate 2.2's HTMLParser
-    class HTMLParser(SGMLParser):
-        # the following only works as long as this class doesn't
-        # provide any do, start, or end handlers
-        def unknown_starttag(self, tag, attrs):
-            self.handle_starttag(tag, attrs)
-        def unknown_endtag(self, tag):
-            self.handle_endtag(tag)
 
 ##
 # ElementTree builder for HTML source code.  This builder converts an
@@ -97,8 +80,8 @@ except ImportError:
 #
 # @see elementtree.ElementTree
 
-class HTMLTreeBuilder(HTMLParser):
 
+class HTMLTreeBuilder(HTMLParser):
     # FIXME: shouldn't this class be named Parser, not Builder?
 
     def __init__(self, builder=None, encoding=None):
@@ -131,10 +114,9 @@ class HTMLTreeBuilder(HTMLParser):
                 elif k == "content":
                     content = v
             if http_equiv == "content-type" and content:
-                # use mimetools to parse the http header
-                header = mimetools.Message(
-                    StringIO.StringIO("%s: %s\n\n" % (http_equiv, content))
-                    )
+                header = HeaderParser().parsestr(
+                    "{}: {}\n\n".format(http_equiv, content)
+                )
                 encoding = header.getparam("charset")
                 if encoding:
                     self.encoding = encoding
@@ -173,13 +155,13 @@ class HTMLTreeBuilder(HTMLParser):
         if 0 <= char < 128:
             self.__builder.data(chr(char))
         else:
-            self.__builder.data(unichr(char))
+            self.__builder.data(chr(char))
 
     ##
     # (Internal) Handles entity references.
 
     def handle_entityref(self, name):
-        entity = htmlentitydefs.entitydefs.get(name)
+        entity = entitydefs.get(name)
         if entity:
             if len(entity) == 1:
                 entity = ord(entity)
@@ -188,7 +170,7 @@ class HTMLTreeBuilder(HTMLParser):
             if 0 <= entity < 128:
                 self.__builder.data(chr(entity))
             else:
-                self.__builder.data(unichr(entity))
+                self.__builder.data(chr(entity))
         else:
             self.unknown_entityref(name)
 
@@ -196,9 +178,9 @@ class HTMLTreeBuilder(HTMLParser):
     # (Internal) Handles character data.
 
     def handle_data(self, data):
-        if isinstance(data, type('')) and is_not_ascii(data):
+        if isinstance(data, type("")) and not data.isascii():
             # convert to unicode, but only if necessary
-            data = unicode(data, self.encoding, "ignore")
+            data = data.decode(self.encoding, "ignore")
         self.__builder.data(data)
 
     ##
@@ -206,7 +188,8 @@ class HTMLTreeBuilder(HTMLParser):
     # is to ignore unknown entities.
 
     def unknown_entityref(self, name):
-        pass # ignore by default; override if necessary
+        pass  # ignore by default; override if necessary
+
 
 ##
 # An alias for the <b>HTMLTreeBuilder</b> class.
@@ -222,9 +205,10 @@ TreeBuilder = HTMLTreeBuilder
 #     are found, the parser defaults to ISO-8859-1.
 # @return An ElementTree instance
 
+
 def parse(source, encoding=None):
     return ElementTree.parse(source, HTMLTreeBuilder(encoding=encoding))
 
+
 if __name__ == "__main__":
-    import sys
     ElementTree.dump(parse(open(sys.argv[1])))

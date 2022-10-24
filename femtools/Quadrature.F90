@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -29,7 +29,7 @@
 module quadrature
   !!< This module implements quadrature of varying degrees for a number of
   !!< elements. Quadrature information is used to numerically evaluate
-  !!< integrals over an element. 
+  !!< integrals over an element.
   use FLDebug
   use reference_counting
   use wandzura_quadrature
@@ -47,7 +47,7 @@ module quadrature
      !! used in quadrature on a given element shape.
      integer, pointer, dimension(:,:) :: p
   end type permutation_type
-  
+
   type generator_type
      !!< The generator type is an encoding of a quadrature generator of the
      !!< type used in the encyclopedia of cubature. This type is only used
@@ -64,7 +64,7 @@ module quadrature
      !! A quadrature is defined by a set of generators.
      type(generator_type), dimension(:), pointer :: generator
      !! Dimension of the space we are in and the degree of accuracy of the
-     !! quadrature. 
+     !! quadrature.
      integer :: dim, degree
      !! Ngi is number of quadrature points. Vertices is number of vertices. These
      !! names are chosen for consistency with the rest of fluidity.
@@ -75,10 +75,10 @@ module quadrature
      !!< A data type which describes quadrature information. For most
      !!< developers, quadrature can be treated as an opaque data type which
      !!< will only be encountered when creating element_type variables to
-     !!< represent shape functions.  
+     !!< represent shape functions.
      integer :: dim !! Dimension of the elements for which quadrature
-     !!< is required.  
-     integer :: degree !! Degree of accuracy of quadrature. 
+     !!< is required.
+     integer :: degree !! Degree of accuracy of quadrature.
      integer :: vertices !! Number of vertices of the element.
      integer :: ngi !! Number of quadrature points.
      real, pointer :: weight(:)=>null() !! Quadrature weights.
@@ -108,13 +108,13 @@ module quadrature
   character(len=100), save, public :: quadrature_error_message=""
 
   !! Unsupported vertex count.
-  integer, parameter, public :: QUADRATURE_VERTEX_ERROR=1 
+  integer, parameter, public :: QUADRATURE_VERTEX_ERROR=1
   !! Quadrature degree requested is not available.
-  integer, parameter, public :: QUADRATURE_DEGREE_ERROR=2 
+  integer, parameter, public :: QUADRATURE_DEGREE_ERROR=2
   !! Elements with this number of dimensions are not available.
-  integer, parameter, public :: QUADRATURE_DIMENSION_ERROR=3 
+  integer, parameter, public :: QUADRATURE_DIMENSION_ERROR=3
   !! Unsupported number of quadrature points.
-  integer, parameter, public :: QUADRATURE_NGI_ERROR=4 
+  integer, parameter, public :: QUADRATURE_NGI_ERROR=4
   !! Not enough arguments specified.
   integer, parameter, public :: QUADRATURE_ARGUMENT_ERROR=5
 
@@ -158,7 +158,7 @@ contains
     generator%weight=weight
     allocate(generator%coords(size(coords)))
     generator%coords=coords
-    
+
   end function make_generator
 
   function make_quadrature(vertices, dim, degree, ngi, family, stat) result (quad)
@@ -219,14 +219,14 @@ contains
             case default
                FLAbort('Invalid quadrature')
             end select
-         
+
       case(1)
          select case(vertices)
             case(2)
                ! All one dimensional elements are intervals.
                template_set=>interval_quads
                coords=2
-               
+
             case default
                FLAbort('Invalid quadrature')
             end select
@@ -234,15 +234,15 @@ contains
       case(2)
          select case(vertices)
          case(3) ! Triangles
-            
+
             template_set=>tri_quads
             coords=3
-         
+
          case(4) ! Quads
 
             template_set=>quad_quads
             coords=2
-            
+
          case default
             ! Sanity test
             write (quadrature_error_message, '(a,i0,a)') &
@@ -297,7 +297,7 @@ contains
          end if
 
       end select
-      
+
       ! Now locate the appropriate template for this degree or number of
       ! quadrature points.`
       if (present(degree)) then
@@ -314,7 +314,7 @@ contains
             end if
 
          end if
-      
+
          template=>template_set(minloc(template_set%degree, dim=1,&
               mask=template_set%degree>=degree))
 
@@ -324,7 +324,7 @@ contains
 
             template=>template_set(minloc(template_set%ngi, dim=1,&
                  mask=template_set%ngi==ngi))
-        
+
          else
             write (quadrature_error_message, '(a,i0,a)') &
                  "make_quadrature: No quadrature with ",ngi," points."
@@ -355,13 +355,13 @@ contains
                  & but ", template%degree, "available."
          end if
       end if
-#endif       
-      
+#endif
+
       ! Now we can start putting together the quad.
       call allocate(quad, vertices, template%ngi, coords)
       quad%degree=template%degree
       quad%dim=dim
-      
+
       call expand_quadrature_template(quad, template)
     else if (lfamily == FAMILY_WANDZURA) then
 
@@ -472,7 +472,7 @@ contains
       quad%dim = dim
 
       call gm_rule_set(gm_rule, dim, gm_order, quad%weight, tmp_coordinates)
-      
+
       allocate(gm_ref_simplex(dim, vertices))
       gm_ref_simplex(:, 1) = 0.0
       do vertex=1,dim
@@ -501,18 +501,18 @@ contains
 
   subroutine allocate_quad(quad, vertices, ngi, coords, stat)
     !!< Allocate memory for a quadrature type. Note that this is done
-    !!< automatically in make_quadrature. 
+    !!< automatically in make_quadrature.
     type(quadrature_type), intent(inout) :: quad
     !! Vertices is the number of vertices. Ngi is the number of quadrature
     !! points. Coords the number of local coords
     integer, intent(in) :: vertices, ngi, coords
     !! Stat returns zero for successful completion and nonzero otherwise.
     integer, intent(out), optional :: stat
-  
+
     integer :: lstat
 
     allocate(quad%weight(ngi), quad%l(ngi,coords), stat=lstat)
-    
+
     quad%vertices=vertices
     quad%ngi=ngi
 
@@ -544,9 +544,9 @@ contains
        ! There are still references to this quad so we don't deallocate.
        return
     end if
-    
+
     deallocate(quad%weight,quad%l, stat=lstat)
-    
+
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
@@ -561,7 +561,7 @@ contains
     !!< Return true if the two quadratures are equivalent.
     logical :: quad_equal
     type(quadrature_type), intent(in) :: quad1, quad2
-    
+
     quad_equal = quad1%dim==quad2%dim &
          .and. quad1%degree==quad2%degree &
          .and. quad1%vertices==quad2%vertices &
@@ -607,10 +607,10 @@ contains
   !------------------------------------------------------------------------
   ! Procedures for generating permutations and quadratures.
   !------------------------------------------------------------------------
-  
+
   subroutine construct_quadrature_templates
     !!< Construct the generators of symmetric rules on the tet.
-    !!< The order of generators follows that on the 
+    !!< The order of generators follows that on the
     !!< Encyclopaedia of Cubature Formulas at:
     !!< http://www.cs.kuleuven.ac.be/~nines/research/ecf/ecf.html
 
@@ -657,7 +657,7 @@ contains
     tet_quads%vertices=4
 
     i=0
-    
+
     !----------------------------------------------------------------------
     ! 1 point degree 1 quadrature.
     ! Citation: Str71
@@ -671,7 +671,7 @@ contains
          permutation=tet_permutations(7), &
          weight=0.166666666666666666666666666666666, &
          coords=(/0.25/))
-    
+
     !----------------------------------------------------------------------
     ! 4 point degree 2 quadrature.
     ! Citation: str71
@@ -762,7 +762,7 @@ contains
          permutation=tet_permutations(9), &
          weight=7.09100346284691107301157135337624E-3, &
          coords=coords(1:2))
-    
+
     !----------------------------------------------------------------------
     ! 24 point degree 6 quadrature.
     ! Citation kea86
@@ -777,21 +777,21 @@ contains
          permutation=tet_permutations(8), &
          weight=6.65379170969458201661510459291332E-3, &
          coords=coords(1:2))
-    
+
     coords(1)=0.0406739585346113531155794489564100
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(2)=make_generator( &
          permutation=tet_permutations(8), &
          weight=1.67953517588677382466887290765614E-3, &
          coords=coords(1:2))
-    
+
     coords(1)=0.322337890142275510343994470762492
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(3)=make_generator( &
          permutation=tet_permutations(8), &
          weight=9.22619692394245368252554630895433E-3, &
          coords=coords(1:2))
-    
+
     coords(1)=0.0636610018750175252992355276057269
     coords(2)=0.269672331458315808034097805727606
     coords(3)=1.0-2.0*coords(1)-coords(2)
@@ -799,7 +799,7 @@ contains
          permutation=tet_permutations(10), &
          weight=8.03571428571428571428571428571428E-3, &
          coords=coords(1:3))
-    
+
     !----------------------------------------------------------------------
     ! 31 point degree 7 quadrature.
     ! Citation kea86
@@ -812,26 +812,26 @@ contains
          permutation=tet_permutations(2), &
          weight=9.70017636684303350970017636684303E-4, &
          coords=(/0.5/))
-    
+
     tet_quads(i)%generator(2)=make_generator( &
          permutation=tet_permutations(7), &
          weight=0.0182642234661088202912015685649462, &
          coords=(/0.25/))
-    
+
     coords(1)=0.0782131923303180643739942508375545
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(3)=make_generator( &
          permutation=tet_permutations(8), &
          weight=0.0105999415244136869164138748545257, &
          coords=coords(1:2))
-    
+
     coords(1)=0.121843216663905174652156372684818
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(4)=make_generator( &
          permutation=tet_permutations(8), &
          weight=-0.0625177401143318516914703474927900, &
          coords=coords(1:2))
-    
+
     coords(1)=0.332539164446420624152923823157707
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(5)=make_generator( &
@@ -859,7 +859,7 @@ contains
          permutation=tet_permutations(7), &
          weight=-0.0205001886586399158405865177642941, &
          coords=(/0.25/))
-    
+
     coords(1)=0.206829931610673204083980900024961
     coords(2)=1.0-3.0*coords(1)
     tet_quads(i)%generator(2)=make_generator( &
@@ -887,7 +887,7 @@ contains
          permutation=tet_permutations(9), &
          weight=4.57968382446728180074351446297276E-3, &
          coords=coords(1:2))
-    
+
     coords(1)=0.229066536116811139600408854554753
     coords(2)=0.0356395827885340437169173969506114
     coords(3)=1.0-2.0*coords(1)-coords(2)
@@ -917,7 +917,7 @@ contains
     tri_quads%vertices=3
 
     i=0
-    
+
     !----------------------------------------------------------------------
     ! 1 point degree 1 quadrature.
     ! Citation: Str71
@@ -947,7 +947,7 @@ contains
          permutation=tri_permutations(5), &
          weight=0.166666666666666666666666666666666, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 4 point degree 3 quadrature.
     ! Citation: Str71
@@ -961,14 +961,14 @@ contains
          permutation=tri_permutations(4), &
          weight=-0.28125, &
          coords=(/0.333333333333333333333333333333333/))
-    
+
     coords(1)=0.2
     coords(2)=1.0-2.0*coords(1)
     tri_quads(i)%generator(2)=make_generator( &
          permutation=tri_permutations(5), &
          weight=0.260416666666666666666666666666666, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 6 point degree 4 quadrature.
     ! Citation: cow73 dun85 blg78 lj75 moa74 sf73
@@ -991,7 +991,7 @@ contains
          permutation=tri_permutations(5), &
          weight=0.111690794839005732847503504216561, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 7 point degree 5 quadrature.
     ! Citation: str71
@@ -1019,7 +1019,7 @@ contains
          permutation=tri_permutations(5), &
          weight=0.0661970763942530903688246939165759, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 12 point degree 6 quadrature.
     ! Citation: cow73 dun85 blg78 lj75 moa74 sf73
@@ -1042,7 +1042,7 @@ contains
          permutation=tri_permutations(5), &
          weight=0.0583931378631896830126448056927897, &
          coords=coords)
-    
+
     coords(1)=0.0531450498448169473532496716313981
     coords(2)=0.310352451033784405416607733956552
     coords(3)=1.0-coords(1)-coords(2)
@@ -1050,7 +1050,7 @@ contains
          permutation=tri_permutations(6), &
          weight=0.0414255378091867875967767282102212, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 12 point degree 7 quadrature.
     ! Citation: gat88
@@ -1059,7 +1059,7 @@ contains
     allocate(tri_quads(i)%generator(4))
     tri_quads(i)%ngi=12
     tri_quads(i)%degree=7
-  
+
     coords(1)=0.0623822650944021181736830009963499
     coords(2)=0.0675178670739160854425571310508685
     coords(3)=1.0-coords(1)-coords(2)
@@ -1067,7 +1067,7 @@ contains
          permutation=tri_cycles(6), &
          weight=0.0265170281574362514287541804607391, &
          coords=coords)
-  
+
     coords(1)=0.0552254566569266117374791902756449
     coords(2)=0.321502493851981822666307849199202
     coords(3)=1.0-coords(1)-coords(2)
@@ -1075,7 +1075,7 @@ contains
          permutation=tri_cycles(6), &
          weight=0.0438814087144460550367699031392875, &
          coords=coords)
-  
+
     coords(1)=0.0343243029450971464696306424839376
     coords(2)=0.660949196186735657611980310197799
     coords(3)=1.0-coords(1)-coords(2)
@@ -1083,7 +1083,7 @@ contains
          permutation=tri_cycles(6), &
          weight=0.0287750427849815857384454969002185, &
          coords=coords)
-  
+
     coords(1)=0.515842334353591779257463386826430
     coords(2)=0.277716166976391782569581871393723
     coords(3)=1.0-coords(1)-coords(2)
@@ -1091,7 +1091,7 @@ contains
          permutation=tri_cycles(6), &
          weight=0.0674931870098027744626970861664214, &
          coords=coords)
-  
+
     !----------------------------------------------------------------------
     ! 16 point degree 8 quadrature.
     ! Citation: lj75, dun85b, lg78
@@ -1100,33 +1100,33 @@ contains
     allocate(tri_quads(i)%generator(5))
     tri_quads(i)%ngi=16
     tri_quads(i)%degree=8
-  
+
     tri_quads(i)%generator(1)=make_generator( &
          permutation=tri_permutations(4), &
          weight=0.0721578038388935841255455552445323, &
          coords=(/1.0/3.0/))
-  
+
     coords(1)=0.170569307751760206622293501491464
     coords(2)=1.0-2.0*coords(1)
     tri_quads(i)%generator(2)=make_generator( &
          permutation=tri_permutations(5), &
          weight=0.0516086852673591251408957751460645, &
          coords=coords(1:2))
-  
+
     coords(1)=0.0505472283170309754584235505965989
     coords(2)=1.0-2.0*coords(1)
     tri_quads(i)%generator(3)=make_generator( &
          permutation=tri_permutations(5), &
          weight=0.0162292488115990401554629641708902, &
          coords=coords(1:2))
-  
+
     coords(1)=0.459292588292723156028815514494169
     coords(2)=1.0-2.0*coords(1)
     tri_quads(i)%generator(4)=make_generator( &
          permutation=tri_permutations(5), &
          weight=0.0475458171336423123969480521942921, &
          coords=coords(1:2))
-  
+
     coords(1)=0.728492392955404281241000379176061
     coords(2)=0.263112829634638113421785786284643
     coords(3)=1.0-coords(1)-coords(2)
@@ -1147,7 +1147,7 @@ contains
     interval_quads%vertices=2
 
     i=0
-    
+
     !----------------------------------------------------------------------
     ! 1 point degree 1 quadrature.
     i=i+1
@@ -1220,7 +1220,7 @@ contains
          permutation=interval_permutations(2), &
          weight=0.326072577431273, &
          coords=coords)
- 
+
     !----------------------------------------------------------------------
     ! 5 point degree 5 quadrature.
     i=i+1
@@ -1248,7 +1248,7 @@ contains
          permutation=interval_permutations(1), &
          weight=0.284444444444444, &
          coords=coords)
-    
+
     !----------------------------------------------------------------------
     ! 6 point degree 6 quadrature.
     i=i+1
@@ -1354,7 +1354,7 @@ contains
   subroutine construct_point_quadrature
     !!< Construct the quadrature of the point according to a top secret
     !!< formula!
-    
+
     point_quad%dim=0
     point_quad%vertices=1
     point_quad%ngi=1
@@ -1364,7 +1364,7 @@ contains
          permutation=point_permutation(1), &
          weight=1.0, &
          coords=(/1.0/))
-    
+
 
   end subroutine construct_point_quadrature
 
@@ -1378,7 +1378,7 @@ contains
     hex_quads%vertices=8
 
     i=0
-    
+
     !----------------------------------------------------------------------
     ! 1 point degree 1 quadrature.
     ! Citation: Str71
@@ -1392,7 +1392,7 @@ contains
          permutation=hex_permutations(1), &
          weight=8.0, &
          coords=(/0.0/))
-    
+
     !----------------------------------------------------------------------
     ! 6 point degree 3 quadrature.
     ! Citation: Str71
@@ -1413,12 +1413,12 @@ contains
     allocate(hex_quads(i)%generator(1))
     hex_quads(i)%ngi=8
     hex_quads(i)%degree=3
-    
+
     hex_quads(i)%generator(1)=make_generator( &
          permutation=hex_permutations(5), &
          weight=1.0, &
          coords=(/sqrt(3.0)/3.0/))
-    
+
     !----------------------------------------------------------------------
     ! 14 point degree 5 quadrature.
     ! Citation: Str71
@@ -1426,17 +1426,17 @@ contains
     allocate(hex_quads(i)%generator(2))
     hex_quads(i)%ngi=14
     hex_quads(i)%degree=5
-    
+
     hex_quads(i)%generator(1)=make_generator( &
          permutation=hex_permutations(2), &
          weight=0.886426592797783933518005540166204, &
          coords=(/0.795822425754221463264548820476135/))
-    
+
     hex_quads(i)%generator(2)=make_generator( &
          permutation=hex_permutations(5), &
          weight=0.335180055401662049861495844875346, &
          coords=(/0.758786910639328146269034278112267/))
-    
+
     !----------------------------------------------------------------------
     ! 27 point degree 5 quadrature.
     ! Citation: Gauss
@@ -1444,13 +1444,13 @@ contains
     allocate(hex_quads(i)%generator(4))
     hex_quads(i)%ngi=27
     hex_quads(i)%degree=5
-    
+
     ! Origin
     hex_quads(i)%generator(1)=make_generator( &
          permutation=hex_permutations(1), &
          weight=(8./9.)**3, &
          coords=(/0.0/))
-    
+
     ! 2 points on each axis
     hex_quads(i)%generator(2)=make_generator( &
          permutation=hex_permutations(2), &
@@ -1462,13 +1462,13 @@ contains
          permutation=hex_permutations(3), &
          weight=(8./9.)*(5./9.)**2, &
          coords=(/sqrt(15.)/5./))
-    
+
     ! Corner points.
     hex_quads(i)%generator(4)=make_generator( &
          permutation=hex_permutations(5), &
          weight=(5./9.)**3, &
          coords=(/sqrt(15.)/5./))
-    
+
     !----------------------------------------------------------------------
     ! 38 point degree 7 quadrature.
     ! Citation: KS 98
@@ -1476,7 +1476,7 @@ contains
     allocate(hex_quads(i)%generator(3))
     hex_quads(i)%ngi=38
     hex_quads(i)%degree=7
-    
+
     hex_quads(i)%generator(1)=make_generator( &
          permutation=hex_permutations(2), &
          weight=0.295189738262622903181631100062774, &
@@ -1485,14 +1485,14 @@ contains
     hex_quads(i)%generator(2)=make_generator( &
          permutation=hex_permutations(5), &
          weight=0.404055417266200582425904380777126, &
-         coords=(/0.408372221499474674069588900002128/))    
+         coords=(/0.408372221499474674069588900002128/))
 
     hex_quads(i)%generator(3)=make_generator( &
          permutation=hex_permutations(6), &
          weight=0.124850759678944080062624098058597, &
          coords=(/0.859523090201054193116477875786220, &
-         &        0.414735913727987720499709244748633/))   
-    
+         &        0.414735913727987720499709244748633/))
+
 
   end subroutine construct_hex_quadratures
 
@@ -1506,7 +1506,7 @@ contains
     quad_quads%vertices=4
 
     i=0
-    
+
     !----------------------------------------------------------------------
     ! 1 point degree 1 quadrature.
     ! Citation: Str71
@@ -1559,19 +1559,19 @@ contains
     allocate(quad_quads(i)%generator(4))
     quad_quads(i)%ngi=14
     quad_quads(i)%degree=5
-    
+
     ! Origin
     quad_quads(i)%generator(1)=make_generator( &
          permutation=quad_permutations(1), &
          weight=(8./9.)**2, &
          coords=(/0.0/))
-    
+
     ! 2 points on each axis
     quad_quads(i)%generator(2)=make_generator( &
          permutation=quad_permutations(2), &
          weight=(5./9.)*(8./9.), &
          coords=(/sqrt(15.)/5./))
-    
+
     ! Corner points.
     quad_quads(i)%generator(3)=make_generator( &
          permutation=quad_permutations(3), &
@@ -1590,16 +1590,16 @@ contains
          permutation=quad_permutations(2), &
          weight=0.241975308641975308641975308641975, &
          coords=(/0.925820099772551461566566776583999/))
-    
+
     quad_quads(i)%generator(2)=make_generator( &
          permutation=quad_permutations(3), &
          weight=0.520592916667394457139919432046731, &
-         coords=(/0.380554433208315656379106359086394/)) 
-    
+         coords=(/0.380554433208315656379106359086394/))
+
     quad_quads(i)%generator(3)=make_generator( &
          permutation=quad_permutations(3), &
          weight=0.237431774690630234218105259311293, &
-         coords=(/0.805979782918598743707856181350744/)) 
+         coords=(/0.805979782918598743707856181350744/))
 
     !----------------------------------------------------------------------
     ! 20 point degree 9 quadrature.
@@ -1613,22 +1613,22 @@ contains
          permutation=quad_permutations(2), &
          weight=0.0716134247098109667847339079718044, &
          coords=(/0.984539811942252392433000600300987/))
-    
+
     quad_quads(i)%generator(2)=make_generator( &
          permutation=quad_permutations(2), &
          weight=0.454090352551545224132152403485726, &
-         coords=(/0.488886342842372416227768621326681/)) 
-    
+         coords=(/0.488886342842372416227768621326681/))
+
     quad_quads(i)%generator(3)=make_generator( &
          permutation=quad_permutations(3), &
          weight=0.0427846154667780511691683400146727, &
-         coords=(/0.939567287421521534134303076231667/)) 
+         coords=(/0.939567287421521534134303076231667/))
 
     quad_quads(i)%generator(4)=make_generator( &
          permutation=quad_permutations(4), &
          weight=0.215755803635932878956972674263898, &
          coords=(/0.836710325023988974095346291152195, &
-         &        0.507376773674613005277484034493916/))     
+         &        0.507376773674613005277484034493916/))
 
   end subroutine construct_quad_quadratures
 
@@ -1651,7 +1651,7 @@ contains
          0, 1, 1, 0, &
          0, 1, 0, 1, &
          0, 0, 1, 1/),(/4,6/))
-    
+
     allocate(tet_permutations(3)%p(4,12))
 
     tet_permutations(3)%p=reshape((/&
@@ -1666,7 +1666,7 @@ contains
          0, 0, 1, 2, &
          2, 0, 0, 1, &
          0, 2, 0, 1, &
-         0, 0, 2, 1/),(/4,12/)) 
+         0, 0, 2, 1/),(/4,12/))
 
     allocate(tet_permutations(4)%p(4,4))
 
@@ -1731,9 +1731,9 @@ contains
          1, 1, 2, 1, &
          1, 2, 1, 1, &
          2, 1, 1, 1/),(/4,4/))
-    
+
     allocate(tet_permutations(9)%p(4,6))
-    
+
     tet_permutations(9)%p=reshape((/&
          1, 1, 2, 2, &
          1, 2, 1, 2, &
@@ -1741,7 +1741,7 @@ contains
          2, 1, 1, 2, &
          2, 1, 2, 1, &
          2, 2, 1, 1/),(/4,6/))
-    
+
     allocate(tet_permutations(10)%p(4,12))
 
     tet_permutations(10)%p=reshape((/&
@@ -1757,7 +1757,7 @@ contains
          3, 1, 2, 1, &
          2, 3, 1, 1, &
          3, 2, 1, 1/),(/4,12/))
-    
+
     allocate(tet_permutations(11)%p(4,24))
 
     tet_permutations(11)%p=reshape((/&
@@ -1789,7 +1789,7 @@ contains
   end subroutine construct_tet_permutations
 
   subroutine construct_tri_permutations
-    
+
     allocate(tri_permutations(1)%p(3,3))
 
     tri_permutations(1)%p=reshape((/&
@@ -1813,7 +1813,7 @@ contains
          0, 1, 2, &
          2, 0, 1, &
          0, 2, 1/),(/3,6/))
-    
+
     allocate(tri_permutations(4)%p(3,1))
 
     tri_permutations(4)%p(:,1)=(/1,1,1/)
@@ -1824,7 +1824,7 @@ contains
          1, 1, 2, &
          1, 2, 1, &
          2, 1, 1/),(/3,3/))
-    
+
     allocate(tri_permutations(6)%p(3,6))
 
     tri_permutations(6)%p=reshape((/&
@@ -1834,12 +1834,12 @@ contains
          3, 1, 2, &
          2, 3, 1, &
          3, 2, 1/),(/3,6/))
-        
+
   end subroutine construct_tri_permutations
 
   subroutine construct_tri_cycles
     ! Construct the cyclic permutations of a triangle.
-    
+
     allocate(tri_cycles(1)%p(3,3))
 
     tri_cycles(1)%p=reshape((/&
@@ -1860,7 +1860,7 @@ contains
          1, 2, 0, &
          0, 1, 2, &
          2, 0, 1/),(/3,3/))
-    
+
     allocate(tri_cycles(4)%p(3,1))
 
     tri_cycles(4)%p(:,1)=(/1,1,1/)
@@ -1871,13 +1871,13 @@ contains
          1, 1, 2, &
          1, 2, 1, &
          2, 1, 1/),(/3,3/))
-    
+
     allocate(tri_cycles(6)%p(3,3))
 
     tri_cycles(6)%p=reshape((/&
          1, 2, 3, &
          3, 1, 2, &
-         2, 3, 1/),(/3,3/))    
+         2, 3, 1/),(/3,3/))
 
   end subroutine construct_tri_cycles
 
@@ -1887,7 +1887,7 @@ contains
     allocate(point_permutation(1)%p(1,1))
 
     point_permutation(1)%p=1
-    
+
   end subroutine construct_point_permutation
 
   subroutine construct_interval_permutations
@@ -1900,7 +1900,7 @@ contains
 
     interval_permutations(2)%p=reshape((/&
          1, 2, &
-         2, 1/),(/2,2/)) 
+         2, 1/),(/2,2/))
 
   end subroutine construct_interval_permutations
 
@@ -1918,8 +1918,8 @@ contains
           0, 0, 1, &
          -1 ,0, 0, &
           0,-1, 0, &
-          0, 0,-1/),(/3,6/)) 
- 
+          0, 0,-1/),(/3,6/))
+
     allocate(hex_permutations(3)%p(3,12))
 
     hex_permutations(3)%p=reshape((/&
@@ -1934,7 +1934,7 @@ contains
           0, 1,-1, &
          -1,-1, 0, &
          -1, 0,-1, &
-          0,-1,-1 /),(/3,12/)) 
+          0,-1,-1 /),(/3,12/))
 
     allocate(hex_permutations(4)%p(3,12))
 
@@ -1963,7 +1963,7 @@ contains
          -2,-1, 0, &
           0,-2,-1, &
          -2, 0,-1/),(/3,12/))
-    
+
     allocate(hex_permutations(5)%p(3,8))
 
     hex_permutations(5)%p=reshape((/&
@@ -2003,7 +2003,7 @@ contains
          -2, 1,-1, &
          -2,-1, 1, &
          -2,-1,-1/),(/3,24/))
-    
+
     allocate(hex_permutations(7)%p(3,48))
 
     hex_permutations(7)%p=reshape((/&
@@ -2054,8 +2054,8 @@ contains
          -3, 2, 1, &
          -3, 2,-1, &
          -3,-2, 1, &
-         -3,-2,-1/),(/3,48/))    
-    
+         -3,-2,-1/),(/3,48/))
+
   end subroutine construct_hex_permutations
 
   subroutine construct_quad_permutations
@@ -2070,7 +2070,7 @@ contains
           1, 0, &
          -1, 0, &
           0, 1, &
-          0,-1/),(/2,4/)) 
+          0,-1/),(/2,4/))
 
     allocate(quad_permutations(3)%p(2,4))
 
@@ -2090,7 +2090,7 @@ contains
           2, 1, &
           2,-1, &
          -2, 1, &
-         -2,-1/),(/2,8/)) 
+         -2,-1/),(/2,8/))
 
   end subroutine construct_quad_permutations
 
@@ -2117,5 +2117,5 @@ contains
     end if
 
   end function factorial
-  
+
 end module quadrature

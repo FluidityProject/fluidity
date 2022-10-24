@@ -44,32 +44,32 @@ USA
 
 using namespace std;
 
-// Function used to find all the halo1 and halo2 elements. 
+// Function used to find all the halo1 and halo2 elements.
 int getH1andH2_elems(deque<unsigned>& halo1_elems, deque<unsigned>& halo2_elems,
-		     const unsigned nNodes, const unsigned nPrivateNodes, 
+		     const unsigned nNodes, const unsigned nPrivateNodes,
 		     const unsigned nElements, const unsigned nloc,
 		     const int * const enlist){
-  
+
   halo1_elems.clear();
   halo2_elems.clear();
-  
+
   // If there is no nodes then there are no elements.
   if( (nNodes == 0)||(nElements == 0) )
     return(0);
-  
+
   // Identify all the halo1 and halo2 elements.
   for(unsigned i=0; i<nElements; i++){
-    
+
     // For each element, start by assuming that everything is a halo2
     // element and that no element might be halo1.
     bool halo2       = true;
     bool halo1_maybe = false;
-    
+
     // Test these assumptions by examining each of the nodes in that
     // element.
     const int * const element = enlist + nloc*i;
     for(unsigned j=0; j<nloc; j++){
-      
+
 #ifndef NDEBUG
       if( element[j] < 1 ){
 	ERROR("Corrupted element-node list. Found node id "
@@ -82,7 +82,7 @@ int getH1andH2_elems(deque<unsigned>& halo1_elems, deque<unsigned>& halo2_elems,
 	return(-2);
       }
 #endif
-      
+
       if(element[j] <= (int)nPrivateNodes){
 	// If a element contains a node which is priviatly owned then
 	// it is not a halo2 element.
@@ -92,9 +92,9 @@ int getH1andH2_elems(deque<unsigned>& halo1_elems, deque<unsigned>& halo2_elems,
 	// then it is either a halo1 or halo2 element.
 	halo1_maybe = true;
       }
-      
+
     }
-    
+
     // Record any halo1 elements and halo2 elements
     if(halo2){
       // Record as a halo2 element.
@@ -106,17 +106,17 @@ int getH1andH2_elems(deque<unsigned>& halo1_elems, deque<unsigned>& halo2_elems,
 	halo1_elems.push_back( i );
       }
     }
-    
+
   }
-  
+
   return(0);
 }
 
 // Create the set of all nodes at are in halo2 but not halo1.
-int mk_h2node_set(set<unsigned>& halo2_nodes, 
+int mk_h2node_set(set<unsigned>& halo2_nodes,
 		  const deque<unsigned>& halo1_elems, const deque<unsigned>& halo2_elems,
 		  const unsigned nloc, const int * const enlist){
-  
+
   if(halo2_elems.empty())
     return(0);
 
@@ -124,51 +124,51 @@ int mk_h2node_set(set<unsigned>& halo2_nodes,
   // nodes in the halo2 elements.
   for(deque<unsigned>::const_iterator it=halo2_elems.begin(); it!=halo2_elems.end(); ++it){
     const int * const element = enlist + nloc*(*it);
-    
+
     for(unsigned i=0; i<nloc; i++)
       halo2_nodes.insert( element[i] );
   }
-  
+
   // Identify all nodes in the halo1 elements.
   set<unsigned> halo1_nodes;
   for(deque<unsigned>::const_iterator it=halo1_elems.begin(); it!=halo1_elems.end(); ++it){
     const int * const element = enlist + nloc*(*it);
-    
+
     for(unsigned i=0; i<nloc; i++)
       halo1_nodes.insert( element[i] );
   }
-  
+
   // If a node is found in both sets, halo1_nodes and halo2_nodes, when
   // remove node from the halo2_nodes set.
   for(set<unsigned>::const_iterator it = halo1_nodes.begin(); it != halo1_nodes.end(); ++it){
     set<unsigned>::iterator pos = halo2_nodes.find( *it );
-    
+
     if( pos != halo2_nodes.end() )
       halo2_nodes.erase( pos );
   }
-  
+
   return(0);
 }
 
 // returns the new number of elements
-int cleanup_enlist(deque<unsigned>& halo2_elems, int *enlist, int nelems, unsigned nloc){ 
-  
-  unsigned del_cnt = halo2_elems.size();  
+int cleanup_enlist(deque<unsigned>& halo2_elems, int *enlist, int nelems, unsigned nloc){
+
+  unsigned del_cnt = halo2_elems.size();
   if(del_cnt == 0) return(nelems);
-  
+
   // Start deleting
   do{
-      
+
     deque<unsigned>::reverse_iterator pos_back = halo2_elems.rbegin();
     deque<unsigned>::iterator pos_front = halo2_elems.begin();
-    
+
     if(*pos_back == (unsigned)(nelems - 1)){
-      
+
       // If the last element is to be deleted then delete from back.
       halo2_elems.pop_back();
 
     }else{
-      
+
       // Copy element forward from back.
       int *element1 = enlist + nloc*(*pos_front);
       int *element2 = enlist + nloc*(nelems - 1);
@@ -179,7 +179,7 @@ int cleanup_enlist(deque<unsigned>& halo2_elems, int *enlist, int nelems, unsign
       halo2_elems.pop_front();
 
     }
-    
+
     // One less element to worry about.
     nelems--;
 
@@ -191,13 +191,13 @@ int cleanup_enlist(deque<unsigned>& halo2_elems, int *enlist, int nelems, unsign
 #define flstriph2_fc F77_FUNC(flstriph2, FLSTRIPH2)
 extern "C" {
   void flstriph2_fc(int *nNodes, const int *nPrivateNodes, const int *nprocs,
-		    int VolumeENlist[],   int *nVolumeElems,   const int *nloc, 
-		    int SurfaceENlist[],  int SurfaceIDs[], int *nSurfaceElems,  const int *snloc, 
+		    int VolumeENlist[],   int *nVolumeElems,   const int *nloc,
+		    int SurfaceENlist[],  int SurfaceIDs[], int *nSurfaceElems,  const int *snloc,
 		    samfloat_t X[], samfloat_t Y[], samfloat_t Z[],
 		    samfloat_t fields[], int *nfields,  int *fstride,
 		    samfloat_t metric[],
 		    int scatter[],  int *nscatter){
-  
+
     { //
       // Identify volume elements to be deleted, and delete.
       //
@@ -211,7 +211,7 @@ extern "C" {
 	    break;
 	  }
 	}
-      
+
 	if(keep){
 	  if(last_element != i){
 	    int *last = VolumeENlist + last_element*(*nloc);
@@ -222,7 +222,7 @@ extern "C" {
 	  last_element++;
 	}
       }
-    
+
       // Update the number of volume elements
       assert(*nVolumeElems >= last_element);
       *nVolumeElems = last_element;
@@ -241,7 +241,7 @@ extern "C" {
 	    break;
 	  }
 	}
-      
+
 	if(keep){
 	  if(last_element != i){
 	    int *last = SurfaceENlist + last_element*(*snloc);
@@ -259,11 +259,11 @@ extern "C" {
       *nSurfaceElems = last_element;
     } // unnecessary surface elements deleted
 
-    // Find all halo1 nodes  
+    // Find all halo1 nodes
     set<unsigned> halo1Nodes;
     for(size_t i=0; i<(size_t)*nscatter; i++)
       halo1Nodes.insert( scatter[i] );
-  
+
     // Establish the renumbering of the halo nodes
     int last_node = *nPrivateNodes;
     map<int, int> renumbering;
@@ -271,7 +271,7 @@ extern "C" {
       last_node++;
       renumbering[ *it ] = last_node;
     }
-  
+
     // renumber nodes in elements-node list
     for(size_t i=0; i<(size_t)*nVolumeElems; i++){
       int *elem = VolumeENlist + i*(*nloc);
@@ -298,21 +298,21 @@ extern "C" {
 	  exit(-1);
 	}
 	size_t gid = renumbering[i+1] - 1;
-	
-	if(gid==i) 
+
+	if(gid==i)
 	  continue;
-      
+
 	X[gid] = X[i];
 	Y[gid] = Y[i];
 	Z[gid] = Z[i];
-      
+
 	for(size_t j=0; j<(size_t)*nfields; j++)
 	  fields[j*(*fstride) + gid] = fields[j*(*fstride) + i];
-      
+
 	for(size_t j=0; j<9; j++)
 	  metric[gid*9 + j] = metric[i*9 + j];
       }
-  
+
     // Sort out the halo numbering for the halo
     for(size_t i=0; i<(size_t)*nscatter; i++){
       assert(renumbering.find(scatter[i]) != renumbering.end());
@@ -321,9 +321,9 @@ extern "C" {
 #endif
       scatter[i] = renumbering[ scatter[i] ];
     }
-  
+
     *nNodes = last_node;
-  
+
     return;
   }
 }

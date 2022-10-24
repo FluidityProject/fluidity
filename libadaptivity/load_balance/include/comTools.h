@@ -44,7 +44,7 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
   assert(NProcs == inout.size());
-  
+
   // Inform all process how much data they are receiving from every
   // other process. This is implemented using MPI_Alltoall because
   // some implementations of MPI are a bit restrictive on the number
@@ -103,20 +103,20 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
     MPI_Abort(MPI_COMM_WORLD,-1);
   }
   const MPI_Datatype const_mpi_type = mpi_type;
-  
+
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
       MPI_Isend(&(inout[p][0]), send_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(sendRequest[p]));
     }
   }
-  
+
   // Receive
   for(size_t p=0;p<NProcs;p++){
     if(recv_count[p]){
       // Allocate receive space.
       recvBuffer[p].resize(recv_count[p]);
-      
+
       // initiate non-blocking receive
       MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
@@ -125,7 +125,7 @@ void allSendRecv(std::vector< std::vector<T> >& inout){
   MPI_Waitall(NProcs, &(recvRequest[0]), MPI_STATUSES_IGNORE); // Wait all receives
 
   inout.swap(recvBuffer);
- 
+
   return;
 }
 
@@ -144,10 +144,10 @@ void allSendRecv(std::vector< std::set<T> >& inout){
     }
     inout[i].clear();
   }
-  
+
   // Communicate
   allSendRecv(in);
-  
+
   // Write to sets
   for(unsigned i=0; i<len; i++){
     for(typename std::vector<T>::const_iterator it=in[i].begin(); it!=in[i].end(); ++it){
@@ -155,19 +155,19 @@ void allSendRecv(std::vector< std::set<T> >& inout){
     }
     in[i].clear();
   }
-  
+
   return;
 }
 
 template<class T>
-void allSendRecv(const std::vector< std::vector<T> >& sendBuffer, 
+void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
 		 std::vector< std::vector<T> >& recvBuffer){
-  int MyRank; 
+  int MyRank;
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   size_t NProcs = sendBuffer.size();
   recvBuffer.clear();
   recvBuffer.resize(NProcs);
-  
+
   // Determine the MPI datatype on the fly.
   MPI_Datatype mpi_type;
 
@@ -206,7 +206,7 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
               << " passed into allSendRecv(std::vector< std::vector<T> >& inout)"
               << std::endl;
     exit(-1);
-  }  
+  }
   const MPI_Datatype const_mpi_type = mpi_type;
 
   // Inform all process how much data they are receiving from every
@@ -219,12 +219,12 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
   }
   MPI_Alltoall(&(send_count[0]), 1, MPI_INT,
                            &(recv_count[0]), 1, MPI_INT, MPI_COMM_WORLD);
-  
+
   // MPI_Status sendStatus, recvStatus;
   std::vector<MPI_Request> sendRequest(NProcs, MPI_REQUEST_NULL);
   std::vector<MPI_Request> recvRequest(NProcs, MPI_REQUEST_NULL);
   MPI_Status recvStatus;
-  
+
   // Send
   for(size_t p=0;p<NProcs;p++){
     if(send_count[p]){
@@ -237,7 +237,7 @@ void allSendRecv(const std::vector< std::vector<T> >& sendBuffer,
     if(recv_count[p]){
       // Allocate receive space.
       recvBuffer[p].resize(recv_count[p]);
-      
+
       // initiate non-blocking receive
       MPI_Irecv(&(recvBuffer[p][0]), recv_count[p], const_mpi_type, p, 1, MPI_COMM_WORLD, &(recvRequest[p]));
     }
@@ -252,7 +252,7 @@ template<class T>
 void allSendRecv(const std::vector< std::set<T> >& in, std::vector< std::set<T> >& out){
   unsigned len = in.size();
   out.clear();
-  
+
   // Write to vectors
   std::vector< std::vector<T> > inout(len);
   for(unsigned i=0; i<len; i++){
@@ -262,10 +262,10 @@ void allSendRecv(const std::vector< std::set<T> >& in, std::vector< std::set<T> 
       inout[i][j++] = *it;
     }
   }
-  
+
   // Communicate
   allSendRecv(inout);
-  
+
   // Write to sets
   out.resize(len);
   for(unsigned i=0; i<len; i++){
@@ -274,7 +274,7 @@ void allSendRecv(const std::vector< std::set<T> >& in, std::vector< std::set<T> 
     }
     inout[i].clear();
   }
-  
+
   return;
 }
 

@@ -27,7 +27,7 @@ subroutine test_strain_rate
 
   positions=read_mesh_files("data/cube.3", quad_degree=4, format="gmsh")
   mesh => positions%mesh
-  
+
   call allocate(field, 3, mesh, "Field")
   call allocate(strain_rate_field, mesh, "StrainRate")
   call allocate(solution_field, mesh, "Solution")
@@ -39,13 +39,13 @@ subroutine test_strain_rate
   call strain_rate(field, positions, strain_rate_field)
   ! now compute the expected solution
   call set_from_function(solution_field, solution, positions)
-  
+
   call set(diff_field, strain_rate_field)
   call addto(diff_field, solution_field, scale=-1.0)
-  
+
   call vtk_write_fields("data/strain_rate_out", 0, positions, mesh, &
      vfields=(/ field/), tfields=(/ strain_rate_field, solution_field, diff_field /))
-  
+
   fail = maxval( abs( diff_field%val ))> 1e-10
   call report_test("[strain_rate]", fail, .false., "strain_rate different than expected")
 
@@ -60,7 +60,7 @@ function velocity(pos)
   velocity(1) = x + 2*y + 3*z
   velocity(2) = 4*x + 5*y + 6*z
   velocity(3) = 7*x + 8*y + 9*z
-  
+
 end function velocity
 
 function solution(pos)
@@ -78,5 +78,5 @@ function solution(pos)
   solution(3,1)=5
   solution(3,2)=7
   solution(3,3)=9
-  
+
 end function solution

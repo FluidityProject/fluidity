@@ -104,7 +104,7 @@ public:
     static Real FastInvCos0 (Real fValue);
     static Real FastInvCos1 (Real fValue);
 
-    // The input must be in [-1,1]. 
+    // The input must be in [-1,1].
     // max error invtan0 = 1.2e-05, speed up = 2.8
     // max error invtan1 = 2.3e-08, speed up = 1.8
     static Real FastInvTan0 (Real fValue);

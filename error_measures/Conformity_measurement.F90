@@ -1,7 +1,7 @@
 #include "fdebug.h"
 
 module conformity_measurement
-!! See 
+!! See
 !! A universal measure of the conformity of a mesh with respect to an anisotropic metric field
 !! P. Labbe and J. Dompierre and M.-G. Vallet and F. Guibault and J.-Y. Trépanier
 !! International Journal for Numerical Methods in Engineering
@@ -159,7 +159,7 @@ module conformity_measurement
   function metric_ratio_bounds(positions, metric) result(minmax)
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: metric
-    
+
     real, dimension(2) :: minmax
 
     integer :: ele
@@ -170,7 +170,7 @@ module conformity_measurement
     A = edge_length_from_eigenvalue(simplex_tensor(positions, 1))
     B = edge_length_from_eigenvalue(elemental_metric(metric, positions, 1))
     minmax = anisotropic_ratio(A, B)
-        
+
     do ele = 2, ele_count(positions)
       A = edge_length_from_eigenvalue(simplex_tensor(positions, ele))
       B = edge_length_from_eigenvalue(elemental_metric(metric, positions, ele))

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import fluidity.diagnostics.annulus_mesh as mesh
 import fluidity.diagnostics.gmshtools as gt
 

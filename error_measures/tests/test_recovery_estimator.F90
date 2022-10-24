@@ -36,7 +36,7 @@ subroutine test_recovery_estimator
   call form_recovery_estimator(field, positions, elementwise)
 
   call vtk_write_fields("data/recovery_estimator", 0, positions, mesh, sfields=(/elementwise/))
-  
+
   call report_test("[recovery estimator]", .false., .false., "If it doesn't crash you're on to a winner")
 
   call deallocate(state)

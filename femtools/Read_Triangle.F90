@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -30,7 +30,7 @@
 module read_triangle
   !!< This module reads triangle files and results in a vector field of
   !!< positions.
-   
+
   use fldebug
   use futils
   use quadrature
@@ -52,13 +52,13 @@ module read_triangle
   public :: read_triangle_files, identify_triangle_file, read_elemental_mappings, read_triangle_serial
 
 contains
-  
+
   subroutine identify_triangle_file(filename, dim, loc, nodes, elements, &
        node_attributes, selements, selement_boundaries)
-    !!< Discover the dimension and size of the triangle inputs. 
+    !!< Discover the dimension and size of the triangle inputs.
     !!< Filename is the base name of the triangle file without .node or .ele.
     !!< In parallel, filename must *include* the process number.
-      
+
     character(len=*), intent(in) :: filename
     !! Dimension of mesh elements.
     integer, intent(out), optional :: dim
@@ -171,13 +171,13 @@ contains
 45  FLExit("Unable to open " // trim(filename) // ".edge")
 
 46  FLExit("Unable to open " // trim(filename) // ".face")
-    
+
   end subroutine identify_triangle_file
 
   function read_triangle_files_to_field(filename, shape) result (field)
     !!< Filename is the base name of the triangle file without .node or .ele .
     !!< In parallel the filename must *not* include the process number.
-    
+
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
     type(vector_field)  :: field
@@ -187,14 +187,14 @@ contains
     integer, allocatable, dimension(:,:) :: edge_buffer
     integer, allocatable, dimension(:) :: sndglno
     integer, allocatable, dimension(:) :: boundary_ids, element_owner
-    
+
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
          & ele_attributes, loc, sloc, elements, edges, edge_count, gdim
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
-    
+
     ! If running in parallel, add the process number
     if(isparallel()) then
       lfilename = parallel_filename(filename)
@@ -207,7 +207,7 @@ contains
     ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
     ! Open node file
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
-    
+
     ! Read node file header.
     read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
@@ -216,7 +216,7 @@ contains
     ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
     ! Open element file
     open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
-    
+
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
@@ -232,7 +232,7 @@ contains
           node_order(j)=j
        end do
     end select
-    
+
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
 
     if (have_option('/geometry/spherical_earth/')) then
@@ -281,7 +281,7 @@ contains
     if(ele_attributes==1) then  ! this assumes that the element attribute is a region id
       allocate(field%mesh%region_ids(1:elements))
     end if
-    
+
     do i=1,elements
        read(ele_unit,*) read_buffer
        field%mesh%ndglno((i-1)*loc+1:i*loc)=floor(read_buffer(node_order+1))
@@ -328,7 +328,7 @@ contains
       edges = 0
       boundaries = 1
     end if
-    
+
     if(edges==0) then
        file_exists = .false.
        close(node_unit)
@@ -363,7 +363,7 @@ contains
       element_owner=0
     end if
     edge_count=0
-    
+
     if (boundaries==0) then
        ewrite(0,*) "Warning: triangle edge file has no boundary markers"
        if(file_exists) then
@@ -373,7 +373,7 @@ contains
     else
       if(file_exists) then
         read(node_unit, *) edge_buffer
-        
+
         do i=1, edges
           if (edge_buffer(sloc+2,i)/=0) then
             ! boundary edge/face
@@ -386,12 +386,12 @@ contains
             end if
           end if
         end do
-        
+
         file_exists=.false.
         close(node_unit)
       end if
     end if
-    
+
     if (boundaries<2) then
       call add_faces(field%mesh, &
           &               sndgln=sndglno(1:edge_count*sloc), &
@@ -414,14 +414,14 @@ contains
 42  FLExit("Unable to open "//trim(lfilename)//".node")
 
 43  FLExit("Unable to open "//trim(lfilename)//".ele")
-    
-    
+
+
   end function read_triangle_files_to_field
 
   function read_triangle_simple(filename, quad_degree, quad_ngi, no_faces, quad_family, mdim) result (field)
     !!< A simpler mechanism for reading a triangle file into a field.
     !!< In parallel the filename must *not* include the process number.
-    
+
     character(len=*), intent(in) :: filename
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree
@@ -465,7 +465,7 @@ contains
     else
       field=read_triangle_files(filename, shape)
     end if
-    
+
     ! deallocate our references of shape and quadrature:
     call deallocate(shape)
     call deallocate(quad)
@@ -526,7 +526,7 @@ contains
   function read_triangle_files_to_field_no_faces(filename, shape) result (field)
     !!< Filename is the base name of the triangle file without .node or .ele .
     !!< In parallel the filename must *not* include the process number.
-    
+
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
     type(vector_field)  :: field
@@ -536,7 +536,7 @@ contains
     integer, allocatable, dimension(:,:) :: edge_buffer
     integer, allocatable, dimension(:) :: sndglno
     integer, allocatable, dimension(:) :: boundary_ids
-    
+
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, xdim, node_attributes, boundaries,&
          & ele_attributes, loc, sloc, elements, edges, edge_count
@@ -556,7 +556,7 @@ contains
     ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
     ! Open node file
     open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
-    
+
     ! Read node file header.
     read (node_unit, *) nodes, xdim, node_attributes, boundaries
 
@@ -565,7 +565,7 @@ contains
     ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
     ! Open element file
     open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
-    
+
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
@@ -581,7 +581,7 @@ contains
           node_order(j)=j
        end do
     end select
-    
+
     call allocate(mesh, nodes, elements, shape, name=filename)
 
     ! Field has an upper index of 3. Therefore, if dim==3 and
@@ -654,7 +654,7 @@ contains
       edges = 0
       boundaries = 1
     end if
-    
+
     if (boundaries==0 .or. edges==0) then
        if(file_exists) then
           close(node_unit)
@@ -696,7 +696,7 @@ contains
          boundary_ids(edge_count)=edge_buffer(sloc+2,i)
        end if
     end do
-    
+
     deallocate(edge_buffer)
     deallocate(sndglno)
     deallocate(boundary_ids)
@@ -710,12 +710,12 @@ contains
 42  FLExit("Unable to open "//trim(lfilename)//".node")
 
 43  FLExit("Unable to open "//trim(lfilename)//".ele")
-    
-    
+
+
   end function read_triangle_files_to_field_no_faces
 
   function read_triangle_serial(filename, quad_degree) result (field)
-    
+
     character(len=*), intent(in) :: filename
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree

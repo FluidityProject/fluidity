@@ -14,7 +14,7 @@ subroutine test_matmul_t_sparse
   logical :: fail,fail1,fail2, fail3
   character(len=size_mat) :: buf
   real, dimension(4) :: rand0
-  
+
   do k=1,5
 
      call allocate(A_d, size_mat,size_mat)

@@ -34,10 +34,10 @@ module fetools
   private :: integral_element_scalar, integral_element_vector, integral_element_scalars
 
 contains
-  
+
   function shape_rhs(shape, detwei)
     !!<             /
-    !!<   Calculate | shape detwei dV 
+    !!<   Calculate | shape detwei dV
     !!<             /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -55,7 +55,7 @@ contains
 
   function shape_vector_rhs(shape,vector,detwei)
     !!<            /
-    !!<  Calculate | shape vector detwei dV 
+    !!<  Calculate | shape vector detwei dV
     !!<            /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -72,7 +72,7 @@ contains
     integer :: dim,i
 
     assert(size(vector,2)==shape%ngi)
-    
+
     dim = size(vector,1)
     forall(i=1:dim)
        shape_vector_rhs(i,:)=matmul(shape%n, detwei * vector(i,:))
@@ -82,7 +82,7 @@ contains
 
   function shape_tensor_rhs(shape,tensor,detwei)
     !!<            /
-    !!<  Calculate | shape tensor detwei dV 
+    !!<  Calculate | shape tensor detwei dV
     !!<            /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -100,7 +100,7 @@ contains
 
     assert(size(tensor,3)==shape%ngi)
     shape_tensor_rhs = 0.0
-    
+
     dim1 = size(tensor,1)
     dim2 = size(tensor,2)
     forall(i=1:dim1)
@@ -113,7 +113,7 @@ contains
 
   function shape_tensor_dot_vector_rhs(shape,tensor,vector,detwei)
     !!<            /
-    !!<  Calculate | shape tensor detwei dV 
+    !!<  Calculate | shape tensor detwei dV
     !!<            /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -131,7 +131,7 @@ contains
 
     assert(size(tensor,3)==shape%ngi)
     assert(size(tensor,2)==size(vector,1))
-    
+
     dim = size(tensor,1)
     ngi = shape%ngi
     shape_tensor_dot_vector_rhs = 0.0
@@ -146,7 +146,7 @@ contains
 
   function dshape_dot_vector_rhs(dshape, vector, detwei)
     !!<             /
-    !!<   Calculate | dshape detwei dV 
+    !!<   Calculate | dshape detwei dV
     !!<             /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -173,7 +173,7 @@ contains
 
   function dshape_dot_tensor_rhs(dshape,tensor,detwei)
     !!<            /
-    !!<  Calculate | dshape_dxj tensor_ij dV 
+    !!<  Calculate | dshape_dxj tensor_ij dV
     !!<            /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -307,7 +307,7 @@ contains
 
   function dshape_rhs(dshape, detwei)
     !!<            /
-    !!<  Calculate | dshape detwei dV 
+    !!<  Calculate | dshape detwei dV
     !!<            /
     !!<
     !!< Note that this is an integral of a single shape function. This is
@@ -322,7 +322,7 @@ contains
     integer :: dim,i
 
     dim = size(dshape,3)
-    
+
     forall(i=1:dim)
        dshape_rhs(i,:)=matmul(dshape(:,:,i),detwei)
     end forall
@@ -330,11 +330,11 @@ contains
   end function dshape_rhs
 
   function shape_dshape(shape, dshape, detwei)
-    !!< For each node in element shape and transformed gradient dshape, 
+    !!< For each node in element shape and transformed gradient dshape,
     !!< calculate the coefficient of the integral int(shape dshape)dV.
     type(element_type), intent(in) :: shape
     !! The dimensions of dshape are:
-    !!  (nodes, gauss points, dimensions) 
+    !!  (nodes, gauss points, dimensions)
     real, dimension(:,:,:), intent(in) :: dshape
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
@@ -362,11 +362,11 @@ contains
   end function shape_dshape
 
   function dshape_shape(dshape, shape, detwei)
-    !!< For each node in element shape and transformed gradient dshape, 
+    !!< For each node in element shape and transformed gradient dshape,
     !!< calculate the coefficient of the integral int(dshape shape)dV.
     type(element_type), intent(in) :: shape
     !! The dimensions of dshape are:
-    !!  (nodes, gauss points, dimensions) 
+    !!  (nodes, gauss points, dimensions)
     real, dimension(:,:,:), intent(in) :: dshape
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
@@ -389,7 +389,7 @@ contains
   end function dshape_shape
 
   function dshape_dot_dshape(dshape1, dshape2, detwei) result (R)
-    !!<            /          
+    !!<            /
     !!<  Evaluate: |(Grad N1)' dot (Grad N2) dV For shapes N1 and N2.
     !!<            /
     real, dimension(:,:,:), intent(in) :: dshape1, dshape2
@@ -399,14 +399,14 @@ contains
 
     integer :: iloc,jloc, gi
     integer :: loc1, loc2, ngi, dim
-    
+
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
     dim=size(dshape1,3)
-    
+
     assert(loc1==loc2)
-    
+
     R=0.0
 
     select case(dim)
@@ -454,13 +454,13 @@ contains
 
   function shape_vector_outer_dshape(&
        shape,vector,dshape,detwei) result (tensor)
-    !!< For each node in element shape and transformed gradient dshape, 
-    !!< calculate the coefficient of the integral 
+    !!< For each node in element shape and transformed gradient dshape,
+    !!< calculate the coefficient of the integral
     !!<
     !!<  Q_ij = int(shape vector_i dshape_j)dV.
     type(element_type), intent(in) :: shape
     !! The dimensions of dshape are:
-    !!  (nodes, gauss points, dimensions) 
+    !!  (nodes, gauss points, dimensions)
     real, dimension(:,:,:), intent(in) :: dshape
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
@@ -487,13 +487,13 @@ contains
 
   function dshape_outer_vector_shape( &
        dshape,vector,shape,detwei) result (tensor)
-    !!< For each node in element shape and transformed gradient dshape, 
+    !!< For each node in element shape and transformed gradient dshape,
     !!< calculate the coefficient of the integral
     !!<
     !!<  Q_ij = int(shape vector_i dshape_j)dV.
     type(element_type), intent(in) :: shape
     !! The dimensions of dshape are:
-    !!  (nodes, gauss points, dimensions) 
+    !!  (nodes, gauss points, dimensions)
     real, dimension(:,:,:), intent(in) :: dshape
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
@@ -519,11 +519,11 @@ contains
   end function dshape_outer_vector_shape
 
   function dshape_outer_dshape(dshape1, dshape2, detwei) result (R)
-    !!< For each node in each transformed gradient dshape1, dshape2, 
+    !!< For each node in each transformed gradient dshape1, dshape2,
     !!< calculate the coefficient of the integral int(dshape outer dshape)dV.
 
     !! The dimensions of dshape are:
-    !!  (nodes, gauss points, dimensions) 
+    !!  (nodes, gauss points, dimensions)
     real, dimension(:,:,:), intent(in) :: dshape1,dshape2
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
@@ -532,7 +532,7 @@ contains
 
     integer :: iloc,jloc, i,j
     integer :: loc1, loc2, ngi, dim1, dim2
-    
+
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
@@ -551,26 +551,26 @@ contains
   function dshape_diagtensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     !!<
     !!< Evaluate: (Grad N1)' diag(T) (Grad N2) For shape N and tensor T.
-    !!<          
+    !!<
     real, dimension(:,:,:), intent(in) :: dshape1, dshape2
     real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
     real, dimension(size(dshape1,2)) :: detwei
 
     real, dimension(size(dshape1,1),size(dshape2,1)) :: R
-    
+
     real, dimension(size(dshape1,3),size(dshape1,2)) :: diag_tensor
     integer :: iloc,jloc, gi
     integer :: loc1, loc2, ngi, dim
-    
+
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
     dim=size(dshape1,3)
-    
+
     assert(loc1==loc2)
-    
+
     R=0.0
-    
+
     select case(dim)
       case(3)
         do gi=1,ngi
@@ -612,25 +612,25 @@ contains
   function dshape_vector_dshape(dshape1, vector, dshape2, detwei) result (R)
     !!<
     !!< Evaluate: (Grad N1)' V (Grad N2) For shape N and vector V.
-    !!<          
+    !!<
     real, dimension(:,:,:), intent(in) :: dshape1, dshape2
     real, dimension(size(dshape1,3),size(dshape1,2)), intent(in) :: vector
     real, dimension(size(dshape1,2)) :: detwei
 
     real, dimension(size(dshape1,1),size(dshape2,1)) :: R
-    
+
     integer :: iloc,jloc, gi
     integer :: loc1, loc2, ngi, dim
-    
+
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
     dim=size(dshape1,3)
-    
+
     assert(loc1==loc2)
-    
+
     R=0.0
-    
+
     select case(dim)
       case(3)
         do gi=1,ngi
@@ -668,7 +668,7 @@ contains
   function dshape_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     !!<
     !!< Evaluate: (Grad N1)' T (Grad N2) For shape N and tensor T.
-    !!<          
+    !!<
     real, dimension(:,:,:), intent(in) :: dshape1, dshape2
     real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
     real, dimension(size(dshape1,2)) :: detwei
@@ -677,16 +677,16 @@ contains
 
     integer :: iloc,jloc, gi
     integer :: loc1, loc2, ngi, dim
-    
+
     loc1=size(dshape1,1)
     loc2=size(dshape2,1)
     ngi=size(dshape1,2)
     dim=size(dshape1,3)
-    
+
     assert(loc1==loc2)
-    
+
     R=0.0
-    
+
     do gi=1,ngi
        forall(iloc=1:loc1,jloc=1:loc2)
           r(iloc,jloc)=r(iloc,jloc) &
@@ -698,7 +698,7 @@ contains
   end function dshape_tensor_dshape
 
   function dshape_dot_vector_shape(dshape, vector, shape, detwei) result (R)
-    !!< 
+    !!<
     !!< Evaluate (Grad N1 dot vector) (N2)
     !!<
     real, dimension(:,:,:), intent(in) :: dshape
@@ -737,7 +737,7 @@ contains
 
     dshape_loc=size(dshape,1)
     dim2=size(tensor,2)
-    
+
     forall(iloc=1:dshape_loc,jloc=1:shape%loc,idim2=1:dim2)
       R(idim2,iloc,jloc)=dot_product(sum( dshape(iloc,:,:)* transpose(tensor(:,idim2,:)) ) &
             *shape%n(jloc,:), detwei)
@@ -745,11 +745,11 @@ contains
 
 
   end function dshape_dot_tensor_shape
-  
+
   function shape_vector_dot_dshape(shape, vector, dshape, detwei) result (R)
-    !!< 
+    !!<
     !!< Evaluate (Grad N1 dot vector) (N2)
-    !!< 
+    !!<
    type(element_type), intent(in) :: shape
     real, dimension(:,:,:), intent(in) :: dshape
     real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
@@ -772,7 +772,7 @@ contains
   end function shape_vector_dot_dshape
 
   function shape_curl_shape_2d(shape, dshape, detwei) result (R)
-    !!<            /          
+    !!<            /
     !!<  Evaluate: |(N1)(Curl N2) dV For shapes N1 and N2.
     !!<            /
     !!< Note that curl is a dimension-specific operator so this version
@@ -788,7 +788,7 @@ contains
 
     dshape_loc=size(dshape,1)
     dim=size(dshape,3)
-    
+
     assert(dim==2)
 
     forall(iloc=1:shape%loc,jloc=1:dshape_loc)
@@ -812,11 +812,11 @@ contains
     type(vector_field), intent(in) :: X
     ! The number of the element to operate on.
     integer, intent(in) :: ele
-    
+
     real, dimension(ele_ngi(field,ele)) :: detwei
 
     real, dimension(ele_loc(field,ele)) :: field_val
-    
+
     field_val=ele_val(field, ele)
 
     field_shape=>ele_shape(field, ele)
@@ -839,11 +839,11 @@ contains
     type(vector_field), intent(in) :: X
     ! The number of the current element
     integer, intent(in) :: ele
-    
+
     real, dimension(ele_ngi(field, ele)) :: detwei
-    
+
     call transform_to_physical(X, ele, detwei=detwei)
-    
+
     integral=dot_product(ele_val_at_quad(field, ele), detwei)
 
   end function integral_element_scalar
@@ -857,13 +857,13 @@ contains
     type(vector_field), intent(in) :: X
     ! The number of the current element
     integer, intent(in) :: ele
-    
+
     real, dimension(field%dim) :: integral
 
     real, dimension(ele_ngi(field, ele)) :: detwei
-    
+
     call transform_to_physical(X, ele, detwei=detwei)
-    
+
     integral=matmul(matmul(ele_val(field, ele), field%mesh%shape%n), detwei)
 
   end function integral_element_vector
@@ -876,13 +876,13 @@ contains
     type(vector_field), intent(in) :: X
     ! The number of the current element
     integer, intent(in) :: ele
-    
+
     real :: integral
 
     real, dimension(ele_ngi(fieldA, ele)) :: detwei
-    
+
     call transform_to_physical(X, ele, detwei=detwei)
-    
+
     integral = sum(sum(ele_val_at_quad(fieldA, ele) * ele_val_at_quad(fieldB, ele), dim=1)*detwei)
 
   end function dot_integral_element_vector
@@ -897,30 +897,30 @@ contains
     type(vector_field), intent(in) :: X
     ! The number of the current element
     integer, intent(in) :: ele
-    
+
     integer :: s
     real, dimension(ele_ngi(fields(1)%ptr, ele)) :: detwei
     real, dimension(ele_ngi(fields(1)%ptr, ele)) :: product_ele_val_at_quad
-    
+
     call transform_to_physical(X, ele, detwei=detwei)
-    
+
     do s = 1,size(fields)
-       
+
        assert(ele_ngi(X,ele) == ele_ngi(fields(s)%ptr,ele))
-       
+
        if (s == 1) then
-          
+
           product_ele_val_at_quad = ele_val_at_quad(fields(s)%ptr, ele)
-       
-       else 
-       
+
+       else
+
           product_ele_val_at_quad = product_ele_val_at_quad * &
                                     ele_val_at_quad(fields(s)%ptr, ele)
-       
-       end if 
-       
+
+       end if
+
     end do
-    
+
     integral=dot_product(product_ele_val_at_quad, detwei)
 
   end function integral_element_scalars
@@ -930,7 +930,7 @@ contains
 !!$    real, dimension(:,:), intent(inout) :: mass
 !!$
 !!$    integer :: i, j
-!!$    
+!!$
 !!$    ! Check that matrix is square.
 !!$    ASSERT(size(mass,1)==size(mass,2))
 !!$
@@ -941,7 +941,7 @@ contains
 !!$    forall(i=1:size(mass,1),j=1:size(mass,1), i/=j)
 !!$       mass(i,j)=0.0
 !!$    end forall
-!!$    
+!!$
 !!$  end subroutine lump
 
   function lumped(mass)
@@ -950,7 +950,7 @@ contains
     real, dimension(size(mass,1),size(mass,2)) :: lumped
 
     integer :: i
-    
+
     ! Check that matrix is square.
     ASSERT(size(mass,1)==size(mass,2))
 

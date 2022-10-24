@@ -5,7 +5,7 @@ preprocess:
 
 run:
 	../../bin/fluidity swe_tidal_flow_regular_bed.flml
-	
+
 clean:
 	rm -f *.node *.ele *.bound
 	rm -f *.vtu *.stat

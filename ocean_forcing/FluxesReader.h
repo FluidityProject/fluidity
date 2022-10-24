@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -60,7 +60,7 @@ class FluxesReader{
  public:
   FluxesReader();
   ~FluxesReader();
-  
+
   void AddFieldOfInterest(std::string);
   void ClearFields();
   bool Enabled() const;
@@ -85,7 +85,7 @@ class FluxesReader{
 
   int NProcs, MyRank, NParts;
   std::deque<std::string> ERA_data_files;
-  
+
   //
   // data file specification
   //
@@ -96,7 +96,7 @@ class FluxesReader{
   double dlong, dlat;
   std::vector<double> time;
   std::map<double, int> lut_time;
-  
+
   std::string simulation_time_units, data_time_units;
   Calendar *calendar;
 
@@ -105,7 +105,7 @@ class FluxesReader{
   //
   int time_fore, time_aft;
   int hour_index;
-  
+
   // Fields of interest
   std::deque<std::string> fields_of_interest;
 

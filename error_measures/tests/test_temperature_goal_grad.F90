@@ -8,7 +8,7 @@ subroutine test_temperature_goal_grad
   use fields
   use mesh_files
   implicit none
-  
+
   type(state_type) :: state(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), target :: positions

@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -51,7 +51,7 @@ module generic_interface
   private
 
   public :: set_from_generic_function, set_from_external_function_scalar
-  
+
 contains
 
   subroutine set_from_generic_function_scalar(field, func, position)
@@ -60,7 +60,7 @@ contains
     !!< determine the locations of the nodes.
     type(scalar_field), intent(inout) :: field
     !! Func is the string to execute on the command line to start the
-    !! generic function. 
+    !! generic function.
     character(len=*), intent(in) :: func
     type(vector_field), intent(in), target :: position
 
@@ -76,7 +76,7 @@ contains
 
     if (field%mesh==position%mesh) then
        x=>position%val(1,:)
-       
+
        if (dim>1) then
           y=>position%val(2,:)
 
@@ -90,7 +90,7 @@ contains
        call remap_field(position, lposition)
 
        x=>lposition%val(1,:)
-       
+
        if (dim>1) then
           y=>lposition%val(2,:)
 
@@ -114,13 +114,13 @@ contains
     end if
 
   end subroutine set_from_generic_function_scalar
-  
+
   subroutine set_values_from_generic_scalar(values, func, x, y, z)
     !!< Given a list of positions evaluate the generic function
-    !!< specified in the string func at those points. 
+    !!< specified in the string func at those points.
     real, dimension(:), intent(inout) :: values
     !! Func is the string to execute on the command line to start the
-    !! generic function. 
+    !! generic function.
     character(len=*), intent(in) :: func
     real, dimension(size(values)), target :: x
     real, dimension(size(values)), optional, target :: y
@@ -128,15 +128,15 @@ contains
 
     real, dimension(:), pointer :: lx, ly, lz
     integer :: stat, dim
-    
+
     if (dim/=3) then
        FLExit("Generic functions are only supported for 3d scalar fields")
     end if
-       
+
     lx=>x
     ly=>y
     lz=>z
-    
+
     call set_from_external_function_scalar(func, len(func), &
             & size(values), lx, ly, lz, values, stat)
 

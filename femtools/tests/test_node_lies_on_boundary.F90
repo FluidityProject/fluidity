@@ -52,7 +52,7 @@ subroutine test_node_lies_on_boundary
       write(0,*) "output: ", output
     end if
   end do
-    
+
   positions%mesh=mesh
   call vtk_write_surface_mesh("coplanar_ids", index = 0, position = positions)
 

@@ -48,7 +48,7 @@ Adaptivity::Adaptivity(){
   newZ = NULL;
 
   numberingOffset = 1;
-  
+
   volumeID = NULL;
 
   NPrivateNodes = 0;
@@ -72,7 +72,7 @@ Adaptivity::Adaptivity(){
 
   nloc  = 4;
   snloc = 3;
-  
+
   NWSZEN = 0;
   NWSZSN = 0;
   NWSZNN = 0;
@@ -80,16 +80,16 @@ Adaptivity::Adaptivity(){
   NWSROW = 0;
   NWENLB = 0;
   NWENLS = 0;
-  NWSNLB = 0; 
-  NWSNLS = 0; 
+  NWSNLB = 0;
+  NWSNLS = 0;
   NWSFID = 0;
   NWELRG = 0;
-  NWNODX = 0; 
+  NWNODX = 0;
   NWNODY = 0;
   NWNODZ = 0;
   NEWMTX = 0;
   NEWFLD = 0;
-  ADPBIG = 0; 
+  ADPBIG = 0;
   ADPNOD = 0;
 
   interpolate = false;
@@ -102,7 +102,7 @@ afloat_t Adaptivity::edgeLengthDistribution(afloat_t w){
   int edgecount = 0;
   int badedges = 0;
   const int dim = 3;
-  
+
   // Figure out the edges.
   std::set<std::pair<int, int> > edges;
 
@@ -118,7 +118,7 @@ afloat_t Adaptivity::edgeLengthDistribution(afloat_t w){
       }
     }
   }
-  
+
   for (std::set<std::pair<int, int> >::iterator edge = edges.begin(); edge != edges.end(); edge++){
     edgecount++;
     // First, compute the metric over the edge by averaging the nodal metrics.
@@ -128,7 +128,7 @@ afloat_t Adaptivity::edgeLengthDistribution(afloat_t w){
         edge_metric[i*dim+j] = (Metric[edge->first*dim*dim + i*dim + j] + Metric[edge->second*dim*dim + i*dim + j]) / 2.0;
       }
     }
-    
+
     // Now, compute the inner product.
     afloat_t vec[dim];
     vec[0] = X[edge->first] - X[edge->second];
@@ -146,7 +146,7 @@ afloat_t Adaptivity::edgeLengthDistribution(afloat_t w){
     if ((len < 1.0 - w) || (len > 1.0 + w))
       badedges++;
   }
-  
+
   return badedges / (afloat_t)edgecount;
 #else
   cerr<<"WARNING: VTK support has not been compiled.\n";
@@ -161,10 +161,10 @@ void Adaptivity::adapt(){
   //
   // Hardwired stuff
   //
-  
+
   // Only does 3D
   int Geom3D = LOGICAL_TRUE;
-  
+
   // DOTOP is the minimum element functional to allow to be changed (min 0.1)
   afloat_t DOTOP  = (fabs(MESTP1)>0.15)?fabs(MESTP1):0.15;
 
@@ -173,22 +173,22 @@ void Adaptivity::adapt(){
 
   // if true then use the quality of the element rather than insphere
   int USEQ = LOGICAL_FALSE;
-    
+
   NWSZEN = 0;
   NWSZSN = 0;
   NWSZEN = 0;
   NWSZSN = 0;
-  
+
   // These variables...if they are set to a non-negitive number they
   // write back the data - otherwise no
   NEWMTX =  1; // New metric values
   NWNDLC =  1; // Indicates which old element contains which new node
   NWSROW = -1;
-  
+
   //
   // Local variables
   //
-  
+
   // Find the expected number of elements given a metric
   int NNodes = X.size();
   int NElements = ENList.size()/nloc;
@@ -205,17 +205,17 @@ void Adaptivity::adapt(){
 
   intBuffer.resize(intBuffer_size);
   floatBuffer.resize(floatBuffer_size);
-  
+
   vector<int> ENLBasePtr(NElements+1);
   for(int i=0; i<=NElements; i++)
     ENLBasePtr[i] = i*nloc;
   int sizeENList = ENList.size();
-  
+
   vector<int> SENLBasePtr(NSElements+1);
   for(int i=0; i<=NSElements; i++)
     SENLBasePtr[i]=i*snloc;
   int sizeSENList = SENList.size();
-  
+
   vector<int> ElementRegion;
   const int *_volumeID = volumeID;
   if(volumeID==NULL){
@@ -224,30 +224,30 @@ void Adaptivity::adapt(){
     for(int i=0; i<NElements; i++)
       ElementRegion[i] = 1;
   }
-  
+
   if(surfID.size()==0){
     // Probably should calculate this using the co-planar patch
     // algorithm if it's not already done.
     surfID.resize(NSElements);
     for(int i=0;i<NSElements;i++)
-      surfID[i]=1; 
+      surfID[i]=1;
   }
-  
+
   // Halo information gets over written so...
   int *_newGather=NULL, *_newScatter=NULL, *_newATOSEN=NULL, *_newATOREC=NULL;
   if(NProcs>1){
     newGather.resize(NGather);
     _newGather = &(newGather[0]);
     memcpy(_newGather, Gather, NGather*sizeof(int));
-    
+
     newScatter.resize(NScatter);
     _newScatter = &(newScatter[0]);
     memcpy(_newScatter, Scatter, NScatter*sizeof(int));
-    
+
     newATOSEN.resize(NProcs+1);
     _newATOSEN = &(newATOSEN[0]);
     memcpy(_newATOSEN, ATOSEN, (NProcs+1)*sizeof(int));
-    
+
     newATOREC.resize(NProcs+1);
     _newATOREC = &(newATOREC[0]);
     memcpy(_newATOREC, ATOREC, (NProcs+1)*sizeof(int));
@@ -265,7 +265,7 @@ void Adaptivity::adapt(){
   chcnsy = LOGICAL_FALSE;
   dbg    = LOGICAL_FALSE;
   //}
-  
+
   // Gerard: this appears to be bugged
   // -1 lets libadapt figure it out for itself
   //int mxnods = 2.0*XPCTEL * (NNodes / (double)NElements);
@@ -276,12 +276,12 @@ void Adaptivity::adapt(){
     totfre+=*it;
   }
 
-  // Call the main adaptivity routine  
+  // Call the main adaptivity routine
   adptvy_(&(intBuffer[0]), &intBuffer_size, &(floatBuffer[0]), &floatBuffer_size,
 	  &Geom3D, &SRFGMY, &USEQ,
 	  &NNodes, &NElements, &NSElements, &mxnods,
 	  &sizeENList, &(ENLBasePtr[0]), &(ENList[0]), _volumeID,
-	  &CLCGMY, 
+	  &CLCGMY,
 	  &sizeSENList, &(SENLBasePtr[0]), &(SENList[0]), &(surfID[0]),
 	  PRDNDS, &NPRDND,
 	  &(X[0]), &(Y[0]), &(Z[0]),
@@ -301,7 +301,7 @@ void Adaptivity::adapt(){
 
   // Zero tolerence for errors from adaptivity
   assert(newNNodes>0);
-  
+
   newX = &(floatBuffer[NWNODX-1]);
   newY = &(floatBuffer[NWNODY-1]);
   newZ = &(floatBuffer[NWNODZ-1]);
@@ -387,7 +387,7 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
   aug->Update();
 #endif
   points->Delete();
-  
+
   // Set up elements.
   int *newENList = &(intBuffer[NWENLS-1]);
   for(int i=0;i<newNElements;i++){
@@ -424,9 +424,9 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
       vtkDataArray *array = ug->GetPointData()->GetArray(n);
       if(string("metric")==string(array->GetName()))
 	continue;
-      
+
       size_t ncomp = array->GetNumberOfComponents();
-      
+
       vtkDoubleArray *m = vtkDoubleArray::New();
       m->SetNumberOfComponents(ncomp);
       m->SetNumberOfTuples(newNNodes);
@@ -445,13 +445,13 @@ vtkUnstructuredGrid* Adaptivity::get_adapted_vtu(){
       m->Delete();
     }
   }
-  
+
   return aug;
 }
 #endif
 
-void Adaptivity::getHalo(int *_numPrivateNodesint, 
-                         int *_ATOSEN, int *_ATOREC, 
+void Adaptivity::getHalo(int *_numPrivateNodesint,
+                         int *_ATOSEN, int *_ATOREC,
                          int *_Gather, int *_Scatter){
   if(verbose)
     cout<<"void Adaptivity::getHalo(int *, int *, int *, int *, int *)\n";
@@ -488,7 +488,7 @@ void Adaptivity::getMeshDimensions(int *_NNodes, int *_NElements, int *_NSElemen
 void Adaptivity::get_surface_ids(vector<int> &sids){
   if(verbose)
     cout<<"void Adaptivity::get_surface_ids(vector<int> &sids)\n";
-  
+
   sids.resize(newNSElements);
   for(int i=0;i<newNSElements;i++)
     sids[i] = intBuffer[NWSFID-1+i];
@@ -497,7 +497,7 @@ void Adaptivity::get_surface_ids(vector<int> &sids){
 void Adaptivity::get_surface_mesh(vector<int> &SENList){
   if(verbose)
     cout<<"void Adaptivity::getSurfaceMesh(vector<int> &SENList)\n";
-  
+
   SENList.resize(3*newNSElements);
   for(int i=0;i<newNSElements*3;i++)
     SENList[i] = intBuffer[NWSNLS-1+i]-1;
@@ -529,8 +529,8 @@ void Adaptivity::setFunctionalTolerance(afloat_t tol){
   MESTP1 = tol;
 }
 
-void Adaptivity::setHalo(int _numPrivateNodesint, 
-                         int *_ATOSEN, int *_ATOREC, 
+void Adaptivity::setHalo(int _numPrivateNodesint,
+                         int *_ATOSEN, int *_ATOREC,
                          int *_Gather, int *_Scatter){
   if(verbose)
     cout<<"void Adaptivity::setHalo(int, int *, int *, int *, int *)\n";
@@ -560,21 +560,21 @@ void Adaptivity::set_metric(afloat_t *_metric){
 void Adaptivity::set_surface_ids(vector<int> &_sids){
   if(verbose)
     cout<<"void Adaptivity::set_surface_ids(vector<int> &_sids)\n";
-  
+
   if(SENList.empty()){
     cerr<<"WARNING: trying to set surface id's but no surface has been specified\n";
     return;
   }
-  
+
   surfID = _sids;
-  
+
   return;
 }
 
 void Adaptivity::set_surface_mesh(vector<int> &_SENList){
   if(verbose)
     cout<<"void Adaptivity::set_surface_mesh(vector<int> &_SENList)\n";
-  
+
   SENList = _SENList;
   for(vector<int>::iterator it=SENList.begin();it!=SENList.end();++it)
     *it = *it + 1;
@@ -620,7 +620,7 @@ void Adaptivity::set_volume_mesh(int *_ENList, int _NElements){
 void Adaptivity::set_from_vtk(vtkUnstructuredGrid *_ug, bool _interpolate){
   if(verbose)
     cout<<"void Adaptivity::set_from_vtk(const vtkUnstructuredGrid *ug, bool interpolate)\n";
-  
+
   ug = _ug;
   interpolate = _interpolate;
 
@@ -636,13 +636,13 @@ void Adaptivity::set_from_vtk(vtkUnstructuredGrid *_ug, bool _interpolate){
     Y[i] = r[1];
     Z[i] = r[2];
   }
-  
+
   int NElements = ug->GetNumberOfCells();
   ENList.resize(4*NElements);
   for(int i=0;i<NElements;i++){
     assert(ug->GetCell(i)->GetCellType()==VTK_TETRA);
     vtkTetra *tetra = (vtkTetra *)ug->GetCell(i);
-    
+
     //for(size_t j=0;j<4;j++){
     for(int j=3;j>=0;j--){
       ENList[i*4+j] = tetra->GetPointId(j) + 1;
@@ -654,7 +654,7 @@ void Adaptivity::set_from_vtk(vtkUnstructuredGrid *_ug, bool _interpolate){
     Metric.resize(9*NNodes);
 #ifdef DOUBLEP
     for(size_t i=0;i<NNodes;i++){
-      m->GetTuple(i, &(Metric[i*9]));      
+      m->GetTuple(i, &(Metric[i*9]));
     }
 #else
     double lMetric[9];
@@ -700,7 +700,7 @@ double Adaptivity::volume(int n1, int n2, int n3, int n4) const{
   n2 = n2 - numberingOffset;
   n3 = n3 - numberingOffset;
   n4 = n4 - numberingOffset;
-  
+
   return volume(X[n1], Y[n1], Z[n1],
 		X[n2], Y[n2], Z[n2],
 		X[n3], Y[n3], Z[n3],
@@ -713,7 +713,7 @@ double Adaptivity::volume(int n1, int n2, int n3, afloat_t x, afloat_t y, afloat
   n1 = n1 - numberingOffset;
   n2 = n2 - numberingOffset;
   n3 = n3 - numberingOffset;
-  
+
   return volume(X[n1], Y[n1], Z[n1],
 		X[n2], Y[n2], Z[n2],
 		X[n3], Y[n3], Z[n3],
@@ -724,25 +724,25 @@ double Adaptivity::volume(int n1, int n2, int n3, afloat_t x, afloat_t y, afloat
 double Adaptivity::volume(afloat_t x1, afloat_t y1, afloat_t z1,
                           afloat_t x2, afloat_t y2, afloat_t z2,
                           afloat_t x3, afloat_t y3, afloat_t z3,
-                          afloat_t x4, afloat_t y4, afloat_t z4) const{ 
+                          afloat_t x4, afloat_t y4, afloat_t z4) const{
   if(verbose)
     cout<<"double Adaptivity::volume(afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t, afloat_t,y R) const\n";
 
   double vx1 = x2 - x1;
   double vy1 = y2 - y1;
   double vz1 = z2 - z1;
-  
+
   double vx2 = x3 - x1;
   double vy2 = y3 - y1;
   double vz2 = z3 - z1;
-  
+
   double vx3 = x4 - x1;
   double vy3 = y4 - y1;
   double vz3 = z4 - z1;
-  
-  double det = 
-    vx1*(vy2*vz3 - vy3*vz2) - 
-    vx2*(vy1*vz3 - vy3*vz1) + 
+
+  double det =
+    vx1*(vy2*vz3 - vy3*vz2) -
+    vx2*(vy1*vz3 - vy3*vz1) +
     vx3*(vy1*vz2 - vy2*vz1);
 
   return det/6.0;

@@ -73,7 +73,7 @@ momucg_cons_error = max(abs(all-initial))*100/initial</variable>
 from fluidity_tools import stat_parser as stat
 statf = stat("sloshing_tank_tracer.stat")["water"]
 initial = statf["Velocity%2"]["integral"][0] - statf["Pressure"]["surface_integral%Bottom"][0]
-all = statf["Velocity%2"]["integral"] - statf["Pressure"]["surface_integral%Bottom"] 
+all = statf["Velocity%2"]["integral"] - statf["Pressure"]["surface_integral%Bottom"]
 momvcg_cons_error = max(abs(all-initial))*100/initial</variable>
   </variables>
   <pass_tests>

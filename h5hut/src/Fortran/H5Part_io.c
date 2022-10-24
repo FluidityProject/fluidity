@@ -131,7 +131,7 @@ h5pt_readdata_r4 (
 	const int l_name
 	) {
 	h5_file_t f = h5_filehandlefor2c (fh);
-	H5_API_ENTER (h5_int64_t, 
+	H5_API_ENTER (h5_int64_t,
                       "fh=%p, name='%s', data=%p, l_name=%d",
                       (h5_file_p)f, name, data, l_name);
 	char *name2 = h5_strdupfor2c ( name, l_name );

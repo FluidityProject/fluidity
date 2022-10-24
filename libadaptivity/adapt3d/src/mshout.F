@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -139,18 +139,18 @@ C
           DO IELM = 1, NELM
              NREG = MAX( NREG, ELMREG(IELM) )
           END DO
-C 
+C
           MSHNAM = MSHNAM(1:LENFIL)//'.'//CNTCHR//'.mesh'
           OPEN( UNIT = OUTFIL, FILE = MSHNAM(1:LENFIL+9),
      :          STATUS = 'UNKNOWN', FORM = 'UNFORMATTED' )
 C     :          STATUS = 'UNKNOWN', FORM = 'FORMATTED' )
-C 
+C
           NCNSTR = 0
-C 
+C
 C          WRITE( OUTFIL, 990 ) NELM, NNOD, NCNSTR
           WRITE( OUTFIL ) 1, NREG, 0, NELM, NNOD, NCNSTR, 0, 0, 0,
      :                    1, 1, 0
-C 
+C
           DO IELM = 1, NELM
              IBAS = ENLBAS(IELM)
              NLN  = ENLBAS(IELM+1) - IBAS
@@ -161,7 +161,7 @@ C             WRITE( OUTFIL, 991 ) IELM,1,1,ELMREG(IELM),0,NODS
              WRITE( OUTFIL ) IELM,1,1,ELMREG(IELM),0,NLN,
      :                       (NODS(ILN),ILN=1,NLN)
           END DO
-C 
+C
           DO INOD = 1, NNOD
 C             WRITE( OUTFIL, 992 ) INOD,NODX(INOD),NODY(INOD),NODZ(INOD),
 C     :                            INOD, 1, 1, 1
@@ -243,7 +243,7 @@ C
           IF( PUTREG ) IFLAGS = IFLAGS + 64
           IF( PUTMAT ) IFLAGS = IFLAGS + 32
           IF( PUTNWN ) IFLAGS = IFLAGS + 2
-          IF( PUTDOM ) IFLAGS = IFLAGS + 1 
+          IF( PUTDOM ) IFLAGS = IFLAGS + 1
 C
           MSHNAM = MSHNAM(1:LENFIL)//'.'//CNTCHR//'.all'
           OPEN( UNIT = FLDFIL, FILE = MSHNAM(1:LENFIL+8),

@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ module state_module
   type state_type
      !!< This type allows sets of fields and meshes to be passed around
      !!< together and retrieved by name.
-     
+
      !! name for the state
      character(len=FIELD_NAME_LEN) :: name =""
 
@@ -112,7 +112,7 @@ module state_module
   interface extract_mesh
      module procedure extract_mesh_from_one, extract_mesh_from_any, extract_mesh_by_index
   end interface
-  
+
   interface extract_halo
     module procedure extract_halo, extract_halo_by_index
   end interface extract_halo
@@ -132,38 +132,38 @@ module state_module
            & extract_from_any_block_csr_matrix,&
            & extract_block_csr_matrix_by_index
   end interface
-  
+
   interface extract_petsc_csr_matrix
       module procedure extract_from_one_petsc_csr_matrix,&
            & extract_from_any_petsc_csr_matrix,&
            & extract_petsc_csr_matrix_by_index
   end interface
-  
+
   interface has_halo
       module procedure state_has_halo
   end interface has_halo
-  
+
   interface halo_count
       module procedure halo_count_state
   end interface halo_count
-  
+
   interface collapse_state
       module procedure collapse_single_state, collapse_multiple_states
   end interface
-  
+
   interface collapse_fields_in_state
       module procedure collapse_fields_in_single_state, &
         & collapse_fields_in_multiple_states
   end interface
-    
+
   interface halo_update
       module procedure halo_update_state, halo_update_states
   end interface
-    
+
   interface aliased
       module procedure aliased_scalar, aliased_vector, aliased_tensor
   end interface
-  
+
   public state_type, deallocate, insert, nullify
   public field_rank, extract_scalar_field, extract_vector_field, extract_tensor_field
   public extract_field_mesh, extract_mesh, extract_halo
@@ -175,7 +175,7 @@ module state_module
   public remove_csr_sparsity, remove_csr_matrix, remove_block_csr_matrix, remove_petsc_csr_matrix
   public scalar_field_count, vector_field_count, tensor_field_count, field_count
   public mesh_count, halo_count, csr_sparsity_count, csr_matrix_count,&
-       & block_csr_matrix_count, petsc_csr_matrix_count 
+       & block_csr_matrix_count, petsc_csr_matrix_count
   public set_vector_field_in_state
   public collapse_state, extract_state, collapse_fields_in_state
   public set_option_path
@@ -198,7 +198,7 @@ contains
   subroutine deallocate_state(state)
     !!< Clear out all references in state. Note that since state grows to
     !!< the right size, it is neither necessary nor possible to allocate
-    !!< state. 
+    !!< state.
     type(state_type), intent(inout) :: state
     integer :: i
 
@@ -293,16 +293,16 @@ contains
     end if
 
   end subroutine deallocate_state
-  
+
   subroutine deallocate_state_vector(state)
     type(state_type), dimension(:), intent(inout) :: state
-    
+
     integer :: i
-    
+
     do i = 1, size(state)
       call deallocate(state(i))
     end do
-  
+
   end subroutine deallocate_state_vector
 
   subroutine deallocate_state_rank_2(state)
@@ -356,7 +356,7 @@ contains
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(tensor_field_pointer), dimension(:), pointer :: tmp_fields
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -368,13 +368,13 @@ contains
        allocate(state%tensor_fields(1))
        allocate(state%tensor_fields(1)%ptr)
        allocate(state%tensor_names(1))
-       
+
        state%tensor_fields(1)%ptr = field
        state%tensor_names(1) = name
        call incref(field)
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%tensor_fields)
           if (trim(name)==trim(state%tensor_names(i))) then
@@ -395,7 +395,7 @@ contains
        allocate(state%tensor_fields(old_size+1))
        allocate(state%tensor_fields(old_size+1)%ptr)
        allocate(state%tensor_names(old_size+1))
-    
+
        forall (i=1:old_size)
           state%tensor_fields(i)%ptr => tmp_fields(i)%ptr
        end forall
@@ -419,7 +419,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(tensor_field) :: p_field
     integer :: i
 
@@ -430,7 +430,7 @@ contains
     do i = 2, size(state)
       call insert(state(i), p_field, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_tensor_field
 
   subroutine insert_vector_field(state, field, name)
@@ -440,7 +440,7 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(vector_field_pointer), dimension(:), pointer :: tmp_fields
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -452,14 +452,14 @@ contains
        allocate(state%vector_fields(1))
        allocate(state%vector_fields(1)%ptr)
        allocate(state%vector_names(1))
-       
+
        state%vector_fields(1)%ptr = field
        state%vector_names(1) = name
-       
+
        call incref(field)
 
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%vector_fields)
           if (trim(name)==trim(state%vector_names(i))) then
@@ -480,7 +480,7 @@ contains
        allocate(state%vector_fields(old_size+1))
        allocate(state%vector_fields(old_size+1)%ptr)
        allocate(state%vector_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%vector_fields(i)%ptr => tmp_fields(i)%ptr
        end forall
@@ -494,7 +494,7 @@ contains
        deallocate(tmp_names)
 
     end if
-    
+
   end subroutine insert_vector_field
 
   subroutine insert_and_alias_vector_field(state, field, name)
@@ -504,7 +504,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     type(vector_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(vector_field) :: p_field
     integer :: i
 
@@ -515,7 +515,7 @@ contains
     do i = 2, size(state)
       call insert(state(i), p_field, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_vector_field
 
   subroutine insert_scalar_field(state, field, name)
@@ -523,7 +523,7 @@ contains
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(scalar_field_pointer), dimension(:), pointer :: tmp_fields
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -535,14 +535,14 @@ contains
        allocate(state%scalar_fields(1))
        allocate(state%scalar_fields(1)%ptr)
        allocate(state%scalar_names(1))
-       
+
        state%scalar_fields(1)%ptr = field
        state%scalar_names(1) = name
-       
+
        call incref(field)
 
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%scalar_fields)
           if (trim(name)==trim(state%scalar_names(i))) then
@@ -563,7 +563,7 @@ contains
        allocate(state%scalar_fields(old_size+1))
        allocate(state%scalar_fields(old_size+1)%ptr)
        allocate(state%scalar_names(old_size+1))
-       
+
        forall(i=1:old_size)
           state%scalar_fields(i)%ptr => tmp_fields(i)%ptr
        end forall
@@ -588,7 +588,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     type(scalar_field), intent(in) :: field
     character(len=*), intent(in) :: name
-    
+
     type(scalar_field) :: p_field
     integer :: i
 
@@ -599,7 +599,7 @@ contains
     do i = 2, size(state)
       call insert(state(i), p_field, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_scalar_field
 
   subroutine insert_mesh(state, mesh, name)
@@ -607,7 +607,7 @@ contains
     type(state_type), intent(inout) :: state
     type(mesh_type), intent(in) :: mesh
     character(len=*), intent(in) :: name
-    
+
     type(mesh_pointer), dimension(:), pointer :: tmp_meshes
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -619,12 +619,12 @@ contains
        allocate(state%meshes(1))
        allocate(state%meshes(1)%ptr)
        allocate(state%mesh_names(1))
-       
+
        state%meshes(1)%ptr = mesh
        state%mesh_names(1) = name
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%meshes)
           if (trim(name)==trim(state%mesh_names(i))) then
@@ -645,7 +645,7 @@ contains
        allocate(state%meshes(old_size+1))
        allocate(state%meshes(old_size+1)%ptr)
        allocate(state%mesh_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%meshes(i)%ptr => tmp_meshes(i)%ptr
        end forall
@@ -670,7 +670,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     type(mesh_type), intent(in) :: mesh
     character(len=*), intent(in) :: name
-    
+
     type(mesh_type) :: p_mesh
     integer :: i
 
@@ -680,15 +680,15 @@ contains
     do i = 2, size(state)
       call insert(state(i), p_mesh, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_mesh
-  
+
   subroutine insert_halo(state, halo, name)
     !!< Insert a halo into state.
     type(state_type), intent(inout) :: state
     type(halo_type), intent(in) :: halo
     character(len=*), intent(in) :: name
-    
+
     type(halo_pointer), dimension(:), pointer :: tmp_halos
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -700,12 +700,12 @@ contains
        allocate(state%halos(1))
        allocate(state%halos(1)%ptr)
        allocate(state%halo_names(1))
-       
+
        state%halos(1)%ptr = halo
        state%halo_names(1) = name
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%halos)
           if (trim(name)==trim(state%halo_names(i))) then
@@ -726,7 +726,7 @@ contains
        allocate(state%halos(old_size+1))
        allocate(state%halos(old_size+1)%ptr)
        allocate(state%halo_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%halos(i)%ptr => tmp_halos(i)%ptr
        end forall
@@ -751,7 +751,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     type(halo_type), intent(in) :: halo
     character(len=*), intent(in) :: name
-    
+
     type(halo_type) :: p_halo
     integer :: i
 
@@ -761,7 +761,7 @@ contains
     do i = 2, size(state)
       call insert(state(i), p_halo, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_halo
 
   subroutine insert_csr_sparsity(state, sparsity, name)
@@ -769,7 +769,7 @@ contains
     type(state_type), intent(inout) :: state
     type(csr_sparsity), intent(in) :: sparsity
     character(len=*), intent(in) :: name
-    
+
     type(csr_sparsity_pointer), dimension(:), pointer :: tmp_csr_sparsities
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -781,12 +781,12 @@ contains
        allocate(state%csr_sparsities(1))
        allocate(state%csr_sparsities(1)%ptr)
        allocate(state%csr_sparsity_names(1))
-       
+
        state%csr_sparsities(1)%ptr = sparsity
        state%csr_sparsity_names(1) = name
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%csr_sparsities)
           if (trim(name)==trim(state%csr_sparsity_names(i))) then
@@ -807,7 +807,7 @@ contains
        allocate(state%csr_sparsities(old_size+1))
        allocate(state%csr_sparsities(old_size+1)%ptr)
        allocate(state%csr_sparsity_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%csr_sparsities(i)%ptr => tmp_csr_sparsities(i)%ptr
        end forall
@@ -830,7 +830,7 @@ contains
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(csr_matrix_pointer), dimension(:), pointer :: tmp_csr_matrices
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -842,12 +842,12 @@ contains
        allocate(state%csr_matrices(1))
        allocate(state%csr_matrices(1)%ptr)
        allocate(state%csr_matrix_names(1))
-       
+
        state%csr_matrices(1)%ptr = matrix
        state%csr_matrix_names(1) = name
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%csr_matrices)
           if (trim(name)==trim(state%csr_matrix_names(i))) then
@@ -868,7 +868,7 @@ contains
        allocate(state%csr_matrices(old_size+1))
        allocate(state%csr_matrices(old_size+1)%ptr)
        allocate(state%csr_matrix_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%csr_matrices(i)%ptr => tmp_csr_matrices(i)%ptr
        end forall
@@ -885,13 +885,13 @@ contains
     call incref(matrix)
 
   end subroutine insert_csr_matrix
-  
+
   subroutine insert_and_alias_csr_matrix(state, matrix, name)
     !!< Insert a matrix into all states
     type(state_type), dimension(:), intent(inout) :: state
     type(csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(csr_matrix) :: p_matrix
     integer :: i
 
@@ -905,33 +905,33 @@ contains
     end do
 
   end subroutine insert_and_alias_csr_matrix
-  
+
   subroutine insert_and_alias_csr_sparsity(state, sparsity, name)
     !!< Insert a sparsity into state all states
     type(state_type), dimension(:), intent(inout) :: state
     type(csr_sparsity), intent(in) :: sparsity
     character(len=*), intent(in) :: name
-    
+
     type(csr_sparsity) :: p_sparsity
     integer :: i
-    
+
     ! insert into state(1)
     call insert(state(1), sparsity, trim(name))
-    
+
     p_sparsity=extract_csr_sparsity(state(1), trim(name))
-    
+
     do i = 2, size(state)
        call insert(state(i), p_sparsity, trim(name))
     end do
-    
+
   end subroutine insert_and_alias_csr_sparsity
-  
+
   subroutine insert_block_csr_matrix(state, matrix, name)
     !!< Insert a block matrix into state.
     type(state_type), intent(inout) :: state
     type(block_csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(block_csr_matrix_pointer), dimension(:), pointer :: tmp_block_csr_matrices
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -943,12 +943,12 @@ contains
        allocate(state%block_csr_matrices(1))
        allocate(state%block_csr_matrices(1)%ptr)
        allocate(state%block_csr_matrix_names(1))
-       
+
        state%block_csr_matrices(1)%ptr = matrix
        state%block_csr_matrix_names(1) = name
-       
+
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%block_csr_matrices)
           if (trim(name)==trim(state%block_csr_matrix_names(i))) then
@@ -969,7 +969,7 @@ contains
        allocate(state%block_csr_matrices(old_size+1))
        allocate(state%block_csr_matrices(old_size+1)%ptr)
        allocate(state%block_csr_matrix_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%block_csr_matrices(i)%ptr => tmp_block_csr_matrices(i)%ptr
        end forall
@@ -992,7 +992,7 @@ contains
     type(state_type), intent(inout) :: state
     type(petsc_csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(petsc_csr_matrix_pointer), dimension(:), pointer :: tmp_petsc_csr_matrices
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
@@ -1004,12 +1004,12 @@ contains
        allocate(state%petsc_csr_matrices(1))
        allocate(state%petsc_csr_matrices(1)%ptr)
        allocate(state%petsc_csr_matrix_names(1))
-       
+
        state%petsc_csr_matrices(1)%ptr = matrix
        state%petsc_csr_matrix_names(1) = name
 
     else
-       
+
        ! Check if the name is already present.
        do i=1,size(state%petsc_csr_matrices)
           if (trim(name)==trim(state%petsc_csr_matrix_names(i))) then
@@ -1031,7 +1031,7 @@ contains
        allocate(state%petsc_csr_matrices(old_size+1))
        allocate(state%petsc_csr_matrices(old_size+1)%ptr)
        allocate(state%petsc_csr_matrix_names(old_size+1))
-    
+
        forall(i=1:old_size)
           state%petsc_csr_matrices(i)%ptr => tmp_petsc_csr_matrices(i)%ptr
        end forall
@@ -1048,13 +1048,13 @@ contains
     !call incref(matrix)
 
   end subroutine insert_petsc_csr_matrix
-  
+
   subroutine insert_and_alias_block_csr_matrix(state, matrix, name)
     !!< Insert a matrix into state.
     type(state_type), dimension(:), intent(inout) :: state
     type(block_csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(block_csr_matrix) :: p_matrix
     integer :: i
 
@@ -1068,13 +1068,13 @@ contains
     end do
 
   end subroutine insert_and_alias_block_csr_matrix
- 
+
   subroutine insert_and_alias_petsc_csr_matrix(state, matrix, name)
     !!< Insert a matrix into state.
     type(state_type), dimension(:), intent(inout) :: state
     type(petsc_csr_matrix), intent(in) :: matrix
     character(len=*), intent(in) :: name
-    
+
     type(petsc_csr_matrix) :: p_matrix
     integer :: i
 
@@ -1088,7 +1088,7 @@ contains
     end do
 
   end subroutine insert_and_alias_petsc_csr_matrix
-  
+
   subroutine insert_state_fields(state, donor)
     !!< Insert fields contained in donor into state
 
@@ -1153,7 +1153,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%tensor_fields(j)%ptr => tmp_fields(i)%ptr
       state%tensor_names(j) = tmp_names(i)
@@ -1167,7 +1167,7 @@ contains
   deallocate(tmp_names)
 
   end subroutine remove_tensor_field
-    
+
   subroutine remove_vector_field(state, name, stat)
   type(state_type), intent(inout) :: state
   character(len=*), intent(in) :: name
@@ -1204,7 +1204,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%vector_fields(j)%ptr => tmp_fields(i)%ptr
       state%vector_names(j) = tmp_names(i)
@@ -1255,7 +1255,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%scalar_fields(j)%ptr => tmp_fields(i)%ptr
       state%scalar_names(j) = tmp_names(i)
@@ -1306,7 +1306,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%csr_sparsities(j)%ptr => tmp_fields(i)%ptr
       state%csr_sparsity_names(j) = tmp_names(i)
@@ -1357,7 +1357,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%csr_matrices(j)%ptr => tmp_fields(i)%ptr
       state%csr_matrix_names(j) = tmp_names(i)
@@ -1371,7 +1371,7 @@ contains
   deallocate(tmp_names)
 
   end subroutine remove_csr_matrix
-  
+
   subroutine remove_block_csr_matrix(state, name, stat)
   type(state_type), intent(inout) :: state
   character(len=*), intent(in) :: name
@@ -1408,7 +1408,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%block_csr_matrices(j)%ptr => tmp_fields(i)%ptr
       state%block_csr_matrix_names(j) = tmp_names(i)
@@ -1422,7 +1422,7 @@ contains
   deallocate(tmp_names)
 
   end subroutine remove_block_csr_matrix
-  
+
   subroutine remove_petsc_csr_matrix(state, name, stat)
   type(state_type), intent(inout) :: state
   character(len=*), intent(in) :: name
@@ -1459,7 +1459,7 @@ contains
 
   j = 0
   do i=1,old_size
-    if (i /= idx) then 
+    if (i /= idx) then
       j = j + 1
       state%petsc_csr_matrices(j)%ptr => tmp_fields(i)%ptr
       state%petsc_csr_matrix_names(j) = tmp_names(i)
@@ -1473,7 +1473,7 @@ contains
   deallocate(tmp_names)
 
   end subroutine remove_petsc_csr_matrix
-  
+
   function field_rank(state, name, stat)
     !!< Return the rank of the named field in state
 
@@ -1482,15 +1482,15 @@ contains
     integer, optional, intent(out) :: stat
 
     integer :: field_rank
-  
+
     logical :: s_field, v_field, t_field
-  
+
     if(present(stat)) stat = 0
-  
+
     s_field = has_scalar_field(state, name)
     v_field = has_vector_field(state, name)
     t_field = has_tensor_field(state, name)
-  
+
     if(count((/s_field, v_field, t_field/)) > 1)  then
       if(present(stat)) then
         stat = 2
@@ -1507,19 +1507,19 @@ contains
       if(present(stat)) then
         stat = 1
       else
-        FLExit(trim(name) // " is not a field name in this state") 
+        FLExit(trim(name) // " is not a field name in this state")
       end if
     end if
-  
+
   end function field_rank
-  
+
   function extract_tensor_field(state, name, stat) result (field)
     !!< Return a pointer to the tensor field with the correct name.
     type(tensor_field), pointer :: field
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -1529,13 +1529,13 @@ contains
        do i=1,size(state%tensor_fields)
           if (trim(name)==trim(state%tensor_names(i))) then
              ! Found the right field
-             
+
              field=>state%tensor_fields(i)%ptr
              return
           end if
        end do
     end if
-       
+
     ! We didn't find name!
     if (present(stat)) then
        stat=1
@@ -1545,9 +1545,9 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%tensor_names(i)
         end do
       end if
-      FLExit(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state")
     end if
-    
+
   end function extract_tensor_field
 
   function extract_from_one_vector_field(state, name, stat) result (field)
@@ -1556,7 +1556,7 @@ contains
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -1566,7 +1566,7 @@ contains
        do i=1,size(state%vector_fields)
           if (trim(name)==trim(state%vector_names(i))) then
              ! Found the right field
-             
+
              field=>state%vector_fields(i)%ptr
              return
           end if
@@ -1582,7 +1582,7 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%vector_names(i)
         end do
       end if
-      FLExit(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state")
     end if
 
   end function extract_from_one_vector_field
@@ -1596,7 +1596,7 @@ contains
     integer, intent(out), optional :: stat
     logical, intent(out), optional :: allocated
     type(vector_field), pointer :: vfield
-    
+
     integer :: i, lstat, idx, dim
 
     if (present(stat)) stat=0
@@ -1636,7 +1636,7 @@ contains
        do i=1,size(state%scalar_fields)
           if (trim(name)==trim(state%scalar_names(i))) then
              ! Found the right field
-             
+
              field=>state%scalar_fields(i)%ptr
              return
           end if
@@ -1652,7 +1652,7 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%scalar_names(i)
         end do
       end if
-      FLExit(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state")
     end if
 
   end function extract_from_one_scalar_field
@@ -1666,7 +1666,7 @@ contains
     integer, intent(out), optional :: stat
     logical, intent(out), optional :: allocated
     type(vector_field), pointer :: vfield
-    
+
     integer :: i, j, lstat, idx, dim
 
     if (present(stat)) stat=0
@@ -1709,7 +1709,7 @@ contains
         do j=1,size(state(i)%scalar_fields)
             if (trim(name)==trim(state(i)%scalar_names(j))) then
               ! Found the right field
-              
+
               field=>state(i)%scalar_fields(j)%ptr
               return
             end if
@@ -1728,7 +1728,7 @@ contains
           end do
         end if
       end do
-      FLExit(trim(name)//" is not a field name in these states") 
+      FLExit(trim(name)//" is not a field name in these states")
     end if
 
   end function extract_from_any_scalar_field
@@ -1739,7 +1739,7 @@ contains
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
@@ -1750,7 +1750,7 @@ contains
         do j=1,size(state(i)%vector_fields)
             if (trim(name)==trim(state(i)%vector_names(j))) then
               ! Found the right field
-              
+
               field=>state(i)%vector_fields(j)%ptr
               return
             end if
@@ -1769,31 +1769,31 @@ contains
           end do
         end if
       end do
-      FLExit(trim(name)//" is not a field name in these states") 
+      FLExit(trim(name)//" is not a field name in these states")
     end if
 
   end function extract_from_any_vector_field
-  
+
   function extract_field_mesh(state, name, stat) result(mesh)
     !!< Return the mesh for the named field in state
-  
+
     type(state_type), intent(in) :: state
     character(len = *), intent(in) :: name
     integer, optional, intent(out) :: stat
-  
+
     type(mesh_type), pointer :: mesh
-    
+
     integer :: s_stat, v_stat, t_stat
     type(scalar_field), pointer :: s_field
     type(tensor_field), pointer :: t_field
     type(vector_field), pointer :: v_field
-    
+
     if(present(stat)) stat = 0
-    
+
     s_field => extract_scalar_field(state, name, s_stat)
     v_field => extract_vector_field(state, name, v_stat)
     t_field => extract_tensor_field(state, name, t_stat)
-  
+
     if(count((/s_stat == 0, v_stat == 0, t_stat == 0/)) > 1) then
       if(present(stat)) then
         stat = 2
@@ -1810,10 +1810,10 @@ contains
       if(present(stat)) then
         stat = 1
       else
-        FLExit(trim(name) // " is not a field name in this state") 
+        FLExit(trim(name) // " is not a field name in this state")
       end if
     end if
-  
+
   end function extract_field_mesh
 
   function extract_mesh_from_one(state, name, stat) result (mesh)
@@ -1822,7 +1822,7 @@ contains
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -1832,7 +1832,7 @@ contains
        do i=1,size(state%meshes)
           if (trim(name)==trim(state%mesh_names(i))) then
              ! Found the right field
-             
+
              mesh=>state%meshes(i)%ptr
              return
           end if
@@ -1843,29 +1843,29 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a mesh name in this state") 
+       FLExit(trim(name)//" is not a mesh name in this state")
     end if
 
   end function extract_mesh_from_one
-  
+
   function extract_mesh_from_any(state, name, stat) result (mesh)
     !!< Return a pointer to the mesh with the correct name.
     type(mesh_type), pointer :: mesh
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
     mesh => fake_mesh
-  
+
     do i = 1, size(state)
       if (associated(state(i)%meshes)) then
         do j=1,size(state(i)%meshes)
             if (trim(name)==trim(state(i)%mesh_names(j))) then
               ! Found the right field
-              
+
               mesh=>state(i)%meshes(j)%ptr
               return
             end if
@@ -1877,18 +1877,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a mesh name in these state") 
+       FLExit(trim(name)//" is not a mesh name in these state")
     end if
 
   end function extract_mesh_from_any
-  
+
   function extract_halo(state, name, stat) result (halo)
     !!< Return a pointer to the halo with the correct name.
     type(halo_type), pointer :: halo
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -1898,7 +1898,7 @@ contains
        do i=1,size(state%halos)
           if (trim(name)==trim(state%halo_names(i))) then
              ! Found the right halo
-             
+
              halo=>state%halos(i)%ptr
              return
           end if
@@ -1909,7 +1909,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a halo name in this state") 
+       FLExit(trim(name)//" is not a halo name in this state")
     end if
 
   end function extract_halo
@@ -1920,7 +1920,7 @@ contains
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -1930,7 +1930,7 @@ contains
        do i=1,size(state%csr_sparsities)
           if (trim(name)==trim(state%csr_sparsity_names(i))) then
              ! Found the right field
-             
+
              sparsity=>state%csr_sparsities(i)%ptr
              return
           end if
@@ -1941,18 +1941,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a sparsity name in this state") 
+       FLExit(trim(name)//" is not a sparsity name in this state")
     end if
 
   end function extract_from_one_csr_sparsity
-  
+
   function extract_from_any_csr_sparsity(state, name, stat) result (sparsity)
     !!< Return a pointer to the sparsity with the correct name.
     type(csr_sparsity), pointer :: sparsity
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
@@ -1963,7 +1963,7 @@ contains
         do j=1,size(state(i)%csr_sparsities)
             if (trim(name)==trim(state(i)%csr_sparsity_names(j))) then
               ! Found the right field
-              
+
               sparsity=>state(i)%csr_sparsities(j)%ptr
               return
             end if
@@ -1975,18 +1975,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a sparsity name in this state") 
+       FLExit(trim(name)//" is not a sparsity name in this state")
     end if
 
   end function extract_from_any_csr_sparsity
-  
+
   function extract_from_one_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the matrix with the correct name.
     type(csr_matrix), pointer :: matrix
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -2006,18 +2006,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a matrix name in this state") 
+       FLExit(trim(name)//" is not a matrix name in this state")
     end if
 
   end function extract_from_one_csr_matrix
-  
+
   function extract_from_any_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the matrix with the correct name.
     type(csr_matrix), pointer :: matrix
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
@@ -2039,18 +2039,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a matrix name in these states") 
+       FLExit(trim(name)//" is not a matrix name in these states")
     end if
 
   end function extract_from_any_csr_matrix
-  
+
   function extract_from_one_block_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the block matrix with the correct name.
     type(block_csr_matrix), pointer :: matrix
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -2070,18 +2070,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a block matrix name in this state") 
+       FLExit(trim(name)//" is not a block matrix name in this state")
     end if
 
   end function extract_from_one_block_csr_matrix
-  
+
   function extract_from_one_petsc_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the block matrix with the correct name.
     type(petsc_csr_matrix), pointer :: matrix
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i
 
     if (present(stat)) stat=0
@@ -2101,18 +2101,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a petsc matrix name in this state") 
+       FLExit(trim(name)//" is not a petsc matrix name in this state")
     end if
 
   end function extract_from_one_petsc_csr_matrix
-  
+
   function extract_from_any_block_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the block matrix with the correct name.
     type(block_csr_matrix), pointer :: matrix
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
@@ -2134,18 +2134,18 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a block matrix name in these states") 
+       FLExit(trim(name)//" is not a block matrix name in these states")
     end if
 
   end function extract_from_any_block_csr_matrix
-  
+
   function extract_from_any_petsc_csr_matrix(state, name, stat) result (matrix)
     !!< Return a pointer to the block matrix with the correct name.
     type(petsc_csr_matrix), pointer :: matrix
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: name
     integer, intent(out), optional :: stat
-    
+
     integer :: i, j
 
     if (present(stat)) stat=0
@@ -2167,15 +2167,15 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLExit(trim(name)//" is not a petsc matrix name in these states") 
+       FLExit(trim(name)//" is not a petsc matrix name in these states")
     end if
 
   end function extract_from_any_petsc_csr_matrix
-  
+
   function extract_scalar_field_by_index(state, index) result (field)
     !!< Return a pointer to the indexth scalar field in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(scalar_field), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2189,7 +2189,7 @@ contains
   function extract_vector_field_by_index(state, index) result (field)
     !!< Return a pointer to the indexth vector field in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(vector_field), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2203,7 +2203,7 @@ contains
   function extract_tensor_field_by_index(state, index) result (field)
     !!< Return a pointer to the indexth tensor field in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(tensor_field), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2217,7 +2217,7 @@ contains
   function extract_mesh_by_index(state, index) result (field)
     !!< Return a pointer to the indexth mesh in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(mesh_type), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2227,11 +2227,11 @@ contains
     field=>state%meshes(index)%ptr
 
   end function extract_mesh_by_index
-  
+
   function extract_halo_by_index(state, index) result (field)
     !!< Return a pointer to the indexth halo in state.
     !!< This is primarily useful for looping over all the halos in a
-    !!< state. 
+    !!< state.
     type(halo_type), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2245,7 +2245,7 @@ contains
   function extract_csr_sparsity_by_index(state, index) result (field)
     !!< Return a pointer to the indexth csr sparsity in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(csr_sparsity), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2259,7 +2259,7 @@ contains
   function extract_csr_matrix_by_index(state, index) result (field)
     !!< Return a pointer to the indexth csr matrix in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(csr_matrix), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2269,11 +2269,11 @@ contains
     field=>state%csr_matrices(index)%ptr
 
   end function extract_csr_matrix_by_index
-  
+
   function extract_block_csr_matrix_by_index(state, index) result (field)
     !!< Return a pointer to the indexth block csr matrix in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(block_csr_matrix), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2287,7 +2287,7 @@ contains
   function extract_petsc_csr_matrix_by_index(state, index) result (field)
     !!< Return a pointer to the indexth block csr matrix in state.
     !!< This is primarily useful for looping over all the fields in a
-    !!< state. 
+    !!< state.
     type(petsc_csr_matrix), pointer  :: field
     type(state_type), intent(in) :: state
     integer, intent(in) :: index
@@ -2303,7 +2303,7 @@ contains
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%scalar_names)) then
       present=any(trim(name)==state%scalar_names)
     else
@@ -2317,7 +2317,7 @@ contains
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%vector_names)) then
       present=any(trim(name)==state%vector_names)
     else
@@ -2331,7 +2331,7 @@ contains
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%tensor_names)) then
       present=any(trim(name)==state%tensor_names)
     else
@@ -2345,7 +2345,7 @@ contains
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%mesh_names)) then
       present=any(trim(name)==state%mesh_names)
     else
@@ -2353,13 +2353,13 @@ contains
     end if
 
   end function has_mesh
-  
+
   function state_has_halo(state, name) result(present)
     !!< Return true if there is a halo named name in state.
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%halo_names)) then
       present=any(trim(name)==state%halo_names)
     else
@@ -2367,13 +2367,13 @@ contains
     end if
 
   end function state_has_halo
-  
+
   function has_csr_sparsity(state, name) result(present)
     !!< Return true if there is a sparsity named name in state.
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%csr_sparsity_names)) then
       present=any(trim(name)==state%csr_sparsity_names)
     else
@@ -2381,13 +2381,13 @@ contains
     end if
 
   end function has_csr_sparsity
-  
+
   function has_csr_matrix(state, name) result(present)
     !!< Return true if there is a matrix named name in state.
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%csr_matrix_names)) then
       present=any(trim(name)==state%csr_matrix_names)
     else
@@ -2395,13 +2395,13 @@ contains
     end if
 
   end function has_csr_matrix
-  
+
   function has_block_csr_matrix(state, name) result(present)
     !!< Return true if there is a matrix named name in state.
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%block_csr_matrix_names)) then
       present=any(trim(name)==state%block_csr_matrix_names)
     else
@@ -2409,13 +2409,13 @@ contains
     end if
 
   end function has_block_csr_matrix
-  
+
   function has_petsc_csr_matrix(state, name) result(present)
     !!< Return true if there is a matrix named name in state.
     logical :: present
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
-    
+
     if (associated(state%petsc_csr_matrix_names)) then
       present=any(trim(name)==state%petsc_csr_matrix_names)
     else
@@ -2423,22 +2423,22 @@ contains
     end if
 
   end function has_petsc_csr_matrix
-  
+
   pure function field_count(state)
     integer field_count
     type(state_type), intent(in) :: state
-    
+
     field_count = scalar_field_count(state) + &
                   vector_field_count(state) + &
                   tensor_field_count(state)
-                  
+
   end function field_count
 
   pure function scalar_field_count(state)
     !!< Return the number of scalar fields in state.
     integer :: scalar_field_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%scalar_fields)) then
        scalar_field_count=size(state%scalar_fields)
     else
@@ -2451,7 +2451,7 @@ contains
     !!< Return the number of vector fields in state.
     integer :: vector_field_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%vector_fields)) then
        vector_field_count=size(state%vector_fields)
     else
@@ -2464,7 +2464,7 @@ contains
     !!< Return the number of tensor fields in state.
     integer :: tensor_field_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%tensor_fields)) then
        tensor_field_count=size(state%tensor_fields)
     else
@@ -2477,7 +2477,7 @@ contains
     !!< Return the number of meshes in state.
     integer :: mesh_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%meshes)) then
        mesh_count=size(state%meshes)
     else
@@ -2485,12 +2485,12 @@ contains
     end if
 
   end function mesh_count
-  
+
   pure function halo_count_state(state) result(halo_count)
     !!< Return the number of halos in state.
     integer :: halo_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%halos)) then
        halo_count=size(state%halos)
     else
@@ -2503,7 +2503,7 @@ contains
     !!< Return the number of csr_sparsities in state.
     integer :: csr_sparsity_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%csr_sparsities)) then
        csr_sparsity_count=size(state%csr_sparsities)
     else
@@ -2511,12 +2511,12 @@ contains
     end if
 
   end function csr_sparsity_count
-  
+
   pure function csr_matrix_count(state)
     !!< Return the number of csr_matrices in state.
     integer :: csr_matrix_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%csr_matrices)) then
        csr_matrix_count=size(state%csr_matrices)
     else
@@ -2524,12 +2524,12 @@ contains
     end if
 
   end function csr_matrix_count
-  
+
   pure function block_csr_matrix_count(state)
     !!< Return the number of csr_matrices in state.
     integer :: block_csr_matrix_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%block_csr_matrices)) then
        block_csr_matrix_count=size(state%block_csr_matrices)
     else
@@ -2542,7 +2542,7 @@ contains
     !!< Return the number of csr_matrices in state.
     integer :: petsc_csr_matrix_count
     type(state_type), intent(in) :: state
-    
+
     if (associated(state%petsc_csr_matrices)) then
        petsc_csr_matrix_count=size(state%petsc_csr_matrices)
     else
@@ -2550,17 +2550,17 @@ contains
     end if
 
   end function petsc_csr_matrix_count
-  
+
   subroutine set_vector_field_in_state(state, to_field_name, from_field_name)
     !!< Set the value of to_field to the value of from_field.
     type(state_type), intent(inout) :: state
     character(len=*), intent(in) :: to_field_name, from_field_name
-    
+
     type(vector_field), pointer :: to_field, from_field
-    
+
     to_field=>extract_vector_field(state, to_field_name)
     from_field=>extract_vector_field(state, from_field_name)
-    
+
     call set(to_field, from_field)
 
   end subroutine set_vector_field_in_state
@@ -2570,16 +2570,16 @@ contains
     type(state_type), dimension(:), intent(in):: states
     character(len=*), intent(in):: name
     integer, optional, intent(out):: stat
-    
+
     integer i
-    
+
     do i=1, size(states)
       if (states(i)%name==name) then
-        
+
         get_state_index=i
         if (present(stat)) stat=0
         return
-        
+
       end if
     end do
     !! failed to find
@@ -2588,7 +2588,7 @@ contains
     else
       FLExit(name//" is not the name of any of the given states.")
     end if
-    
+
   end function get_state_index
 
   subroutine print_state(state, unit)
@@ -2613,7 +2613,7 @@ contains
     else
       write(lunit, '(a)') " none"
     end if
-    
+
     write(lunit,'(a)') "Halos: "
     if (associated(state%halo_names)) then
       do i=1,size(state%halo_names)
@@ -2655,7 +2655,7 @@ contains
     else
       write(lunit, '(a)') " none"
     end if
-    
+
     write(lunit,'(a)') "CSR sparsities: "
     if (associated(state%csr_sparsity_names)) then
       do i=1,size(state%csr_sparsity_names)
@@ -2664,7 +2664,7 @@ contains
     else
       write(lunit, '(a)') " none"
     end if
-    
+
     write(lunit,'(a)') "CSR Matrices: "
     if (associated(state%csr_matrix_names)) then
       do i=1,size(state%csr_matrix_names)
@@ -2673,7 +2673,7 @@ contains
     else
       write(lunit, '(a)') " none"
     end if
-    
+
     write(lunit,'(a)') "Block CSR Matrices: "
     if (associated(state%block_csr_matrix_names)) then
       do i=1,size(state%block_csr_matrix_names)
@@ -2682,7 +2682,7 @@ contains
     else
       write(lunit, '(a)') " none"
     end if
-    
+
   end subroutine print_state
 
   subroutine select_state_by_mesh(state, mesh_name, mesh_state)
@@ -2691,18 +2691,18 @@ contains
     type(state_type), intent(in):: state
     character(len=*), intent(in):: mesh_name
     type(state_type), intent(out):: mesh_state
-      
+
     type(scalar_field), pointer:: sfield
     type(vector_field), pointer:: vfield
     type(tensor_field), pointer:: tfield
     type(mesh_type), pointer :: old_mesh
-    
+
     integer j
-    
+
     call nullify(mesh_state)
     old_mesh => extract_mesh(state, trim(mesh_name))
     call insert(mesh_state, old_mesh, trim(mesh_name))
-        
+
     ! insert scalar fields defined on "mesh_name"
     do j=1, scalar_field_count(state)
       sfield => extract_scalar_field(state, j)
@@ -2710,7 +2710,7 @@ contains
         call insert(mesh_state, sfield, name=trim(sfield%name))
       end if
     end do
-    
+
     ! insert vector fields defined on "mesh_name"
     do j=1, vector_field_count(state)
       vfield => extract_vector_field(state, j)
@@ -2726,22 +2726,22 @@ contains
         call insert(mesh_state, tfield, name=trim(tfield%name))
       end if
     end do
-    
+
   end subroutine select_state_by_mesh
-    
+
   function extract_state(states, name, stat) result (state)
   !!< searches a state by name a returns a pointer to it
     type(state_type), pointer:: state
     type(state_type), dimension(:), intent(in), target:: states
     character(len=*), intent(in):: name
     integer, optional, intent(out):: stat
-    
+
     integer i
-    
+
     do i=1, size(states)
       if (states(i)%name==name) exit
     end do
-      
+
     if (i>size(states)) then
       if (present(stat)) then
         stat=1
@@ -2751,10 +2751,10 @@ contains
         FLExit("No such state!")
       end if
     end if
-    
+
     state => states(i)
     if (present(stat)) stat=0
-    
+
   end function extract_state
 
   subroutine collapse_single_state(state, fields)
@@ -2808,7 +2808,7 @@ contains
       end do
     end do
   end subroutine collapse_single_state
-  
+
   subroutine collapse_multiple_states(states, fields)
   !!< Sometimes it is useful to treat everything in state
   !!< as a big bunch of scalar fields -- adapting and
@@ -2866,7 +2866,7 @@ contains
       end do
     end do
   end subroutine collapse_multiple_states
-  
+
   subroutine collapse_fields_in_single_state(input_state, output_state)
   !!< Sometimes it is useful to treat everything in state
   !!< as a big bunch of scalar fields -- adapting and
@@ -2874,15 +2874,15 @@ contains
   !!< in input_state down to scalar fields in output_state.
     type(state_type), intent(in) :: input_state
     type(state_type), intent(out) :: output_state
-    
+
     type(state_type), dimension(1) :: linput_state, loutput_state
-    
+
     linput_state = (/input_state/)
     call collapse_fields_in_state(linput_state, loutput_state)
     output_state = loutput_state(1)
-    
+
   end subroutine collapse_fields_in_single_state
-      
+
   subroutine collapse_fields_in_multiple_states(input_states, output_states)
   !!< Sometimes it is useful to treat everything in state
   !!< as a big bunch of scalar fields -- adapting and
@@ -2902,7 +2902,7 @@ contains
         field_s = extract_scalar_field(input_states(l), i)
         call insert(output_states(l), field_s, trim(input_states(l)%scalar_names(i)))
       end do
-  
+
       do i=1,vector_field_count(input_states(l))
         field_v => extract_vector_field(input_states(l), i)
         if (trim(field_v%name) /= "Coordinate") then
@@ -2913,7 +2913,7 @@ contains
           end do
         end if
       end do
-  
+
       do i=1,tensor_field_count(input_states(l))
         field_t => extract_tensor_field(input_states(l), i)
         do j=1,field_t%dim(1)
@@ -2925,7 +2925,7 @@ contains
         end do
       end do
     end do
-    
+
   end subroutine collapse_fields_in_multiple_states
 
   function unique_mesh_count(states, seen_ids) result(cnt)
@@ -3018,21 +3018,21 @@ contains
   subroutine halo_update_state(state, level, update_aliased, update_positions)
     !!< Update the halos of fields in the supplied state. If level is not
     !!< supplied, the fields are updated on their largest halo.
-    
+
     type(state_type), intent(inout) :: state
     integer, optional, intent(in) :: level
     !! If present and false, do *not* update aliased fields
     logical, optional, intent(in) :: update_aliased
     !! If present and true, *do* update the positions field
     logical, optional, intent(in) :: update_positions
-    
+
     integer :: i
     type(scalar_field), pointer :: s_field => null()
     type(tensor_field), pointer :: t_field => null()
     type(vector_field), pointer :: v_field => null()
-   
+
     ewrite(2, *) "Updating halos for state " // trim(state%name)
- 
+
     do i = 1, scalar_field_count(state)
       s_field => extract_scalar_field(state, i)
       if(s_field%field_type == FIELD_TYPE_NORMAL .and. &
@@ -3041,7 +3041,7 @@ contains
         call halo_update(s_field, level = level)
       end if
     end do
-    
+
     do i = 1, vector_field_count(state)
       v_field => extract_vector_field(state, i)
       if(index(v_field%name,"Coordinate")==len_trim(v_field%name)-9  &
@@ -3052,7 +3052,7 @@ contains
         call halo_update(v_field, level = level)
       end if
     end do
-    
+
     do i = 1, tensor_field_count(state)
       t_field => extract_tensor_field(state, i)
       if(t_field%field_type == FIELD_TYPE_NORMAL .and. &
@@ -3061,32 +3061,32 @@ contains
         call halo_update(t_field, level = level)
       end if
     end do
-    
+
   end subroutine halo_update_state
-  
+
   subroutine halo_update_states(states, level, update_aliased, update_positions)
     !!< Update the halos of fields in the supplied states. If level is not
     !!< supplied, the fields are updated on their largest halo.
-    
+
     type(state_type), dimension(:), intent(inout) :: states
     integer, optional, intent(in) :: level
     !! If present and true, *do* update aliased fields
     logical, optional, intent(in) :: update_aliased
     !! If present and true, *do* update the positions field
     logical, optional, intent(in) :: update_positions
-    
+
     integer :: i
-    
+
     do i = 1, size(states)
       call halo_update(states(i), level = level, update_aliased = present_and_true(update_aliased), update_positions = update_positions)
     end do
-    
+
   end subroutine halo_update_states
-  
+
   pure function aliased_scalar(field) result(aliased)
   !!< Checks whether a field is aliased
     !! field to be checked
-    type(scalar_field), intent(in) :: field 
+    type(scalar_field), intent(in) :: field
     logical :: aliased
 
     aliased=field%aliased
@@ -3096,7 +3096,7 @@ contains
   pure function aliased_vector(field) result(aliased)
   !!< Checks whether a field is aliased
     !! field to be checked
-    type(vector_field), intent(in) :: field 
+    type(vector_field), intent(in) :: field
     logical :: aliased
 
     aliased=field%aliased
@@ -3112,5 +3112,5 @@ contains
     aliased=field%aliased
 
   end function aliased_tensor
-  
+
 end module state_module

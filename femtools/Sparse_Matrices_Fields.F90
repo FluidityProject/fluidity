@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -31,14 +31,14 @@ use fldebug
 use sparse_tools
 use fields
 use sparse_tools_petsc
-use c_interfaces
+
 implicit none
 
   interface mult
      module procedure csr_mult_scalar, csr_mult_scalar_vector,&
           csr_mult_vector_scalar, csr_mult_vector_vector, csr_mult_vector
   end interface
-  
+
   interface mult_addto
      module procedure block_csr_mult_addto_vector, csr_mult_addto_scalar
   end interface
@@ -68,9 +68,9 @@ private
 
 public :: mult, mult_addto, mult_T, mult_T_addto, mult_diag, addto_diag,&
           extract_diagonal, mult_div_tensorinvscalar_div_t,&
-	  mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
-	  mult_div_vector_div_t, mult_div_invvector_div_t
-  
+          mult_div_tensorinvscalar_vector, mult_div_invscalar_div_t,&
+          mult_div_vector_div_t, mult_div_invvector_div_t
+
 contains
 
   subroutine csr_mult_scalar(x, A, b)
@@ -80,7 +80,7 @@ contains
     type(scalar_field), intent(in), target :: b
     real, dimension(:), allocatable :: tmp
 
-    if (compare_pointers(c_loc(x), c_loc(b))) then
+    if (c_associated(c_loc(x), c_loc(b))) then
       FLAbort("You can't pass the same field in for x and b.")
     end if
 
@@ -93,7 +93,7 @@ contains
       call mult(x%val, A, tmp)
       deallocate(tmp)
     end select
-    
+
   end subroutine csr_mult_scalar
 
   subroutine csr_mult_addto_scalar(x, A, b)
@@ -112,7 +112,7 @@ contains
       call mult_addto(x%val, A, tmp)
       deallocate(tmp)
     end select
-    
+
   end subroutine csr_mult_addto_scalar
 
   subroutine csr_mult_vector(x, A, b)
@@ -120,7 +120,7 @@ contains
     type(vector_field), intent(inout) :: x
     type(csr_matrix), intent(in) :: A
     type(vector_field), intent(in) :: b
-    
+
     integer :: i
     type(scalar_field) :: x_comp, b_comp
 
@@ -138,7 +138,7 @@ contains
     type(vector_field), intent(inout) :: x
     type(block_csr_matrix), intent(in) :: A
     type(vector_field), intent(in) :: b
-    
+
     integer :: i, j
     type(scalar_field) :: x_comp, b_comp
     type(csr_matrix) :: A_block
@@ -185,7 +185,7 @@ contains
       end do
       deallocate(tmp)
     end select
-    
+
   end subroutine csr_diag_mult_scalar
 
   subroutine csr_diag_mult_scalar_v(A, b)
@@ -241,7 +241,7 @@ contains
       end if
       deallocate(tmp)
     end select
-    
+
   end subroutine csr_diag_addto_scalar
 
   subroutine block_csr_diag_addto_scalar(A, b, scale)
@@ -367,7 +367,7 @@ contains
     end do
 
   end subroutine petsc_csr_diag_addto_vector
-  
+
   subroutine block_csr_extract_diagonal(A,diagonal)
     !!< Extracts diagonal components of a block_csr matrix.
     !!< The vector field diagonal needs to be allocated before the call.
@@ -375,12 +375,12 @@ contains
     type(block_csr_matrix), intent(in) :: A
     type(vector_field), intent(inout) :: diagonal
     integer i, j
-    
+
     assert( diagonal%dim==blocks(A,1) )
     assert( node_count(diagonal)==block_size(A,1))
     assert( block_size(A,1)==block_size(A,2))
     assert( blocks(A,1)==blocks(A,2))
-    
+
     if (associated(A%sparsity%centrm)) then
        do i=1, blocks(A,1)
           call set_all(diagonal, i, A%val(i,i)%ptr(A%sparsity%centrm))
@@ -390,7 +390,7 @@ contains
           do j=1, block_size(A,1)
              call set(diagonal, i, j, val(A, i, i, j, j))
           end do
-       end do       
+       end do
     end if
 
   end subroutine block_csr_extract_diagonal
@@ -409,7 +409,7 @@ contains
 
     allocate(tmpx(size(x%val)))
     call zero(x)
-    
+
     do dim=1,b%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
@@ -438,7 +438,7 @@ contains
     assert(all(A%blocks==(/x%dim,1/)))
 
     call zero(x)
-    
+
     do dim=1,x%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
@@ -467,11 +467,11 @@ contains
 
     allocate(tmpx(size(x%val(1,:))))
     call zero(x)
-    
+
     do dim_x=1,x%dim
        do dim_b=1,b%dim
           if (A%diagonal .and. dim_b/=dim_x) cycle
-          
+
           select case(b%field_type)
           case(FIELD_TYPE_NORMAL)
              call mult(tmpx, block(A,dim_x,dim_b), b%val(dim_b,:))
@@ -503,7 +503,7 @@ contains
       call mult_T(x%val, A, tmp)
       deallocate(tmp)
     end select
-    
+
   end subroutine csr_mult_T_scalar
 
   subroutine csr_mult_T_addto_scalar(x, A, b)
@@ -538,7 +538,7 @@ contains
     assert(all(A%blocks==(/1,x%dim/)))
 
     call zero(x)
-    
+
     do dim=1,x%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
@@ -567,11 +567,11 @@ contains
 
     allocate(tmpx(size(x%val(1,:))))
     call zero(x)
-    
+
     do dim_x=1,x%dim
        do dim_b=1,b%dim
           if (A%diagonal .and. dim_b/=dim_x) cycle
-          
+
           select case(b%field_type)
           case(FIELD_TYPE_NORMAL)
              call mult_T(tmpx, block(A,dim_b,dim_x), b%val(dim_b,:))
@@ -586,12 +586,12 @@ contains
     end do
 
   end subroutine csr_mult_T_vector_vector
-  
+
   subroutine mult_div_vector_div_T(product, matrix1, vfield, matrix2)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<   product = matrix1*diag(vector)*matrix2^T
-    !!< 
+    !!<
     !!< Only works on block csr matrices with monotonic row entries in colm
     type(csr_matrix) :: product
     type(block_csr_matrix), intent(in) :: matrix1, matrix2
@@ -644,7 +644,7 @@ contains
          ! A_ik and B_jk - this is done by walking through them together
          ! from left to right, where we're using that both are stored
          ! in sorted order
-         
+
          entry0=0.0
 
          k1 = 1
@@ -669,18 +669,18 @@ contains
     end do
 
   end subroutine mult_div_vector_div_T
-  
+
   subroutine mult_div_invscalar_div_T(product, matrix1, sfield, matrix2)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<   product = matrix1*diag(1./scalar)*matrix2^T
-    !!< 
+    !!<
     !!< Only works on csr matrices with monotonic row entries in colm
     type(csr_matrix), intent(inout) :: product
     type(csr_matrix), intent(in) :: matrix1
     type(scalar_field), intent(in) :: sfield
     type(csr_matrix), intent(in) :: matrix2
-    
+
     integer, dimension(:), pointer :: row, col, row_product
     real, dimension(:), pointer :: row_val, col_val
     integer :: i,j,k1,k2,jcol
@@ -749,9 +749,9 @@ contains
 
   subroutine mult_div_invvector_div_T(product, matrix1, vfield, matrix2)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<   product = matrix1*diag(1./vector)*matrix2^T
-    !!< 
+    !!<
     !!< Only works on block csr matrices with monotonic row entries in colm
     type(csr_matrix) :: product
     type(block_csr_matrix), intent(in) :: matrix1, matrix2
@@ -837,9 +837,9 @@ contains
 
   subroutine mult_div_tensorinvscalar_div_T(product, matrix1, tfield, sfield, matrix2, isotropic)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     product = matrix1*tensor*diag(1./vector)*matrix2^T
-    !!< 
+    !!<
     !!< Only works on block csr matrices with monotonic row entries in colm
     type(csr_matrix), intent(inout) :: product
     type(block_csr_matrix), intent(in) :: matrix1, matrix2
@@ -946,9 +946,9 @@ contains
 
   subroutine mult_div_tensorinvscalar_vector(product, matrix1, tfield, sfield, vfield, isotropic)
     !!< Perform the matrix multiplication:
-    !!< 
+    !!<
     !!<     product = matrix1*tensor*diag(1./vector)*vfield
-    !!< 
+    !!<
     !!< Note that product is not zeroed by this subroutine!
     type(scalar_field), intent(inout) :: product
     type(block_csr_matrix), intent(in) :: matrix1

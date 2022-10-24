@@ -6,7 +6,7 @@ preprocess: envcheck
 	@echo **********Copying circle.geo to the current directory:
 	cp src/circle.geo .
 	@echo **********Generating the mesh using gmsh in 2d:
-	gmsh -2 circle.geo 
+	gmsh -2 circle.geo
 	@echo **********Converting the gmsh mesh to triangle format:
 
 run: envcheck

@@ -86,9 +86,9 @@ BINARIES = $(VTKDIAGNOSTIC)		\
   $(PROJECT_TO_CONTINUOUS) $(MESHCONV) $(VTU2GMSH)		        \
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(STREAMFUNCTION_2D)							\
-  $(TEST_LAPLACIAN) 
+  $(TEST_LAPLACIAN)
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a 
+.SUFFIXES: .f90 .F90 .c .cpp .o .a
 
 %.o:	%.f90
 	$(FC) $(FCFLAGS) -c $<
@@ -206,9 +206,8 @@ $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
 
 clean:
 	rm -f *.o *.mod
-	rm -rf build dist fluidity.egg-info 
+	rm -rf build dist fluidity.egg-info
 	rm -f lib
 
 distclean:
 	rm -f version-info
-

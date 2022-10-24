@@ -37,7 +37,7 @@ CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../../include
 
 CXX = @CXX@ -I../../include
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include 
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include
 
 LDFLAGS  = @LDFLAGS@
 

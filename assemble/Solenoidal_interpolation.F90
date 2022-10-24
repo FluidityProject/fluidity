@@ -37,13 +37,13 @@ module solenoidal_interpolation_module
 
   private
   public :: solenoidal_interpolation
-  
+
   interface solenoidal_interpolation
     module procedure solenoidal_interpolation_state, solenoidal_interpolation_fields
   end interface
 
   contains
-  
+
   subroutine solenoidal_interpolation_state(state)
     type(state_type), intent(inout) :: state
 
@@ -51,16 +51,16 @@ module solenoidal_interpolation_module
     type(vector_field), pointer :: coordinate
     type(scalar_field), pointer :: s_field
     type(mesh_type), pointer :: lagrange_mesh
-    
+
     character(len=FIELD_NAME_LEN) :: mesh_name, update_field_name
     integer :: stat, i
 
     coordinate => extract_vector_field(state, "Coordinate")
-    
+
     do i = 1, vector_field_count(state)
       v_field => extract_vector_field(state, i)
       if(trim(v_field%name)=="Coordinate") cycle
-      
+
       if(have_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
                      "/enforce_discrete_properties/solenoidal/lagrange_multiplier/update_scalar_field")) then
         call get_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
@@ -70,7 +70,7 @@ module solenoidal_interpolation_module
       else
         s_field=>null()
       end if
-      
+
       call get_option(trim(complete_field_path(v_field%option_path, stat=stat))//&
                     "/enforce_discrete_properties/solenoidal/lagrange_multiplier/mesh/name", &
                     mesh_name)
@@ -78,27 +78,27 @@ module solenoidal_interpolation_module
       if(associated(s_field)) then
         assert(s_field%mesh%name==mesh_name)
       end if
-      
+
       call solenoidal_interpolation(v_field, coordinate, &
                                   & lagrange_mesh, s_field=s_field)
-    
+
     end do
 
   end subroutine solenoidal_interpolation_state
 
   subroutine solenoidal_interpolation_fields(v_field, coordinate, &
                                              lagrange_mesh, s_field)
-    
+
     type(vector_field), intent(inout) :: coordinate
     type(vector_field), intent(inout) :: v_field
     type(mesh_type), intent(inout) :: lagrange_mesh
-    
+
     type(scalar_field), pointer :: s_field
-    
+
     logical :: dg, lump_mass, lump_on_submesh, div_cv, div_cg, apply_kmk
     integer :: dim, j
     real :: dt
-    
+
     type(block_csr_matrix), pointer :: ct_m
     type(block_csr_matrix), pointer :: ctp_m
     type(scalar_field) :: ct_rhs, kmk_rhs
@@ -107,7 +107,7 @@ module solenoidal_interpolation_module
     type(block_csr_matrix) :: inverse_field_mass
     type(scalar_field) :: field_lumped_mass
     type(vector_field) :: inverse_field_lumped_mass_vector
-    
+
     ! This is the object of our desires:
     ! lagrange is the Lagrange multiplier that
     ! ensures solenoidality of the resulting interpolant
@@ -122,26 +122,26 @@ module solenoidal_interpolation_module
 
     type(ilist) :: stiff_nodes_list
     logical :: stiff_nodes_repair
-    
+
     ! for a CG Lagrange multiplier are we testing the divergence with the CV dual
     logical :: cg_lagrange_cv_test_divergence
-    
+
     call insert(local_state, coordinate, "Coordinate")
-    
+
     l_option_path=trim(complete_field_path(v_field%option_path))//"/enforce_discrete_properties/solenoidal"
-    
+
     dim = mesh_dim(v_field)
-    
+
     if(associated(s_field)) then
       assert(trim(s_field%mesh%name) == trim(lagrange_mesh%name))
     end if
 
     dg = (continuity(v_field) < 0)
-    
+
     lump_mass = have_option(trim(l_option_path)//&
                 "/interpolated_field/discontinuous/lump_mass_matrix") &
                 .or. .not.dg
-    
+
     lump_on_submesh = have_option(trim(l_option_path)//&
                       "/interpolated_field/continuous/lump_mass_matrix/use_submesh") &
                       .and. .not.dg
@@ -149,7 +149,7 @@ module solenoidal_interpolation_module
     div_cv = have_option(trim(l_option_path) //&
           &"/lagrange_multiplier/spatial_discretisation/control_volumes")
     div_cg = .not.div_cv
-    
+
     cg_lagrange_cv_test_divergence = have_option(trim(l_option_path) //&
           &"/lagrange_multiplier/spatial_discretisation/continuous_galerkin/test_divergence_with_cv_dual")
 
@@ -168,27 +168,27 @@ module solenoidal_interpolation_module
     allocate(ct_m)
     call allocate(ct_m, ct_m_sparsity, blocks=(/1, dim/), name="DivergenceMatrix")
     call zero(ct_m)
-    
-    ! If CG with CV tested divergence then we need to allocate the 
+
+    ! If CG with CV tested divergence then we need to allocate the
     ! left C matrix as it is formed via testing with CV so
-    if (cg_lagrange_cv_test_divergence) then    
+    if (cg_lagrange_cv_test_divergence) then
        allocate(ctp_m)
        call allocate(ctp_m, ct_m_sparsity, blocks=(/1, dim/), name="CVTestedDivergenceMatrix")
        call zero(ctp_m)
     else
        ctp_m => ct_m
     end if
-    
+
     call allocate(ct_rhs, lagrange_mesh, "DivergenceRHS")
     call zero(ct_rhs)
-    
+
     cmc_m_sparsity = make_sparsity_transpose(lagrange_mesh, v_field%mesh, "LagrangeProjectionSparsity")
     call allocate(cmc_m, cmc_m_sparsity, name="LagrangeProjectionMatrix")
     call zero(cmc_m)
-    
+
     call allocate(projec_rhs, lagrange_mesh, "LagrangeProjectionRHS")
     call zero(projec_rhs)
-    
+
     call allocate(lagrange, lagrange_mesh, "LagrangianMultiplier")
     call zero(lagrange)
     lagrange%option_path = trim(l_option_path)//"/lagrange_multiplier"
@@ -226,23 +226,23 @@ module solenoidal_interpolation_module
         call assemble_divergence_matrix_cg(ct_m, local_state, ct_rhs=ct_rhs, &
                                             test_mesh=lagrange_mesh, field=v_field, &
                                             option_path = trim(l_option_path)//"/lagrange_multiplier")
-        
+
         ! now get the dg inverse mass matrix
         call construct_inverse_mass_matrix_dg(inverse_field_mass, v_field, coordinate)
-        
+
       else
         FLExit("Not possible to not lump the mass if not dg.")
       end if
-      
+
       ! If CG lagrange with CV tested divergence then form the other C matrix.
       ! This will overwrite the ct_rhs formed above.
       if (cg_lagrange_cv_test_divergence) then
-          
+
          call assemble_divergence_matrix_cv(ctp_m, local_state, ct_rhs=ct_rhs, &
                                             test_mesh=lagrange_mesh, field=v_field)
-      
+
       end if
-            
+
     elseif(div_cv) then
       if(lump_mass) then
         if(lump_on_submesh) then
@@ -255,7 +255,7 @@ module solenoidal_interpolation_module
       else
         FLExit("Not possible to not lump the mass if not dg.")
       end if
-    
+
       call assemble_divergence_matrix_cv(ct_m, local_state, ct_rhs=ct_rhs, &
                                          test_mesh=lagrange_mesh, field=v_field)
 
@@ -263,14 +263,14 @@ module solenoidal_interpolation_module
       ! coding error
       FLAbort("Unknown spatial discretisation option for the lagrange multiplier.")
     end if
-    
+
     if(lump_mass) then
       call invert(field_lumped_mass)
-      
+
       do j=1, inverse_field_lumped_mass_vector%dim
         call set(inverse_field_lumped_mass_vector, j, field_lumped_mass)
       end do
-      
+
       call apply_dirichlet_conditions_inverse_mass(inverse_field_lumped_mass_vector, v_field)
 
       call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_field_lumped_mass_vector, ct_m)
@@ -283,9 +283,9 @@ module solenoidal_interpolation_module
     if(stiff_nodes_repair) then
       call repair_stiff_nodes(cmc_m, stiff_nodes_list)
     end if
-    
+
     call mult(projec_rhs, ctp_m, v_field)
-    
+
     if(apply_kmk) then
       ! a hack to make sure the appropriate meshes are available for the
       ! construction of the sparsity
@@ -294,39 +294,39 @@ module solenoidal_interpolation_module
       call insert(local_state, lagrange, name="Pressure")
       call insert(local_state, v_field, name="Velocity")
       ! end of hack... you can look again now
-      
+
       ewrite(2,*) "Assembling P1-P1 stabilisation"
-      call assemble_kmk_matrix(local_state, lagrange_mesh, coordinate, theta_pg=1.0)    
+      call assemble_kmk_matrix(local_state, lagrange_mesh, coordinate, theta_pg=1.0)
       call add_kmk_matrix(local_state, cmc_m)
-       
+
       if(associated(s_field)) then
         ! Should the timestep be passed in here? not sure
         call get_option("/timestepping/timestep", dt)
         call add_kmk_rhs(local_state, kmk_rhs, s_field, dt)
       end if
-      
+
       ! clean up our mess
       call remove_scalar_field(local_state, name="Pressure")
       call remove_vector_field(local_state, name="Velocity")
-      
+
       call addto(projec_rhs, kmk_rhs)
     end if
-    
+
     call scale(projec_rhs, -1.0)
     call addto(projec_rhs, ct_rhs)
-    
+
     call impose_reference_pressure_node(cmc_m, projec_rhs, coordinate, trim(l_option_path)//"/lagrange_multiplier")
-    
+
     if(stiff_nodes_repair) then
       call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
     end if
 
     call petsc_solve(lagrange, cmc_m, projec_rhs)
-    
+
     if(associated(s_field)) then
       call addto(s_field, lagrange)
     end if
-    
+
     if(lump_mass) then
       call correct_masslumped_velocity(v_field, inverse_field_lumped_mass_vector, ct_m, lagrange)
     else if(dg) then
@@ -334,7 +334,7 @@ module solenoidal_interpolation_module
     else
       FLExit("Not possible to not lump the mass if not dg.")
     end if
-    
+
     call deallocate(ct_m_sparsity)
     call deallocate(ct_m)
     deallocate(ct_m)
@@ -361,5 +361,5 @@ module solenoidal_interpolation_module
     call deallocate(local_state)
 
   end subroutine
-  
+
 end module solenoidal_interpolation_module

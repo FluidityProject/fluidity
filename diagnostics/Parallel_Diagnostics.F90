@@ -8,9 +8,9 @@ module parallel_diagnostics
   use halos
 
   implicit none
-  
+
   private
-  
+
   public :: calculate_node_halo, calculate_universal_numbering, &
     & calculate_element_halo, calculate_element_ownership, &
     & calculate_element_universal_numbering
@@ -19,9 +19,9 @@ contains
 
   subroutine calculate_node_halo(s_field)
     type(scalar_field), intent(inout) :: s_field
-    
+
     integer :: i, j
-    
+
     call zero(s_field)
     do i = halo_count(s_field), 1, -1
       do j = 1, halo_proc_count(s_field%mesh%halos(i))
@@ -29,15 +29,15 @@ contains
         call set(s_field, halo_receives(s_field%mesh%halos(i), j), spread(-float(i), 1, halo_receive_count(s_field%mesh%halos(i), j)))
       end do
     end do
-    
+
   end subroutine calculate_node_halo
-  
+
   subroutine calculate_universal_numbering(s_field)
     type(scalar_field), intent(inout) :: s_field
-    
+
     integer :: i, nhalos
     type(halo_type), pointer :: halo
-    
+
     nhalos = halo_count(s_field)
     if(nhalos > 0) then
       halo => s_field%mesh%halos(nhalos)
@@ -49,12 +49,12 @@ contains
         call set(s_field, i, float(i))
       end do
     end if
-  
+
   end subroutine calculate_universal_numbering
 
   subroutine calculate_element_halo(s_field)
     type(scalar_field), intent(inout) :: s_field
-    
+
     integer :: i, j
     type(element_type), pointer :: shape
 
@@ -63,7 +63,7 @@ contains
     if(shape%degree /= 0) then
       FLExit("element_halo diagnostic requires a degree 0 mesh")
     end if
-    
+
     call zero(s_field)
     do i = element_halo_count(s_field), 1, -1
       do j = 1, halo_proc_count(s_field%mesh%element_halos(i))
@@ -71,7 +71,7 @@ contains
         call set(s_field, halo_receives(s_field%mesh%element_halos(i), j), spread(-float(i), 1, halo_receive_count(s_field%mesh%element_halos(i), j)))
       end do
     end do
-    
+
   end subroutine calculate_element_halo
 
   subroutine calculate_element_ownership(s_field)
@@ -97,12 +97,12 @@ contains
     else
       call set(s_field, 1.0)
     end if
-    
+
   end subroutine calculate_element_ownership
 
   subroutine calculate_element_universal_numbering(s_field)
     type(scalar_field), intent(inout) :: s_field
-    
+
     integer :: i, nhalos
     type(element_type), pointer :: shape
     type(halo_type), pointer :: ele_halo
@@ -125,7 +125,7 @@ contains
         call set(s_field, i, float(i))
       end do
     end if
-    
+
   end subroutine calculate_element_universal_numbering
 
 end module parallel_diagnostics

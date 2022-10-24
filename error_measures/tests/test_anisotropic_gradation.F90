@@ -24,7 +24,7 @@ subroutine test_anisotropic_gradation
 
   id = reshape((/1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0/), (/3, 3/))
 
-  call set(metric, id * 4) ! an isotropic edge length of 0.5 
+  call set(metric, id * 4) ! an isotropic edge length of 0.5
   call set(metric, 1, id)  ! an isotropic edge length of 1.0
 
   call allocate(gamma, positions%mesh, "Gamma", FIELD_TYPE_CONSTANT)
@@ -39,7 +39,7 @@ subroutine test_anisotropic_gradation
   end do
   call report_test("[anisotropic gradation]", fail, .false., "A bound of one on the ratio => constant field.")
 
-  call set(metric, id * 4) ! an isotropic edge length of 0.5 
+  call set(metric, id * 4) ! an isotropic edge length of 0.5
   call set(metric, 1, id)  ! an isotropic edge length of 1.0
   call set(gamma, id) ! a gradient of 1.0
   call form_anisotropic_gradation_metric(metric, positions, gamma_field=gamma) ! this should leave it unchanged
@@ -52,7 +52,7 @@ subroutine test_anisotropic_gradation
   end if
   call report_test("[anisotropic gradation]", fail, .false., "This particular set of inputs should be left unchanged.")
 
-  call set(metric, id * 4) ! an isotropic edge length of 0.5 
+  call set(metric, id * 4) ! an isotropic edge length of 0.5
   call set(metric, 1, id)  ! an isotropic edge length of 1.0
   nid = id; nid(3, 3) = 1000 ! constant edge lengths in x and y, "no" bound in z
   call set(gamma, nid)

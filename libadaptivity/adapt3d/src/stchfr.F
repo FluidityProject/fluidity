@@ -1,30 +1,30 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 C USA
-      SUBROUTINE STCHFR( BIGLST, NODLST, IREG, MINDOT, MINREL, 
+      SUBROUTINE STCHFR( BIGLST, NODLST, IREG, MINDOT, MINREL,
      :                   AWSDOT, AWSREL, CHNGED )
 C-----------------------------------------------------------------------
 C
@@ -178,7 +178,7 @@ C
 c         PAUSE
 C
          CALL DOFACS( BIGLST, NODLST, IPTR, CONFC, EDGLST, IELM, NXT,
-     :                BSTFC2, THSDOT, THSREL, BSTDOT/2, BSTREL/2, 
+     :                BSTFC2, THSDOT, THSREL, BSTDOT/2, BSTREL/2,
      :               .TRUE., IREG )
 C
          IF( IPTR .NE. 0 ) THEN

@@ -59,9 +59,9 @@ AC_ARG_WITH(blas_dir,
 
 case $with_blas_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_blas_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_blas_dir"
 	      acx_blas_dir="$with_blas_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_blas_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_blas_dir"
 	      acx_blas_dir="-L$with_blas_dir" ;;
 esac
 
@@ -109,12 +109,12 @@ fi
 # Intel mkl BLAS. Unfortunately some of Intel's blas routines are
 # in their lapack library...
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_def, $sgemm, 
+	AC_CHECK_LIB(mkl_def, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_def -lm"],
 	[],[-lm])
 fi
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_ipf, $sgemm, 
+	AC_CHECK_LIB(mkl_ipf, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lmkl_ipf -lguide -lm"],
 	[],[-lguide -lm])
 fi
@@ -124,8 +124,8 @@ if test $acx_blas_ok = no; then
 	unset ac_cv_lib_mkl_def_sgemm
 	AC_CHECK_LIB(mkl_lapack, lsame, [
 	    acx_lapack_ok=yes;
-		AC_CHECK_LIB(mkl_def, $sgemm, 
-			[acx_blas_ok=yes; 
+		AC_CHECK_LIB(mkl_def, $sgemm,
+			[acx_blas_ok=yes;
 			acx_blas_libs="-lmkl_def -lmkl_lapack -lm -lpthread"],
 			[],[-lm -lpthread
 		])
@@ -147,7 +147,7 @@ fi
 
 # ia64-hp-hpux11.22 BLAS library?
 if test $acx_blas_ok = no; then
-        AC_CHECK_LIB(veclib, $sgemm, 
+        AC_CHECK_LIB(veclib, $sgemm,
 		[acx_blas_ok=yes; acx_blas_libs="-lveclib8"])
 fi
 
@@ -214,10 +214,10 @@ if test $acx_blas_ok = no; then
 	AC_CHECK_LIB(blas, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lblas"])
 fi
 
-# blas on SGI/CRAY 
+# blas on SGI/CRAY
 if test $acx_blas_ok = no; then
     unset ac_cv_lib_blas_sgemm
-	AC_CHECK_LIB(blas, $sgemm, 
+	AC_CHECK_LIB(blas, $sgemm,
 	[acx_blas_ok=yes; acx_blas_libs="-lblas -lcraylibs"],[],[-lcraylibs])
 fi
 
@@ -246,4 +246,3 @@ else
         $2
 fi
 ])dnl ACX_BLAS
-

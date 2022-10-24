@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -35,9 +35,9 @@ subroutine test_intersection_finder_seeds
   use quadrature
   use unittest_tools
   use intersection_finder_module
-  
+
   implicit none
-  
+
   integer :: i
   integer, dimension(2) :: seeds_vec
   logical, dimension(4) :: ele_found
@@ -48,26 +48,26 @@ subroutine test_intersection_finder_seeds
   type(mesh_type) :: mesh
   type(quadrature_type) :: quad
   type(vector_field) :: positions
-  
+
   quad = make_quadrature(vertices = 2, dim  = 1, degree = 1)
   shape = make_element_shape(vertices = 2, dim  = 1, degree = 1, quad = quad)
   call deallocate(quad)
-  
+
   call allocate(mesh, nodes = 6, elements = 4, shape = shape, name = "CoordinateMesh")
   call deallocate(shape)
   call set_ele_nodes(mesh, 1, (/1, 2/))
   call set_ele_nodes(mesh, 2, (/2, 3/))
   call set_ele_nodes(mesh, 3, (/4, 5/))
   call set_ele_nodes(mesh, 4, (/5, 6/))
-    
+
   call allocate(positions, 1, mesh, "Coordinate")
   call deallocate(mesh)
   do i = 1, node_count(positions)
     call set(positions, i, spread(float(i), 1, 1))
   end do
-  
+
   seeds = advancing_front_intersection_finder_seeds(positions)
-  
+
   call report_test("[number of seeds]", seeds%length /= 2, .false., "Incorrect number of seeds")
   seeds_vec = list2vector(seeds)
   call report_test("[seed]", seeds_vec(1) /= 1, .false., "Incorrect seed")
@@ -80,7 +80,7 @@ subroutine test_intersection_finder_seeds
     node => map(i)%firstnode
     do while(associated(node))
       ele_found(node%value) = .true.
-    
+
       node => node%next
     end do
   end do
@@ -88,14 +88,14 @@ subroutine test_intersection_finder_seeds
   do i = 1, size(map)
     call deallocate(map(i))
   end do
-  
+
   map = advancing_front_intersection_finder(positions, positions, seed = seeds_vec(2))
   ele_found = .false.
   do i = 1, size(map)
     node => map(i)%firstnode
     do while(associated(node))
       ele_found(node%value) = .true.
-    
+
       node => node%next
     end do
   end do
@@ -104,10 +104,10 @@ subroutine test_intersection_finder_seeds
     call deallocate(map(i))
   end do
 #endif
-  
+
   call deallocate(seeds)
   call deallocate(positions)
-  
+
   call report_test_no_references()
-  
+
 end subroutine test_intersection_finder_seeds

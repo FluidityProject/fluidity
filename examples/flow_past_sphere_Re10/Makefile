@@ -15,6 +15,6 @@ input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump* 
+	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump*
 	rm -rf first_timestep_adapted_mesh*
 	rm -f Sphere_drag.pdf

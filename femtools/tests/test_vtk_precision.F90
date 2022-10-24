@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -32,15 +32,15 @@ subroutine test_vtk_precision
 
   use iso_c_binding, only: c_float, c_double
   use quadrature
-  use elements  
+  use elements
   use fields
   use fields_data_types
   use state_module
   use unittest_tools
   use vtk_interfaces
-  
+
   implicit none
-  
+
   character(len = 255) :: filename
   integer :: i, stat
   integer, parameter :: D = c_double, S = c_float
@@ -52,9 +52,9 @@ subroutine test_vtk_precision
   type(state_type) :: read_state, written_state
   type(vector_field) :: mesh_field, written_v_field
   type(vector_field), pointer :: read_v_field
-  
+
   filename = "data/test_vtk_precision_out.vtu"
-  
+
   ! Allocate a mesh
   quad = make_quadrature(vertices = 3, dim  = 2, degree = 1)
   shape = make_element_shape(vertices = 3, dim  = 2, degree = 1, quad = quad)
@@ -68,14 +68,14 @@ subroutine test_vtk_precision
   call set(mesh_field, 1, (/0.0, 0.0/))
   call set(mesh_field, 2, (/1.0, 0.0/))
   call set(mesh_field, 3, (/1.0, 1.0/))
-  
+
   call deallocate(quad)
   call deallocate(shape)
   call deallocate(mesh)
-  
+
   call insert(written_state, mesh_field%mesh, "CoordinateMesh")
   call insert(written_state, mesh_field, "Coordinate")
-  
+
   ! Insert empty fields into the state to be written
   call allocate(written_s_field,  mesh_field%mesh, "TestScalarField", field_type = FIELD_TYPE_CONSTANT)
   call zero(written_s_field)
@@ -83,7 +83,7 @@ subroutine test_vtk_precision
   call allocate(written_v_field, mesh_dim(mesh_field%mesh), mesh_field%mesh, "TestVectorField", field_type = FIELD_TYPE_CONSTANT)
   call zero(written_v_field)
   call insert(written_state, written_v_field, "TestVectorField")
-  
+
   ! Clean existing output
   call vtk_write_state(filename, model = "CoordinateMesh", state = (/written_state/), stat = stat)
   call report_test("[Clean]", stat /= 0, .false., "Failed to clean output")
@@ -99,13 +99,13 @@ subroutine test_vtk_precision
   call deallocate(read_state)
   nullify(read_s_field)
   nullify(read_v_field)
-  
+
   call set(mesh_field, 1, real((/tiny(0.0_S) * 1.0_S, 0.0_S/)))
   call set(written_s_field, real(tiny(0.0_S) * 1.0_S))
   call set(written_v_field, real((/tiny(0.0_S) * 1.0_S, 0.0_S/)))
   call vtk_write_state(filename, model = "CoordinateMesh", state = (/written_state/), stat = stat)
   call report_test("[vtk_write_state]", stat /= 0, .false., "Failed to write state")
-    
+
   call vtk_read_state(filename, state = read_state)
   read_v_field => extract_vector_field(read_state, "Coordinate")
   call report_test("[Coordinate field, tiny, c_float precision]", read_v_field%val(1,1) < tiny(0.0_S), .false., "[Insufficient precision]")
@@ -116,14 +116,14 @@ subroutine test_vtk_precision
   call deallocate(read_state)
   nullify(read_s_field)
   nullify(read_v_field)
-  
+
 #ifdef DOUBLEP
   call set(mesh_field, 1, (/tiny(0.0_D) * 1.0_D, 0.0_D/))
   call set(written_s_field, tiny(0.0_D) * 1.0_D)
   call set(written_v_field, (/tiny(0.0_D) * 1.0_D, 0.0_D/))
   call vtk_write_state(filename, model = "CoordinateMesh", state = (/written_state/), stat = stat)
   call report_test("[vtk_write_state]", stat /= 0, .false., "Failed to write state")
-    
+
   call vtk_read_state(filename, state = read_state)
   read_v_field => extract_vector_field(read_state, "Coordinate")
   call report_test("[Coordinate field, tiny, c_double precision]", read_v_field%val(1,1) < tiny(0.0_D), .false., "[Insufficient precision]")
@@ -135,14 +135,14 @@ subroutine test_vtk_precision
   nullify(read_s_field)
   nullify(read_v_field)
 #endif
-  
+
   ! TODO: Similar tests for tensor fields, similar tests using epsilon
-  
+
   call deallocate(written_s_field)
   call deallocate(written_v_field)
   call deallocate(mesh_field)
   call deallocate(written_state)
-  
+
   call report_test_no_references()
-  
+
 end subroutine test_vtk_precision

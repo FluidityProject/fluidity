@@ -38,17 +38,17 @@ subroutine test_sort_states_by_mesh
   end do
 
   call report_test("[sort_states_by_mesh]", fail, .false., "Ah, whatever")
-  
+
   do state = 1, size(states)
     call deallocate(states(state))
   end do
   deallocate(states)
-  
+
   do state = 1, size(sorted_states)
     call deallocate(sorted_states(state))
   end do
   deallocate(sorted_states)
-  
+
   call report_test_no_references()
 
 end subroutine test_sort_states_by_mesh

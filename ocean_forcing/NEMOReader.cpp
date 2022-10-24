@@ -1,25 +1,25 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
-    
+
     Prof. C Pain
     Applied Modelling and Computation Group
     Department of Earth Science and Engineering
     Imperial College London
-    
+
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
     version 2.1 of the License.
-    
+
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
-    
+
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -74,22 +74,22 @@ NEMOReader::~NEMOReader(){
 void NEMOReader::AddFieldOfInterest(std::string field_name){
   if(verbose)
     cout<<"void NEMOReader::AddFieldOfInterest("<<field_name<<")\n";
-  
+
   for(deque<string>::const_iterator ifield=fields_of_interest.begin(); ifield!=fields_of_interest.end(); ifield++)
     if(field_name==*ifield)
       cerr<<"ERROR: void NEMOReader::AddFieldOfInterest("<<field_name<<")\n Field added multiple times\n";
-  
+
   fields_of_interest.push_back(field_name);
-  
+
   modified = true;
-  
+
   return;
 }
 
 void NEMOReader::ClearFields(){
   if(verbose)
     cout<<"void NEMOReader::ClearFields()\n";
-  
+
   fields_of_interest.clear();
   return;
 }
@@ -97,7 +97,7 @@ void NEMOReader::ClearFields(){
 bool NEMOReader::Enabled() const{
   if(verbose)
     cout<<"void NEMOReader::Enabled() const\n";
-  
+
   return NEMO_data_files.size()!=0;
 }
 
@@ -115,19 +115,19 @@ pair<size_t, size_t> NEMOReader::GetInterval(double value, const map<double, int
 int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *scalars){
   if(verbose)
     cout<<"int NEMOReader::GetScalars("<<xlong<<", "<<ylat<<", "<<p_depth<<", scalars)\n";
-  
+
   if(modified)
     Update();
-  
+
   // Ensure that the input is sensible
   while(xlong<0)
     xlong+=360.0;
   while(xlong>=360.0)
     xlong-=360.0;
-  
+
   assert(ylat>=-90);
   assert(ylat<=90);
-  
+
   map<double, int>::const_iterator long1 = lut_longitude.lower_bound(xlong);
   assert(long1!=lut_longitude.end());
   if(verbose)
@@ -138,7 +138,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
     long0--;
   size_t i0=long0->second;
   size_t i1=long1->second;
-  
+
   map<double, int>::const_iterator lat1 = lut_latitude.lower_bound(ylat);
   assert(lat1!=lut_latitude.end());
   if(verbose)
@@ -147,7 +147,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
   map<double, int>::const_iterator lat0 = lat1;
   if((lat0!=lut_latitude.begin())&&(fabs(lat0->first-ylat)>0.001))
     lat0--;
-  
+
   size_t j0=lat0->second;
   size_t j1=lat1->second;
 
@@ -161,7 +161,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
     depth0--;
   size_t k0=depth0->second;
   size_t k1=depth1->second;
-  
+
   if(verbose)
     cout<<"Selecting grid ("<<i0<<", "<<j0<<", "<<k0<<"), ("<<i1<<", "<<j1<<", "<<k1<<")\n";
 
@@ -173,11 +173,11 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
   double values[1024]; // This is way more than the number of
                        // variables calculated in NEMO
   size_t nvalues=0, stride=longitude.size(), vstride=longitude.size()*latitude.size();
-  
+
   for(map<int, map<string, vector<double> > >::const_iterator itime=fields.begin(); itime!=fields.end(); itime++){
     for(deque<string>::const_iterator ifield=fields_of_interest.begin(); ifield!=fields_of_interest.end(); ifield++){
       const vector<double> &fld=itime->second.find(*ifield)->second;
-      
+
       string dtest="ssh";
       if(ifield->c_str()==dtest){ // Use ssh to set prssure
         if(i0==i1){ // No interpolation along longitude
@@ -189,7 +189,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
           }else{
             double x0 = fld[j0*stride+i0];
             double x1 = fld[j1*stride+i0];
-          
+
             double x = SolveLine(x0, x1, ylat-lat0->first, lat1->first, ylat);
             values[nvalues] = x;
           }
@@ -205,7 +205,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
           if (long_temp1 < long_temp0) {
             long_temp1 += 360.0;
           }
-        
+
           double x = SolveLine(x0, x1, long_temp0, long_temp1, xlong);
           values[nvalues] = x;
         }else{ // Bi-linear interpolation
@@ -233,7 +233,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
 
           double x =  (x00*(dl1)*(ylat-latitude[j1]) -
                        x10*(dl0)*(ylat-latitude[j1]) -
-                       x01*(dl1)*(ylat-latitude[j0]) + 
+                       x01*(dl1)*(ylat-latitude[j0]) +
                        x11*(dl0)*(ylat-latitude[j0]))
                        /(dlong*dlat);
           values[nvalues] = x;
@@ -248,7 +248,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
           }else{
             double x0 = fld[k0*vstride+j0*stride+i0];
             double x1 = fld[k0*vstride+j1*stride+i0];
-          
+
             double x = SolveLine(x0, x1, ylat-lat0->first, lat1->first, ylat);
             values[nvalues] = x;
           }
@@ -264,7 +264,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
           if (long_temp1 < long_temp0) {
             long_temp1 += 360.0;
           }
-        
+
           double x = SolveLine(x0, x1, long_temp0, long_temp1, xlong);
           values[nvalues] = x;
         }else{ // Bi-linear interpolation
@@ -292,7 +292,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
 
           double x =  (x00*(dl1)*(ylat-latitude[j1]) -
                        x10*(dl0)*(ylat-latitude[j1]) -
-                       x01*(dl1)*(ylat-latitude[j0]) + 
+                       x01*(dl1)*(ylat-latitude[j0]) +
                        x11*(dl0)*(ylat-latitude[j0]))
                        /(dlong*dlat);
           values[nvalues] = x;
@@ -313,7 +313,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
             double x1 = fld[k0*vstride+j1*stride+i0];
             double x2 = fld[k1*vstride+j0*stride+i0];
             double x3 = fld[k1*vstride+j1*stride+i0];
-          
+
             double xk0 = SolveLine(x0, x1, ylat-lat0->first, lat1->first, ylat);
             double xk1 = SolveLine(x2, x3, ylat-lat0->first, lat1->first, ylat);
             double ddepth=depth[k1]-depth[k0];
@@ -335,7 +335,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
           if (long_temp1 < long_temp0) {
             long_temp1 += 360.0;
           }
-        
+
           double xk0 = SolveLine(x0, x1, long_temp0, long_temp1, xlong);
           double xk1 = SolveLine(x2, x3, long_temp0, long_temp1, xlong);
           double ddepth=depth[k1]-depth[k0];
@@ -372,12 +372,12 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
 
           double x1 =  (x000*(dl1)*(ylat-latitude[j1]) -
                         x100*(dl0)*(ylat-latitude[j1]) -
-                        x010*(dl1)*(ylat-latitude[j0]) + 
+                        x010*(dl1)*(ylat-latitude[j0]) +
                         x110*(dl0)*(ylat-latitude[j0]))
                         /(dlong*dlat);
           double x2 =  (x001*(dl1)*(ylat-latitude[j1]) -
                         x101*(dl0)*(ylat-latitude[j1]) -
-                        x011*(dl1)*(ylat-latitude[j0]) + 
+                        x011*(dl1)*(ylat-latitude[j0]) +
                         x111*(dl0)*(ylat-latitude[j0]))
                         /(dlong*dlat);
           double ddepth=depth[k1]-depth[k0];
@@ -389,7 +389,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
       nvalues++;
     }
   }
-  
+
   if(fields.size()==1){
     assert(nvalues==fields_of_interest.size());
     for(size_t i=0;i<nvalues; i++)
@@ -401,7 +401,7 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
     for(size_t i=0;i<nvalues; i++)
       scalars[i] = SolveLine(values[i], val2[i], (double)(time[t0]), (double)(time[t1]), time_set);
   }
-  
+
   for(size_t i=0;i<nvalues; i++){
     scalars[i]/=GetScaleFactor(fields_of_interest[i]);
     if(verbose)
@@ -411,19 +411,19 @@ int NEMOReader::GetScalars(double xlong, double ylat, double p_depth, double *sc
 }
 
 double NEMOReader::GetScaleFactor(std::string variable_name) const{
-  return 1.0;  
+  return 1.0;
 }
 
 int NEMOReader::Read(int time_index){
   if(verbose)
     cout<<"int Read("<<time_index<<")\n";
-  
+
   // Make sure that a file has been registered
   if(NEMO_data_files.size()==0){
     cerr<<"ERROR: int Read("<<time_index<<") -- no file has been registered\n";
     exit(-1);
   }
-  
+
 #ifdef HAVE_LIBNETCDF
   for(deque<string>::iterator ifield=fields_of_interest.begin(); ifield!=fields_of_interest.end(); ifield++){
     // Check if we already have a copy of this field
@@ -431,19 +431,19 @@ int NEMOReader::Read(int time_index){
       if(fields[time_index].find(*ifield)!=fields[time_index].end())
         if(fields[time_index][*ifield].empty())
           continue;
-    
+
     long id = ncvarid(ncid, ifield->c_str());
     nc_type xtypep;                 /* variable type */
     int ndims;                      /* number of dims */
     int dims[MAX_VAR_DIMS];         /* variable shape */
     int natts;                      /* number of attributes */
-    
+
     ncvarinq(ncid, id, 0, &xtypep, &ndims, dims, &natts);
 //    assert(xtypep==NC_SHORT);
 
     size_t len;
     vector<float> field;
-   
+
     string dtest="ssh";
     if (ifield->c_str()==dtest){
       len = vdimension[1]*vdimension[0];
@@ -456,12 +456,12 @@ int NEMOReader::Read(int time_index){
       long start[]={time_index, 0, 0, 0}, count[]={1,ndepth,vdimension[1],vdimension[0]};
       ncvarget(ncid, id, start, count, &(field[0]));
     }
-    
+
 //     string extension=".dat";
 //     string fname=ifield->c_str();
 //     string dfile=fname+extension;
 //     ofstream myfile(dfile.c_str());
-// 
+//
 //     for(size_t i=0;i<(size_t)len;i++){
 //       myfile << i << '\t' << field[i] << endl;
 //     }
@@ -484,23 +484,23 @@ int NEMOReader::RegisterDataFile(string file){
 #ifdef HAVE_LIBNETCDF
   if(verbose)
     cout<<"int NEMOReader::RegisterDataFile("<<file<<")\n";
-  
+
   // Check what has gone before
   if(NEMO_data_files.size()==1){
     assert(NEMO_data_files[0]==file);
     return 0;
   }
   // else
-  
+
   NEMO_data_files.push_back(file);
-  
+
   //
   // Get the basic information from the NetCDF file
   //
-  
+
   // Make NetCDF errors verbose and fatal
   ncopts = NC_VERBOSE | NC_FATAL;
-  
+
   // Open the netCDF file.
   if(file.c_str()[0]!='/')
     file = string(getenv("PWD"))+string("/")+file;
@@ -524,7 +524,7 @@ int NEMOReader::RegisterDataFile(string file){
       exit(-1);
     }
   ncdiminq(ncid, id, (char *)0, &(vdimension[0]));
-  
+
   if(verbose)
       cout<<"("<<__FILE__<<", "<<__LINE__<<"): longitude = "<<vdimension[0]<<endl;
   }
@@ -548,7 +548,7 @@ int NEMOReader::RegisterDataFile(string file){
 
     assert(spec.find("depth_level")==spec.end());
     spec["depth_level"] = ndepth;
-    
+
     if(verbose)
       cout<<"("<<__FILE__<<", "<<__LINE__<<"): depth_level = "<<ndepth<<endl;
   }
@@ -559,7 +559,7 @@ int NEMOReader::RegisterDataFile(string file){
 
     assert(spec.find("time_counter")==spec.end());
     spec["time_counter"] = ntime;
-    
+
     if(verbose)
       cout<<"("<<__FILE__<<", "<<__LINE__<<"): time_counter = "<<ntime<<endl;
   }
@@ -568,7 +568,7 @@ int NEMOReader::RegisterDataFile(string file){
     nc_type xtypep;                 /* variable type */
     int ndims;                      /* number of dims */
     int dims[MAX_VAR_DIMS];         /* variable shape */
-  
+
     int id = ncvarid(ncid, "longitude");
     ncvarinq(ncid, id, 0, &xtypep, &ndims, dims, NULL);
 
@@ -605,7 +605,7 @@ int NEMOReader::RegisterDataFile(string file){
 
     if(lut_longitude.begin()->first<0.001)
       lut_longitude[360.0] = lut_longitude.begin()->second;
-    
+
     if(verbose){
       cout<<"longitude =";
       for(vector<double>::iterator ilong=longitude.begin(); ilong!=longitude.end(); ilong++)
@@ -614,13 +614,13 @@ int NEMOReader::RegisterDataFile(string file){
     }
 
   }
-  
+
 
   {// Load latitudes values
     nc_type xtypep;                 /* variable type */
     int ndims;                      /* number of dims */
     int dims[MAX_VAR_DIMS];         /* variable shape */
-  
+
     int id = ncvarid(ncid, "latitude");
     ncvarinq(ncid, id, 0, &xtypep, &ndims, dims, NULL);
 
@@ -647,19 +647,19 @@ int NEMOReader::RegisterDataFile(string file){
 
     for(long i=0;i<len;i++)
       lut_latitude[latitude[i]] = i;
-    
+
     if(verbose){
       cout<<"latitude =";
       for(vector<double>::iterator ilat=latitude.begin(); ilat!=latitude.end(); ilat++)
         cout<<*ilat<<" ";
       cout<<endl;
     }
-  
+
   }
 
 //   {
 //      ofstream myfile("longlat.dat");
-// 
+//
 //      long leni = vdimension[0];
 //      long lenj = vdimension[1];
 //      for(long i=0;i<leni;i++){
@@ -673,7 +673,7 @@ int NEMOReader::RegisterDataFile(string file){
     nc_type xtypep;                 /* variable type */
     int ndims;                      /* number of dims */
     int dims[MAX_VAR_DIMS];         /* variable shape */
-  
+
     int id = ncvarid(ncid, "depth_level");
     ncvarinq(ncid, id, 0, &xtypep, &ndims, dims, NULL);
 
@@ -697,16 +697,16 @@ int NEMOReader::RegisterDataFile(string file){
 
     for(long i=0;i<len;i++)
       lut_depth[depth[i]] = i;
-    
+
     if(verbose){
       cout<<"depth =";
       for(vector<double>::iterator idepth=depth.begin(); idepth!=depth.end(); idepth++)
         cout<<*idepth<<" ";
       cout<<endl;
     }
-  
+
   }
-  
+
   { // time
     nc_type xtypep;                 /* variable type */
     int ndims, natts;               /* number of dims  and attributes */
@@ -714,7 +714,7 @@ int NEMOReader::RegisterDataFile(string file){
 
     long id = ncvarid(ncid, "time_counter");
     ncvarinq(ncid, id, 0, &xtypep, &ndims, dims, &natts);
-    
+
     long start=0, count=spec["time_counter"];
     time.resize(count);
     if(xtypep==NC_INT){
@@ -733,23 +733,23 @@ int NEMOReader::RegisterDataFile(string file){
       cerr<<"ERROR: ("<<__FILE__<<"): time has unexpected type.\n";
       exit(-1);
     }
-    
+
     lut_time[time[0]] = 0;
     for(size_t i=1;i<(size_t)count;i++)
       if(time[i]>time[i-1])
         lut_time[time[i]] = i;
-    
+
     if(verbose){
       for(vector<double>::iterator it=time.begin(); it!=time.end(); it++)
         cout<<*it<<" ";
       cout<<endl;
     }
-    
+
     // Attributes to read
     char units[1024];
     memset(units, '\0', 1024);
     nc_get_att_text(ncid, id, "units", units);
-    
+
     if(calendar==NULL)
       calendar = new Calendar;
     if (verbose) {
@@ -761,7 +761,7 @@ int NEMOReader::RegisterDataFile(string file){
 #else
   cerr<<"ERROR: No NetCDF support compiled\n";
   exit(-1);
-#endif  
+#endif
   return 0;
 }
 
@@ -783,7 +783,7 @@ int NEMOReader::SetTimeSeconds(double seconds){
     cerr<<"ERROR ("<<__FILE__<<"): Setting the time transformation has failed.\n";
     exit(-1);
   }
-  
+
   err = calendar->Convert(seconds, time_set);
   if(err){
     cerr<<"ERROR ("<<__FILE__<<"): Conversion between time units has failed.\n";
@@ -794,9 +794,9 @@ int NEMOReader::SetTimeSeconds(double seconds){
     cout<<"New time for data="<<time_set<<"\n";
 
   modified = true;
-  
+
   Update();
-  
+
   return (0);
 }
 
@@ -807,33 +807,31 @@ double NEMOReader::SolveLine(double x0, double x1, double y0, double y1, double 
 int NEMOReader::Update(){
   if(!modified)
     return 0;
-  
+
   // Make sure that a file has been registered
   if(NEMO_data_files.size()==0)
     return 0;
-  
+
   // Get an iterator to the first element which has a value greater than or equal to key
   pair<size_t, size_t> time_interval = GetInterval(time_set, lut_time);
   size_t t0=time_interval.first;
   size_t t1=time_interval.second;
-  
-  bool need_second_frame = (t0!=t1);
-  
+
   // Deleted data which is no longer needed
   if(!fields.empty())
     if((fields.begin()->first != (int)t0)&&
        (fields.begin()->first != (int)t1))
       fields.erase(fields.begin());
-  
+
   if(!fields.empty())
     if((fields.rbegin()->first != (int)t0)&&
        (fields.rbegin()->first != (int)t1))
       fields.erase(fields.rbegin()->first);
-  
+
   // Read in the new data
   Read(t0);
   Read(t1);
-  
+
   modified = false;
 
   return 0;
@@ -860,29 +858,29 @@ extern "C" {
     NEMOReader_global.AddFieldOfInterest(string(scalar));
     return;
   }
-  
+
   void nemo_clearfields_c(){
     NEMOReader_global.ClearFields();
     return;
   }
-  
+
   void nemo_getscalars_c(const double *longitude, const double *latitude, const double *p_depth, double *scalars){
     NEMOReader_global.GetScalars(*longitude, *latitude, *p_depth, scalars);
     return;
   }
-  
+
   void nemo_registerdatafile_c(const char *filename){
     NEMOReader_global.RegisterDataFile(string(filename));
     return;
   }
-  
+
   void nemo_setsimulationtimeunits_c(const char *units){
-    NEMOReader_global.SetSimulationTimeUnits(string(units));  
+    NEMOReader_global.SetSimulationTimeUnits(string(units));
     return;
   }
-  
+
   void nemo_settimeseconds_c(const double *time){
-    NEMOReader_global.SetTimeSeconds(*time);  
+    NEMOReader_global.SetTimeSeconds(*time);
     return;
   }
 }

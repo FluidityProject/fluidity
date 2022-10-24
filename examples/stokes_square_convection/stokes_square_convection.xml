@@ -6,9 +6,9 @@
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l stokes-square-convection-24.flml; fluidity -v2 -l stokes-square-convection-48.flml </command_line>
   </problem_definition>
-<variables>  
+<variables>
 
-<variable name="nu_24" language="python"> 
+<variable name="nu_24" language="python">
 from fluidity_tools import stat_parser as stat
 nu_24 = -stat("stokes-sc-Ra1e5-24.stat")["Fluid"]["Temperature"]["surface_integral%Top"][-1]
 </variable>
@@ -23,7 +23,7 @@ from fluidity_tools import stat_parser as stat
 RMS_24 = stat("stokes-sc-Ra1e5-24.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
 </variable>
 
-<variable name="RMS_48" language="python"> 
+<variable name="RMS_48" language="python">
 from fluidity_tools import stat_parser as stat
 RMS_48 = stat("stokes-sc-Ra1e5-48.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
 </variable>
@@ -48,12 +48,7 @@ assert(abs(nu_48-10.25) &lt; 0.25)
 assert(abs(RMS_48-193.0) &lt; 1.0)
 </test>
 
-</pass_tests>                                                                                                                                                                                                
+</pass_tests>
 <warn_tests> </warn_tests>
 
 </testproblem>
-
-
-
-
-

@@ -49,7 +49,7 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-rescaling-view \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
 ./visualisation_and_diagnostics_images/diamond_enable_stat \
-./visualisation_and_diagnostics_images/quadratic_element 
+./visualisation_and_diagnostics_images/quadratic_element
 
 IMAGE_DIRS=examples_images numerical_discretisation_images \
 visualisation_and_diagnostics_images configuring_fluidity_images \
@@ -57,14 +57,14 @@ examples_images/sediment\
 examples_images/lock_exchange
 
 EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
-./examples_images/rotating_channel/convergence 
+./examples_images/rotating_channel/convergence
 
 CHAPTERS=getting_started model_equations numerical_discretisation parameterisations \
 adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_shooting \
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
-VERSION = $(shell ../bin/version-info | tr -d [:punct:]) 
+VERSION = $(shell ../bin/version-info | tr -d [:punct:])
 
 fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \
@@ -109,7 +109,7 @@ version-info:
 %.tex: %.pstex_t %.pstex
 	../femtools/doc/bin/wrap_pstex $<
 
-%.dvi: %.tex 
+%.dvi: %.tex
 	pdflatex -output-directory $(dir $@) -shell-escape -output-format dvi $<
 
 %.png: %.dvi
@@ -127,7 +127,7 @@ PSFILES=$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
 	fluidity_manual.pdf
 
 %.ps: %.dvi
-	dvips -o $@ $^ 
+	dvips -o $@ $^
 
 %.pdf: %.tex
 	pdflatex -shell-escape $<

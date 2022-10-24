@@ -9,7 +9,7 @@ femtools_manual.pdf: femtools_manual.tex notation.tex \
 	$(addsuffix _tex.pdf, $(IMAGES)) \
 
 femtools_manual.html: femtools_manual.tex notation.tex \
-	$(addsuffix .png, $(IMAGES)) 
+	$(addsuffix .png, $(IMAGES))
 	htlatex $< "femtools_manual"
 
 #linear_1d_mesh.png: linear_1d_mesh.fig
@@ -17,7 +17,7 @@ femtools_manual.html: femtools_manual.tex notation.tex \
 %.tex: %.pstex_t %.pstex
 	./scripts/wrap_pstex $<
 
-%.dvi: %.tex 
+%.dvi: %.tex
 	pdflatex -output-format dvi $<
 
 %.png: %.dvi
@@ -25,11 +25,11 @@ femtools_manual.html: femtools_manual.tex notation.tex \
 
 PSFILES=$(addsuffix .pdftex_t, $(IMAGES)) \
 	$(addsuffix _tex.pdf, $(IMAGES)) \
-	$(addsuffix .png, $(IMAGES)) 
+	$(addsuffix .png, $(IMAGES))
 
 
 %.ps: %.dvi
-	dvips -o $@ $^ 
+	dvips -o $@ $^
 
 %.pdf: %.tex
 	pdflatex -shell-escape $<
@@ -40,7 +40,7 @@ ifndef NOBIBTEX
 	$(MAKE) NOBIBTEX=true --assume-new $^ $@;fi
 endif
 
-bibliography.bib: 
+bibliography.bib:
 	ln -s $(CD)$@ .
 
 %.pdftex: %.fig

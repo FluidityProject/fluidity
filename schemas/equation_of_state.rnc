@@ -1,4 +1,4 @@
-equation_of_state_options = 
+equation_of_state_options =
    (
       ## The equation of state
       element equation_of_state {
@@ -8,15 +8,15 @@ equation_of_state_options =
          )
       }
    )
- 
- 
-fluids_eos_options = 
+
+
+fluids_eos_options =
    (
       ## Equations of state for ocean (and simple fluid) applications
       element fluids {
          (
             ## Incompressible linear equation of state
-            ## 
+            ##
             ## (e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))
             element linear {
                ## The reference or background density
@@ -59,12 +59,12 @@ fluids_eos_options =
                ## The name of this dependency must correspond to a scalar field in this material_phase.
                element generic_scalar_field_dependency {
                   attribute name { xsd:string },
-                  ## The reference or background value 
+                  ## The reference or background value
                   ## for the generic scalar field.
                   element reference_value {
                      real
                   },
-                  ## The expansion coefficient associated 
+                  ## The expansion coefficient associated
                   ## with this generic scalar field.
                   element expansion_coefficient {
                      real
@@ -85,7 +85,7 @@ fluids_eos_options =
                }?
             }
          )
-      }   
+      }
    )
 
 
@@ -109,7 +109,7 @@ compressible_eos_options =
                ## pressure to that at constant volume
                ##
                ## Requires an energy field.
-               ## If activated then a full Stiffened Gas EoS 
+               ## If activated then a full Stiffened Gas EoS
                element ratio_specific_heats {
                   real
                }?,
@@ -144,14 +144,14 @@ compressible_eos_options =
             }|
             ## Foam EoS
             ## Used with compressible simulations of liquid drainage in foams.
-            ## It describes the liquid content in the foam as the product of the 
-            ## Plateau border cross sectional area and the local Plateau 
-            ## border length per unit volume (lambda). 
+            ## It describes the liquid content in the foam as the product of the
+            ## Plateau border cross sectional area and the local Plateau
+            ## border length per unit volume (lambda).
             element foam {
                empty
             }
          ),
-         ## This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). 
+         ## This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component ('').
          ## The hydrostatic (reference) components, denoted p' and rho', should satisfy the balance:
          ## grad(p') = rho'*g
          ##
@@ -163,6 +163,5 @@ compressible_eos_options =
          element subtract_out_reference_profile {
             empty
          }?
-      }   
+      }
    )
-   

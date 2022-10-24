@@ -40,6 +40,6 @@ main (
 	H5CloseFile (f);
 	H5Finalize ();
 	MPI_Finalize ();
-	
+
 	return 0;
 }

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006-2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -34,16 +34,16 @@ subroutine test_fields_reference_counting
 
   logical :: fail
   type(vector_field) :: X
-  
+
   X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
 
   call incref(X%mesh)
-  
-  call decref(X%mesh)  
+
+  call decref(X%mesh)
 
   fail=(X%mesh%refcount%count/=1)
 
   call report_test("[test_fields_reference_counting]", fail, .false., &
        "Reference count is not 1")
-  
+
 end subroutine test_fields_reference_counting

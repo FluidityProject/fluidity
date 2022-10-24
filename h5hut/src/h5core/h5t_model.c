@@ -137,7 +137,7 @@ h5tpriv_init_mesh (
 	             m->dsinfo_userdata.chunk_dims) );
 	m->dsinfo_userdata.access_prop = H5P_DEFAULT;
 #endif
-	
+
 	/* vertices */
 	strcpy (m->dsinfo_vertices.name, "Vertices");
 	m->dsinfo_vertices.rank = 1;
@@ -533,7 +533,7 @@ h5t_get_level (
 
 /*!
   Return number of elems on compute node \c cnode_id on
-  current level. If \cnode_id is equal \c -1 return the 
+  current level. If \cnode_id is equal \c -1 return the
   number of elements in the entire mesh.
 
   \remark
@@ -561,7 +561,7 @@ h5t_get_num_leaf_elems (
 }
 /*!
   Return number of vertices on compute node \c cnode_id
-  on current level.  If \cnode_id is equal \c -1 return the 
+  on current level.  If \cnode_id is equal \c -1 return the
   number of vertices in the entire mesh.
 
   \remark
@@ -602,4 +602,3 @@ h5t_is_chunked (
 	H5_CORE_API_ENTER (h5_lvl_idx_t, "m=%p", m);
 	H5_RETURN (m->is_chunked);
 }
-

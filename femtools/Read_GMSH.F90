@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -185,13 +185,13 @@ contains
 
     ! NOTE:  similar function 'boundaries' variable in Read_Triangle.F90
     ! ie. flag for boundaries and internal boundaries (period mesh bounds)
-    
+
     if (numFaces>0) then
       ! do we have physical surface ids?
       haveBounds= faces(1)%numTags>0
       ! do we have element owners of faces?
       haveElementOwners = faces(1)%numTags==4
-      
+
       ! if any (the first face) has them, then all should have them
       do f=2, numFaces
          if(faces(f)%numTags/=faces(1)%numTags) then
@@ -200,16 +200,16 @@ contains
            FLExit("Inconsistent number of face tags")
          end if
       end do
-        
+
     else
-    
+
       haveBounds=.false.
       haveElementOwners=.false.
-      
+
     end if
-    
+
     if (numElements>0) then
-      
+
       haveRegionIDs = elements(1)%numTags>0
       ! if any (the first face) has them, then all should have them
       do e=2, numElements
@@ -219,13 +219,13 @@ contains
            FLExit("Inconsistent number of element tags")
          end if
       end do
-      
+
     else
-    
+
       haveRegionIDs = .false.
-    
+
     end if
-    
+
     if (present(mdim)) then
        coordinate_dim = mdim
     else if(have_option("/geometry/spherical_earth") ) then
@@ -326,7 +326,7 @@ contains
     ! Deallocate arrays
     deallocate(sndglno)
     if (haveBounds) deallocate(boundaryIDs)
-    if (haveElementOwners) deallocate(faceOwner)    
+    if (haveElementOwners) deallocate(faceOwner)
 
     deallocate(nodes)
     deallocate(faces)
@@ -535,7 +535,7 @@ contains
              read(charBuf, *, iostat=stat ) entityTag, bounds, numPhysicalTags, tags
           else
              read(fd) entityTag, bounds, ltmp
-             numPhysicalTags=ltmp
+             numPhysicalTags = ltmp
              allocate(tags(numPhysicalTags))
              read(fd) tags
              read(fd) ltmp
@@ -590,7 +590,7 @@ contains
 
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: i, j, numNodes
+    integer :: i, numNodes
 
 
     read(fd, *) charBuf
@@ -653,8 +653,7 @@ contains
     type(GMSHnode), pointer :: nodes(:)
 
     character(len=longStringLen) :: charBuf
-    character :: newlineChar
-    integer :: i, j, k,  numEntities, numNodes, numEntityNodes, stat, minN, maxN, meta(3)
+    integer :: i, j, k,  numEntities, numNodes, numEntityNodes, minN, maxN, meta(3)
 
     read(fd, *, pos=beforeHeaderPos) charBuf
     if( trim(charBuf) /= "$Nodes" ) then
@@ -719,7 +718,7 @@ contains
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer(kind=c_long) :: numEntities, numNodes, numEntityNodes, minN, maxN
-    integer :: i, j, k, stat,  meta(3)
+    integer :: i, j, k, meta(3)
     integer(kind=c_long)  :: ltmp
 
     read(fd, *, pos=beforeHeaderPos) charBuf
@@ -746,17 +745,17 @@ contains
     do j=1, numEntities
        read(fd) meta(1), meta(2), meta(3), numEntityNodes
        if (versionNumber%minor == 1) then
-          do i=k+1, k+numEntityNodes
+          do i=k+1, k + numEntityNodes
              read(fd) ltmp
              nodes(i)%nodeID = ltmp
           end do
-          do i=k+1, k+numEntityNodes
+          do i=k+1, k + numEntityNodes
              read(fd) nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
           end do
        else
-          do i= k+1, k+numEntityNodes
+          do i= k+1, k + numEntityNodes
              read(fd) nodes(i)%nodeID, nodes(i)%x
              ! Set column ID to -1: this will be changed later if $NodeData exists
              nodes(i)%columnID = -1
@@ -896,9 +895,8 @@ contains
 
     integer :: numEntities, numAllElements, minEle, maxEle, numTags
     character(len=longStringLen) :: charBuf
-    character :: newlineChar
-    integer :: numFaces, faceType, numElements, elementType
-    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: elementType
+    integer :: e, j, k, numLocNodes
     integer :: entityDim, entityTag, tag_index
     integer :: numentityelements
 
@@ -1070,10 +1068,10 @@ contains
     integer(kind=c_long) :: numEntities, numAllElements, minEle, maxEle, numTags
     character(len=longStringLen) :: charBuf
     character :: newlineChar
-    integer :: numFaces, faceType, numElements, elementType
-    integer :: e, i, j, k, numLocNodes, tmp1, tmp2, tmp3
+    integer :: elementType
+    integer :: e, j, k, numLocNodes
     integer :: entityDim, entityTag, tag_index
-    integer(kind=c_long) ::  ltmp, numentityelements
+    integer(kind=c_long) ::  numentityelements
 
     integer(kind=c_long), allocatable :: vltmp(:)
 
@@ -1287,7 +1285,7 @@ contains
                   allElements(i)%nodeIDs
           end do
 
-          e = e+groupElems        
+          e = e+groupElems
        end do
 
     end select

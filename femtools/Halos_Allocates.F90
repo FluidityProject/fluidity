@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -39,38 +39,38 @@ module halos_allocates
   use halos_debug
 
   implicit none
-  
+
   private
-  
+
   public :: allocate, reallocate, deallocate, incref, has_references, &
     & deallocate_ownership_cache, deallocate_universal_numbering_cache, &
     & nullify
-  
+
   interface allocate
     module procedure allocate_halo, allocate_halo_halo
   end interface allocate
-  
+
   interface reallocate
     module procedure reallocate_halo
   end interface reallocate
-  
+
   interface deallocate
     module procedure deallocate_halo, deallocate_halo_vector
   end interface deallocate
-  
+
   interface nullify
     module procedure nullify_halo
   end interface nullify
-  
+
 #include "Reference_count_interface_halo_type.F90"
-  
+
 contains
 
 #include "Reference_count_halo_type.F90"
 
   subroutine allocate_halo(halo, nsends, nreceives, name, communicator, nprocs, nowned_nodes, data_type, ordering_scheme)
     !!< Allocate a halo
-    
+
     type(halo_type), intent(out) :: halo
     ! size(nprocs / communicator size)
     integer, dimension(:), intent(in) :: nsends
@@ -82,14 +82,14 @@ contains
     integer, optional, intent(in) :: nowned_nodes
     integer, optional, intent(in) :: data_type
     integer, optional, intent(in) :: ordering_scheme
-    
+
     integer :: i, lnprocs
 
 #ifdef HAVE_MPI
     halo%communicator = MPI_COMM_FEMTOOLS
 #else
     halo%communicator = -1
-#endif  
+#endif
 
     ! Set nprocs
     if(present(communicator)) then
@@ -116,28 +116,28 @@ contains
     assert(lnprocs >= 0)
     assert(size(nsends) == lnprocs)
     assert(size(nreceives) == lnprocs)
-    
+
     ! Allocate the sends
     allocate(halo%sends(lnprocs))
     do i = 1, lnprocs
       assert(nsends(i) >= 0)
       allocate(halo%sends(i)%ptr(nsends(i)))
     end do
-    
+
     ! Allocate the receives
     allocate(halo%receives(lnprocs))
     do i = 1, lnprocs
       assert(nreceives(i) >= 0)
       allocate(halo%receives(i)%ptr(nreceives(i)))
     end do
-    
+
     if(present(name)) then
       ! Set the name
       call set_halo_name(halo, name)
     else
       call set_halo_name(halo, empty_name)
     end if
-    
+
     if(present(data_type)) then
       ! Set the data type
       call set_halo_data_type(halo, data_type)
@@ -151,31 +151,31 @@ contains
     else
       call set_halo_ordering_scheme(halo, HALO_ORDER_TRAILING_RECEIVES)
     end if
-    
+
     if(present(nowned_nodes)) then
       ! Set the number of owned nodes
       call set_halo_nowned_nodes(halo, nowned_nodes)
     end if
 
     call addref(halo)
-    
+
   end subroutine allocate_halo
 
   subroutine allocate_halo_halo(output_halo, base_halo)
     !!< Allocate a halo based upon an existing halo
-    
+
     type(halo_type), intent(out) :: output_halo
     type(halo_type), intent(in) :: base_halo
-    
+
     integer :: nprocs
     integer, dimension(:), allocatable :: nreceives, nsends
-    
+
     nprocs = halo_proc_count(base_halo)
     allocate(nsends(nprocs))
     allocate(nreceives(nprocs))
     call halo_send_counts(base_halo, nsends)
     call halo_receive_counts(base_halo, nreceives)
-    
+
     call allocate(output_halo, &
       & nsends = nsends, &
       & nreceives = nreceives, &
@@ -184,16 +184,16 @@ contains
       & nowned_nodes = halo_nowned_nodes(base_halo), &
       & data_type = halo_data_type(base_halo), &
       & ordering_scheme = halo_ordering_scheme(base_halo))
-      
+
     deallocate(nsends)
     deallocate(nreceives)
-      
+
   end subroutine allocate_halo_halo
-  
+
   subroutine reallocate_halo(halo, nsends, nreceives)
     !!< Re-allocate a halo. This is useful if the send or receive allocation is
     !!< deferred.
-    
+
     type(halo_type), intent(inout) :: halo
     integer, dimension(halo_proc_count(halo)), optional, intent(in) :: nsends
     integer, dimension(halo_proc_count(halo)), optional, intent(in) :: nreceives
@@ -223,14 +223,14 @@ contains
 
   subroutine deallocate_halo(halo)
     !!< Deallocate a halo type
-    
+
     type(halo_type), intent(inout) :: halo
-    
+
     integer :: i
-    
+
     call decref(halo)
     if(has_references(halo)) return
-    
+
     ! Deallocate the sends
     if(associated(halo%sends)) then
       do i = 1, size(halo%sends)
@@ -239,7 +239,7 @@ contains
       deallocate(halo%sends)
       nullify(halo%sends)
     end if
-    
+
     ! Deallocate the receives
     if(associated(halo%receives)) then
       do i = 1, size(halo%receives)
@@ -248,20 +248,20 @@ contains
       deallocate(halo%receives)
       nullify(halo%receives)
     end if
-    
+
     ! Deallocate caches
     call deallocate_ownership_cache(halo)
     call deallocate_universal_numbering_cache(halo)
-    
+
     ! Reset variables
     call nullify(halo)
-    
+
   end subroutine deallocate_halo
 
   subroutine deallocate_halo_vector(halos)
     !!< Deallocate each of a vector of halos.
     type(halo_type), dimension(:), intent(inout) :: halos
-    
+
     integer :: i
 
     do i=1, size(halos)
@@ -272,14 +272,14 @@ contains
 
   subroutine deallocate_ownership_cache(halo)
     !!< Deallocate the node ownership cache data
-    
+
     type(halo_type), intent(inout) :: halo
-    
+
     if(associated(halo%owners)) then
       deallocate(halo%owners)
       nullify(halo%owners)
     end if
-    
+
   end subroutine deallocate_ownership_cache
 
   subroutine deallocate_universal_numbering_cache(halo)
@@ -297,25 +297,25 @@ contains
       deallocate(halo%receives_gnn_to_unn)
       nullify(halo%receives_gnn_to_unn)
     end if
-    
+
     if(associated(halo%gnn_to_unn)) then
       deallocate(halo%gnn_to_unn)
       nullify(halo%gnn_to_unn)
     end if
-    
+
   end subroutine deallocate_universal_numbering_cache
-  
+
   subroutine nullify_halo(halo)
     !!< Return a halo type to its uninitialised state
-    
+
     type(halo_type), intent(inout) :: halo
-    
+
     type(halo_type) :: null_halo
 
     ! Initialise the null_halo name to prevent uninitialised variable access
     call set_halo_name(null_halo, empty_name)
     halo = null_halo
-    
+
   end subroutine nullify_halo
 
 end module halos_allocates

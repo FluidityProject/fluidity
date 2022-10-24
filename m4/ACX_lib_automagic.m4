@@ -37,11 +37,11 @@ AC_MSG_CHECKING([$1 automagic])
 AC_LINK_IFELSE(
   [
    program test
-   
+
    interface
       subroutine $2()
       end subroutine
-   end interface	 
+   end interface
 
    call $2()
 

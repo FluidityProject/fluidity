@@ -2,7 +2,7 @@
 
 module vector_tools
   !!< This module contains dense matrix operations such as interfaces to
-  !!< LAPACK. 
+  !!< LAPACK.
 
   use fldebug
 
@@ -15,7 +15,7 @@ module vector_tools
   interface solve
     module procedure solve_single, solve_multiple
   end interface
-    
+
   interface invert
     module procedure invert_matrix
   end interface invert
@@ -31,7 +31,7 @@ module vector_tools
   interface norm2
      module procedure norm2_vector, norm2_tensor
   end interface
-    
+
   interface cross_product
      module procedure cross_product_array
   end interface
@@ -39,7 +39,7 @@ module vector_tools
   interface outer_product
      module procedure outer_product
   end interface
-    
+
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &
      mat_diag_mat, eigendecomposition, eigendecomposition_symmetric, eigenrecomposition, &
@@ -54,23 +54,23 @@ contains
 
     dot = dot_product(vector1, vector2)
   end function dot_product_op
-  
+
   pure function norm2_vector(vector)
     !!< Calculate the 2-norm of vector
     real :: norm2_vector
     real, dimension(:), intent(in) :: vector
-    
+
     norm2_vector=sqrt(dot_product(vector, vector))
-    
+
   end function norm2_vector
 
   pure function norm2_tensor(tensor)
     !!< Calculate the 2-norm of tensor
     real :: norm2_tensor
     real, dimension(:,:), intent(in) :: tensor
-    
+
     norm2_tensor=sqrt(sum(tensor(:,:)*tensor(:,:)))
-    
+
   end function norm2_tensor
 
   pure function cross_product_array(vector1, vector2) result(prod)
@@ -129,7 +129,7 @@ contains
     integer, dimension(size(A,1)) :: ipiv
     integer :: info
 
-    interface 
+    interface
 #ifdef DOUBLEP
        SUBROUTINE DGESV( N, NRHS, A, LDA, IPIV, B, LDB, INFO )
          INTEGER :: INFO, LDA, LDB, N, NRHS
@@ -154,10 +154,10 @@ contains
 
 #ifdef DOUBLEP
     call dgesv(size(A,1), size(B,2), Atmp, size(A,1), ipiv, B, size(B,1),&
-         & info)  
+         & info)
 #else
     call sgesv(size(A,1), size(B,2), Atmp, size(A,1), ipiv, B, size(B,1),&
-         & info)  
+         & info)
 #endif
 
     if (.not. present(stat)) then
@@ -167,7 +167,7 @@ contains
     end if
 
   end subroutine solve_multiple
- 
+
   subroutine invert_matrix(A, stat)
     !!< Replace the matrix A with its inverse.
     real, dimension(:,:), intent(inout) :: A
@@ -181,27 +181,27 @@ contains
     assert(size(A,1)==size(A,2))
 
     if(present(stat)) stat=0
-    
+
     select case (size(A,1))
     case (3) ! I put this one first in the hope the compiler keeps it there
       det=A(1,1)*(A(2,2)*A(3,3)-A(3,2)*A(2,3)) &
         -A(2,1)*(A(1,2)*A(3,3)-A(3,2)*A(1,3)) &
         +A(3,1)*(A(1,2)*A(2,3)-A(2,2)*A(1,3))
-        
+
       a33(1,1)=A(2,2)*A(3,3)-A(3,2)*A(2,3)
       a33(1,2)=A(3,2)*A(1,3)-A(1,2)*A(3,3)
       a33(1,3)=A(1,2)*A(2,3)-A(2,2)*A(1,3)
-      
+
       a33(2,1)=A(2,3)*A(3,1)-A(3,3)*A(2,1)
       a33(2,2)=A(3,3)*A(1,1)-A(1,3)*A(3,1)
       a33(2,3)=A(1,3)*A(2,1)-A(2,3)*A(1,1)
-      
+
       a33(3,1)=A(2,1)*A(3,2)-A(3,1)*A(2,2)
       a33(3,2)=A(3,1)*A(1,2)-A(1,1)*A(3,2)
       a33(3,3)=A(1,1)*A(2,2)-A(2,1)*A(1,2)
-      
+
       A=a33/det
-      
+
     case (2)
       det=A(1,1)*A(2,2)-A(1,2)*A(2,1)
       tmp=A(1,1)
@@ -210,10 +210,10 @@ contains
       A(1,2)=-A(1,2)
       A(2,1)=-A(2,1)
       A=A/det
-      
+
     case (1)
       A(1,1)=1.0/A(1,1)
-      
+
     case default ! otherwise use LAPACK
       rhs=0.0
 
@@ -227,7 +227,7 @@ contains
     end select
 
   end subroutine invert_matrix
-  
+
   function inverse(A)
     !!< Function version of invert.
     real, dimension(:,:), intent(in) :: A
@@ -243,21 +243,21 @@ contains
       det=A(1,1)*(A(2,2)*A(3,3)-A(3,2)*A(2,3)) &
         -A(2,1)*(A(1,2)*A(3,3)-A(3,2)*A(1,3)) &
         +A(3,1)*(A(1,2)*A(2,3)-A(2,2)*A(1,3))
-        
+
       inverse(1,1)=A(2,2)*A(3,3)-A(3,2)*A(2,3)
       inverse(1,2)=A(3,2)*A(1,3)-A(1,2)*A(3,3)
       inverse(1,3)=A(1,2)*A(2,3)-A(2,2)*A(1,3)
-      
+
       inverse(2,1)=A(2,3)*A(3,1)-A(3,3)*A(2,1)
       inverse(2,2)=A(3,3)*A(1,1)-A(1,3)*A(3,1)
       inverse(2,3)=A(1,3)*A(2,1)-A(2,3)*A(1,1)
-      
+
       inverse(3,1)=A(2,1)*A(3,2)-A(3,1)*A(2,2)
       inverse(3,2)=A(3,1)*A(1,2)-A(1,1)*A(3,2)
       inverse(3,3)=A(1,1)*A(2,2)-A(2,1)*A(1,2)
-      
+
       inverse=inverse/det
-      
+
     case (2)
       det=A(1,1)*A(2,2)-A(1,2)*A(2,1)
       inverse(1,1)=A(2,2)
@@ -265,10 +265,10 @@ contains
       inverse(1,2)=-A(1,2)
       inverse(2,1)=-A(2,1)
       inverse=inverse/det
-      
+
     case (1)
       inverse(1,1)=1.0/A(1,1)
-      
+
     case default
       inverse=0.0
 
@@ -277,7 +277,7 @@ contains
       end forall
 
       call solve(A, inverse)
-      
+
     end select
 
   end function inverse
@@ -293,14 +293,14 @@ contains
 
     integer :: i,j
 
-    interface 
+    interface
 #ifdef DOUBLEP
        SUBROUTINE DPOTRF( UPLO, N, A, LDA, INFO )
          CHARACTER(len=1) :: UPLO
          INTEGER :: INFO, LDA, N
          REAL ::  A( LDA, * )
        END SUBROUTINE DPOTRF
-#else 
+#else
        SUBROUTINE SPOTRF( UPLO, N, A, LDA, INFO )
          CHARACTER(len=1) :: UPLO
          INTEGER :: INFO, LDA, N
@@ -323,7 +323,7 @@ contains
 #endif
 
     ASSERT(info==0)
-    
+
   end subroutine cholesky_factor
 
   function Mat_Diag_Mat(matrix, diag)
@@ -335,7 +335,7 @@ contains
 
     mat_diag_mat=&
          matmul(transpose(matrix)*spread(diag, 2, size(matrix,2)),matrix)
-    
+
   end function Mat_Diag_Mat
 
   subroutine eigendecomposition(M, V, A)
@@ -412,7 +412,7 @@ contains
     integer :: info, i, j, dim
     real, dimension(3 * size(M,1)) :: work
     real, dimension(size(M,1) * (size(M, 1)+1)/2) :: AP
-        
+
     interface
 #ifdef DOUBLEP
       SUBROUTINE DSPEV( JOBZ, UPLO, N, AP, W, Z, LDZ, WORK, INFO )
@@ -424,7 +424,7 @@ contains
         REAL               AP(N*(N+1)/2), W(N), WORK(3*N), Z(LDZ, N)
       END SUBROUTINE
     end interface
-      
+
     if(present(stat)) stat = 0
 
     dim = size(M, 1)
@@ -479,7 +479,7 @@ contains
       end forall
     end forall
   end function outer_product
-  
+
   function blasmul_mm(A, B) result(C)
     !!< Use DGEMM to multiply A * B and get C.
 
@@ -513,7 +513,7 @@ contains
 #else
     call SGEMM('N', 'N', size(A, 1), size(B, 2), size(A, 2), 1.0, A, size(A, 1), B, size(B, 1), &
                0.0, C, size(A, 1))
-#endif 
+#endif
   end function blasmul_mm
 
   function blasmul_mv(A, x) result(b)
@@ -585,7 +585,7 @@ contains
     case default
        FLAbort("Determinant not implemented for this dimension")
     end select
-    
+
   end function det
 
   subroutine svd(input, U, sigma, VT)
@@ -594,7 +594,7 @@ contains
     real, dimension(min(size(input, 1), size(input, 2))), intent(out) :: sigma
     real, dimension(size(input, 2), size(input, 2)), intent(out) :: VT
 
-    real, dimension(size(input, 1), size(input, 2)) :: tmp_input 
+    real, dimension(size(input, 1), size(input, 2)) :: tmp_input
     real, dimension(:), allocatable :: WORK
     integer :: LWORK, M, N, info
 
@@ -633,5 +633,5 @@ contains
    assert(info == 0)
    deallocate(WORK)
   end subroutine svd
-  
+
 end module vector_tools

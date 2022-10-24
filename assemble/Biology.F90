@@ -1,5 +1,5 @@
 !    Copyright (C) 2008 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -58,11 +58,11 @@ module biology
        "Ammonium                "/)
 
   ! Boundary condition types:
-  ! (the numbers should match up with the order in the 
+  ! (the numbers should match up with the order in the
   !  get_entire_boundary_condition call)
   integer :: BCTYPE_WEAKDIRICHLET=1
 
-contains 
+contains
 
   subroutine calculate_biology_terms(state)
     !!< Calculate the incident light and hence the sources and sinks in the
@@ -70,7 +70,7 @@ contains
     type(state_type), intent(inout) :: state
 
     character(len=OPTION_PATH_LEN) :: prefix, algorithm
-    ! This is the photosynthetic radiation projected onto the 
+    ! This is the photosynthetic radiation projected onto the
     ! same mesh as the biology fields
     ! It also takes into account the "active" part of the solar radiation
     type(scalar_field) :: par_bio
@@ -137,14 +137,14 @@ contains
        ! No sources and sinks specified.
        return
     end if
-    
+
     ! Clean up to make sure that nothing else interferes
 #ifdef HAVE_NUMPY
     call python_reset()
     call python_add_state(state)
     call get_option(trim(prefix)//trim(algorithm),pycode)
     ! And finally run the user's code
-    call python_run_string(trim(pycode))    
+    call python_run_string(trim(pycode))
 #else
     ewrite(-1,*) "When configuring, make sure NumPy is found"
     FLExit("Python biological models require NumPy")
@@ -156,10 +156,10 @@ contains
     !!< Produce a backup copy of prescribed source fields and zero any
     !!< diagnostic source fields.
     type(state_type), intent(inout) :: state
-    
+
     type(scalar_field) :: this_field, old_field
     integer :: i, stat
-    
+
     field_loop: do i = 1, size(biology_fields)
        this_field= extract_scalar_field(state, &
             trim(biology_fields(i))//"Source", stat=stat)
@@ -173,15 +173,15 @@ contains
 
              call allocate(old_field, this_field%mesh, &
                   "Old"//trim(this_field%name))
-             
+
              call set(old_field, this_field)
              call insert(state, old_field, trim(old_field%name))
              call deallocate(old_field)
-          
+
           end if
        else
           ! Diagnostic field.
-          
+
           call zero(this_field)
        end if
     end do field_loop
@@ -190,7 +190,7 @@ contains
 
   subroutine solve_light_equation(state, prefix)
     !!< The photosynthetically active radiation at any depth in the ocean
-    !!< is given by the equation: 
+    !!< is given by the equation:
     !!<
     !!<  dL
     !!<  -- = (k_w - k_c P) L
@@ -222,10 +222,10 @@ contains
     !! Integer array of all surface elements indicating bc type
     !! (see below call to get_entire_boundary_condition):
     integer, dimension(:), allocatable :: bc_type
-    
+
     ! Values of absorption coefficients for water and phytoplankton.
     real :: k_w, k_p
-    
+
     ! Loop varable over elements
     integer :: ele
 
@@ -254,7 +254,7 @@ contains
 
     call allocate(rhs, light%mesh, "LightRHS")
     call zero(rhs)
-    
+
     ! Enquire about boundary conditions we're interested in
     ! Returns an integer array bc_type over the surface elements
     ! that indicates the bc type (in the order we specified, i.e.
@@ -292,7 +292,7 @@ contains
     type(scalar_field), intent(in):: bc_value
     !! Integer array of all surface elements indicating bc type
     !! (see above call to get_entire_boundary_condition):
-    integer, dimension(:), intent(in):: bc_type    
+    integer, dimension(:), intent(in):: bc_type
     !! Values of absorption coefficients for water and phytoplankton.
     real :: k_w, k_p
 
@@ -328,7 +328,7 @@ contains
     ! Establish local node lists
     !----------------------------------------------------------------------
 
-    light_ele=>ele_nodes(light,ele)  
+    light_ele=>ele_nodes(light,ele)
 
     !----------------------------------------------------------------------
     ! Establish local shape functions
@@ -363,7 +363,7 @@ contains
     !-------------------------------------------------------------------
     ! Interface integrals
     !-------------------------------------------------------------------
-    
+
     neigh=>ele_neigh(light, ele)
 
     neighbourloop: do ni=1,size(neigh)
@@ -371,17 +371,17 @@ contains
        !----------------------------------------------------------------------
        ! Find the relevant faces.
        !----------------------------------------------------------------------
-       
+
        ! These finding routines are outside the inner loop so as to allow
        ! for local stack variables of the right size in
        ! construct_add_diff_interface_dg.
 
        ele_2=neigh(ni)
-       
+
        ! Note that although face is calculated on field light, it is in fact
        ! applicable to any field which shares the same mesh topology.
        face=ele_face(light, ele, ele_2)
-    
+
        if (ele_2>0) then
           ! Internal faces.
 
@@ -395,10 +395,10 @@ contains
           ! External face.
           face_2=face
        end if
-       
+
        call construct_light_interface(face, face_2,&
             & light_mat, rhs, X, g, light, &
-            & bc_value, bc_type)  
+            & bc_value, bc_type)
     end do neighbourloop
 
   end subroutine construct_light_element
@@ -434,22 +434,22 @@ contains
     logical, dimension(face_ngi(X, face)) :: influx
     ! Variable transform times quadrature weights.
     real, dimension(face_ngi(light,face)) :: detwei
-    ! Gravity flux at each 
+    ! Gravity flux at each
     ! Whether this is a boundary, and if so whether it is Dirichlet.
     logical :: boundary, Dirichlet
 
     ! Bilinear forms
     real, dimension(face_loc(light,face),face_loc(light,face)) ::&
-         & nnlight_out 
+         & nnlight_out
     real, dimension(face_loc(light,face),face_loc(light,face_2)) ::&
-         & nnlight_in 
-    
+         & nnlight_in
+
     l_face=face_global_nodes(light, face)
     l_shape=>face_shape(light, face)
 
     l_face_2=face_global_nodes(light, face_2)
     l_shape_2=>face_shape(light, face_2)
-    
+
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
@@ -465,8 +465,8 @@ contains
 
     call transform_facet_to_physical(X, face, &
          &                          detwei_f=detwei,&
-         &                          normal=normal) 
-        
+         &                          normal=normal)
+
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
@@ -479,18 +479,18 @@ contains
 
     ! Flag for incoming flow.
     influx=grav_flux<0.0
-   
+
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
     !----------------------------------------------------------------------
 
     ! Calculate outflow boundary integral.
     nnlight_out=shape_shape(l_shape, l_shape,  &
-         &                  merge(1.0,0.0,.not.influx)*grav_flux*detwei) 
+         &                  merge(1.0,0.0,.not.influx)*grav_flux*detwei)
 
     nnlight_in=shape_shape(l_shape, l_shape_2,  &
-         &                  merge(1.0,0.0,influx)*grav_flux*detwei) 
-    
+         &                  merge(1.0,0.0,influx)*grav_flux*detwei)
+
     !----------------------------------------------------------------------
     ! Perform global assembly.
     !----------------------------------------------------------------------
@@ -499,21 +499,21 @@ contains
 
     ! Outflux boundary integral.
     call addto(light_mat, l_face, l_face, nnlight_out)
-       
+
     if (.not.dirichlet) then
        ! Influx boundary integral.
        call addto(light_mat, l_face, l_face_2,nnlight_in)
     end if
 
     ! Dirichlet boundary flux into rhs
-       
+
     if (Dirichlet) then
 
        ! Inflow of Dirichlet value.
        call addto(RHS, l_face, &
             -matmul(nnlight_in,&
             ele_val(bc_value, face)))
- 
+
     end if
 
   end subroutine construct_light_interface
@@ -532,7 +532,7 @@ contains
     end if
 
     if (.not.have_option("/physical_parameters/gravity")) then
-       ewrite(-1, *) "Biology modelling requires gravity" 
+       ewrite(-1, *) "Biology modelling requires gravity"
        FLExit("(otherwise which way does the crap fall?)")
     end if
 
@@ -552,7 +552,7 @@ contains
     end if
 
     call get_option("/timestepping/nonlinear_iterations", itmp, stat)
-    
+
     if (stat/=0.or.itmp<2) then
        ewrite(0,*) "Warning: For stability reasons it is recommended that "//&
           "you have at least 2 nonlinear_iterations when using ocean biology"

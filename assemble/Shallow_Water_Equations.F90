@@ -27,7 +27,7 @@
 #include "fdebug.h"
 
 ! This module implements the 2D shallow water equations within the normal
-! fluidity binary configured from an ordinary .flml, going through the 
+! fluidity binary configured from an ordinary .flml, going through the
 ! usual momentum_equation code path. It is
 ! a different implementation than the one in main/Shallow_Water.F90
 ! that has its own binary and schema.
@@ -53,7 +53,7 @@ module shallow_water_equations
 
   ! Assemble the shallow water continuity equation by adding the time derivative (\eta^{n+1}-\eta^n)/dt
   ! This is based on assemble_1mat_compressible_projection_cg, but a lot simpler:
-  !  The density \rho is here the total water depth (bottom depth+fs elevation). Its time-derivative however 
+  !  The density \rho is here the total water depth (bottom depth+fs elevation). Its time-derivative however
   !  is the same as the free surface time derivative. Pressure is g*\eta, so drhodp is simply 1/g
 
   subroutine assemble_shallow_water_projection(state, cmc, rhs, dt, theta_pg, theta_divergence, reassemble_cmc_m)
@@ -77,36 +77,36 @@ module shallow_water_equations
 
     type(vector_field), pointer :: coordinate
     type(scalar_field), pointer :: pressure, old_pressure
-    
+
     ewrite(1,*) 'Entering assemble_shallow_water_projection'
-    
+
     call zero(rhs)
 
     ! only do all this if we need to make cmc (otherwise we'd be adding repeatedly)
     if(reassemble_cmc_m) then
       coordinate=> extract_vector_field(state, "Coordinate")
-      
+
       pressure => extract_scalar_field(state, "Pressure")
       old_pressure => extract_scalar_field(state, "OldPressure")
 
       call get_option("/physical_parameters/gravity/magnitude", g)
-      ! this is the density in front of the du/dt time-derivative which at the 
+      ! this is the density in front of the du/dt time-derivative which at the
       ! moment is hard-coded to 1.0
       rho0 = 1.0
-  
+
       allocate(detwei(ele_ngi(pressure, 1)), &
                delta_p_at_quad(ele_ngi(pressure, 1)))
-      
+
       do ele=1, element_count(pressure)
-      
+
         test_nodes=>ele_nodes(pressure, ele)
-  
+
         test_shape => ele_shape(pressure, ele)
-        
+
         delta_p_at_quad = ele_val_at_quad(pressure, ele) - ele_val_at_quad(old_pressure, ele)
-                          
+
         call transform_to_physical(coordinate, ele, detwei=detwei)
-  
+
         ! Time derivative: pressure correction \Phi that we are solving for is: \Phi=theta_div*theta_pg*(p^{n+1}-p^*)*dt
         ! Thus time derivative lhs is (\eta^{n+1}-\eta^*)/dt = \Phi/(g*dt*dt/theta_div/theta_pg)
         call addto(cmc, test_nodes, test_nodes, &
@@ -114,11 +114,11 @@ module shallow_water_equations
         ! Time derivative rhs: -(\eta^*-\eta^n)/dt = (p^*-p^n)/(g*dt)
         call addto(rhs, test_nodes, &
            -shape_rhs(test_shape, detwei*delta_p_at_quad)/(rho0*g*dt))
-        
+
       end do
 
       deallocate(detwei, delta_p_at_quad)
-  
+
     end if
 
   end subroutine assemble_shallow_water_projection
@@ -144,7 +144,7 @@ module shallow_water_equations
     real, dimension(:,:,:), allocatable :: dfield_t, dtest_t, dbottom_t
     real, dimension(:), allocatable :: detwei
     real, dimension(:,:), allocatable :: normal_bdy
-    
+
     real, dimension(:), allocatable :: depth_at_quad
     real, dimension(:,:), allocatable :: depth_grad_at_quad
 
@@ -163,14 +163,14 @@ module shallow_water_equations
     ewrite(1,*) 'In assemble_swe_divergence_matrix_cg'
 
     coordinate=> extract_vector_field(state, "Coordinate")
-    
+
     pressure => extract_scalar_field(state, "Pressure")
     old_pressure => extract_scalar_field(state, "OldPressure")
     bottom_depth => extract_scalar_field(state, "BottomDepth")
-    
+
     velocity=>extract_vector_field(state, "Velocity")
-    
-    ! note that unlike for compressible we adhere to the option under pressure 
+
+    ! note that unlike for compressible we adhere to the option under pressure
     ! (unless DG for which we don't have a choice)
     integrate_by_parts=have_option(trim(pressure%option_path)// &
            &"/prognostic/spatial_discretisation/integrate_continuity_by_parts") &
@@ -185,10 +185,10 @@ module shallow_water_equations
                        &"/prognostic/temporal_discretisation/relaxation", theta)
     call get_option("/timestepping/timestep", dt)
     call get_option("/physical_parameters/gravity/magnitude", g)
-    ! this is the density in front of the du/dt time-derivative which at the 
+    ! this is the density in front of the du/dt time-derivative which at the
     ! moment is hard-coded to 1.0
     rho0 = 1.0
-    
+
     test_mesh => pressure%mesh
     ! the field that ctp_m is multiplied with:
     field => velocity
@@ -207,7 +207,7 @@ module shallow_water_equations
              detwei(ngi), &
              depth_at_quad(ngi), &
              depth_grad_at_quad(xdim, ngi))
-    
+
     do ele=1, element_count(test_mesh)
 
       test_nodes => ele_nodes(test_mesh, ele)
@@ -220,13 +220,13 @@ module shallow_water_equations
       depth_at_quad = (theta*ele_val_at_quad(pressure, ele) + &
              (1-theta)*ele_val_at_quad(old_pressure, ele))/(rho0*g) + &
              ele_val_at_quad(bottom_depth, ele)
-      
+
       if(integrate_by_parts) then
 
         ele_mat = -dshape_shape(dtest_t, field_shape, detwei*depth_at_quad)
 
       else
-          
+
         ! transform the field (velocity) derivatives into physical space
         call transform_to_physical(coordinate, ele, field_shape, dshape=dfield_t)
         if (bottom_depth%mesh%shape==field_shape) then
@@ -237,7 +237,7 @@ module shallow_water_equations
           call transform_to_physical(coordinate, ele, ele_shape(bottom_depth, ele), &
             dshape=dbottom_t)
         end if
-        
+
         assert( test_shape==pressure%mesh%shape )
         depth_grad_at_quad = (theta*ele_grad_at_quad(pressure, ele, dtest_t) + &
              (1-theta)*ele_grad_at_quad(old_pressure, ele, dtest_t))/(rho0*g) + &
@@ -247,7 +247,7 @@ module shallow_water_equations
                   shape_shape_vector(test_shape, field_shape, detwei, depth_grad_at_quad)
 
       end if
-      
+
       do dim = 1, field%dim
         call addto(ctp_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
       end do
@@ -278,13 +278,13 @@ module shallow_water_equations
 
         if(any(field_bc_type(:,sele)==2)&
              .or.any(field_bc_type(:,sele)==3)) cycle
-        
+
         test_shape => face_shape(test_mesh, sele)
         field_shape => face_shape(field, sele)
 
         call transform_facet_to_physical(coordinate, sele, &
             &                          detwei_f=detwei, &
-            &                          normal=normal_bdy) 
+            &                          normal=normal_bdy)
 
         depth_at_quad = (theta*face_val_at_quad(pressure, sele) + &
              (1-theta)*face_val_at_quad(old_pressure, sele))/(rho0*g) + &
@@ -311,7 +311,7 @@ module shallow_water_equations
       deallocate(normal_bdy)
 
     end if
-    
+
   end subroutine assemble_swe_divergence_matrix_cg
 
   subroutine shallow_water_equations_check_options
@@ -404,4 +404,3 @@ module shallow_water_equations
   end subroutine shallow_water_equations_check_options
 
 end module shallow_water_equations
-

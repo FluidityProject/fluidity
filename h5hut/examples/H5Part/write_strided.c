@@ -24,7 +24,7 @@ main (
         int argc,
 	char* argv[]
         ){
-	
+
         // initialize MPI & H5hut
         MPI_Init (&argc, &argv);
         MPI_Comm comm = MPI_COMM_WORLD;

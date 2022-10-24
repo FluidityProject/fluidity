@@ -12,7 +12,7 @@ subroutine compute_interpolation_error_noadapt
   use mpi
   use interpolation_error
   implicit none
-  
+
   type(state_type) :: state
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions

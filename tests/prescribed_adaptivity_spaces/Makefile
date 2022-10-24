@@ -4,7 +4,7 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	
+
 clean: clean-mesh clean-run-debug
 clean-mesh:
 	rm -f *.geo *.msh *.ele *.edge *.node

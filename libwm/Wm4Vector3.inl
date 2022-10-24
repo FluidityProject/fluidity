@@ -616,7 +616,7 @@ void Vector3<Real>::Orthonormalize (Vector3& rkU, Vector3& rkV, Vector3& rkW)
     rkU.Normalize();
 
     // compute u1
-    Real fDot0 = rkU.Dot(rkV); 
+    Real fDot0 = rkU.Dot(rkV);
     rkV -= fDot0*rkU;
     rkV.Normalize();
 

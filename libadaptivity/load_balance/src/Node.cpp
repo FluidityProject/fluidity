@@ -44,7 +44,7 @@ Node::Node(){
   flags = NODE_DEFAULT;
   owner[0] = 0;
   owner[1] = 0;
-} 
+}
 
 // Node copy constructor
 Node::Node(const Node& node){
@@ -55,7 +55,7 @@ Node::Node(const Node& node){
 Node::~Node(){}
 
 // Assignment operator for Node.
-const Node &Node::operator=( const Node &n ){  
+const Node &Node::operator=( const Node &n ){
   unn       = n.unn;
   gnn       = n.gnn;
   flags     = n.flags;
@@ -66,11 +66,11 @@ const Node &Node::operator=( const Node &n ){
   fields    = n.fields;
   x         = n.x;
   metric    = n.metric;
-  
+
   return( *this );
 }
 
-// Equivalance operator for Node. Two Nodes will only be consider 
+// Equivalance operator for Node. Two Nodes will only be consider
 //  equal if they have the same uid
 bool Node::operator==(const Node& in) const{
   return(unn == in.unn);
@@ -133,12 +133,12 @@ ostream &operator<<(ostream& s, const Node& n){
 
 void Node::append_field(const std::vector<int>& _field){
   ifields.insert(ifields.end(), _field.begin(), _field.end());
-  
+
 }
 
 void Node::append_field(const std::vector<samfloat_t>& _field){
   fields.insert(fields.end(), _field.begin(), _field.end());
-  
+
 }
 
 void Node::append_field(const int* _field, const size_t block_size){
@@ -151,59 +151,59 @@ void Node::append_field(const samfloat_t* _field, const size_t block_size){
     fields.push_back(_field[i]);
 }
 
-void  Node::set_unn(const unn_t& _unn){ 
-  unn = _unn; 
+void  Node::set_unn(const unn_t& _unn){
+  unn = _unn;
 }
-unn_t Node::get_unn() const{ 
-  return unn; 
-}
-
-void  Node::set_gnn(const gnn_t& _gnn){ 
-  gnn = _gnn; 
-}
-gnn_t Node::get_gnn() const{ 
-  return gnn; 
+unn_t Node::get_unn() const{
+  return unn;
 }
 
-void          Node::set_flags(const unsigned char _flags){ 
-  flags = _flags; 
+void  Node::set_gnn(const gnn_t& _gnn){
+  gnn = _gnn;
 }
-unsigned char Node::get_flags() const{ 
-  return flags; 
+gnn_t Node::get_gnn() const{
+  return gnn;
 }
 
-void           Node::set_current_owner(const unsigned short in){ 
-  owner[0] = in; 
+void          Node::set_flags(const unsigned char _flags){
+  flags = _flags;
 }
-unsigned short Node::get_current_owner() const{ 
-  return owner[0]; 
+unsigned char Node::get_flags() const{
+  return flags;
 }
-void           Node::set_owner(const unsigned short in){ 
-  set_current_owner(in); 
+
+void           Node::set_current_owner(const unsigned short in){
+  owner[0] = in;
 }
-unsigned short Node::get_owner() const{ 
-  return( get_current_owner() ); 
+unsigned short Node::get_current_owner() const{
+  return owner[0];
 }
-void           Node::set_future_owner(const unsigned short _new){ 
-  owner[1] = _new; 
+void           Node::set_owner(const unsigned short in){
+  set_current_owner(in);
 }
-unsigned short Node::get_future_owner() const{ 
-  return owner[1]; 
+unsigned short Node::get_owner() const{
+  return( get_current_owner() );
+}
+void           Node::set_future_owner(const unsigned short _new){
+  owner[1] = _new;
+}
+unsigned short Node::get_future_owner() const{
+  return owner[1];
 }
 
 void                      Node::set_CE(const vector<eid_t>& _CE){ CE = _CE; }
-const vector<eid_t>& Node::get_CE() const{ 
-  return CE; 
+const vector<eid_t>& Node::get_CE() const{
+  return CE;
 }
-const eid_t*              Node::get_cptr_CE() const{ 
-  return &(CE[0]); 
+const eid_t*              Node::get_cptr_CE() const{
+  return &(CE[0]);
 }
-unsigned                  Node::get_size_CE() const{ 
-  return CE.size(); 
+unsigned                  Node::get_size_CE() const{
+  return CE.size();
 }
 
-void Node::set_fields(const vector<samfloat_t>& _fields){ 
-  fields = _fields; 
+void Node::set_fields(const vector<samfloat_t>& _fields){
+  fields = _fields;
 }
 
 void Node::set_fields(const samfloat_t* f, const unsigned flen){
@@ -212,12 +212,12 @@ void Node::set_fields(const samfloat_t* f, const unsigned flen){
     fields[i] = f[i];
 }
 
-const vector<samfloat_t>& Node::get_fields() const{ 
-  return fields; 
+const vector<samfloat_t>& Node::get_fields() const{
+  return fields;
 }
 
-const vector<int>& Node::get_ifields() const{ 
-  return ifields; 
+const vector<int>& Node::get_ifields() const{
+  return ifields;
 }
 
 int Node::pop_ifield(void)
@@ -236,29 +236,29 @@ samfloat_t Node::pop_field(void)
   return r;
 }
 
-const samfloat_t* Node::get_cptr_fields() const{ 
-  return &(fields[0]); 
+const samfloat_t* Node::get_cptr_fields() const{
+  return &(fields[0]);
 }
 
-const int* Node::get_cptr_ifields() const{ 
-  return &(ifields[0]); 
+const int* Node::get_cptr_ifields() const{
+  return &(ifields[0]);
 }
 
-size_t Node::get_size_fields() const{ 
-  return fields.size(); 
+size_t Node::get_size_fields() const{
+  return fields.size();
 }
 
-size_t Node::get_size_ifields() const{ 
-  return ifields.size(); 
+size_t Node::get_size_ifields() const{
+  return ifields.size();
 }
 
 void Node::set_coord(const vector<samfloat_t>& _pos){
-  x = _pos; 
+  x = _pos;
 }
 
-void Node::set_coord(const samfloat_t _x, const samfloat_t _y){ 
-  x.resize(2); 
-  x[0] = _x; 
+void Node::set_coord(const samfloat_t _x, const samfloat_t _y){
+  x.resize(2);
+  x[0] = _x;
   x[1] = _y;
 }
 
@@ -269,28 +269,28 @@ void Node::set_coord(const samfloat_t _x, const samfloat_t _y, const samfloat_t 
   x[2] = _z;
 }
 
-const vector<samfloat_t>& Node::get_coord() const{ 
-  return x; 
+const vector<samfloat_t>& Node::get_coord() const{
+  return x;
 }
 
-const samfloat_t* Node::get_cptr_coord() const{ 
-  return &(x[0]); 
+const samfloat_t* Node::get_cptr_coord() const{
+  return &(x[0]);
 }
 
-samfloat_t Node::get_x() const{ 
-  return x[0]; 
+samfloat_t Node::get_x() const{
+  return x[0];
 }
 
-samfloat_t Node::get_y() const{ 
-  return x[1]; 
+samfloat_t Node::get_y() const{
+  return x[1];
 }
 
-samfloat_t Node::get_z() const{ 
-  return x[2]; 
+samfloat_t Node::get_z() const{
+  return x[2];
 }
 
-size_t Node::get_size_x() const{ 
-  return x.size(); 
+size_t Node::get_size_x() const{
+  return x.size();
 }
 
 void Node::set_metric(const vector<samfloat_t>& _metric){
@@ -302,14 +302,14 @@ void Node::set_metric(const samfloat_t* m, const unsigned mlen){
   for(unsigned i = 0; i<mlen; i++)
     metric[i] = m[i];
 }
-const vector<samfloat_t>& Node::get_metric() const{ 
-  return metric; 
+const vector<samfloat_t>& Node::get_metric() const{
+  return metric;
 }
-const samfloat_t*              Node::get_cptr_metric() const{ 
-  return &(metric[0]); 
+const samfloat_t*              Node::get_cptr_metric() const{
+  return &(metric[0]);
 }
-unsigned                     Node::get_size_metric() const{ 
-  return metric.size(); 
+unsigned                     Node::get_size_metric() const{
+  return metric.size();
 }
 
 void Node::pack(char *buffer, int& bsize, int& offset) const{
@@ -317,9 +317,9 @@ void Node::pack(char *buffer, int& bsize, int& offset) const{
   MPI_Pack(&gnn, 1, GNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   MPI_Pack(&flags,  1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
   MPI_Pack(&owner,  2, MPI_UNSIGNED_SHORT, buffer, bsize, &offset, MPI_COMM_WORLD);
-  
+
   { // Pack ifields.
-    unsigned nifields = ifields.size();      
+    unsigned nifields = ifields.size();
     MPI_Pack(&nifields, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(nifields>0)
       MPI_Pack(&(ifields[0]), nifields,MPI_INT, buffer, bsize, &offset, MPI_COMM_WORLD);
@@ -327,12 +327,12 @@ void Node::pack(char *buffer, int& bsize, int& offset) const{
   }
 
   { // Pack fields.
-    unsigned nfields = fields.size();      
+    unsigned nfields = fields.size();
     MPI_Pack(&nfields, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if(nfields>0)
       MPI_Pack(&(fields[0]), nfields, SAMFLOAT, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
-  
+
   { // Pack coordinates.
     unsigned ndim = x.size();
     MPI_Pack(&ndim, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
@@ -354,12 +354,12 @@ void Node::unpack(char *buffer, int& bsize, int& offset){
   MPI_Unpack(buffer, bsize, &offset, &gnn, 1, GNN_T, MPI_COMM_WORLD );
   MPI_Unpack(buffer, bsize, &offset, &flags, 1, MPI_UNSIGNED, MPI_COMM_WORLD );
   MPI_Unpack(buffer, bsize, &offset, owner, 2, MPI_UNSIGNED_SHORT, MPI_COMM_WORLD );
-  
+
   { // Unpack ifields.
     unsigned nifields;
     MPI_Unpack(buffer, bsize, &offset, &nifields, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(nifields>0){
-      ifields.resize(nifields);  
+      ifields.resize(nifields);
       MPI_Unpack(buffer, bsize, &offset, &(ifields[0]), nifields, MPI_INT, MPI_COMM_WORLD);
     }
   }
@@ -368,7 +368,7 @@ void Node::unpack(char *buffer, int& bsize, int& offset){
     unsigned nfields;
     MPI_Unpack(buffer, bsize, &offset, &nfields, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     if(nfields>0){
-      fields.resize( nfields );  
+      fields.resize( nfields );
       MPI_Unpack(buffer, bsize, &offset, &(fields[0]), nfields, SAMFLOAT, MPI_COMM_WORLD);
     }
   }
@@ -390,43 +390,42 @@ void Node::unpack(char *buffer, int& bsize, int& offset){
       MPI_Unpack(buffer, bsize, &offset, &(metric[0]), len, SAMFLOAT, MPI_COMM_WORLD);
     }
   }
-     
+
 }
 
 // Return an estimate of the number of bytes required to pack this guy.
 unsigned Node::pack_size() const{
   int total=0,s1,s2,s3,s4;
-  
+
   MPI_Pack_size(1, UNN_T, MPI_COMM_WORLD, &s1);
-  MPI_Pack_size(1, GNN_T, MPI_COMM_WORLD, &s2);         
-  MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s3); 
+  MPI_Pack_size(1, GNN_T, MPI_COMM_WORLD, &s2);
+  MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s3);
   MPI_Pack_size(2, MPI_UNSIGNED_SHORT, MPI_COMM_WORLD, &s4);
   total = s1 + s2 + s3 + s4;
   {
-    unsigned nifields = ifields.size();      
-    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
-    MPI_Pack_size(nifields, MPI_INT, MPI_COMM_WORLD, &s2); 
+    unsigned nifields = ifields.size();
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    MPI_Pack_size(nifields, MPI_INT, MPI_COMM_WORLD, &s2);
     total += (s1 + s2);
   }
   {
-    unsigned nfields = fields.size();      
-    total += MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    unsigned nfields = fields.size();
+    total += MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
     total += MPI_Pack_size(nfields, SAMFLOAT, MPI_COMM_WORLD, &s2);
-    total += (s1 + s2); 
+    total += (s1 + s2);
   }
   {
     unsigned ndim = x.size();
-    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
-    MPI_Pack_size(ndim, SAMFLOAT, MPI_COMM_WORLD, &s2);       
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
+    MPI_Pack_size(ndim, SAMFLOAT, MPI_COMM_WORLD, &s2);
     total += (s1 + s2);
   }
   {
     unsigned len = metric.size();
-    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);      
+    MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
     MPI_Pack_size(len, SAMFLOAT, MPI_COMM_WORLD, &s2);
-    total += (s1 + s2);    
+    total += (s1 + s2);
   }
 
   return total;
 }
-

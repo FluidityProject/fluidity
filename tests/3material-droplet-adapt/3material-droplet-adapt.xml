@@ -5,8 +5,8 @@
   <tags>flml solidity 2dadapt</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l 3material-droplet.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -28,38 +28,38 @@ mindivergence=max(abs(stat("3material-droplet.stat")["Water"]["ControlVolumeDive
 from fluidity_tools import stat_parser as stat
 maxdivergence=max(stat("3material-droplet.stat")["Water"]["ControlVolumeDivergence"]["max"])
     </variable>
-     <variable name="nodes0" language="python"> 
+     <variable name="nodes0" language="python">
 import fluidity_tools
 nodes0 = fluidity_tools.stat_parser("3material-droplet.stat")['CoordinateMesh']['nodes'][0]
-    </variable>    
-     <variable name="nodes" language="python"> 
+    </variable>
+     <variable name="nodes" language="python">
 import fluidity_tools
 nodes = fluidity_tools.stat_parser("3material-droplet.stat")['CoordinateMesh']['nodes'][-1]
-    </variable>    
-     <variable name="vfracintwater0" language="python"> 
+    </variable>
+     <variable name="vfracintwater0" language="python">
 import fluidity_tools
 vfracintwater0 = fluidity_tools.stat_parser("3material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintwater" language="python"> 
+    </variable>
+     <variable name="vfracintwater" language="python">
 import fluidity_tools
 vfracintwater = fluidity_tools.stat_parser("3material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="vfracintdrop0" language="python"> 
+    </variable>
+     <variable name="vfracintdrop0" language="python">
 import fluidity_tools
 vfracintdrop0 = fluidity_tools.stat_parser("3material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][0]
-    </variable>    
-     <variable name="vfracintdrop" language="python"> 
+    </variable>
+     <variable name="vfracintdrop" language="python">
 import fluidity_tools
 vfracintdrop = fluidity_tools.stat_parser("3material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][-1]
-    </variable>    
-     <variable name="mxvfracwater" language="python"> 
+    </variable>
+     <variable name="mxvfracwater" language="python">
 import fluidity_tools
 mxvfracwater = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracwater" language="python"> 
+    </variable>
+     <variable name="mnvfracwater" language="python">
 import fluidity_tools
 mnvfracwater = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracdrop" language="python">
 import fluidity_tools
 mxvfracdrop = max(fluidity_tools.stat_parser("3material-droplet.stat")['Droplet']['MaterialVolumeFraction']['max'])
@@ -68,14 +68,14 @@ mxvfracdrop = max(fluidity_tools.stat_parser("3material-droplet.stat")['Droplet'
 import fluidity_tools
 mnvfracdrop = min(fluidity_tools.stat_parser("3material-droplet.stat")['Droplet']['MaterialVolumeFraction']['min'])
     </variable>
-     <variable name="mxvfracair" language="python"> 
+     <variable name="mxvfracair" language="python">
 import fluidity_tools
 mxvfracair = max(fluidity_tools.stat_parser("3material-droplet.stat")['Air']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracair" language="python"> 
+    </variable>
+     <variable name="mnvfracair" language="python">
 import fluidity_tools
 mnvfracair = min(fluidity_tools.stat_parser("3material-droplet.stat")['Air']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracsum" language="python">
 import fluidity_tools
 mxvfracsum = max(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['SumMaterialVolumeFractions']['max'])
@@ -85,7 +85,7 @@ import fluidity_tools
 mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet.stat")['Water']['SumMaterialVolumeFractions']['min'])
     </variable>
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>

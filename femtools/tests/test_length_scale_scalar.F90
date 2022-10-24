@@ -1,5 +1,5 @@
 !    Copyright (C) 2009 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -32,19 +32,18 @@ subroutine test_length_scale_scalar
    use fields
    use smoothing_module
    implicit none
-   
+
    type(vector_field) :: positions
    real :: expected_result, computed_result
    logical :: fail
-   
+
    positions = read_mesh_files("data/structured", quad_degree=3, format="gmsh")
-   
+
    ! We'll just choose the first element here - each of them should have the same area
    computed_result = length_scale_scalar(positions, 1)
    expected_result = 0.5*(0.392699081699**2)
-   
+
    fail = .not.fequals(computed_result, expected_result, 1.0e-9)
    call report_test("[length_scale_scalar]", fail, .false., "Result from length_scale_scalar is incorrect.")
-   
-end subroutine test_length_scale_scalar
 
+end subroutine test_length_scale_scalar

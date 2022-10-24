@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -24,9 +24,9 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-  
+
 #include "fdebug.h"
-  
+
 module sediment
 
   use global_parameters, only:   OPTION_PATH_LEN, FIELD_NAME_LEN, dt, timestep
@@ -86,7 +86,7 @@ contains
 
     ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/name', name) 
+         & 1)//']/name', name)
 
     if (present_and_true(old)) then
       name = "Old"//trim(name)
@@ -105,7 +105,7 @@ contains
 
     ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/name', item, stat=stat) 
+         & 1)//']/name', item, stat=stat)
 
   end subroutine get_sediment_field_name
 
@@ -120,7 +120,7 @@ contains
 
     ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/prognostic/'//option, item, stat=stat) 
+         & 1)//']/prognostic/'//option, item, stat=stat)
 
   end subroutine get_sediment_option_string
 
@@ -133,10 +133,10 @@ contains
     real, intent(out)                           :: item
     integer, intent(out), optional              :: stat
     real, intent(in), optional                  :: default
-    
+
     ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/prognostic/'//option, item, stat = stat, default = default) 
+         & 1)//']/prognostic/'//option, item, stat = stat, default = default)
 
   end subroutine get_sediment_option_real
 
@@ -148,12 +148,12 @@ contains
     type(scalar_field), pointer, intent(out)    :: item
     character(len=*), intent(in)                :: option
     integer, intent(out), optional              :: stat
-    
+
     character(len=FIELD_NAME_LEN)               :: field_name
 
     ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/name', field_name) 
+         & 1)//']/name', field_name)
     item => extract_scalar_field(state, trim(field_name)//option, stat)
 
   end subroutine get_sediment_option_scalar_field
@@ -179,7 +179,7 @@ contains
 
        ! Loop over boundary conditions for field
        boundary_conditions: do i_bc = 0, n_bc - 1
-          
+
           ! Get name and type of boundary condition
           bc_path_ = trim(bc_path)//"["//int2str(i_bc)//"]"
           call get_option(trim(bc_path_)//"/name", bc_name)
@@ -193,7 +193,7 @@ contains
           ewrite(1,*) "Setting reentrainment boundary condition "//trim(bc_name)//" for fi&
                &eld: "//trim(sediment_field%name)
 
-          call set_reentrainment_bc(state, sediment_field, bc_name, bc_path_, i_field)    
+          call set_reentrainment_bc(state, sediment_field, bc_name, bc_path_, i_field)
 
        end do boundary_conditions
 
@@ -227,7 +227,7 @@ contains
 
     ! get bedload field
     call get_sediment_item(state, i_field, 'Bedload', bedload)
-    
+
     ! get volume fraction
     call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)
 
@@ -264,7 +264,7 @@ contains
     shear_stress => extract_vector_field(state, "BedShearStress", stat)
     if (stat /= 0) then
        FLExit("A bed shear stress must be specified to calculate reentrainment")
-    end if    
+    end if
 
     ! get coordinate field
     x => extract_vector_field(state, "Coordinate")
@@ -277,7 +277,7 @@ contains
        call zero(masslump)
     end if
 
-    call get_option(trim(bc_path)//"/type[0]/algorithm", algorithm) 
+    call get_option(trim(bc_path)//"/type[0]/algorithm", algorithm)
     ! loop through elements in surface field and calculate reentrainment
     elements: do i_ele = 1, element_count(reentrainment)
 
@@ -291,7 +291,7 @@ contains
                & shear_stress, d50, sink_U, sigma, volume_fraction)
        case default
           FLExit("A valid re-entrainment algorithm must be selected")
-       end select   
+       end select
 
     end do elements
 
@@ -302,7 +302,7 @@ contains
        end where
        call scale(reentrainment, masslump)
        call deallocate(masslump)
-    end if   
+    end if
 
     ! check bound of entrainment so that it does not exceed the available sediment in the
     ! bed and is larger than zero.
@@ -316,7 +316,7 @@ contains
           call set(reentrainment, i_node, max(node_val(reentrainment, i_node), 0.0))
        end if
     end do nodes
-    
+
     ! store erosion rate in diagnositc field
     call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
     if (stat == 0 .and. dt > 1e-15) then
@@ -327,10 +327,10 @@ contains
                & ele_val(reentrainment, i_ele))
        end do
        ! I also need to set the old field value otherwise this get overwritten with zero straight away
-       ! This is a bit messy but the important thing is that at the end of the timestep we have recorded 
+       ! This is a bit messy but the important thing is that at the end of the timestep we have recorded
        ! the erosion rate, this fools Fluidity such that we get that.
        old_diagnostic_field => extract_scalar_field(state, "Old"//trim(diagnostic_field%name), stat)
-       if (stat == 0) then 
+       if (stat == 0) then
           call set(old_diagnostic_field, diagnostic_field)
        end if
     end if
@@ -341,14 +341,14 @@ contains
        call zero(reentrainment)
     end if
 
-    ewrite_minmax(bedload)  
-    ewrite_minmax(reentrainment)  
+    ewrite_minmax(bedload)
+    ewrite_minmax(reentrainment)
 
     call deallocate(bedload_remap)
     call deallocate(viscosity)
 
   end subroutine set_reentrainment_bc
-  
+
   subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
        & x, masslump, surface_element_list, viscosity, shear_stress, d50,&
        & sink_U, sigma, volume_fraction)
@@ -360,7 +360,7 @@ contains
     type(scalar_field), intent(inout)                :: masslump
     type(scalar_field), pointer, intent(inout)       :: reentrainment
     type(scalar_field), pointer, intent(in)          :: d50, sink_U, sigma,&
-         & volume_fraction 
+         & volume_fraction
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     type(element_type), pointer                      :: shape
     integer, dimension(:), pointer                   :: ele
@@ -376,12 +376,12 @@ contains
     integer                                          :: i_gi, stat
 
     A = 1.3*10.0**(-7.0)
-    
+
     ele => ele_nodes(reentrainment, i_ele)
     shape => ele_shape(reentrainment, i_ele)
 
     call transform_facet_to_physical(x, surface_element_list(i_ele), detwei)
-    
+
     if(continuity(reentrainment)>=0) then
        call addto(masslump, ele, &
             sum(shape_shape(shape, shape, detwei), 1))
@@ -395,12 +395,12 @@ contains
     call get_sediment_item(state, i_field, 'diameter', d)
     call get_option("/physical_parameters/gravity/magnitude", g)
     ! VISCOSITY ASSUMED TO BE ISOTROPIC - maybe should be in normal direction to surface
-    where (face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1) > 0.0) 
+    where (face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1) > 0.0)
        R_p = sqrt(R*g*d**3.0)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
-    elsewhere 
+    elsewhere
        R_p = 0.0
-    end where 
-    
+    end where
+
     ! calculate u_star (shear velocity)
     call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density, stat)
     if (stat /= 0) density = 1.0
@@ -417,15 +417,15 @@ contains
     ! calculate Z
     where (face_val_at_quad(d50, surface_element_list(i_ele)) > 0.0)
        Z = lambda_m * u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p&
-            &**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2  
-    elsewhere 
+            &**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2
+    elsewhere
        Z = 0.0
     end where
 
     ! calculate reentrainment F*v_s*E
     E = shape_rhs(shape, face_val_at_quad(volume_fraction, surface_element_list(i_ele)) *&
          & face_val_at_quad(sink_U, surface_element_list(i_ele)) * A*Z**5 / (1 + A*Z**5&
-         &/0.3) * detwei)  
+         &/0.3) * detwei)
 
     if(continuity(reentrainment)<0) then
        ! DG case.
@@ -433,7 +433,7 @@ contains
     end if
 
     call addto(reentrainment, ele, E)
-    
+
   end subroutine assemble_garcia_1991_reentrainment_ele
 
   subroutine assemble_generic_reentrainment_ele(state, i_field, i_ele, reentrainment,&
@@ -475,7 +475,7 @@ contains
        ! 10 microns and constant viscosity
        ! critical stress is either given by user (optional) or calculated
        ! using Shield's formula (depends on grain size and density and
-       ! (vertical) viscosity) 
+       ! (vertical) viscosity)
        call get_sediment_item(state, i_field, 'submerged_specific_gravity', R)
        call get_option("/physical_parameters/gravity/magnitude", g)
        shear_crit = 0.041 * R * rho_0 * g * d
@@ -487,7 +487,7 @@ contains
     !
     ! The source depends on the erodability of that sediment
     ! (usually 1 unless you want to do something like mud which sticks),
-    ! the porosity in the bedload and the bed shear stress. 
+    ! the porosity in the bedload and the bed shear stress.
     !
     ! Each sediment class has a critical shear stress, which if exceeded
     ! by the bed shear stress, sediment is placed into suspension
@@ -495,19 +495,19 @@ contains
     ! loop over nodes in bottom surface
     call get_sediment_item(state, i_field, 'erodability', erod, default=1.0)
     call get_sediment_item(state, i_field, 'bed_porosity', poro, default=0.3)
-    
-    ele => ele_nodes(reentrainment, i_ele)
-    shape => ele_shape(reentrainment, i_ele) 
 
-    call transform_facet_to_physical(x, surface_element_list(i_ele), detwei)  
-    
+    ele => ele_nodes(reentrainment, i_ele)
+    shape => ele_shape(reentrainment, i_ele)
+
+    call transform_facet_to_physical(x, surface_element_list(i_ele), detwei)
+
     if(continuity(reentrainment)>=0) then
        call addto(masslump, ele, &
             sum(shape_shape(shape, shape, detwei), 1))
     else
        ! In the DG case we will apply the inverse mass locally.
        invmass=inverse(shape_shape(shape, shape, detwei))
-    end if 
+    end if
 
     ! calculate magnitude of shear stress at quadrature points
     shear_quad = face_val_at_quad(shear_stress, surface_element_list(i_ele))
@@ -521,7 +521,7 @@ contains
     ! calculate reentrainment F*vs*E
     E = shape_rhs(shape, face_val_at_quad(volume_fraction, surface_element_list(i_ele)) *&
          & face_val_at_quad(sink_U, surface_element_list(i_ele)) * erod * (1-poro) *&
-         & (shear - shear_crit)/shear_crit * detwei) 
+         & (shear - shear_crit)/shear_crit * detwei)
 
     if(continuity(reentrainment)<0) then
        ! DG case.
@@ -537,12 +537,12 @@ contains
     !!<    div_HS source
     !!< where div_hs is a divergence operator restricted to the surface and
     !!< of spatial dimension one degree lower than the full mesh.
-  
+
     type(vector_field), intent(in) :: source
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: output
     integer, dimension(:), intent(in) :: surface_ids
-    
+
     type(mesh_type) :: surface_mesh, source_surface_mesh, output_surface_mesh
 
     integer :: i, idx
@@ -550,12 +550,11 @@ contains
     integer, dimension(surface_element_count(output)) :: surface_elements
     integer, dimension(:), pointer :: surface_nodes, source_surface_nodes,&
          output_surface_nodes
-    real :: face_area, face_integral
 
     type(vector_field) :: surface_source, surface_positions
     type(scalar_field) :: surface_output
     real, dimension(mesh_dim(positions))  :: val
-    
+
     call zero(output)
 
     !!! get the relevant surface. This wastes a bit of memory.
@@ -603,7 +602,7 @@ contains
        call set(output,output_surface_nodes(i),node_val(surface_output,i))
     end do
 
-!!! I *think* this surfices for parallel, due to the relatively locality of the 
+!!! I *think* this surfices for parallel, due to the relatively locality of the
 !!! divergence operator
 
     call halo_update(output)
@@ -624,7 +623,7 @@ contains
   subroutine sediment_check_options
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
-    character(len=OPTION_PATH_LEN)          :: field_option_path 
+    character(len=OPTION_PATH_LEN)          :: field_option_path
     integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
     integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count
@@ -660,7 +659,7 @@ contains
           nbcs=option_count(trim(field_option_path)//'/boundary_conditions')
           ! Loop over boundary conditions for field
           boundary_conditions: do i_bc=0, nbcs-1
-          
+
              ! Get name and type of boundary condition
              call get_option(trim(field_option_path)//&
                   '/boundary_conditions['//int2str(i_bc)//&
@@ -675,22 +674,22 @@ contains
              if (.not.(have_option('/material_phase[0]/vector_field::BedShearStress'))) then
                 FLExit("Reentrainment boundary condition requires a BedShearStress field")
              end if
-             
+
              ! check boundary id's are the same for re-entrainment and bedload
-             
+
              ! get bedload surface ids
              bedload_surface_id_count=option_shape(trim(field_option_path)// &
                   '/scalar_field::Bedload/prognostic/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
              call get_option(trim(field_option_path)// &
-                  '/scalar_field::Bedload/prognostic/surface_ids', bedload_surface_ids) 
+                  '/scalar_field::Bedload/prognostic/surface_ids', bedload_surface_ids)
 
              ! get reentrainment surface ids
              bc_surface_id_count=option_shape(trim(field_option_path)//'/boundary_conditions['&
                   &//int2str(i_bc)//']/surface_ids')
              allocate(bc_surface_ids(bc_surface_id_count(1)))
              call get_option(trim(field_option_path)// &
-                  '/boundary_conditions['//int2str(i_bc)//']/surface_ids', bc_surface_ids) 
+                  '/boundary_conditions['//int2str(i_bc)//']/surface_ids', bc_surface_ids)
 
              bc_surface_id: do i_bc_surf=1, bc_surface_id_count(1)
 

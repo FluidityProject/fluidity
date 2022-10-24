@@ -2,25 +2,25 @@
 <testproblem>
 
   <name>Control volume, multi-material flow test for testing mixing stats</name>
-  
+
   <owner userid="piggt01"/>
-  
+
   <tags>flml parallel</tags>
-  
+
     <problem_definition length="short" nprocs="3">
       <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l mixing_stats_test_parallel mixing_stats_test_parallel_flredecomp &amp;&amp;
         fluidity -v3 -l mixing_stats_test_serial.flml;
                   mpiexec ../../bin/fluidity -v3 -l mixing_stats_test_parallel_flredecomp.flml;
      </command_line>
-  </problem_definition> 
-   
-  <variables>  
+  </problem_definition>
+
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-  
+
     <variable name="matvolume_serial" language="python">
 import vtktools
 matvolume_serial = [[],[]]
@@ -29,10 +29,10 @@ filenames = ["mixing_stats_test_serial_1.vtu","mixing_stats_test_serial_4.vtu","
 # 4 is before adapt
 # 7 is after adapt
 for file in filenames:
-  matvolume_serial[0].append(sum(vtktools.vtu(file).GetScalarField("Material1::MaterialVolume"))) 
-  matvolume_serial[1].append(sum(vtktools.vtu(file).GetScalarField("Material2::MaterialVolume")))  
-    </variable> 
-    
+  matvolume_serial[0].append(sum(vtktools.vtu(file).GetScalarField("Material1::MaterialVolume")))
+  matvolume_serial[1].append(sum(vtktools.vtu(file).GetScalarField("Material2::MaterialVolume")))
+    </variable>
+
     <variable name="matvolume_parallel" language="python">
 import vtktools
 import os
@@ -49,10 +49,10 @@ for i in range(len(filenames)):
     # take pvtus -&gt; vtus as otherwise will count multiple nodes in halo regions more than once and make the sum used below incorrect
     matvolume_parallel[0].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material1::MaterialVolume")))
     matvolume_parallel[1].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material2::MaterialVolume")))
-</variable> 
-    
-     <variable name="mixing_stats_mat1_serial" language="python"> 
-# mixing stats will contain [normalised_cv, normalised_cg, unormalised_cv, unormalised_cg] 
+</variable>
+
+     <variable name="mixing_stats_mat1_serial" language="python">
+# mixing stats will contain [normalised_cv, normalised_cg, unormalised_cv, unormalised_cg]
 # mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
 import fluidity_tools
 from fluidity_tools import stat_parser
@@ -66,14 +66,14 @@ for types_b in stat_type_b:
     for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b])):
       bin = []
       for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i])):
-        bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i][j]) 
+        bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i][j])
       mixing_stats_current.append(bin)
     mixing_stats_current.append([types_b + '_' + types_a])
-    mixing_stats_mat1_serial.append(mixing_stats_current) 
-    </variable>  
-    
-    <variable name="mixing_stats_mat1_parallel" language="python"> 
-# mixing stats will contain [normalised_cv, normalised_cg, unormalised_cv, unormalised_cg] 
+    mixing_stats_mat1_serial.append(mixing_stats_current)
+    </variable>
+
+    <variable name="mixing_stats_mat1_parallel" language="python">
+# mixing stats will contain [normalised_cv, normalised_cg, unormalised_cv, unormalised_cg]
 # mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
 import fluidity_tools
 from fluidity_tools import stat_parser
@@ -87,13 +87,13 @@ for types_b in stat_type_b:
     for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b])):
       bin = []
       for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i])):
-        bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i][j]) 
+        bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i][j])
       mixing_stats_current.append(bin)
     mixing_stats_current.append([types_b + '_' + types_a])
-    mixing_stats_mat1_parallel.append(mixing_stats_current) 
-    </variable> 
-    
-   <variable name="mixing_stats_mat1_serial_python" language="python"> 
+    mixing_stats_mat1_parallel.append(mixing_stats_current)
+    </variable>
+
+   <variable name="mixing_stats_mat1_serial_python" language="python">
 # serial mixing stats for Material 1 where bounds have been set with a python function
 # just to check python function working OK
 import fluidity_tools
@@ -103,11 +103,11 @@ mixing_stats_mat1_serial_python = []
 for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'])):
   bin = []
   for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i])):
-    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j]) 
-  mixing_stats_mat1_serial_python.append(bin) 
-    </variable>  
-    
-    <variable name="mixing_stats_mat1_parallel_python" language="python"> 
+    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j])
+  mixing_stats_mat1_serial_python.append(bin)
+    </variable>
+
+    <variable name="mixing_stats_mat1_parallel_python" language="python">
 # parallel mixing stats for Material 1 where bounds have been set with a python function
 # just to check python function working OK
 import fluidity_tools
@@ -117,11 +117,11 @@ mixing_stats_mat1_parallel_python = []
 for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'])):
   bin = []
   for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i])):
-    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j]) 
-  mixing_stats_mat1_parallel_python.append(bin) 
-    </variable>  
-    
-     <variable name="mixing_stats_mat2_serial" language="python"> 
+    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j])
+  mixing_stats_mat1_parallel_python.append(bin)
+    </variable>
+
+     <variable name="mixing_stats_mat2_serial" language="python">
 # mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
 import fluidity_tools
 from fluidity_tools import stat_parser
@@ -130,11 +130,11 @@ mixing_stats_mat2_serial = []
 for i in range(len(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'])):
   bin = []
   for j in range(len(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i])):
-    bin.append(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i][j]) 
+    bin.append(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i][j])
   mixing_stats_mat2_serial.append(bin)
-    </variable>  
-    
-     <variable name="mixing_stats_mat2_parallel" language="python"> 
+    </variable>
+
+     <variable name="mixing_stats_mat2_parallel" language="python">
 # mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
 import fluidity_tools
 from fluidity_tools import stat_parser
@@ -143,17 +143,17 @@ mixing_stats_mat2_parallel = []
 for i in range(len(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'])):
   bin = []
   for j in range(len(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i])):
-    bin.append(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i][j]) 
+    bin.append(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][i][j])
   mixing_stats_mat2_parallel.append(bin)
-    </variable> 
-    
+    </variable>
+
   </variables>
-  
-    <pass_tests>  
+
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
-    
+
     <test name="check serial and parallel volumes are same in vtus/pvtus" language="python">
 material = ['mat1', 'mat2']
 file_no = ['1','4','7']
@@ -165,7 +165,7 @@ for i in range(len(matvolume_serial)):
         print('difference', abs(matvolume_serial[i][j]-matvolume_parallel[i][j]))
         assert abs(matvolume_serial[i][j]-matvolume_parallel[i][j]) &lt; tolerance
 </test>
-    
+
     <test name="compare serial unormalised lower mixing bins of material 1 to vtu" language="python">
 stat_type_a = ['cv','cg']
 mixing_stats_pick = [0,3,6] # corresponds to the vtus
@@ -180,7 +180,7 @@ for i in range(3):
         if mesh_state[i] == 'adapt': tolerance = 1e-2 # after adapt have material between 0 and 1 so need to loosen tolerance
         assert abs(mixing_stats_mat1_serial[j+2][0][mixing_stats_pick[i]] - matvolume_serial[1][i]) &lt; tolerance
 </test>
-    
+
     <test name="compare serial unormalised upper mixing bins of material 1 to vtu" language="python">
 stat_type_a = ['cv','cg']
 mixing_stats_pick = [0,3,6]
@@ -195,7 +195,7 @@ for i in range(3):
         if mesh_state[i] == 'adapt': tolerance = 1e-2
         assert abs(mixing_stats_mat1_serial[j+2][1][mixing_stats_pick[i]] - matvolume_serial[0][i]) &lt; tolerance
 </test>
-    
+
     <test name="compare parallel unormalised lower mixing bins of material 1 to pvtu" language="python">
 stat_type_a = ['cv','cg']
 mixing_stats_pick = [0,3,6] # corresponds to the vtus
@@ -210,7 +210,7 @@ for i in range(3):
         if mesh_state[i] == 'adapt': tolerance = 1e-2 # after adapt have material between 0 and 1 so need to loosen tolerance
         assert abs(mixing_stats_mat1_parallel[j+2][0][mixing_stats_pick[i]] - matvolume_parallel[1][i]) &lt; tolerance
 </test>
-    
+
     <test name="compare parallel unormalised upper mixing bins of material 1 to pvtu" language="python">
 stat_type_a = ['cv','cg']
 mixing_stats_pick = [0,3,6]
@@ -225,7 +225,7 @@ for i in range(3):
         if mesh_state[i] == 'adapt': tolerance = 1e-2 # after adapt have material between 0 and 1 so need to loosen tolerance
         assert abs(mixing_stats_mat1_parallel[j+2][1][mixing_stats_pick[i]] - matvolume_parallel[0][i]) &lt; tolerance
 </test>
-    
+
     <test name="compare serial normalised mixing bins of material 2 to vtu" language="python">
 mixing_stats_pick = [0,3,6] # corresponds to the vtus
 mesh_state = ['fixed','fixed','adapt']
@@ -237,7 +237,7 @@ for j in range(3):
         if mesh_state[j] == 'adapt': tolerance = 1e-1 # after adapt have material between 0 and 1 so need to loosen tolerance
         assert abs(mixing_stats_mat2_serial[i][mixing_stats_pick[j]] - (matvolume_serial[i][j]/(matvolume_serial[0][j]+matvolume_serial[1][j]))) &lt; tolerance
 </test>
-    
+
     <test name="compare parallel normalised mixing bins of material 2 to pvtu" language="python">
 mixing_stats_pick = [0,3,6] # corresponds to the vtus
 mesh_state = ['fixed','fixed','adapt']
@@ -249,7 +249,7 @@ for j in range(3):
         if mesh_state[j] == 'adapt': tolerance = 1e-1 # after adapt have material between 0 and 1 so need to loosen tolerance
         assert abs(mixing_stats_mat2_parallel[i][mixing_stats_pick[j]] - (matvolume_parallel[i][j]/(matvolume_parallel[0][j]+matvolume_parallel[1][j]))) &lt; tolerance
 </test>
-    
+
     <test name="check all serial normalised mixing bins of material 1 sum to 1" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_serial[0][0])):
@@ -258,7 +258,7 @@ for i in range(len(mixing_stats_mat1_serial[0][0])):
         print('difference', abs(mixing_stats_mat1_serial[j][0][i] + mixing_stats_mat1_serial[j][1][i] - 1.0))
         assert abs(mixing_stats_mat1_serial[j][0][i] + mixing_stats_mat1_serial[j][1][i] - 1.0) &lt; 1e-6
 </test>
-    
+
     <test name="check all serial unormalised mixing bins of material 1 sum to right number" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_serial[0][0])):
@@ -267,7 +267,7 @@ for i in range(len(mixing_stats_mat1_serial[0][0])):
         print('difference', abs(((mixing_stats_mat1_serial[j+2][0][i] + mixing_stats_mat1_serial[j+2][1][i])/(matvolume_serial[0][0]+matvolume_serial[1][0])) - 1.0))
         assert abs(((mixing_stats_mat1_serial[j+2][0][i] + mixing_stats_mat1_serial[j+2][1][i])/(matvolume_serial[0][0]+matvolume_serial[1][0])) - 1.0) &lt; 1e-6
 </test>
-    
+
     <test name="check all parallel normalised mixing bins of material 1 sum to 1" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_parallel[0][0])):
@@ -276,7 +276,7 @@ for i in range(len(mixing_stats_mat1_parallel[0][0])):
         print('difference', abs(mixing_stats_mat1_parallel[j][0][i] + mixing_stats_mat1_parallel[j][1][i] - 1.0))
         assert abs(mixing_stats_mat1_parallel[j][0][i] + mixing_stats_mat1_parallel[j][1][i] - 1.0) &lt; 1e-6
 </test>
-    
+
     <test name="check all parallel unormalised mixing bins of material 1 sum to right number" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_parallel[0][0])):
@@ -284,20 +284,20 @@ for i in range(len(mixing_stats_mat1_parallel[0][0])):
         print(stat_type_a[j])
         print('difference', abs(((mixing_stats_mat1_parallel[j+2][0][i] + mixing_stats_mat1_parallel[j+2][1][i])/(matvolume_parallel[0][0]+matvolume_parallel[1][0])) - 1.0))
         assert abs(((mixing_stats_mat1_parallel[j+2][0][i] + mixing_stats_mat1_parallel[j+2][1][i])/(matvolume_parallel[0][0]+matvolume_parallel[1][0])) - 1.0) &lt; 1e-6
-</test>    
-    
+</test>
+
     <test name="check all serial normalised mixing bins of material 2 sum to 1" language="python">
 for i in range(len(mixing_stats_mat2_serial[0])):
     print('difference', abs(mixing_stats_mat2_serial[0][i] + mixing_stats_mat2_serial[1][i] - 1.0))
     assert abs(mixing_stats_mat2_serial[0][i] + mixing_stats_mat2_serial[1][i] - 1.0) &lt; 1e-6
-</test>   
-    
+</test>
+
     <test name="check all parallel normalised mixing bins of material 2 sum to 1 " language="python">
 for i in range(len(mixing_stats_mat2_parallel[0])):
     print('difference', abs(mixing_stats_mat2_parallel[0][i] + mixing_stats_mat2_parallel[1][i] - 1.0))
     assert abs(mixing_stats_mat2_parallel[0][i] + mixing_stats_mat2_parallel[1][i] - 1.0) &lt; 1e-6
-</test> 
-         
+</test>
+
     <test name="check all parallel and serial mixing bins agree for Material 1" language="python">
 stat_type = ['normalised_cv', 'normalised_cg', 'unormalised_cv', 'unormalised_cg']
 bins_loop = ['lower','upper']
@@ -310,7 +310,7 @@ for j in range(len(stat_type)):
             if k &gt; 3: tolerance = 1e-2 # after adapt have material between 0 and 1 and subtle mesh difference so need to loosen tolerance
             assert abs(mixing_stats_mat1_parallel[j][i][k] - mixing_stats_mat1_serial[j][i][k]) &lt; tolerance
 </test>
-    
+
     <test name="check serial mixing bins set with python function and constant agree for Material 1" language="python">
 bins_loop = ['lower','upper']
 for i in range(len(bins_loop)): # bins to loop over
@@ -330,7 +330,7 @@ for i in range(len(bins_loop)): # bins to loop over
         tolerance = 1e-10 # should be exactly same so tolerance tight (no mesh differences etc)
         assert abs(mixing_stats_mat1_parallel[0][i][k] - mixing_stats_mat1_parallel_python[i][k]) &lt; tolerance
 </test>
-    
+
     <test name="check all parallel and serial mixing bins agree for Material 2" language="python">
 bins_loop = ['lower','upper']
 for i in range(len(bins_loop)): # bins to loop over
@@ -341,7 +341,7 @@ for i in range(len(bins_loop)): # bins to loop over
         if k &gt; 3: tolerance = 1e-2 # after adapt have material between 0 and 1 and subtle mesh difference so need to loosen tolerance
         assert abs(mixing_stats_mat2_parallel[i][k] - mixing_stats_mat2_serial[i][k]) &lt; tolerance
 </test>
-    
+
   </pass_tests>
 
 </testproblem>

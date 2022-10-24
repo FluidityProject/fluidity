@@ -53,7 +53,7 @@ OBJS = Diagnostic_Fields_Wrapper_New.o
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<

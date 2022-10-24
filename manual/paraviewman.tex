@@ -3,7 +3,7 @@ Paraview (\url{http://www.paraview.org/paraviewindex.html}) is an open-source, m
 
 \subsection{Obtaining Paraview}
 \subsubsection{Ubuntu}
-Paraview is available through the Ubuntu package system and can be installed by typing: 
+Paraview is available through the Ubuntu package system and can be installed by typing:
 
 \begin{example}
   \begin{lstlisting}[language=bash]
@@ -56,7 +56,7 @@ On a Mac the Paraview application will probably have been put in the
 Applications directory during the install procedure, and it can be run from
 there.
 
-No information is available about how to run Paraview in Windows. 
+No information is available about how to run Paraview in Windows.
 
 \subsubsection{Starting up a serial visualisation session}
 
@@ -114,7 +114,7 @@ Now start up your paraview session, and once you have the main window click on t
  shown.]{\fig[width=0.48\textwidth]{visualisation_and_diagnostics_images/Paraviewconfigureserverwindow2}}
 \caption{First steps when starting up the paraview parallel session.}
 \end{figure}
- 
+
 
 Note that if pvserver is NOT on your path then you will need to give the full path to pvserver rather than just 'pvserver'. Also note that you can change the '2' to be the number of cores you want to run the parallel visualisation across on your machine. Now click on 'save' and you will be back to the 'choose server' window, with a server 'localhost' defined (see fig. \ref{fig:paraview5}). Click on 'connect' and pserver should run and connect. If there are any problems you'll get an output window telling you what went wrong.
 
@@ -125,17 +125,17 @@ Note that if pvserver is NOT on your path then you will need to give the full pa
 \caption{The localhost server can now be selected for connection.}
 \end{figure}
 
- 
+
 
 \subsubsection{What are the strange windows with random patterns in?}
 
-This is documented for running a parallel visualisation across the cores of your local system, using your graphics hardware for the rendering. It results in one X-window per pserver process being opened, which you can push to the back behind your paraview window. Don't close them, or pserver will fail! 
+This is documented for running a parallel visualisation across the cores of your local system, using your graphics hardware for the rendering. It results in one X-window per pserver process being opened, which you can push to the back behind your paraview window. Don't close them, or pserver will fail!
 
 \subsection{Reading in data}
 
 \subsubsection{Opening files}
 
-Paraview will natively handle the majority of datafiles that you will generate in the process of your work. To load in a new data file, access the 'File' menu and choose 'Open', then select the file you wish to load and click 'OK'. Single files should appear in the file list immediately, but where a directory contains a time-series of files they will often be condensed into a single entry in the paraview file listing with an arrow to the left of the entry (see fig. \ref{paraview6}). Clicking on the arrow expands the time series to allow you to access individual files, whilst clicking on the series' entry (the generic name, with a '..' before the file type) will select the whole time-series for loading. 
+Paraview will natively handle the majority of datafiles that you will generate in the process of your work. To load in a new data file, access the 'File' menu and choose 'Open', then select the file you wish to load and click 'OK'. Single files should appear in the file list immediately, but where a directory contains a time-series of files they will often be condensed into a single entry in the paraview file listing with an arrow to the left of the entry (see fig. \ref{paraview6}). Clicking on the arrow expands the time series to allow you to access individual files, whilst clicking on the series' entry (the generic name, with a '..' before the file type) will select the whole time-series for loading.
 
 \begin{figure}[h!]
 \label{paraview6}
@@ -145,7 +145,7 @@ Paraview will natively handle the majority of datafiles that you will generate i
 
 \subsubsection{Reading in fields}
 
-So you have opened a file and an entry for it has appeared in the 'Pipeline Browser' window, generally upper-left of your Paraview session. At this point the file is open but not read, an intermediate state which allows you to select how much of the file should be read into memory. This is very important to be careful of where large files are concerned, as reading all fifty fields on a twenty five million node mesh could be prejudicial to the stability of the computer. 
+So you have opened a file and an entry for it has appeared in the 'Pipeline Browser' window, generally upper-left of your Paraview session. At this point the file is open but not read, an intermediate state which allows you to select how much of the file should be read into memory. This is very important to be careful of where large files are concerned, as reading all fifty fields on a twenty five million node mesh could be prejudicial to the stability of the computer.
 
 \begin{figure}[h!]
 \label{paraview7}
@@ -153,7 +153,7 @@ So you have opened a file and an entry for it has appeared in the 'Pipeline Brow
   \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraview-subwindows}
 \end{figure}
 
-With the newly opened file highlighted in the Pipeline Browser, the Object Inspector window will show a list of available fields to be read. You can either select/deselect these individually, or select/deselect as a whole by using the tickbox above-left of the list. Once you have selected the fields you wish to read in, click on 'Apply' in the Object Inspector. 
+With the newly opened file highlighted in the Pipeline Browser, the Object Inspector window will show a list of available fields to be read. You can either select/deselect these individually, or select/deselect as a whole by using the tickbox above-left of the list. Once you have selected the fields you wish to read in, click on 'Apply' in the Object Inspector.
 
 \subsection{Basic Visualisation}
 
@@ -161,7 +161,7 @@ Having loaded in some data you may wish to examine it to check it is what you th
 
 For the representation menu, 'points', 'wireframe', 'outline', 'surface', and 'surface with edges' should be familiar concepts to Mayavi users. However, 'volume' may not be. 'Volume' displays the mesh as a partially-transparent cloud of points which can be very useful to denote the extent and fields of the mesh within a domain whilst primarily visualising another field or a specific cut.
 
-Controls for manipulating the object within the view window are the same as for the majority of visualisation packages - left click to turn the object, right click or use the mouse wheel to zoom, centre-click to drag the object. A useful trick after manipulating the object is to return to the Object Inspector's 'Display' page and use the 'Zoom to data' button to return the view zoom to a whole-object value. The 'Camera Controls' toolbar, as in Mayavi, allows you to reset the view to up or down an axis, but new to Mayavi users may be the three extra buttons which allow you to define a different rotation centre around which your mesh is rotated when you move it, and the subsequent ability to re-centre the rotation automatically around the centre of your mesh. 
+Controls for manipulating the object within the view window are the same as for the majority of visualisation packages - left click to turn the object, right click or use the mouse wheel to zoom, centre-click to drag the object. A useful trick after manipulating the object is to return to the Object Inspector's 'Display' page and use the 'Zoom to data' button to return the view zoom to a whole-object value. The 'Camera Controls' toolbar, as in Mayavi, allows you to reset the view to up or down an axis, but new to Mayavi users may be the three extra buttons which allow you to define a different rotation centre around which your mesh is rotated when you move it, and the subsequent ability to re-centre the rotation automatically around the centre of your mesh.
 
 \subsubsection{Stretching along an axis}
 
@@ -177,7 +177,7 @@ Of interest here is the row labelled 'Scale' which gives scaling factors for, in
 
 Note that if you have set up a pipeline of actions (loading a file, taking a slice, contouring the slice, etc) and you change the scaling on one object in the pipeline you will find that the other objects in the pipeline look out of scale and you have to change the scaling for each one in turn.
 
-Additionally, there appears to be a bug when using the GL 'volume' rendering for a dataset where the scaling is not honoured. In this case, switching to something like near-transparent wireframe coloured by your field of interest may be the best option. 
+Additionally, there appears to be a bug when using the GL 'volume' rendering for a dataset where the scaling is not honoured. In this case, switching to something like near-transparent wireframe coloured by your field of interest may be the best option.
 
 \subsubsection{Changing Opacity}
 
@@ -202,7 +202,7 @@ Table \ref{ParaviewFilters} gives a very brief overview of some of the filters w
 {\bfseries Filter name} & {\bfseries\centering Main function} \\
 \hline
 CONNECTIVITY & Extract the largest "connected region" in the mesh data set. \\
-TRIANGULATE & Change the polygons in a mesh to triangles. \\ 
+TRIANGULATE & Change the polygons in a mesh to triangles. \\
 DECIMATE & Reduce the number of triangles in a triangle mesh, keeping a good approximation - this needs to be applied on top of TRIANGULATE. \\
 QUADRIC CLUSTERING & See DECIMATE, but here the topology is affected. \\
 FEATURE EDGES & Extract special edge types from the mesh input polygonal data. \\
@@ -216,7 +216,3 @@ STREAM TRACER & Generate stream traces in a vector field starting from a set of 
 \caption{Some useful filters and their respective function when applied to a selected active data object.}
 \end{table}
 \end{center}
-
-
-
-

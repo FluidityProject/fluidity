@@ -46,7 +46,7 @@ CXX     = @CXX@
 CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
 
 LINKER  = @CXX@
-LFLAGS  = 
+LFLAGS  =
 LIBS    = @LIBS@ @FLIBS@
 
 MAKE    = @MAKE@

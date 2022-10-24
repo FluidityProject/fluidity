@@ -229,7 +229,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
     g = settings.g # gravity
     eta= settings.eta # viscosity
     L= settings.L # wavelength
-    timestep= settings.timestep # timestep    
+    timestep= settings.timestep # timestep
     init_ana=ana_sol.analytic_solution(t, X[0], a_0, L, g, eta)
     return init_ana-0.3</string_value>
           </python>

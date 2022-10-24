@@ -15,7 +15,7 @@ module merge_tensors
 
     private
     public :: merge_tensor, merge_tensor_fields, get_deformation_matrix
-    contains 
+    contains
 
     subroutine merge_tensor(tensor1, tensor2, aniso_min)
       !!< Merge two tensors together, putting the result in tensor1.
@@ -30,7 +30,7 @@ module merge_tensors
       real, dimension(:), pointer :: sphere_a, other_a
       real :: aspect1, aspect2
       logical :: eigenvalue_changed
-     
+
       dim = size(tensor1, 1)
 
       ! I hate this aniso_min business, because it's really ugly.
@@ -90,7 +90,7 @@ module merge_tensors
 
       ! Step 1: Map sphere_t to the sphere.
       ! Apply the same mapping to other_t.
-      
+
       F = get_deformation_matrix(sphere_t, sphere_v, sphere_a)
       Finv = F; call invert(Finv, stat=stat)
 
@@ -107,7 +107,7 @@ module merge_tensors
         write (0,*) "aspect1 == ", aspect1, "; aspect2 == ", aspect2
         FLAbort("Error: inverting deformation matrix failed")
       end if
-      
+
       T = transpose(Finv)
       other_t = matmul(matmul(T, other_t), transpose(T))
       !if (.not. mat_symmetric(other_t)) then
@@ -140,7 +140,7 @@ module merge_tensors
       if (.not. eigenvalue_changed) tensor1 = store ! ignore the eigendecomposition/recomposition
       ! Done.
     end subroutine merge_tensor
-    
+
     function get_deformation_matrix(M, V, A) result(F)
       !! Compute F = A^(1/2) * V^T
       real, dimension(:, :), intent(in) :: M

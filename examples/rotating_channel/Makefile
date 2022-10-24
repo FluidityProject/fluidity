@@ -19,7 +19,7 @@ run: envcheck
 		echo ${BINPREFIX}fluidity -v 2 -l channel.flml; \
 		${BINPREFIX}fluidity -v 2 -l channel.flml; \
 		cd ..;\
-	) 
+	)
 
 postprocess: envcheck
 	@echo **********Plotting convergence data.

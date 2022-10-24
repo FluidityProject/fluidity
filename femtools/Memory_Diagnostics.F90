@@ -1,5 +1,5 @@
 !    Copyright (C) 2009 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -76,7 +76,7 @@ module memory_diagnostics
 
   ! This vector should have as many entries as the types of data we track above.
   type(memory_log), dimension(0:MEMORY_TYPES), target, save :: memory_usage
-    
+
   ! whether to write to the log for each (de)allocate:
   logical :: log_allocates
 
@@ -86,19 +86,19 @@ module memory_diagnostics
        & register_temporary_memory, reset_memory_logs, write_memory_stats, &
        & print_current_memory_stats, print_memory_stats
 #endif
-  
+
 
 contains
 
   subroutine register_allocation(object_type, data_type, size, name)
     !!< Register the allocation of a new object.
-    !!< 
+    !!<
     !!< We sort the object data on the basis of the object_type while the
     !!< data_type and the size tell us how much memory has been allocated.
     character(len=*), intent(in) :: object_type, data_type
     integer, intent(in) :: size
     character(len=*), intent(in), optional :: name
-    
+
     integer :: data_size
     type(memory_log), pointer :: this_log
 
@@ -143,24 +143,24 @@ contains
 
     this_log%max=max(this_log%max, this_log%current)
     this_log%min=min(this_log%min, this_log%current)
-    
+
     ! Also account for total memory.
     memory_usage(0)%current=memory_usage(0)%current + size*data_size
 
     memory_usage(0)%max=max(memory_usage(0)%max, memory_usage(0)%current)
     memory_usage(0)%min=min(memory_usage(0)%min, memory_usage(0)%current)
-    
+
   end subroutine register_allocation
 
   subroutine register_deallocation(object_type, data_type, size, name)
     !!< Register the deallocation of a new object.
-    !!< 
+    !!<
     !!< We sort the object data on the basis of the object_type while the
     !!< data_type and the size tell us how much memory has been allocated.
     character(len=*), intent(in) :: object_type, data_type
     integer, intent(in) :: size
     character(len=*), intent(in), optional :: name
-    
+
     integer :: data_size
     type(memory_log), pointer :: this_log
 
@@ -200,12 +200,12 @@ contains
         ewrite(2,*) "Deallocating ",size*data_size," bytes of ",trim(object_type)
       end if
     end if
-    
+
     this_log%current=this_log%current - size*data_size
-    
+
     this_log%max=max(this_log%max, this_log%current)
     this_log%min=min(this_log%min, this_log%current)
-    
+
     ! Also account for total memory.
     memory_usage(0)%current=memory_usage(0)%current - size*data_size
 
@@ -231,7 +231,7 @@ contains
     integer :: i
 
     log_allocates=have_option('/io/log_output/memory_diagnostics')
-    
+
     do i=0,MEMORY_TYPES
        memory_usage(i)%max=memory_usage(i)%current
        memory_usage(i)%min=memory_usage(i)%current
@@ -252,7 +252,7 @@ contains
     if (isparallel()) then
        buffer=transfer(memory_usage, buffer)
        call allsum(buffer)
-       global_memory_usage=transfer(buffer, memory_usage)       
+       global_memory_usage=transfer(buffer, memory_usage)
     else
        global_memory_usage=memory_usage
     end if
@@ -260,14 +260,14 @@ contains
     ! Only output from process 0.
     if (getrank()==0) then
        do i=0,MEMORY_TYPES
-          
+
           write(diag_unit, trim(format), advance="no") &
                memory_usage(i)%current
           write(diag_unit, trim(format), advance="no") &
                memory_usage(i)%min
           write(diag_unit, trim(format), advance="no") &
                memory_usage(i)%max
-          
+
        end do
     end if
 
@@ -283,7 +283,7 @@ contains
     ewrite(priority,'(a30,3a15)') "", "current", "min", "max"
 
     do i=0,MEMORY_TYPES
-       
+
        ewrite(priority,'(a30,3f15.0)') memory_type_names(i), &
             memory_usage(i)%current, &
             memory_usage(i)%min, &
@@ -312,5 +312,5 @@ contains
     end do
 
   end subroutine print_current_memory_stats
-  
+
 end module memory_diagnostics

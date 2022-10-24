@@ -105,7 +105,7 @@ h5b_has_field_attrib (
 
 	TRY (ret_value = hdf5_attribute_exists (
 		     f->b->field_gid,
-		     attrib_name));	       
+		     attrib_name));
 	H5_RETURN (ret_value);
 }
 
@@ -289,5 +289,3 @@ h5b_get_3d_field_coords (
 
         H5_RETURN (H5_SUCCESS);
 }
-
-

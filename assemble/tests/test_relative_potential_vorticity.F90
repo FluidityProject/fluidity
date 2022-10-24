@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -54,7 +54,7 @@ subroutine test_relative_potential_vorticity
   positions => extract_vector_field(state, "Coordinate")
   assert(positions%dim == 3)
   mesh => positions%mesh
-  
+
   call allocate(velocity, positions%dim, mesh, "Velocity")
   call zero(velocity)
   do i = 1, node_count(velocity)
@@ -62,7 +62,7 @@ subroutine test_relative_potential_vorticity
     call set(velocity, i, 0.5 * (/-pos(2), pos(1), 0.0/))
   end do
   call insert(state, velocity, velocity%name)
-  
+
   call allocate(perturbation_density, mesh, "PerturbationDensity")
   call zero(perturbation_density)
   do i = 1, node_count(perturbation_density)
@@ -78,7 +78,7 @@ subroutine test_relative_potential_vorticity
     & position = positions, model = mesh, &
     & sfields = (/perturbation_density, rel_pv/), &
     & vfields = (/velocity/))
-    
+
   call deallocate(velocity)
   call deallocate(perturbation_density)
 
@@ -91,10 +91,10 @@ subroutine test_relative_potential_vorticity
   call report_test("[Rel. PV == -1.0]", &
     & max_val .fne. 0.0, .false., &
     & "Rel. PV /= -1.0 - Max. abs. diff: " // buffer)
-    
+
   call deallocate(rel_pv)
   call deallocate(state)
-  
+
   call report_test_no_references()
-  
+
 end subroutine test_relative_potential_vorticity

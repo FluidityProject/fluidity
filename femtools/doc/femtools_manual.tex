@@ -62,7 +62,7 @@
   \usepackage{palatino}
   \usepackage{color}
   \usepackage{pst-node,pst-tree}
-  \psset{framearc=.2} 
+  \psset{framearc=.2}
 \end{psinputs}
 \newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
 
@@ -145,7 +145,7 @@ subdivision. To introduce terminology which will also be applicable in more
 dimensions, we refer to the whole interval as the \emph{domain}, which we denote
 $\Omega$ and we refer to each sub-interval as an \emph{element}. We will
 denote the current element $E$, possibly adding subscripts where required to
-avoid ambiguity. 
+avoid ambiguity.
 
 For simplicity, let us choose to approximate the function $f(\x)$ on the one
 dimensional domain (interval) $\Omega$ using piecewise linear functions. At
@@ -180,7 +180,7 @@ where:
     \phi_{1,1}(\vecxi), \xi_2(\x)=\frac{\x-\x_\alpha}{\x_{\alpha+1}-\x_\alpha}, \xi_1=1-\xi_2&:
     \x\in E_{\alpha}\\
     \phi_{1,2}(\vecxi), \xi_2(\x)=\frac{\x-\x_{\alpha-1}}{\x_{\alpha}-\x_{\alpha-1}}, \xi_1=1-\xi_2 &:
-    \x\in E_{\alpha-1}\\    
+    \x\in E_{\alpha-1}\\
     0 &: \textrm{otherwise}
   \end{cases}
 \end{equation}
@@ -195,7 +195,7 @@ of the local basis functions on one element, $\phi$. This has the advantage
 that we can record shape function information for only the specimen interval
 $\xi_2=[0,1]$ and we can write all of the basis functions for the whole
 domain by simply refering to a specimen basis function and providing a
-change of coordinates function from $\x$ to $\vecxi$. 
+change of coordinates function from $\x$ to $\vecxi$.
 
 A second feature of this form of basis is that it has local support. By
 this we mean that $\phi_\alpha$ is only non-zero on the elements containing
@@ -235,7 +235,7 @@ nodes numbered as they are and number the additional node in the centre of
 each element in element order starting from $\Nelm+2$. We then reach the
 following expression for $F(\x)$:
 \begin{equation}
-  F(\x)= f_{\alpha(\x)} \phi_{2,1}(\vecxi) 
+  F(\x)= f_{\alpha(\x)} \phi_{2,1}(\vecxi)
   + f_{\alpha(\x)+\Nelm+1}\phi_{2,2}(\vecxi)
   + f_{\alpha(\x)+1}\phi_{2,3}(\vecxi)
 \end{equation}
@@ -254,7 +254,7 @@ function $\gamma(\alpha, \beta)$ such that $\gamma$ is the node number of
 the coefficient corresponding to the $\beta$th basis function. For example,
 in the case of the numbering of our piecewise quadratic basis above:
 \begin{equation}
-  \gamma(\alpha(\x),\beta) = 
+  \gamma(\alpha(\x),\beta) =
   \begin{cases}
     \alpha(\x) &: \beta=1\\
     \alpha(\x)+\Nelm+1 &: \beta=2\\
@@ -289,7 +289,7 @@ $\alpha(\x)$.
 If we have two functions $F,G\in[\Omega, \Phi]$ then we can write their sum:
 \begin{equation}
   F(\x)+G(\x)=\sum_{\beta=1}^{\Nloc}
-  f_{\gamma(\alpha(\x),\beta)}\phi_{\beta}(\vecxi) 
+  f_{\gamma(\alpha(\x),\beta)}\phi_{\beta}(\vecxi)
   + \sum_{\beta'=1}^{\Nloc} g_{\gamma(\alpha(\x),\beta')}\phi_{\beta'}(\vecxi)
 \end{equation}
 By simply gathering like terms, we can rewrite this as:
@@ -302,7 +302,7 @@ adding their corresponding basis function coefficients. Similarly, we can
 multiply functions by any constant scalar $k$:
 \begin{equation}
   kF(\x)=\sum_{\beta=1}^{\Nloc}
-  kf_{\gamma(\alpha(\x),\beta)}\phi_{\beta}(\vecxi) 
+  kf_{\gamma(\alpha(\x),\beta)}\phi_{\beta}(\vecxi)
 \end{equation}
 In the case of the product of two $F$ and $G$, the situation is somewhat
 more complicated:
@@ -364,7 +364,7 @@ approximate the integral by that of a linear function on the integral:
 \begin{equation}
   \begin{split}
     \int_{0}^1 F(\vecxi)\d\xi_1&\approx \frac{1}{2}
-    \left(F([1,0])+F([0,1])\right)\\ 
+    \left(F([1,0])+F([0,1])\right)\\
     &=\sum_{\beta=1}^{\Nloc} f_{\beta}\frac{1}{2}\left(\phi_{\beta}([1,0])
       +\phi_{\beta}([0,1])\right)
   \end{split}
@@ -375,10 +375,10 @@ Simpson's rule uses three evaluations of each basis function but
 approximates the integrand by a quadratic function:
 \begin{equation}
   \begin{split}
-    \int_{0}^1 F(\vecxi)\d\xi_1&\approx 
+    \int_{0}^1 F(\vecxi)\d\xi_1&\approx
     \frac{1}{6}F([1,0])
     +\frac{2}{3}F([0.5,0.5])
-    +\frac{1}{6}F([0,1])\\ 
+    +\frac{1}{6}F([0,1])\\
     &=\sum_{\beta=1}^{\Nloc} f_{\beta}\left(
       \frac{1}{6}\phi_{\beta}([1,0])
       +\frac{2}{3}\phi_{\beta}([0.5,0.5])
@@ -431,14 +431,14 @@ where \eqref{eq:xi} is used to evaluate $F(\x)$ in terms of $\vecxi$. Using
 the definition of $\gamma$ from page \pageref{gamma}\ we have:
 \begin{equation}\label{eq:dxidx}
   \begin{split}
-    \frac{\d\xi_2}{\d x} 
+    \frac{\d\xi_2}{\d x}
     &=\frac{1}{\x_{\gamma(\alpha+1,2)}-\x_{\gamma(\alpha,1)}}\\
     &=\frac{1}{\Delta\x_{\alpha}}
   \end{split}
 \end{equation}
 where $\Delta\x_{\alpha}$ is the width of element $\alpha$. So:
 \begin{equation}\label{eq:dxdxi}
-    \frac{\d x}{\d\xi_2}= \Delta\x_{\alpha}    
+    \frac{\d x}{\d\xi_2}= \Delta\x_{\alpha}
 \end{equation}
 
 The choice to express the integral with respect to the second local
@@ -451,7 +451,7 @@ increases as $x$ decreases so we would have:
     &=-\int_0^1 F(\x)\frac{\d x}{\d\xi_1}\d\xi_1
   \end{split}
 \end{equation}
-Since $\xi_1=1-\xi_2$, 
+Since $\xi_1=1-\xi_2$,
 \begin{equation}
   \frac{\d x}{\d\xi_1} =-\Delta\x_{\alpha}
 \end{equation}
@@ -522,7 +522,7 @@ It is immediately apparent that the derivative is constant on each element
 and discontinuous at the boundaries between elements. On the element
 boundary itself, the derivative does not have a uniquely defined value. The
 derivative is therefore not a member of the space of piecewise linear
-continuous functions on $\Omega$. 
+continuous functions on $\Omega$.
 
 This result is general to a much wider class of function spaces. In
 particular, P$n$, the space of continuous piecewise polynomial functions of
@@ -576,7 +576,7 @@ to discretisation. Suppose that we restrict $w$ to lie in the discretised
 function space $\OmegaPhi$, then we can rewrite \eqref{eq:weakequals}\
 in terms of the \emph{global}\ basis functions $\psi$ as:
 \begin{equation}
-  \sum_{\gamma=1}^{\Ndof}\int_\Omega 
+  \sum_{\gamma=1}^{\Ndof}\int_\Omega
   \psi_{\gamma}(g-f)\d x = 0 \quad \forall w \in L^2
 \end{equation}
 Since the global basis functions span $\OmegaPhi$, it is sufficient to
@@ -589,7 +589,7 @@ left and known ones on the right. Since $g$ also lies in $\OmegaPhi$
 then we can write the following system of equations:
 \begin{equation}
   \sum_{\hat\gamma=1}^{\Ndof}\int_\Omega
-  \psi_{\gamma}f_{\hat\gamma}\psi_{\hat\gamma}\d x = 
+  \psi_{\gamma}f_{\hat\gamma}\psi_{\hat\gamma}\d x =
   \int_\Omega \psi_{\gamma}g\d x \quad \forall \gamma=1\ldots\Ndof
 \end{equation}
 Equivalently, this can be written as a matrix equation:
@@ -605,7 +605,7 @@ where:
 with $i,j=1\ldots\Ndof$. The matrix $M$ is known in the finite element
 method as the \emph{mass matrix}. It has the function of mapping between the
 test space and the space in which $g$ is defined, which is termed the \emph{trial
-space}. 
+space}.
 
 \subsection{Matrix assembly}\label{sec:matrixassembly}
 
@@ -638,7 +638,7 @@ as shown in equation \eqref{eq:1dquad} although this time there are two
 shape functions:
 \begin{equation}\label{eq:1dmassquad}
   \int_{E_\alpha} \phi_\iloc\phi_\jloc \d x=
-  \sum_{\delta=1}^{\Nquad} 
+  \sum_{\delta=1}^{\Nquad}
   \phi_{\iloc}\left(\vecxi_\delta\right)\phi_{\jloc}\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta
 \end{equation}
 
@@ -663,7 +663,7 @@ following algorithm:
 In this case the relevant quadrature rule is:
 \begin{equation}\label{eq:1drhsquad}
   \int_{E_\alpha} \phi_\iloc g \d x=
-  \sum_{\delta=1}^{\Nquad} 
+  \sum_{\delta=1}^{\Nquad}
   \phi_{\iloc}\left(\vecxi_\delta\right)f\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta
   , \qquad \iloc=1\ldots\Nloc
 \end{equation}
@@ -679,10 +679,10 @@ Using equation \eqref{eq:1dpointdfdx} we can expand the derivative in terms of t
 basis functions and substitute for $g$ into equation \eqref{eq:1drhsquad}:
 \begin{equation}\label{eq:1ddfdxrhs}
   \int_{E_\alpha} \phi_\iloc \frac{\d F(\x)}{\d x} \d x=
-  \sum_{\delta=1}^{\Nquad}\sum_{\beta=1}^{\Nloc} 
+  \sum_{\delta=1}^{\Nquad}\sum_{\beta=1}^{\Nloc}
   \phi_{\iloc}\left(\vecxi_\delta\right)
   f_{\gamma(\alpha,\beta)}\left(\frac{1}{\Delta\x_\alpha}
-    \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)    
+    \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)
   \Delta\x_\alpha w_\delta, \qquad \iloc=1\ldots\Nloc
 \end{equation}
 
@@ -730,7 +730,7 @@ these points are:
 \end{center}
 
 Notice that the gradient of each basis function is constant across the
-element. 
+element.
 
 The mesh nodes are at $[0, 1/3, 2/3, 1]$ so that $\Nelm=3$ and
 $\Delta\x_\alpha=1/3$ for any $\alpha\in\{1\ldots3\}$. The coefficients of
@@ -741,7 +741,7 @@ is the same on each element. It is given by:
 \begin{equation}
   \begin{split}
     \M_\alpha(1,1)&=\int_{E_\alpha} \phi_1\phi_1 \d x\\
-    &=\sum_{\delta=1}^{\Nquad(=3)} 
+    &=\sum_{\delta=1}^{\Nquad(=3)}
     \phi_1\left(\vecxi_\delta\right)\phi_1\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta\\
     &=\phi_1\left(\vecxi_1\right)\phi_1\left(\vecxi_1\right)\frac{1}{3}w_1+
     \phi_1\left(\vecxi_2\right)\phi_1\left(\vecxi_2\right)\frac{1}{3}w_2+
@@ -753,31 +753,31 @@ is the same on each element. It is given by:
 \begin{equation}
   \begin{split}
     \M_\alpha(1,2)&=\int_{E_\alpha} \phi_1\phi_2 \d x\\
-    &=\sum_{\delta=1}^{\Nquad(=3)} 
+    &=\sum_{\delta=1}^{\Nquad(=3)}
     \phi_1\left(\vecxi_\delta\right)\phi_2\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta\\
     &=\phi_1\left(\vecxi_1\right)\phi_2\left(\vecxi_1\right)\frac{1}{3}w_1+
     \phi_1\left(\vecxi_2\right)\phi_2\left(\vecxi_2\right)\frac{1}{3}w_2+
     \phi_1\left(\vecxi_3\right)\phi_2\left(\vecxi_3\right)\frac{1}{3}w_3\\
     &=1\times0\times\frac{1}{3}\times\frac{1}{6}+0.5\times0.5\times\frac{1}{3}\times\frac{2}{3}+1\times0\times\frac{1}{3}\times\frac{1}{6}\\
-    &=\frac{1}{18}    
+    &=\frac{1}{18}
   \end{split}
 \end{equation}
 \begin{equation}
   \begin{split}
     \M_\alpha(2,1)&=\int_{E_\alpha} \phi_2\phi_1 \d x\\
-    &=\sum_{\delta=1}^{\Nquad(=3)} 
+    &=\sum_{\delta=1}^{\Nquad(=3)}
     \phi_2\left(\vecxi_\delta\right)\phi_1\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta\\
     &=\phi_2\left(\vecxi_1\right)\phi_1\left(\vecxi_1\right)\frac{1}{3}w_1+
     \phi_2\left(\vecxi_2\right)\phi_1\left(\vecxi_2\right)\frac{1}{3}w_2+
     \phi_2\left(\vecxi_3\right)\phi_1\left(\vecxi_3\right)\frac{1}{3}w_3\\
     &=0\times1\times\frac{1}{3}\times\frac{1}{6}+0.5\times0.5\times\frac{1}{3}\times\frac{2}{3}+0\times1\times\frac{1}{3}\times\frac{1}{6}\\
-    &=\frac{1}{18}    
+    &=\frac{1}{18}
   \end{split}
 \end{equation}
 \begin{equation}
   \begin{split}
     \M_\alpha(2,2)&=\int_{E_\alpha} \phi_2\phi_2 \d x\\
-    &=\sum_{\delta=1}^{\Nquad(=3)} 
+    &=\sum_{\delta=1}^{\Nquad(=3)}
     \phi_2\left(\vecxi_\delta\right)\phi_2\left(\vecxi_\delta\right)\Delta\x_\alpha w_\delta\\
     &=\phi_2\left(\vecxi_1\right)\phi_2\left(\vecxi_1\right)\frac{1}{3}w_1+
     \phi_2\left(\vecxi_2\right)\phi_2\left(\vecxi_2\right)\frac{1}{3}w_2+
@@ -822,10 +822,10 @@ hand side vector. Evaluating equation \eqref{eq:1drhsquad}\ for the first
 element ($\alpha==1$), we have:
 \begin{equation}
   \begin{split}
-    r_{\alpha=1}(1)&=\sum_{\delta=1}^{\Nquad=3}\sum_{\beta=1}^{\Nloc=2} 
+    r_{\alpha=1}(1)&=\sum_{\delta=1}^{\Nquad=3}\sum_{\beta=1}^{\Nloc=2}
     \phi_1\left(\vecxi_\delta\right)
     f_{\gamma(1,\beta)}\left(\frac{1}{\Delta\x_1}
-      \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)    
+      \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)
     \Delta\x_1 w_\delta\\
     &=1\times0\times\left(\frac{1}{1/3}\times-1\right)\times\frac{1}{3}\times\frac{1}{6}\\
     &\quad+0.5\times0\times\left(\frac{1}{1/3}\times-1\right)\times\frac{1}{3}\times\frac{2}{3}\\
@@ -838,10 +838,10 @@ element ($\alpha==1$), we have:
 \end{equation}
 \begin{equation}
   \begin{split}
-    r_{\alpha=1}(2)&=\sum_{\delta=1}^{\Nquad=3}\sum_{\beta=1}^{\Nloc=2} 
+    r_{\alpha=1}(2)&=\sum_{\delta=1}^{\Nquad=3}\sum_{\beta=1}^{\Nloc=2}
     \phi_2\left(\vecxi_\delta\right)
     f_{\gamma(1,\beta)}\left(\frac{1}{\Delta\x_1}
-      \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)    
+      \frac{\d \phi_{\beta}(\vecxi_\delta)}{\d \xi_2}\right)
     \Delta\x_1 w_\delta\\
     &=0\times0\times\left(\frac{1}{1/3}\times-1\right)\times\frac{1}{3}\times\frac{1}{6}\\
     &\quad+0.5\times0\times\left(\frac{1}{1/3}\times-1\right)\times\frac{1}{3}\times\frac{2}{3}\\
@@ -893,7 +893,7 @@ constant over each element. Using the global assembly algorithm from section
     \frac{1}{3}\\
     -\frac{1}{3}\\
     -\frac{1}{3}
-  \end{bmatrix}\\  
+  \end{bmatrix}\\
   \end{split}
 \end{equation}
 This allows us to form the equation for $\dvec{g}$:
@@ -940,7 +940,7 @@ assembly for us.
   \centering
   \xfig{linear_1d_galerkin}
   \caption{A continuous piecewise linear function and two diffent
-    realisations of its derivative. The pointwise 
+    realisations of its derivative. The pointwise
     derivative (black) is piecewise constant and discontinuous at element
     boundaries. The green line shows a piecewise linear and continuous
     approximation to the derivative calculated using a Galerkin projection.}
@@ -996,7 +996,7 @@ in the figure.
 
 The local coordinates on a tetrahedron are similar except that in this case
 there are four local coordinates. Once again, $\xi_n$ is 1 at vertex $n$ and
-in this case zero over the face opposite that vertex. 
+in this case zero over the face opposite that vertex.
 
 \section{Integration over an element}\label{sec:quadrature}
 
@@ -1070,7 +1070,7 @@ which reduces to the previous one-dimensional case.
     \ncline{mesh}{ndglno}
     \ncline{mesh}{element}
     \ncline{element}{quadrature}
-    \ncline{element}{numbering}    
+    \ncline{element}{numbering}
   \end{psmatrix}
   \onlypdf{\end{pdfdisplay}}
 \caption{The dependency heirarchy of the field data structures in
@@ -1130,7 +1130,7 @@ the use of Spud is encouraged and is facilitated by the inclusion of
 \lstinline+option_path+ component should be used to store the Spud option
 path pertaining to that object and below which options controlling that
 object are to be found. For further information on the use of Spud see
-\url{http://amcg.ese.ic.ac.uk/spud}. 
+\url{http://amcg.ese.ic.ac.uk/spud}.
 
 \chapter{Quadrature}\targetlabel{chap:quadrature}
 
@@ -1335,7 +1335,7 @@ For most purposes, Fields are opaque data types which should be accessed via
 public components which are accessible to user routines:
 \hypertarget{type:scalarfield}{}
 \begin{lstlisting}
-type scalar_field 
+type scalar_field
   !! The name of this field
   character(len=FIELD_NAME_LEN) :: name=""
   !! The Spud option path associated with this field.
@@ -1347,7 +1347,7 @@ end type scalar_field
 
 \hypertarget{type:vectorfield}{}
 \begin{lstlisting}
-type vector_field 
+type vector_field
   !! The name of this field
   character(len=FIELD_NAME_LEN) :: name=""
   !! The Spud option path associated with this field.
@@ -1361,7 +1361,7 @@ end type vector_field
 
 \hypertarget{type:tensorfield}{}
 \begin{lstlisting}
-type tensor_field 
+type tensor_field
   !! The name of this field
   character(len=FIELD_NAME_LEN) :: name=""
   !! The Spud option path associated with this field.
@@ -1485,7 +1485,7 @@ in that phase.
 
 
 \section{Aliased fields and listing the same field in multiple state
-  dictionaries}\label{sec:alias} 
+  dictionaries}\label{sec:alias}
 
 Because a state dictionary simply holds a reference to a number of fields,
 it is perfectly possible to insert the same field in multiple state
@@ -1506,9 +1506,9 @@ example:
 function make_aliased_field(field) result (alias)
   implicit none
   use fields
-  type(@\scalarfield@) :: alias 
-  type(@\scalarfield@), intent(in) :: field 
-  
+  type(@\scalarfield@) :: alias
+  type(@\scalarfield@), intent(in) :: field
+
   alias=field
   alias%aliased=.true.
 
@@ -1517,7 +1517,7 @@ end function
 This function returns a variable containing the same field as the input, but
 the field descriptor is a copy and the \lstinline+aliased+ component has
 been set to \lstinline+.true.+. The aliased status of a field can be queried
-using the \hyperlink{proc:aliased}{aliased}\ routine. 
+using the \hyperlink{proc:aliased}{aliased}\ routine.
 
 \chapter{Reference counting}\targetlabel{chap:refcount}
 
@@ -1558,7 +1558,7 @@ count of \lstinline+quadrature+ to 2. However, since the reference count of
 \lstinline+quadrature+ is still positive, the object itself is not destroyed
 and the memory associated with it is not freed. This is, in fact, the
 desired behaviour as the quadrature object must still be available for use
-by the elements we created. 
+by the elements we created.
 
 Eventually, when the first element is no longer required, the program will call:
 \begin{lstlisting}
@@ -1574,22 +1574,22 @@ actually destroyed and its memory freed.
 
 \begin{figure}[ht]
   \begin{lstlisting}
-subroutine generate_elements(element1, element2) 
-  use quadrature 
-  use shape_functions 
+subroutine generate_elements(element1, element2)
+  use quadrature
+  use shape_functions
   type(element_type), intent(out) :: element1, element2
   type(quadrature_type) :: quadrature
 
-  quadrature=make_quadrature(...)  
+  quadrature=make_quadrature(...)
   ! The reference count of quadrature is 1.
 
-  element1=make_element_shape(... degree=1, quad=quadrature ...)  
+  element1=make_element_shape(... degree=1, quad=quadrature ...)
   ! The reference count of quadrature is 2.
 
-  element2=make_element_shape(... degree=2, quad=quadrature ...)  
+  element2=make_element_shape(... degree=2, quad=quadrature ...)
   ! The reference count of quadrature is 3.
 
-  call deallocate(quadrature) 
+  call deallocate(quadrature)
   ! The reference count of quadrature is 2.
 
 end subroutine generate_elements
@@ -1606,7 +1606,7 @@ end subroutine generate_elements
 
 When the \lstinline+allocate+ subroutine is called for an object, this
 allocates a new data space for that object and creates a corresponding
-reference count for that object, which is set to 1. 
+reference count for that object, which is set to 1.
 
 In addition, the reference count of any object which the new object
 \emph{directly}\ depends on is increased by 1. For example, when a field is
@@ -1618,7 +1618,7 @@ The reference counts of objects which the new field only indirectly depends
 on are not affected by a call to allocate. For example, a \meshtype\ holds a
 reference to the \elementtype\ on which the mesh is based. When a field is
 allocated using that \meshtype\ object, the reference count of the
-corresponding \elementtype\ is unchanged. 
+corresponding \elementtype\ is unchanged.
 
 It is important to note that these remarks apply only to the \allocate\
 subroutine called on a reference-counted object. The Fortran \allocate\
@@ -1635,7 +1635,7 @@ destroying the object.
 
 In other words, routines call \lstinline+deallocate+ in order to release a
 reference which they hold. The object itself is only destroyed once there
-are no more references to it held. 
+are no more references to it held.
 
 For objects which hold references to other objects, for example a field
 holds a reference to the \meshtype\ on which it is based, the reference to
@@ -1669,7 +1669,7 @@ the state in order to reduce its reference count to 1.
 The usual model of use of objects in a state dictionary is that they are
 accessed but remain under the control of the dictionary. For example, a
 number of the fields in a state may be extracted and updated each timestep
-but the fields remain in the state at the end of the timestep. 
+but the fields remain in the state at the end of the timestep.
 
 To make this morel of use as natural as possible, extracting an object from
 a state dictionary does not increase the reference count of that
@@ -1750,7 +1750,7 @@ For each memory heading, the current memory usage as well as the maximum and
 minimum ever used are stored. It is also possible to reset the maximum and
 minimum values, in which case the maximum and minumum values constitute the
 maximum and minimum values since the last reset. This enables timestepping
-simulations to log the minimum and maximum memory usage in each timestep. 
+simulations to log the minimum and maximum memory usage in each timestep.
 
 \subsection{Memory statistics in the .stat file}
 
@@ -2040,7 +2040,7 @@ pure function ele_vertices(field, ele_number)
 
 Return the number of vertices in element \lstinline+ele_number+ of the field
 or mesh provided. Vertices are a purely geometric concept so a triangle
-always has three vertices regardless of the degree of polynomials used as 
+always has three vertices regardless of the degree of polynomials used as
 basis functions. In contrast, the number of nodes in an element is a
 function of the degree of the polynomial basis functions. For example, a
 quadratic triangle has six nodes.
@@ -2091,7 +2091,7 @@ associated with the field provided. For example, if \lstinline+this_mesh+ is the
 mesh shown in figure \ref{fig:meshnumbering}, then
 \lstinline+ele_nodes(this_mesh, 5)+ will return a pointer to a 3-vector
 containin the node numbers 3, 6 and 7. No guarantees are made about the
-order in which these node numbers will be arranged. 
+order in which these node numbers will be arranged.
 
 \section{Face enquiry routines}
 
@@ -2136,7 +2136,7 @@ pure function face_vertices(field, face_number)
 
 Return the number of vertices in face \lstinline+face_number+ of the field
 or mesh provided. Vertices are a purely geometric concept so a triangle
-always has three vertices regardless of the degree of polynomials used as 
+always has three vertices regardless of the degree of polynomials used as
 basis functions. In contrast, the number of nodes in an face is a
 function of the degree of the polynomial basis functions. For example, a
 quadratic triangle has six nodes.
@@ -2171,14 +2171,14 @@ constant value for all faces. This is expected to change in the future.
 function face_local_nodes(mesh, face_number)
   integer, dimension(:), pointer :: face_local_nodes
   type(@\meshtype@),intent(in) :: mesh
-  integer, intent(in) :: face_number  
+  integer, intent(in) :: face_number
 \end{lstlisting}
 
 \begin{lstlisting}
 function face_local_nodes(field, face_number)
   integer, dimension(:), pointer :: face_local_nodes
   type(@\anyfield@),intent(in) :: field
-  integer, intent(in) :: face_number  
+  integer, intent(in) :: face_number
 \end{lstlisting}
 
 Return a pointer to a vector containing the \emph{local} node numbers of
@@ -2192,19 +2192,19 @@ the element containing face.
 function face_global_nodes(mesh, face_number)
   integer, dimension(:), pointer :: face_global_nodes
   type(@\meshtype@),intent(in) :: mesh
-  integer, intent(in) :: face_number  
+  integer, intent(in) :: face_number
 \end{lstlisting}
 
 \begin{lstlisting}
 function face_global_nodes(field, face_number)
   integer, dimension(:), pointer :: face_global_nodes
   type(@\anyfield@),intent(in) :: field
-  integer, intent(in) :: face_number  
+  integer, intent(in) :: face_number
 \end{lstlisting}
 
 Return a pointer to a vector containing the \emph{global} node numbers of
 face \lstinline+face_number+ in the  mesh provided or in the mesh
-associated with the field provided. 
+associated with the field provided.
 
 \section{Data retrieval routines}
 
@@ -2214,7 +2214,7 @@ Return the value of a field at all of the nodes in an element. The precise
 shape of the function value depends on the rank and dimension of the field.
 
 \begin{lstlisting}
-function ele_val(field, ele_number) 
+function ele_val(field, ele_number)
   type(@\scalarfield@), intent(in) :: field
   integer, intent(in) :: ele_number
   real, dimension(@\eleloc@(field, ele_number)) :: ele_val
@@ -2238,19 +2238,19 @@ Note that for these vector and tensor versions of the routine, the dim
 dimensions come first, followed by the number of element nodes.
 
 \begin{lstlisting}
-function ele_val(field, ele_number, dim) 
+function ele_val(field, ele_number, dim)
   type(@\vectorfield@), intent(in) :: field
   integer, intent(in) :: ele_number, dim
   real, dimension(@\eleloc@(field, ele_number)) :: ele_val
 \end{lstlisting}
 \begin{lstlisting}
-function ele_val(field, ele_number, dim1, dim2) 
+function ele_val(field, ele_number, dim1, dim2)
   type(@\tensorfield@), intent(in) :: field
   integer, intent(in) :: ele_number, dim1, dim2
   real, dimension(@\eleloc@(field, ele_number)) :: ele_val
 \end{lstlisting}
 These versions of the routine return the value of a single component of the
-vector or tensor field at all of the nodes of the element. 
+vector or tensor field at all of the nodes of the element.
 
 \procedure{ele\_val\_at\_quad}{proc:elevalatquad}
 
@@ -2258,7 +2258,7 @@ vector or tensor field at all of the nodes of the element.
 function ele_val_at_quad_scalar(field, ele_number)
   type(@\scalarfield@),intent(in) :: field
   integer, intent(in) :: ele_number
-  real, dimension(@\elengi@(field, ele_number)) :: ele_val_at_quad  
+  real, dimension(@\elengi@(field, ele_number)) :: ele_val_at_quad
 \end{lstlisting}
 
 \procedure{face\_val}{proc:faceval}
@@ -2267,7 +2267,7 @@ Return the value of a field at all of the nodes in an face. The precise
 shape of the function value depends on the rank and dimension of the field.
 
 \begin{lstlisting}
-function face_val(field, face_number) 
+function face_val(field, face_number)
   type(@\scalarfield@), intent(in) :: field
   integer, intent(in) :: face_number
   real, dimension(@\faceloc@(field, face_number)) :: face_val
@@ -2291,19 +2291,19 @@ Note that for these vector and tensor versions of the routine, the dim
 dimensions come first, followed by the number of face nodes.
 
 \begin{lstlisting}
-function face_val(field, face_number, dim) 
+function face_val(field, face_number, dim)
   type(@\vectorfield@), intent(in) :: field
   integer, intent(in) :: face_number, dim
   real, dimension(@\faceloc@(field, face_number)) :: face_val
 \end{lstlisting}
 \begin{lstlisting}
-function face_val(field, face_number, dim1, dim2) 
+function face_val(field, face_number, dim1, dim2)
   type(@\tensorfield@), intent(in) :: field
   integer, intent(in) :: face_number, dim1, dim2
   real, dimension(@\faceloc@(field, face_number)) :: face_val
 \end{lstlisting}
 These versions of the routine return the value of a single component of the
-vector or tensor field at all of the nodes of the face. 
+vector or tensor field at all of the nodes of the face.
 
 \procedure{node\_val}{proc:nodeval}
 
@@ -2459,7 +2459,7 @@ subroutine addto(field, dim1, dim2, node_numbers, val)
 
 Simple whole field addition operations are only mathematically defined where all of the
 fields share the same mesh. Where this is not the case, addto will call
-\remapfield\ on field2 to produce a well-defined operation. 
+\remapfield\ on field2 to produce a well-defined operation.
 
 \begin{lstlisting}
 subroutine addto(field1, field2, scale)
@@ -2473,7 +2473,7 @@ This form of the routine performs the assignment:
   F_1(\x) = s \times F_2(\x)
 \end{equation}
 Clearly the two fields must have the same rank. If scale is not present then
-a value of 1.0 is assumed. 
+a value of 1.0 is assumed.
 
 There are also versions of this subroutine which add a scalar field to a
 single component of a vector or tensor field:
@@ -2526,7 +2526,7 @@ vector field by another vector field:
 \begin{lstlisting}
 subroutine scale(field, vfield)
   type(@\anyfield@), intent(inout) :: field
-  type(@\vectorfield@), intent(in) :: vfield  
+  type(@\vectorfield@), intent(in) :: vfield
 \end{lstlisting}
 
 \procedure{set}{proc:fieldset}
@@ -2540,14 +2540,14 @@ The first version of this routine sets the value of field at one or more
 nodes:
 
 \begin{lstlisting}
-subroutine set(field, node_number, val) 
-  type(@\anyfield@), intent(inout) :: field 
+subroutine set(field, node_number, val)
+  type(@\anyfield@), intent(inout) :: field
   integer, intent(in) :: node_number
   real, dimension(@\valshape@), intent(in) :: val
 \end{lstlisting}
 \begin{lstlisting}
-subroutine set(field, node_number, val) 
-  type(@\anyfield@), intent(inout) :: field 
+subroutine set(field, node_number, val)
+  type(@\anyfield@), intent(inout) :: field
   integer, dimension(:), intent(in) :: node_number
   real, dimension(@\valshape@, size(nodenumbers)), intent(in) :: val
 \end{lstlisting}
@@ -2570,16 +2570,16 @@ It is sometimes useful to set an entire field to a constant value. This is a
 chieved with:
 \begin{lstlisting}
 subroutine set(field, val)
-  type(@\anyfield@), intent(inout) :: field 
+  type(@\anyfield@), intent(inout) :: field
   real, dimension(@\valshape@), intent(in) :: val
 \end{lstlisting}
 
-Where \valshape\ has the meaning given above. 
+Where \valshape\ has the meaning given above.
 
 \subsubsection{Setting a field to the value of another field}
 
 Setting one field to the value of another field is currently only supported
-where the two fields are on the same mesh. 
+where the two fields are on the same mesh.
 \begin{lstlisting}
 subroutine set(out_field, in_field )
   type(@\anyfield@), intent(inout) :: out_field
@@ -2605,7 +2605,7 @@ subroutine set(out_field, in_field_new, in_field_old, theta)
 
 \procedure{zero}{proc:fieldzero}
 
-\begin{lstlisting} 
+\begin{lstlisting}
 subroutine zero(field)
   type(@\anyfield@), intent(inout) :: field
 \end{lstlisting}
@@ -2638,7 +2638,7 @@ are listed in table \ref{tab:stateobjects}
   \lstinline+field+ & \anyfield \\
   \lstinline+mesh+ & \meshtype \\
   \lstinline+halo+ & \lstinline+halo_type+ \\
-  \lstinline+matrix+ & \lstinline+csr_matrix+\newline 
+  \lstinline+matrix+ & \lstinline+csr_matrix+\newline
   \lstinline+block_csr_matrix+\newline
   \lstinline+petsc_csr_matrix+
 \end{tabular}
@@ -2678,7 +2678,7 @@ table \ref{tab:stateobjects}.
 Objects in states may be accessed by name or by index. The index of an
 object in a state is arbitrary and may change as objects are added to and
 deleted from the state so this latter option is mostly of use for iterating
-over all of the objects of a particular type in the state. 
+over all of the objects of a particular type in the state.
 
 In each case, the routine returns a pointer to the object concerned. If the
 object is only to be read or if changes are only to be made to the data
@@ -2688,10 +2688,10 @@ made via the pointer in order to ensure that it is the descriptor in the
 state dictionary which is updated rather than a local copy.
 
 \subsection{Extracting objects by name}
-  
+
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, name, stat[, allocated])
-  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
+  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@
   type(state_type), intent(in) :: state
   character(len=*), intent(in) :: name
   integer, intent(out), optional :: state
@@ -2700,7 +2700,7 @@ function extract_@\emph{object\_type}@(state, name, stat[, allocated])
 
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, name, stat[, allocated])
-  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
+  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@
   type(state_type), dimension(:), intent(in) :: state
   character(len=*), intent(in) :: name
   integer, intent(out), optional :: state
@@ -2708,7 +2708,7 @@ function extract_@\emph{object\_type}@(state, name, stat[, allocated])
 \end{lstlisting}
 
 In each case, the \emph{object\_type}\ can be any of the types listed in
-table \ref{tab:stateobjects}. 
+table \ref{tab:stateobjects}.
 
 The first form of the routine takes a single state dictionary as an
 argument. If there is an object of the corresponding type with name matching
@@ -2752,7 +2752,7 @@ exception to the rule that extracting an object reference from a state
 dictionary does not create a new reference. If the \lstinline+allocated+
 argument returns \lstinline+.true.+ then a new reference has been created
 and the resulting field will need to be deallocated in order for that
-reference to be destroyed. 
+reference to be destroyed.
 
 It is possible to pass a vector of state dictionaries to
 \lstinline+extract_scalar_field+ in which case the scalar field returned
@@ -2766,14 +2766,14 @@ form of the extraction routines is provided:
 
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, index)
-  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
+  type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@
   type(state_type), intent(in) :: state
   integer, intent(in) :: index
 \end{lstlisting}
 
 This routine is available for any of the types in table
 \ref{tab:stateobjects}. In each case \lstinline+index+ must not exceed the
-number of objects of that type in \lstinline+state+. See 
+number of objects of that type in \lstinline+state+. See
 \hyperlink{proc:objectcounts}{object counts}.
 
 
@@ -2807,7 +2807,7 @@ reference which \lstinline+state+ is holding to it.
 If \stat is present then it will be set to 0 for success and nonzero for
 failure, which occurs if there was no matching object to remove. If the
 routine fails to remove an object and \stat has not been specified,
-execution will cease with an error. 
+execution will cease with an error.
 
 \procedure{object counts}{proc:objectcounts}
 
@@ -2834,7 +2834,7 @@ function make_quadrature(vertices, dim, degree, ngi, family, stat)
   integer, intent(in) :: vertices, dim
   integer, intent(in), optional :: degree, ngi
   integer, intent(in), optional :: family
-  integer, intent(out), optional :: stat  
+  integer, intent(out), optional :: stat
 \end{lstlisting}
 
 This routine creates a new \quadraturetype\ object. The element geometry for
@@ -2860,7 +2860,7 @@ unavailable but a higher degree rule is supported then this will be
 substituted. Specifying a higher degree than is supported is an error.
 An alternative method of specifying the quadrature rule is to directly
 specify the number of quadrature points via the \lstinline+ngi+
-argument. This approach is deprecated. 
+argument. This approach is deprecated.
 
 The \lstinline+family+ argument specifies the family of quadrature rules
 which should be applied. The default is \lstinline+FAMILY_COOLS+ and this is
@@ -2885,7 +2885,7 @@ completion. Errors are indicated by the following values:
     \lstinline+QUADRATURE_VERTEX_ERROR+ & Unsupported vertex count.\\
     \lstinline+QUADRATURE_DEGREE_ERROR+ &Quadrature degree requested is not available.\\
     \lstinline+QUADRATURE_DIMENSION_ERROR+ & Elements with this number of dimensions are not available.\\
-    \lstinline+QUADRATURE_NGI_ERROR+ & Unsupported number of quadrature points.\\ 
+    \lstinline+QUADRATURE_NGI_ERROR+ & Unsupported number of quadrature points.\\
     \lstinline+QUADRATURE_ARGUMENT_ERROR+ & Not enough arguments specified.\\
   \end{tabular}
 \end{center}
@@ -2916,7 +2916,7 @@ first is the basic form:
 
 \begin{lstlisting}
 function make_element_shape(vertices, dim, degree, quad, type,&
-       stat, quad_s)  
+       stat, quad_s)
   type(element_type) :: make_element_shape
   integer, intent(in) :: vertices, dim, degree
   type(quadrature_type), intent(in), target :: quad
@@ -2942,7 +2942,7 @@ element. The geometry of the element is defined by the arguments
 
 The integration rule is provided by the \quadraturetype\ argument,
 \lstinline+quad+. The geometry of \lstinline+quad+ must match that specified
-in this call. 
+in this call.
 
 The argument \lstinline+type+ selects the element family from which the shape
 functions should be drawn:
@@ -2976,7 +2976,7 @@ to be based on another variable of the same type:
 
 \begin{lstlisting}
 function make_element_shape(model, vertices, dim, degree, quad, type,&
-       stat, quad_s)  
+       stat, quad_s)
   type(element_type) :: make_element_shape
   type(element_type), intent(in) :: model
   integer, intent(in), optional :: vertices, dim, degree
@@ -3007,7 +3007,7 @@ quadrature reference held by \lstinline+element+ will be released.
 \begin{lstlisting}
 function element_local_coords(n, element)
   integer, intent(in) :: n
-  type(element_type), intent(in) :: element    
+  type(element_type), intent(in) :: element
   real, dimension(local_coord_count(element)) :: element_local_coords
 \end{lstlisting}
 
@@ -3017,9 +3017,9 @@ node with local number \lstinline+n+.
 \procedure{local\_coord\_count}{proc:elementlocalcoordcount}
 
 \begin{lstlisting}
-function element_local_coord_count(element) 
+function element_local_coord_count(element)
   integer :: element_local_coord_count
-  type(element_type), intent(in) :: element    
+  type(element_type), intent(in) :: element
 \end{lstlisting}
 
 This routine returns the number of local coordinates associated with
@@ -3075,10 +3075,10 @@ common across the routines. These are shown in table \ref{tab:form_arguments}.
   \textbf{Argument}&\textbf{Shape}&\textbf{Mathematical notation}&\textbf{Meaning}\\\hline\hline
   \lstinline+shape1+&& $\left\{\phi_i:\ i=1\ldots\Nloc(\phi)\right\}$&The set
   of local basis functions for the \emph{test}\ space on the current
-  element.\\\hline 
+  element.\\\hline
   \lstinline+shape2+&& $\left\{\hat{\phi}_j:\
     j=1\ldots\Nloc(\hat{\phi})\right\}$&The set of local basis functions for
-  the \emph{trial}\ space on the current element.\\\hline 
+  the \emph{trial}\ space on the current element.\\\hline
   \lstinline+dshape1+&$\Nloc\times\Nquad\times\Ndim$&$\left\{\grad\phi_i:\ i=1\ldots\Nloc(\phi)\right\}$&
   The set of gradients of the local basis functions for the \emph{test}\ space on
   the current element.\\\hline
@@ -3086,7 +3086,7 @@ common across the routines. These are shown in table \ref{tab:form_arguments}.
   The set of gradients of the local basis functions for the \emph{trial}\ space on
   the current element.\\\hline
   \lstinline+detwei+&$\Nquad$&$\left\{w_{gi}\left|J^{-1}_{gi}\right|:\
-    gi=1\ldots\Nquad\right\}$& 
+    gi=1\ldots\Nquad\right\}$&
   The quadrature weights transformed by the change of coordinates from the
   current element to the reference element.\\\hline
   \lstinline+vector+\newline
@@ -3116,7 +3116,7 @@ function shape_shape(shape1, shape2, detwei)
 This routine constructs the following matrix:
 \begin{equation}
   \mat{M}(i,j)=\int_E \phi_{i}\hat{\phi}_{j}\d V\quad
-  i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi}) 
+  i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi})
 \end{equation}
 Where the arguments are as given in table \ref{tab:form_arguments}.
 
@@ -3144,8 +3144,8 @@ Where the arguments are as given in table \ref{tab:form_arguments}.
 \module{fetools}
 
 \begin{lstlisting}
-function shape_shape_tensor(shape1, shape2, detwei, tensor) 
-  type(element_type), intent(in) :: shape1, shape2 
+function shape_shape_tensor(shape1, shape2, detwei, tensor)
+  type(element_type), intent(in) :: shape1, shape2
   real, dimension(shape1%ngi), intent(in) :: detwei
   real, dimension(:,:,:), intent(in) :: tensor
 
@@ -3159,7 +3159,7 @@ This routine constructs the following tensor:
   \begin{split}
     \mat{M}(\alpha,\beta,i,j)=\int_E \phi_{i}\hat{\phi}_{j}\tensor{\tau}_{\alpha\beta}\d V\quad
     &\alpha,\beta=1\ldots\Ndim(\tensor{\tau}),\\
-    &i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi})   
+    &i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi})
   \end{split}
 \end{equation}
 Where the arguments are as given in table \ref{tab:form_arguments}.
@@ -3248,7 +3248,7 @@ function shape_vector_dot_dshape(shape, vector, dshape, detwei)
 
 This routine constructs the following matrix:
 \begin{equation}
-\begin{split} 
+\begin{split}
   \mat{M}(i,j)&=\int_E \phi_{i}\v\dot\grad\hat{\phi}_{j}\d V\\
   &=\int_E \phi_{i}\v_\alpha\frac{\d\hat\phi_{j}}{\d\x_\alpha}\d V
   \quad\alpha=1\ldots\Ndim(\v)\quad i=1\ldots\Nloc(\phi),\quad
@@ -3275,7 +3275,7 @@ function dshape_dot_vector_shape(dshape, vector, shape, detwei)
 
 This routine constructs the following matrix:
 \begin{equation}
-\begin{split} 
+\begin{split}
   \mat{M}(i,j)&=\int_E \grad\phi_{i}\dot\v\hat{\phi}_{j}\d V\\
   &=\int_E \frac{\d\phi_{i}}{\d\x_\alpha}\v_\alpha\hat{\phi}_{j}\d V
   \quad\alpha=1\ldots\Ndim(\v)\quad i=1\ldots\Nloc(\phi),\quad
@@ -3303,7 +3303,7 @@ function dshape_dot_tensor_shape(dshape, tensor, shape, detwei)
 
 This routine constructs the following matrix:
 \begin{equation}
-\begin{split} 
+\begin{split}
   \mat{M}(\beta,i,j)&=\int_E \grad\phi_{i}\dot\tensor\tau\hat{\phi}_{j}\d V\\
   &=\int_E \frac{\d\phi_{i}}{\d\x_\beta}\tensor\tau_{\alpha\beta}\hat{\phi}_{j}\d V
   \quad\alpha,\beta=1\ldots\Ndim(\tensor\tau)\quad i=1\ldots\Nloc(\phi),\quad
@@ -3332,7 +3332,7 @@ function shape_vector_outer_dshape(shape, vector, dshape, detwei)
 
 This routine constructs the following tensor:
 \begin{equation}
-\begin{split} 
+\begin{split}
   \mat{M}(\alpha,\beta,i,j)&=\int_E \phi_{i}\v_\alpha(\grad\hat{\phi}_{j})_\beta\d V\\
   &=\int_E \phi_{i}\v_\alpha\frac{\d\hat\phi_{j}}{\d\x_\beta}\d V
   \quad\alpha=1\ldots\Ndim(\v),\quad\beta=1\ldots\Ndim(\hat\phi),\\
@@ -3341,7 +3341,7 @@ This routine constructs the following tensor:
 \end{split}
 \end{equation}
 Where the arguments are as given in table
-\ref{tab:form_arguments}. 
+\ref{tab:form_arguments}.
 
 
 \procedure{dshape\_outer\_vector\_shape}{proc:dshapeoutervectorshape}
@@ -3360,7 +3360,7 @@ function dshape_outer_vector_shape(dshape, vector, shape, detwei)
 
 This routine constructs the following tensor:
 \begin{equation}
-\begin{split} 
+\begin{split}
   \mat{M}(\alpha,\beta,i,j)&=\int_E (\grad\phi_{i})_\alpha\v_\beta\hat{\phi}_{j}\d V\\
   &=\int_E \frac{\d\phi_{i}}{\d\x_\alpha}\v_\beta\hat\phi_{j}\d V
   \quad\alpha=1\ldots\Ndim(\phi),\quad\beta=1\ldots\Ndim(\v),\\
@@ -3369,7 +3369,7 @@ This routine constructs the following tensor:
 \end{split}
 \end{equation}
 Where the arguments are as given in table
-\ref{tab:form_arguments}. 
+\ref{tab:form_arguments}.
 
 
 \procedure{dshape\_dot\_dshape}{proc:dshapedotdshape}
@@ -3386,7 +3386,7 @@ function dshape_dot_dshape(dshape1, dshape2, detwei)
 This routine constructs the following matrix:
 \begin{equation}
   \mat{M}(i,j)=\int_E \grad\phi_{i}\dot\grad\hat{\phi}_{j}\d V\quad
-  i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi}) 
+  i=1\ldots\Nloc(\phi),\quad j=1\ldots\Nloc(\hat{\phi})
 \end{equation}
 Where the arguments are as given in table \ref{tab:form_arguments}.
 
@@ -3409,7 +3409,7 @@ This routine constructs the following matrix:
     \mat{M}(i,j)&=\int_E \grad\phi_{i}\dot\tensor\tau\dot\grad\hat{\phi}_{j}\d
     V\\
     &=\int_E (\grad\phi_{i})_\alpha\tensor{\tau}_{\alpha\beta}
-    (\grad\hat{\phi}_{j})_\beta\d V 
+    (\grad\hat{\phi}_{j})_\beta\d V
     \quad \alpha=1\ldots\Ndim(\phi),\quad \beta=1\ldots\Ndim(\hat{\phi})\\
     &\phantom{=\int_E (\grad\phi_{i})_\alpha\tensor{\tau}_{\alpha\beta}
     (\grad\hat{\phi}_{j})_\beta\d V}
@@ -3495,7 +3495,7 @@ This routine constructs the following vector:
   \vec{l}(i)=\int_E \phi_{i}\d V\quad
   i=1\ldots\Nloc(\phi)
 \end{equation}
-Where the arguments are as given in table \ref{tab:form_arguments}. 
+Where the arguments are as given in table \ref{tab:form_arguments}.
 
 
 \procedure{shape\_vector\_rhs}{proc:shapevectorrhs}
@@ -3515,7 +3515,7 @@ This routine constructs the following matrix:
   \vec{l}(\alpha, i)=\int_E \phi_{i}\v_\alpha\d V\quad
   \alpha=1\ldots\Ndim(\v),\quad i=1\ldots\Nloc(\phi)
 \end{equation}
-Where the arguments are as given in table \ref{tab:form_arguments}. 
+Where the arguments are as given in table \ref{tab:form_arguments}.
 
 
 \procedure{shape\_tensor\_rhs}{proc:shapetensorrhs}
@@ -3536,7 +3536,7 @@ This routine constructs the following tensor:
   \vec{l}(\alpha, \beta, i)=\int_E \phi_{i}\tensor\tau_{\alpha\beta}\d V\quad
   \alpha,\beta=1\ldots\Ndim(\v),\quad i=1\ldots\Nloc(\phi)
 \end{equation}
-Where the arguments are as given in table \ref{tab:form_arguments}. 
+Where the arguments are as given in table \ref{tab:form_arguments}.
 
 
 \procedure{shape\_tensor\_dot\_vector\_rhs}{proc:shapetensordotvectorrhs}
@@ -3570,7 +3570,7 @@ function dshape_rhs(dshape, detwei)
   real, dimension(:,:,:), intent(in) :: dshape
   real, dimension(:), intent(in) :: detwei
 
-  real, dimension(dshape_loc(dshape)) :: dshape_rhs 
+  real, dimension(dshape_loc(dshape)) :: dshape_rhs
 \end{lstlisting}
 
 This routine constructs the following tensor:
@@ -3594,7 +3594,7 @@ function dshape_dot_vector_rhs(dshape, vector, detwei)
   real, dimension(:,:), intent(in) :: vector
   real, dimension(:), intent(in) :: detwei
 
-  real, dimension(dshape_loc(dshape)) :: dshape_dot_vector_rhs 
+  real, dimension(dshape_loc(dshape)) :: dshape_dot_vector_rhs
 \end{lstlisting}
 
 This routine constructs the following tensor:
@@ -3618,7 +3618,7 @@ function dshape_dot_tensor_rhs(dshape, tensor, detwei)
   real, dimension(:,:,:), intent(in) :: tensor
   real, dimension(:), intent(in) :: detwei
 
-  real, dimension(tensor_dim(tensor,2), dshape_loc(dshape)) :: dshape_dot_tensor_rhs 
+  real, dimension(tensor_dim(tensor,2), dshape_loc(dshape)) :: dshape_dot_tensor_rhs
 \end{lstlisting}
 
 This routine constructs the following tensor:
@@ -3692,7 +3692,7 @@ function vector_dim(vector)
 \end{lstlisting}
 
 This routine returns the data dimension of vector, where vector is a real
-array providing a vector value at each quadrature point of an element. 
+array providing a vector value at each quadrature point of an element.
  This is equivalent to \lstinline+size(vector,1)+.
 
 
@@ -3753,7 +3753,7 @@ the priority or printing will be supressed.
 \procedure{reset\_memory\_logs}{proc:resetmemorylogs}
 
 \begin{lstlisting}
-subroutine reset_memory_logs  
+subroutine reset_memory_logs
 \end{lstlisting}
 
 This routine resets the minimum and maximum statistics of all the memory
@@ -3765,7 +3765,7 @@ the memory peaks in some part of a simulation, for example one timestep. If
 \section{Register diagnostics in the .stat file}
 
 The way registered diagnostics are added to the \lstinline+.stat+ file is similar to the way the options are checked. The script \lstinline+scripts/make_register_diagnostics+ is executed when Fluidity is compiled. All the modules that contain a subroutine called \lstinline+MODULE_NAME_register_diagnostic+ are in turn listed in \lstinline+preprocessor/register_diagnostics.F90+. These subroutines are executed before the simulation starts and they register the diagnostics appearing in the module.\\
- 
+
 A diagnostic has the type \lstinline+registered_diagnostic_item+, i.e.
 
 \begin{lstlisting}
@@ -3784,7 +3784,7 @@ Each diagnostic is registered by the subroutine:\\
 \begin{lstlisting}
 subroutine register_diagnostic(dim, name, statistic, material_phase)
   integer, intent(in) :: dim
-  character(len=*), intent(in) :: name, statistic 
+  character(len=*), intent(in) :: name, statistic
   character(len=*), intent(in), optional ::  material_phase
 \end{lstlisting}
 
@@ -3798,7 +3798,7 @@ The value of a diagnostic is set by:
 
 \begin{lstlisting}
 subroutine set_diagnostic(name, statistic, material_phase, value)
-  character(len=*), intent(in) :: name, statistic 
+  character(len=*), intent(in) :: name, statistic
   character(len=*), intent(in), optional ::  material_phase
   real, dimension(:), intent(in) :: value
 \end{lstlisting}

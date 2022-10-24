@@ -6,21 +6,21 @@
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l channel_flow_input.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-     <variable name="mxvfrac0" language="python"> 
+     <variable name="mxvfrac0" language="python">
 import fluidity_tools
 mxvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['max'][0]
-    </variable>    
-     <variable name="mnvfrac0" language="python"> 
+    </variable>
+     <variable name="mnvfrac0" language="python">
 import fluidity_tools
 mnvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['min'][0]
-    </variable>    
+    </variable>
     <variable name="mxvfrac" language="python">
 import fluidity_tools
 mxvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['max'][-1]
@@ -194,21 +194,21 @@ beta0tracerdifferencehyperc = max(abs(fieldinitial-fieldfinal))
     <variable name="mxgridvelocity" language="python">
 import fluidity_tools
 mxgridvelocity = max(fluidity_tools.stat_parser("channel_flow.stat")['Water']['GridVelocity%magnitude']['max'])
-    </variable>    
+    </variable>
     <variable name="mxvelocity" language="python">
 import fluidity_tools
 mxvelocity = max(fluidity_tools.stat_parser("channel_flow.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
+    </variable>
     <variable name="mxcfl" language="python">
 import fluidity_tools
 mxcfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="mncfl" language="python">
 import fluidity_tools
 mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['min'][-1]
-    </variable>    
+    </variable>
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
@@ -280,16 +280,16 @@ mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeC
     </test>
     <test name="check maximum grid speed is 1.0" language="python">
 	assert abs(mxgridvelocity-1.0) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check maximum speed is 1.0" language="python">
 	assert abs(mxvelocity-1.0) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check maximum cv cfl" language="python">
       assert abs(mxcfl) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check minimum cv cfl" language="python">
       assert abs(mncfl) &lt; 1e-10
-    </test>    
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

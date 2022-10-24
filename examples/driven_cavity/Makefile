@@ -22,7 +22,7 @@ run: envcheck
 		echo ${BINPREFIX}fluidity -v2 -l driven_cavity.flml; \
 		${BINPREFIX}fluidity -v2 -l driven_cavity.flml; \
 		cd ..;\
-	) 
+	)
 
 postprocess: envcheck
 	@echo **********Plotting convergence data.

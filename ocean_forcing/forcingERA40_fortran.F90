@@ -53,7 +53,7 @@ subroutine coare_forcing_c(points, speed, air_temp, sst, spec_humidity, &
     implicit none
     integer, intent(in)                    :: points
     real, intent(in), dimension(points)    :: speed, spec_humidity, sea_surface_humidity
-    real, intent(inout), dimension(points) :: air_temp, sst 
+    real, intent(inout), dimension(points) :: air_temp, sst
     real, intent(in), dimension(points)    :: U, V, ppt, runoff, salinity, solar, thermal
     real, intent(out), dimension(points)   :: Q_solar, Q ! heat fluxes
     real, intent(out), dimension(points)   :: F ! Freshwater flux
@@ -73,7 +73,7 @@ subroutine kara_forcing_c(points, speed, air_temp, sst, spec_humidity, &
     integer, intent(in)                    :: points
     real, intent(inout), dimension(points) :: speed
     real, intent(in), dimension(points)    :: spec_humidity, sea_surface_humidity
-    real, intent(inout), dimension(points) :: air_temp, sst 
+    real, intent(inout), dimension(points) :: air_temp, sst
     real, intent(in), dimension(points)    :: U, V, ppt, runoff, salinity, solar, thermal
     real, intent(out), dimension(points)   :: Q_solar, Q ! heat fluxes
     real, intent(out), dimension(points)   :: F ! Freshwater flux

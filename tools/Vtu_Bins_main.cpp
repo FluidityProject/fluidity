@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ extern "C" {
 #include <string>
 #include <iostream>
 
-using namespace std; 
+using namespace std;
 
 void vtu_bins_usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename input_fieldname BOUND1 [BOUND2 BOUND3 ...]\n"
@@ -70,13 +70,13 @@ int main(int argc, char **argv){
         abort();
   }
 #endif
-  
+
   // Initialise PETSc (this also parses PETSc command line arguments)
   PetscInit(argc, argv);
- 
+
   // Get any command line arguments
   // reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "hv")) != -1){
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
     vtu_bins_usage(argv[0]);
     exit(-1);
   }
-  
+
   if(optind > argc - 3){
     cerr << "Need an input vtu, input field name and at least one boundary value" << endl;
     vtu_bins_usage(argv[0]);
@@ -116,20 +116,20 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string input_filename = argv[optind];
-  size_t input_filename_len = input_filename.size();  
-  
+  size_t input_filename_len = input_filename.size();
+
   string input_fieldname;
-  input_fieldname = argv[optind + 1];  
+  input_fieldname = argv[optind + 1];
   int input_fieldname_len = input_fieldname.size();
-  
+
   size_t nbounds =  argc - optind - 2;
   double bounds[nbounds];
-  for(int i = 0;i < nbounds;i++){
+  for(size_t i = 0;i < nbounds;i++){
     bounds[i] = atof(argv[optind + 2 + i]);
   }
 
   vtu_bins(input_filename.c_str(), input_filename_len, input_fieldname.c_str(), input_fieldname_len, bounds, nbounds);
-    
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif

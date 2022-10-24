@@ -77,4 +77,3 @@ void F77_FUNC_(vec_destroy_set,VEC_DESTROY_SET)(unsigned int* idx)
     L.pop_back();
   }
 }
-

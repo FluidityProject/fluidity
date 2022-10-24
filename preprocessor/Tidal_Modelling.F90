@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -35,22 +35,22 @@ module Tidal_module
    use state_module
    use coordinates
    use sparse_matrices_fields
-   
+
    implicit none
-   
+
    private
-   
+
    public :: find_chi, equilibrium_tide, get_tidal_frequency, &
              &compute_pressure_and_tidal_gradient, &
              &calculate_diagnostic_equilibrium_pressure,&
              &calculate_shelf_depth
-   
+
 contains
 
   function get_tidal_frequency(constituent) result(frequency)
     character(len=*), intent(in)::constituent
     real frequency
-    
+
     ! Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
     ! No. 1 pp. 243--268, 1980
     select case(trim(constituent))
@@ -84,7 +84,7 @@ contains
        write(0, *) "constituent = ", constituent
        FLAbort("Unknown tidal constituent")
     end select
-    
+
   end function get_tidal_frequency
 
     SUBROUTINE FIND_CHI(CHI,NCHI,ACCTIM,HORIZ_RESCALE)
@@ -110,7 +110,7 @@ contains
 !     S2:  \chi = 0
 !     N2:  \chi = 2*h0 - 3*s0 + p0
 !     K2:  \chi = s*h0
-!     
+!
 !     K1:  \chi = h0               + 90
 !     O1:  \chi = h0   - 2*s0      - 90
 !     P1:  \chi = h0               - 90
@@ -119,13 +119,13 @@ contains
 !     Mf:  \chi =        2*s0
 !     Mm:  \chi =          s0 - p0
 !     Ssa: \chi = 2*h0
-!######################################################################      
+!######################################################################
 
       REAL     DAY0,DAY,YEAR0,YEAR,D,T,H0,S0,P0
-      
+
       DAY0  = 1.0
       YEAR0 = 1975.0
-      
+
       !!! RESCALE TIME ACCTIM TO REAL TIME
       TIM = ACCTIM*HORIZ_RESCALE
 
@@ -144,20 +144,20 @@ contains
       CHI(2) = 0.0                   !S2
       CHI(3) = 2*H0 - 3*S0 + P0      !N2
       CHI(4) = 2*H0                  !K2
-            
+
       CHI(5) = H0        + 90.0      !K1
       CHI(6) = H0 - 2*S0 - 90.0      !O1
       CHI(7) = H0        - 90.0      !P1
       CHI(8) = H0 - 3*S0 + P0 -90.0  !Q1
-      
+
       CHI(9) =      2*S0             !Mf
       CHI(10) =       S0 - P0        !Mm
       CHI(11) = 2*H0                 !Ssa
-      CHI(12) = 0.0  
+      CHI(12) = 0.0
 !c Convert to Radians
-      do I=1,NCHI       ! Was loop 
+      do I=1,NCHI       ! Was loop
         CHI(I) = CHI(I)/DEGRAD
-      ENDDO      
+      ENDDO
 
     END SUBROUTINE FIND_CHI
 
@@ -189,7 +189,7 @@ contains
       REAL     K1FREQ,O1FREQ,P1FREQ,Q1FREQ
       PARAMETER( K1FREQ = 0.72921E-04, O1FREQ = 0.67598E-04, P1FREQ = 0.72523E-04, Q1FREQ = 0.64959E-04 )
       REAL     MfFREQ,MmFREQ,SsaFREQ
-      PARAMETER( MfFREQ = 0.053234E-04, MmFREQ = 0.026392E-04, SsaFREQ = 0.003982E-04 )   
+      PARAMETER( MfFREQ = 0.053234E-04, MmFREQ = 0.026392E-04, SsaFREQ = 0.003982E-04 )
       integer, parameter :: nchi = 12
       real, dimension(nchi) :: chi
 
@@ -219,7 +219,7 @@ contains
 
 
       IF(which_tide(1).EQv. .true.) THEN
-!  M2 COMPONENT   NB Co-latitude (used below) = 90 degress (pi/2) - latitude 
+!  M2 COMPONENT   NB Co-latitude (used below) = 90 degress (pi/2) - latitude
          eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG + chi(1))
       ENDIF
       IF(which_tide(2).EQv..true.) THEN
@@ -230,38 +230,38 @@ contains
       ENDIF
       IF(which_tide(4).EQv..true.) THEN
          eqtide = eqtide + K2AMP*(SIN(COLAT)**2.0)*COS(K2FREQ*TIME + TWOLONG + chi(4))
-      ENDIF                     
-      
+      ENDIF
+
       IF(which_tide(5).EQv..true.) THEN
-!  K1 COMPONENT   
-         eqtide = eqtide + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG + chi(5)) 
+!  K1 COMPONENT
+         eqtide = eqtide + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG + chi(5))
       ENDIF
-      IF(which_tide(6).EQv..true.) THEN  
-         eqtide = eqtide + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG + chi(6)) 
+      IF(which_tide(6).EQv..true.) THEN
+         eqtide = eqtide + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG + chi(6))
       ENDIF
-      IF(which_tide(7).EQv..true.) THEN  
-         eqtide = eqtide + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG + chi(7)) 
+      IF(which_tide(7).EQv..true.) THEN
+         eqtide = eqtide + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG + chi(7))
       ENDIF
-      IF(which_tide(8).EQv..true.) THEN  
-         eqtide = eqtide + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG + chi(8)) 
-      ENDIF      
+      IF(which_tide(8).EQv..true.) THEN
+         eqtide = eqtide + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG + chi(8))
+      ENDIF
 
       IF(which_tide(9).EQv..true.) THEN
-!  Mf COMPONENT   
-         eqtide = eqtide + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME + chi(9)) 
+!  Mf COMPONENT
+         eqtide = eqtide + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME + chi(9))
       ENDIF
-      IF(which_tide(10).EQv..true.) THEN 
-         eqtide = eqtide + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME + chi(10)) 
-      ENDIF      
+      IF(which_tide(10).EQv..true.) THEN
+         eqtide = eqtide + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME + chi(10))
+      ENDIF
       IF(which_tide(11).EQv..true.) THEN
-         eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME + chi(11)) 
+         eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME + chi(11))
       ENDIF
 
     END FUNCTION EQUILIBRIUM_TIDE
 
     function calculate_shelf_depth(x) result (depth)
-       real, intent(in) :: x  
-       real :: depth  
+       real, intent(in) :: x
+       real :: depth
       ! TODO (asc): clean up these values
        real :: shelflength      =  500000
        real :: shelfslopeheight =  900
@@ -278,7 +278,7 @@ contains
     subroutine calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: equilibrium_pressure
-      
+
       type(vector_field), pointer :: positions, positions_mapped_to_equilibrium_pressure_space
       integer :: node
       real :: ep, ep_amplitude, depthsign, shelfdepth
@@ -338,14 +338,14 @@ contains
          end if
          if (include_density_change_of_ice) then
             ! TODO (asc): clean up these values
-            density_change_of_ice = ( shelfdepth/2.0 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
+            density_change_of_ice = ( shelfdepth/2.0 - ( -1.0E3 ) ) / ( - 1.0E3 )
          else
             density_change_of_ice = 1.0
          end if
          ewrite(3,*) "shelfdench:", density_change_of_ice
 
          ep = - ep_amplitude * gravity_magnitude * shelfdepth * ( - saline_contraction_coefficient * salinity_change_constant * density_change_of_ice + pressure_from_ice )
-         !ep = - ep_amplitude * 9.8               * ( -7.59E-4) * 1.5 * shelfdepth * ( shelfdepth/2 - ( -1.0E3 ) ) / ( - 1.0E3 ) 
+         !ep = - ep_amplitude * 9.8               * ( -7.59E-4) * 1.5 * shelfdepth * ( shelfdepth/2 - ( -1.0E3 ) ) / ( - 1.0E3 )
          call set(equilibrium_pressure, node, ep)
          ! TODO (asc): clean up - logging in node loop
          ewrite(3,*) "shelfep: x, ep value", x, ep, node_val(equilibrium_pressure, node)
@@ -366,7 +366,7 @@ contains
       type(block_csr_matrix), intent(in):: ct_m
       type(scalar_field), target, intent(in):: p_theta
       type(vector_field), intent(in):: position
-      
+
       type(mesh_type), pointer:: p_mesh
       type(scalar_field) :: tidal_pressure, combined_p
       type(vector_field) :: positions_mapped_to_pressure_space
@@ -380,7 +380,7 @@ contains
       p_mesh => p_theta%mesh
 
       free_surface => extract_scalar_field(state, "FreeSurface")
-      
+
       call allocate(combined_p, p_mesh, "CombinedPressure")
       call allocate(tidal_pressure, p_mesh, "TidalPressure")
       call zero(combined_p)
@@ -396,7 +396,7 @@ contains
       if (stat==0) then
         call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
       end if
-    
+
 
       ! Find node positions on the pressure mesh
       call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")
@@ -463,7 +463,7 @@ contains
               FLExit('Exiting as code missing')
            end if
         end if
-      end if 
+      end if
 
       do node=1,node_count(positions_mapped_to_pressure_space)
          call set(combined_p, node, node_val(p_theta, node) - node_val(tidal_pressure, node))
@@ -477,8 +477,7 @@ contains
       call deallocate(tidal_pressure)
       call deallocate(equilibrium_pressure)
       call deallocate(positions_mapped_to_pressure_space)
-              
+
     end subroutine compute_pressure_and_tidal_gradient
 
 end module Tidal_module
-

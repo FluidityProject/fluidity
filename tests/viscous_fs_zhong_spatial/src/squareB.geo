@@ -2,7 +2,7 @@ l=40;
 p=1.0;
 Point(1) = {0, 0, 0};
 Extrude {1, 0, 0} {
-  Point{1}; 
+  Point{1};
 }
 Extrude {0, 0.5, 0} {
   Line{1};

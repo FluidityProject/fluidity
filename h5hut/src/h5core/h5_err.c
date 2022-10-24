@@ -111,7 +111,7 @@ h5_verror (
 		  h5_call_stack.entry[0].name,
 		  fmt);
 	vfprintf (stderr, fmt2, ap);
-	
+
 }
 
 /*!

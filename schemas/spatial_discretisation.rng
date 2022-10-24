@@ -107,7 +107,7 @@ temporal_discretisation).</a:documentation>
     <element name="discontinuous_galerkin">
       <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
-galerkin formulation will result. </a:documentation>
+galerkin formulation will result.</a:documentation>
       <ref name="dg_advection_scheme"/>
       <ref name="dg_diffusion_scheme"/>
       <ref name="dg_upwind_stabilisation"/>
@@ -212,7 +212,7 @@ advection matrix becomes:
         /                                        /
      /                                                /
  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-     /                                                /                  
+     /                                                /
 where beta is set in conservative_advection, N is
 a shape function (uppercase
 subscripts indicate nodes A or B while lowercase
@@ -244,20 +244,20 @@ scaled by C_0</a:documentation>
           </optional>
         </element>
         <element name="bassi_rebay">
-          <a:documentation>Classical scheme from Bassi and Rebay 
+          <a:documentation>Classical scheme from Bassi and Rebay
 (JCP 131 267-179 1997)</a:documentation>
           <empty/>
         </element>
         <element name="interior_penalty">
           <a:documentation>Classical interior penalty scheme
 see, e.g., SIAM Journal on Numerical Analysis
-Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+Vol. 39, No. 5 (2002), pp. 1749-1779</a:documentation>
           <element name="penalty_parameter">
             <a:documentation>Penalty_parameter
 The penalty term Int [u][v] dS on element boundaries
 is scaled by C = C_0 h**p
 This option specifies the C_0
-There is a theoretical lower bound for 
+There is a theoretical lower bound for
 stability and hence convergence</a:documentation>
             <ref name="real"/>
           </element>
@@ -277,7 +277,7 @@ Theoretically p=-1 is required for linear elements</a:documentation>
                 <empty/>
               </element>
               <element name="use_element_centres">
-                <a:documentation>Use difference between element centre 
+                <a:documentation>Use difference between element centre
 and neighbour centre
 Use 2x distance to face centre on boundaries</a:documentation>
                 <empty/>
@@ -290,16 +290,16 @@ Use 2x distance to face centre on boundaries</a:documentation>
 Only works for P0 in 2d.</a:documentation>
           <choice>
             <element name="arbogast">
-              <a:documentation>Use the masslumping based on T. Arbogast and Z. Chen, Math. of Comp. 
-vol.64 nr. 211, 1995. This assumes a homeomorphism between the triangular 
-mesh and an equilateral mesh (true for structured 2d meshes in which all 
-across edges that split up the quads are oriented in the same way). Gives 
+              <a:documentation>Use the masslumping based on T. Arbogast and Z. Chen, Math. of Comp.
+vol.64 nr. 211, 1995. This assumes a homeomorphism between the triangular
+mesh and an equilateral mesh (true for structured 2d meshes in which all
+across edges that split up the quads are oriented in the same way). Gives
 accurate results for such meshes, gives very inaccurate results for other meshes.</a:documentation>
               <empty/>
             </element>
             <element name="circumcentred">
               <a:documentation>Use the distance between circumcentres of the triangles. This comes down to a finite
-volume scheme where the diffusive fluxes are computed taking the difference in 
+volume scheme where the diffusive fluxes are computed taking the difference in
 adjacent circumcentres, divided by the difference in these centres. Smaller stencil
 and works better for non-structured triangular meshes, but the accuracy still depends
 on the mesh quality (obtuse triangles reduce the accuracy).</a:documentation>
@@ -367,33 +367,33 @@ Suggested value 1.1</a:documentation>
             <a:documentation>Power coefficient in weights.
 This must be a positive number, possibly
 an integer. Larger power coefficient leads
-to greater penalisation of oscillations, on 
+to greater penalisation of oscillations, on
 the other hand causes numerical problems if it
 gets too big.
 Suggested value = 4.</a:documentation>
             <ref name="real"/>
           </element>
           <element name="tolerance_threshold_oscillations">
-            <a:documentation>Relative/absolute tolerance threshold for 
+            <a:documentation>Relative/absolute tolerance threshold for
 oscillation indicator. Values below this emphasise
-absolute rather than relative magnitudes of 
-tracer gradients. 
+absolute rather than relative magnitudes of
+tracer gradients.
 Suggested value = 0.001*T
 where T is a typical value of the tracer which
 you might use in a scaling analysis.</a:documentation>
             <ref name="real"/>
           </element>
           <element name="tolerance_threshold_weights">
-            <a:documentation>Relative/absolute tolerance threshold for 
+            <a:documentation>Relative/absolute tolerance threshold for
 weights. Values below this emphasise
-absolute rather than relative magnitudes of 
-oscillations indicator. 
+absolute rather than relative magnitudes of
+oscillations indicator.
 Suggested value = 1.0e-3</a:documentation>
             <ref name="real"/>
           </element>
           <element name="discontinuity_tolerance">
             <a:documentation>Tolerance for discontinuity detector.
-Uses method of 
+Uses method of
 http://www.gce.ucl.ac.be/~remacle/pdf/detect.pdf
 Detector values greater than this indicate
 discontinuities at the inflow boundary
@@ -502,7 +502,7 @@ faces of the element in question.</a:documentation>
           <optional>
             <element name="pre_distribute_mass">
               <a:documentation>Re-distribute mass prior to the diffusion if nodal
-values within an element are both above and below the 
+values within an element are both above and below the
 provided bounds.</a:documentation>
               <empty/>
             </element>
@@ -611,9 +611,9 @@ This defines the limiter used to enforce boundedness on this field.</a:documenta
     <choice>
       <element name="face_value">
         <a:documentation>First Order Upwind face value discretisation
- face_value = donor_value, 
+ face_value = donor_value,
 where
- donor_value = income*val_1 + (1.-income)*val_2, 
+ donor_value = income*val_1 + (1.-income)*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
@@ -624,7 +624,7 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
       </element>
       <element name="face_value">
         <a:documentation>Trapezoidal face value discretisation
- face_value = 0.5*(val_1 + val_2), 
+ face_value = 0.5*(val_1 + val_2),
 where
  val_i is the value on the ith node neighbouring the face
 
@@ -653,9 +653,9 @@ Useful for pseudo-1D simulations involving biology</a:documentation>
       </element>
       <element name="face_value">
         <a:documentation>First Order Downwind face value discretisation
- face_value = downwind_value, 
+ face_value = downwind_value,
 where
- donor_value = (1.-income)*val_1 + income*val_2, 
+ donor_value = (1.-income)*val_1 + income*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order downwinding is unconditionally unstable</a:documentation>
@@ -689,9 +689,9 @@ First order downwinding is unconditionally unstable</a:documentation>
     <choice>
       <element name="face_value">
         <a:documentation>First Order Upwind face value discretisation
- face_value = donor_value, 
+ face_value = donor_value,
 where
- donor_value = income*val_1 + (1.-income)*val_2, 
+ donor_value = income*val_1 + (1.-income)*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
@@ -702,7 +702,7 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
       </element>
       <element name="face_value">
         <a:documentation>Trapezoidal face value discretisation
- face_value = 0.5*(val_1 + val_2), 
+ face_value = 0.5*(val_1 + val_2),
 where
  val_i is the value on the ith node neighbouring the face
 
@@ -821,16 +821,16 @@ velocity.</a:documentation>
     </choice>
   </define>
   <!--
-    standard control volume face value options that 
+    standard control volume face value options that
     have NO reliance on any CFL field.
   -->
   <define name="standard_control_volume_options_excluding_cfl">
     <choice>
       <element name="face_value">
         <a:documentation>First Order Upwind face value discretisation
- face_value = donor_value, 
+ face_value = donor_value,
 where
- donor_value = income*val_1 + (1.-income)*val_2, 
+ donor_value = income*val_1 + (1.-income)*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
@@ -841,7 +841,7 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
       </element>
       <element name="face_value">
         <a:documentation>Trapezoidal face value discretisation
- face_value = 0.5*(val_1 + val_2), 
+ face_value = 0.5*(val_1 + val_2),
 where
  val_i is the value on the ith node neighbouring the face
 
@@ -870,9 +870,9 @@ Useful for pseudo-1D simulations involving biology</a:documentation>
       </element>
       <element name="face_value">
         <a:documentation>First Order Downwind face value discretisation
- face_value = downwind_value, 
+ face_value = downwind_value,
 where
- donor_value = (1.-income)*val_1 + income*val_2, 
+ donor_value = (1.-income)*val_1 + income*val_2,
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order downwinding is unconditionally unstable</a:documentation>

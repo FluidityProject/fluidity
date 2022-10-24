@@ -65,7 +65,7 @@ defined_flux=[]
 for h in head:
    if abs(h)&lt;0.02:
        defined_flux.append(0.0)
-   else:         
+   else:
        defined_flux.append(-h*10)
 assert(all(abs(defined_flux+velocity_block2)&lt;1e-5))</test>
   </pass_tests>

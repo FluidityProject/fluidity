@@ -125,13 +125,13 @@ public:
         const Box3<Real>& rkBox, Real& rfMin, Real& rfMax);
 
     // Configurations.
-    static void GetConfiguration (const Vector3<Real>& rkAxis, 
+    static void GetConfiguration (const Vector3<Real>& rkAxis,
         const Vector3<Real> akSegment[2], IntrConfiguration<Real>& rkCfg);
-    
-    static void GetConfiguration (const Vector3<Real>& rkAxis, 
+
+    static void GetConfiguration (const Vector3<Real>& rkAxis,
         const Triangle3<Real>& rkTriangle, IntrConfiguration<Real>& rkCfg);
 
-    static void GetConfiguration (const Vector3<Real>& rkAxis, 
+    static void GetConfiguration (const Vector3<Real>& rkAxis,
         const Box3<Real>& rkBox, IntrConfiguration<Real>& rkCfg);
 
     // Low-level test-query for projections.
@@ -197,7 +197,7 @@ private:
         const Vector3<Real>& rkPlaneOrigin, const Vector3<Real>& rkPlaneNormal,
         int& riQuantity, Vector3<Real>* akP);
 
-    static void SegmentSegment (const Vector3<Real> akSegment0[2], 
+    static void SegmentSegment (const Vector3<Real> akSegment0[2],
         const Vector3<Real> akSegment1[2], int& riQuantity,
         Vector3<Real>* akP);
 

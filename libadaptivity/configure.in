@@ -138,7 +138,7 @@ fi
 AC_LANG_PUSH([Fortran 77])
 ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
 
-FLIBS=`echo $FLIBS | sed 's/)//g'` 
+FLIBS=`echo $FLIBS | sed 's/)//g'`
 
 # Check for standard libraries
 AC_LANG_PUSH(C++)
@@ -181,9 +181,9 @@ if test "x$enable_vtk" != "xno" ; then
             AC_MSG_NOTICE([No VTK automagic])
 	    search_for_vtk=yes
 	    CPPFLAGS="$OLD_CPPFLAGS"
-	    LIBS="$OLD_LIBS"	    
+	    LIBS="$OLD_LIBS"
 	])
-    
+
     if test "x$search_for_vtk" == "xyes" ; then
 
         # Need to check what version of VTK is on the system.
@@ -191,10 +191,10 @@ if test "x$enable_vtk" != "xno" ; then
         # User may set the install directory for VTK but use
         # the default sensible location if not.
         if test "x$VTK_INSTALL_PREFIX" == "x"; then
-            VTK_INSTALL_PREFIX=/usr/include 
+            VTK_INSTALL_PREFIX=/usr/include
         fi
 
-        # Loop through potential vtk installations and get the highest version number 
+        # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
         vtk_version_file=""
@@ -233,15 +233,15 @@ if test "x$enable_vtk" != "xno" ; then
         AC_MSG_NOTICE([Found and using VTK major version: $vtk_version])
 
         # Link the correct libraries depending on the version
-        if [[ "x$vtk_version" == "x5" ]]; then 
+        if [[ "x$vtk_version" == "x5" ]]; then
             # Usually the location of the libraries is not a mystery. The
             # header files are another matter.
             AC_CHECK_LIB(dl, main)
-            AC_CHECK_LIB(vtkCommon, main, [], 
+            AC_CHECK_LIB(vtkCommon, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
                     LIBS="$LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommon_main
-                    AC_CHECK_LIB(vtkCommon, main, [], 
+                    AC_CHECK_LIB(vtkCommon, main, [],
                        [
                           AC_MSG_ERROR([Cannot find vtk installation.])
                           exit -1
@@ -256,7 +256,7 @@ if test "x$enable_vtk" != "xno" ; then
             AC_CHECK_LIB(vtkFiltering, main)
             AC_CHECK_LIB(vtkGraphics, main)
             AC_CHECK_LIB(vtkIO, main)
-            
+
             # check at the usual places:
             for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
                 if test -r $i/vtkCellData.h; then
@@ -272,7 +272,7 @@ if test "x$enable_vtk" != "xno" ; then
                             VTK=yes
                             vtk_header_relative_path="vtk-5.0/"
                             ],
-                        [       
+                        [
                             AC_MSG_ERROR([Cannot find vtk installation.])
                             exit -1
                         ])
@@ -281,11 +281,11 @@ if test "x$enable_vtk" != "xno" ; then
             if test -d /usr/lib64/vtk ; then
                 LIBS="$LIBS -L/usr/lib64/vtk"
             fi
-            AC_CHECK_LIB(vtkCommonCore, main, [], 
+            AC_CHECK_LIB(vtkCommonCore, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
                     LIBS="$LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommonCore_main
-                    AC_CHECK_LIB(vtkCommonCore, main, [], 
+                    AC_CHECK_LIB(vtkCommonCore, main, [],
                        [
                           AC_MSG_ERROR([Cannot find vtk installation.])
                           exit -1
@@ -466,7 +466,7 @@ if test "$extended_source_flag" != happy ; then
     if test "$extended_source_flag" = none ; then
         FFLAGS="-ffixed-line-length-132 -ffree-line-length-huge"
         AC_COMPILE_IFELSE(
-            [AC_LANG_PROGRAM(,[[   
+            [AC_LANG_PROGRAM(,[[
       PRINT*, "hello world                                                                                      "
                             ]])],
             [
@@ -539,7 +539,7 @@ AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
 # This should not happen by default, feel free to add an option:
 # Enable parallel build
 #ncores=`grep cores /proc/cpuinfo | head -1 | awk '{print $4}'`
-#if test "x$ncores" != "x" ; then 
+#if test "x$ncores" != "x" ; then
 #    MAKE_PARALLEL_OPTION="-j$ncores"
 #    AC_SUBST(MAKE_PARALLEL_OPTION)
 #fi
@@ -756,7 +756,7 @@ AC_LANG_PUSH([Fortran])
 if test -z "$FORTRAN_REAL_8" ; then
    # gfortran
     old_fcflags="$FCFLAGS"
-    
+
     FORTRAN_REAL_8="-fdefault-real-8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
@@ -775,7 +775,7 @@ fi
 if test -z "$FORTRAN_REAL_8" ; then
    # Intel compiler suite
     old_fcflags="$FCFLAGS"
-    
+
     FORTRAN_REAL_8="-r8"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
@@ -793,7 +793,7 @@ fi
 if test -z "$FORTRAN_REAL_8" ; then
    # SUN compiler suite
     old_fcflags="$FCFLAGS"
-    
+
     FORTRAN_REAL_8="-xtypemap=real:64,double:64"
     FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
     AC_RUN_IFELSE([AC_LANG_PROGRAM([], [

@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -44,7 +44,7 @@
 using namespace std;
 
 extern "C"{
-  void meshconv(const char* input_basename, size_t input_basename_len, const char* input_mesh_format, 
+  void meshconv(const char* input_basename, size_t input_basename_len, const char* input_mesh_format,
                   size_t input_mesh_format_len, const char* output_mesh_format, size_t output_mesh_format_len);
 }
 
@@ -161,13 +161,13 @@ int main(int argc, char** argv){
     exit(-1);
   }
   input_mesh_format = args['i'].c_str();
-  
+
   if(args.count('o') == 0){
     Usage();
     exit(-1);
   }
   output_mesh_format = args['o'].c_str();
-  
+
   // Stop the program if 'exodusii' was given as output format:
   if (output_mesh_format.compare("exodusii") == 0){
     cerr << "Error: ExodusII is only allowed as an INPUT mesh format." << endl;

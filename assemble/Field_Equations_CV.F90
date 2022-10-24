@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -70,7 +70,7 @@ module field_equations_cv
             assemble_advectiondiffusion_m_cv
 
   integer, dimension(:), allocatable, save :: conv_unit
-  
+
   !! This allows a reference between the field and the file its meant to be
   !! writing to.
   character(len=OPTION_PATH_LEN), dimension(:), allocatable, save :: sfield_list
@@ -138,15 +138,15 @@ contains
       type(csr_sparsity), pointer :: mesh_sparsity_1, mesh_sparsity, &
                                      mesh_sparsity_x, grad_m_t_sparsity
 
-      ! Right hand side vector, cv mass matrix, 
-      ! locally iterated field (for advection iterations) 
+      ! Right hand side vector, cv mass matrix,
+      ! locally iterated field (for advection iterations)
       ! and local old field (for subcycling)
       type(scalar_field), pointer :: t_cvmass, q_cvmass, t_abs_src_cvmass
       type(scalar_field) :: t_cvmass_old, t_cvmass_new
       type(scalar_field) :: rhs, cvmass, advit_tfield, l_old_tfield
       ! Diffusion contribution to rhs
       type(scalar_field) :: diff_rhs
-      
+
       ! local copy of option_path for solution field
       character(len=OPTION_PATH_LEN) :: option_path, tdensity_option_path
 
@@ -250,14 +250,14 @@ contains
       call allocate(dummytensor, tfield%mesh, name="DummyTensor", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummytensor)
       dummytensor%option_path = " "
-      
-      ! Allocate a dummy density field set to 1.0 in case we are using KEpsilon, 
+
+      ! Allocate a dummy density field set to 1.0 in case we are using KEpsilon,
       ! but have a Boussinesq or Drainage equation_type for Velocity.
       allocate(dummydensity)
       call allocate(dummydensity, tfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
       call set(dummydensity, 1.0)
       dummydensity%option_path = " "
-      
+
       ! PhaseVolumeFraction for multiphase flow simulations
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
          multiphase = .true.
@@ -265,9 +265,9 @@ contains
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
          call zero(nvfrac)
          call get_nonlinear_volume_fraction(state(istate), nvfrac)
-         
+
          ewrite_minmax(nvfrac)
-         
+
          oldvfrac => extract_scalar_field(state(istate), "OldPhaseVolumeFraction")
       else
          multiphase = .false.
@@ -319,7 +319,7 @@ contains
         ! is solved for with this subroutine and the correct priority ordering.
         oldtdensity=>extract_scalar_field(state(istate), "Old"//trim(tmpstring))
         ewrite_minmax(oldtdensity)
-           
+
       end select
 
       ! get the tdensity discretisation options from:
@@ -367,7 +367,7 @@ contains
         allocate(advu)
         call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
         call set(advu, nu)
-        if (have_option(trim(tfield%option_path)// & 
+        if (have_option(trim(tfield%option_path)// &
          "/prognostic/spatial_discretisation/control_volumes/"// &
          "face_value::FiniteElement/only_sinking_velocity")) then
             call zero(advu)
@@ -401,7 +401,7 @@ contains
       else
         ewrite_minmax(diffusivity)
       end if
-      
+
       ! do we have a source?
       source=>extract_scalar_field(state(istate), trim(field_name)//"Source", stat=stat)
       include_source = (stat==0)
@@ -409,15 +409,15 @@ contains
         source=>dummyscalar
       else
         add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
-      
-        if (add_src_directly_to_rhs) then 
+
+        if (add_src_directly_to_rhs) then
           ewrite(2, *) "Adding Source field directly to the right hand side"
           assert(node_count(source) == node_count(tfield))
         end if
 
         ewrite_minmax(source)
       end if
-      
+
       ! do we have an absorption?
       absorption=>extract_scalar_field(state(istate), trim(field_name)//"Absorption", stat=stat)
       include_absorption = (stat==0)
@@ -426,7 +426,7 @@ contains
       else
         ewrite_minmax(absorption)
       end if
-      
+
       ! create control volume shape functions
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                      quaddegree, default=1)
@@ -442,7 +442,7 @@ contains
         u_cvshape=t_cvshape
         call incref(u_cvshape)
       end if
-      
+
       x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
       if(include_advection) then
         u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape)
@@ -508,14 +508,14 @@ contains
           elseif(diffusivity%mesh%shape%degree>tfield%mesh%shape%degree) then
             FLExit("The diffusivity mesh must be of a lower degree than the field")
           end if
-          
+
           ! we also need a first order sparsity using the diffusivity mesh for the assembly of the auxilliary eqn
           grad_m_t_sparsity => get_csr_sparsity_firstorder(state, tfield%mesh, diffusivity%mesh)
         else
           ! no difference between the meshes so this is safe (and faster)
           grad_m_t_sparsity => mesh_sparsity_1
         end if
-        
+
       else
         ! no BassiRebay diffusion so only a first order sparsity is needed... woo!
         mesh_sparsity => get_csr_sparsity_firstorder(state, tfield%mesh, tfield%mesh)
@@ -551,7 +551,7 @@ contains
         if(.not.include_mass) then
           FLExit("Can't be explicit and exclude the mass terms.")
         end if
-        
+
         ! allocate a local cvmass field because it will get modified by bc etc.
         call allocate(cvmass, tfield%mesh, name=trim(field_name)//"CVMass")
         call zero(cvmass)
@@ -567,13 +567,13 @@ contains
 
       ! allocate the rhs of the equation
       call allocate(rhs, tfield%mesh, name=trim(field_name)//"RHS")
-      
+
       ! find the cv mass that is used for the absorption and source terms
       t_abs_src_cvmass => get_cv_mass(state, tfield%mesh)
       ewrite_minmax(t_abs_src_cvmass)
-      
+
       ! find the cv mass that is used for the time term derivative
-      t_cvmass => t_abs_src_cvmass      
+      t_cvmass => t_abs_src_cvmass
       ewrite_minmax(t_cvmass)
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
@@ -591,7 +591,7 @@ contains
         call compute_cv_mass(x_new, t_cvmass_new)
         ewrite_minmax(t_cvmass_old)
         ewrite_minmax(t_cvmass_new)
-        
+
         ug=>extract_vector_field(state(istate), "GridVelocity")
         ewrite_minmax(ug)
 
@@ -642,7 +642,7 @@ contains
                       &/control_volumes/number_advection_subcycles", &
                       no_subcycles, stat=stat)
       if(stat/=0) then
-        ! have not specified a number of subcycles but perhaps we're using a 
+        ! have not specified a number of subcycles but perhaps we're using a
         ! courant number definition?
         call get_option(trim(option_path)//"/prognostic/temporal_discretisation&
                         &/control_volumes/maximum_courant_number_per_subcycle", &
@@ -716,7 +716,7 @@ contains
                                     tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, tfield_options%theta, &
                                     state(istate:istate), advu, sub_dt, explicit, &
-                                    t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
+                                    t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, &
                                     D_m, diff_rhs, nvfrac, oldvfrac)
 
           if(have_option("/multiphase_interaction/heat_transfer") .and. &
@@ -857,12 +857,12 @@ contains
       type(scalar_field), intent(in) :: cvmass_old
       type(scalar_field), intent(in) :: cvmass_new
       ! cv mass to use for absorption and source
-      type(scalar_field), intent(in) :: abs_src_cvmass      
-      
+      type(scalar_field), intent(in) :: abs_src_cvmass
+
       ! diffusion:
       type(csr_matrix), intent(inout), optional :: D_m
       type(scalar_field), intent(inout), optional :: diff_rhs
-      
+
       type(scalar_field), intent(inout), optional :: nvfrac, oldvfrac
 
       ! local memory:
@@ -938,7 +938,7 @@ contains
         call set(massabsorption, abs_src_cvmass)
         call scale(massabsorption, absorption)
       end if
-      
+
       if(move_mesh) then
         call allocate(massconservation, rhs%mesh, name="MovingMeshMassConservation")
         call set(massconservation, cvmass_old)
@@ -961,7 +961,7 @@ contains
           ! construct M
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-          
+
           ! construct rhs
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
@@ -988,7 +988,7 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           call addto(rhs, massconservation)
         end if
@@ -1010,7 +1010,7 @@ contains
 
           call deallocate(consterm)
         end if
-        
+
         ! construct M:
         ! multiply the diagonal of M by the up to date density
         if(explicit) then
@@ -1021,16 +1021,16 @@ contains
           if(include_mass) then
             call mult_diag(M, tdensity)
           end if
-          
+
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-        
+
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
             call addto(rhs, MT_old, -1.0)
           end if
         end if
-        
+
         if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
@@ -1049,7 +1049,7 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
@@ -1066,12 +1066,12 @@ contains
             m_cvmass%val = m_cvmass%val*(tdensity_theta*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val)
           end if
         else
-          if(include_mass) then 
+          if(include_mass) then
             call mult_diag(M, ((tdensity_theta)*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val))
           end if
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-        
+
           ! construct rhs
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
@@ -1097,7 +1097,7 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
@@ -1114,12 +1114,12 @@ contains
             m_cvmass%val = m_cvmass%val*(tdensity_theta*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val)
           end if
         else
-          if(include_mass) then 
+          if(include_mass) then
             call mult_diag(M, ((tdensity_theta)*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val))
           end if
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-        
+
           ! construct rhs
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
@@ -1145,7 +1145,7 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
@@ -1167,15 +1167,15 @@ contains
            call allocate(CT_m, gradient_sparsity, (/1, advu%dim/), name="DivergenceMatrix" )
            call assemble_divergence_matrix_cv(CT_m, state(1), &
                                                 test_mesh=p%mesh, field=advu, include_vfrac=.false.)
-                                                
+
            call allocate(pterm, p%mesh, "PressureTerm")
-            
+
            ! construct the pressure term
-           call mult(pterm, CT_m, advu) 
+           call mult(pterm, CT_m, advu)
            if(multiphase) then
               call scale(pterm, nvfrac) ! We need vfrac*p*div(u) for the multiphase InternalEnergy equation
            end if
-            
+
                                    ! should this really be the advection velocity or just the relative or the nonlinear?
            pterm%val = pterm%val*(p%val+atmospheric_pressure)
 
@@ -1184,25 +1184,25 @@ contains
            call deallocate(CT_m)
            call deallocate(pterm)
         end if
-         
+
         ! construct M
         if(explicit) then
           if(include_mass) then
             call scale(m_cvmass, tdensity)
             if(multiphase) then
-               call scale(m_cvmass, nvfrac) 
+               call scale(m_cvmass, nvfrac)
             end if
           end if
         else
           if(include_mass) then
             call mult_diag(M, tdensity)
             if(multiphase) then
-               call mult_diag(M, nvfrac) 
+               call mult_diag(M, nvfrac)
             end if
           end if
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-        
+
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
             call addto(rhs, MT_old, -1.0)
@@ -1227,7 +1227,7 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
@@ -1241,19 +1241,19 @@ contains
           if(include_mass) then
             call scale(m_cvmass, tdensity)
             if(multiphase) then
-               call scale(m_cvmass, nvfrac) 
+               call scale(m_cvmass, nvfrac)
             end if
           end if
         else
           if(include_mass) then
             call mult_diag(M, tdensity)
             if(multiphase) then
-               call mult_diag(M, nvfrac) 
+               call mult_diag(M, nvfrac)
             end if
           end if
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
-        
+
           if(include_advection) then
             call mult(MT_old, A_m, oldtfield)
             call addto(rhs, MT_old, -1.0)
@@ -1278,14 +1278,14 @@ contains
             call addto(M, D_m, theta*dt)
           end if
         end if
-        
+
         if(move_mesh) then
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
       end select
 
-      ! Add the source directly to the rhs if required 
+      ! Add the source directly to the rhs if required
       ! which must be included before dirichlet BC's.
       if (add_src_directly_to_rhs) call addto(rhs, source)
 
@@ -1293,14 +1293,14 @@ contains
       if(include_absorption) call deallocate(massabsorption)
       call deallocate(MT_old)
       if(move_mesh) call deallocate(massconservation)
-      
+
       ewrite(1, *) "Exiting assemble_field_eqn_cv"
 
     end subroutine assemble_field_eqn_cv
     ! end of equation wrapping subroutines
     !************************************************************************
     !************************************************************************
-    ! assembly subroutines 
+    ! assembly subroutines
     subroutine assemble_advectiondiffusion_m_cv(A_m, rhs, D_m, diff_rhs, &
                                        tfield, oldtfield, tfield_options, &
                                        tdensity, oldtdensity, nvfrac, oldvfrac, &
@@ -1366,7 +1366,7 @@ contains
       type(scalar_field), intent(in) :: cfl_no
       ! timestep
       real, intent(in) :: dt
-      
+
       type(scalar_field), intent(in) :: nvfrac, oldvfrac
       real, dimension(x_cvshape%ngi) :: nvfrac_gi
 
@@ -1404,7 +1404,7 @@ contains
       ! memory for the values of the field and density at the nodes
       ! and on the boundary and for ghost values outside the boundary
       real, dimension(ele_loc(tdensity,1)) :: tdensity_ele, oldtdensity_ele
-      real, dimension(ele_loc(tfield,1)) :: tfield_ele, oldtfield_ele                                         
+      real, dimension(ele_loc(tfield,1)) :: tfield_ele, oldtfield_ele
       real, dimension(face_loc(tdensity,1)) :: tdensity_ele_bdy, oldtdensity_ele_bdy, &
                                                ghost_tdensity_ele_bdy, ghost_oldtdensity_ele_bdy
       real, dimension(face_loc(tfield,1)) :: tfield_ele_bdy, oldtfield_ele_bdy, &
@@ -1420,7 +1420,7 @@ contains
 
       ! loop integers
       integer :: ele, sele, iloc, oloc, dloc, face, gi, ggi, dim
-      
+
       ! what equation type are we solving for?
       integer :: equation_type
 
@@ -1446,7 +1446,7 @@ contains
       real, dimension(mesh_dim(tfield), face_loc(tfield,1)) :: grad_mat_local_bdy, grad_rhs_local_bdy
       real, dimension(face_loc(tfield,1)) :: mat_local_bdy, rhs_local_bdy, div_rhs_local_bdy
       real, dimension(ele_loc(tfield,1)) :: rhs_local
-      
+
       ! Data associated with Robin BC's.
       real, dimension(face_loc(tfield,1)) :: robin_diff_mat_local_bdy
       real, dimension(face_loc(tfield,1)) :: robin_diff_rhs_local_bdy
@@ -1515,7 +1515,7 @@ contains
 
         end if
       end if
-      
+
       ! allocate and clear memory for diffusion
       if(assemble_diffusion) then
         if(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY) then
@@ -1544,7 +1544,7 @@ contains
         x_f=ele_val_at_quad(x, ele, x_cvshape)
         nodes=>ele_nodes(tfield, ele)
         ! the nodes in this element from the coordinate mesh projected
-        ! to the tfield mesh (unperiodised perhaps... hence different to tfield mesh) 
+        ! to the tfield mesh (unperiodised perhaps... hence different to tfield mesh)
         x_nodes=>ele_nodes(x_tfield, ele)
         if(include_advection) then
           u_f=ele_val_at_quad(advu, ele, u_cvshape)
@@ -1578,11 +1578,11 @@ contains
           call transform_to_physical(X, ele, x_shape=x_cvshape_full, &
                                     shape=t_cvshape_full, dshape=dt_t)
           diffusivity_gi = ele_val_at_quad(diffusivity, ele, diff_cvshape_full)
-          
+
           if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
             nvfrac_gi = ele_val_at_quad(nvfrac, ele, diff_cvshape_full)
           end if
-          
+
         end if
 
         cfl_ele = ele_val(cfl_no, ele)
@@ -1593,7 +1593,7 @@ contains
         if(include_density) then
           tdensity_ele = ele_val(tdensity, ele)
           oldtdensity_ele = ele_val(oldtdensity, ele)
-          
+
           if(multiphase) then
             tdensity_ele = tdensity_ele*ele_val(nvfrac,ele)
             oldtdensity_ele = oldtdensity_ele*ele_val(oldvfrac,ele)
@@ -1641,7 +1641,7 @@ contains
                     end if
                     inflow = (udotn<=0.0)
                     income = merge(1.0,0.0,inflow)
-                    
+
                     ! calculate the iterated pivot value (so far only does first order upwind)
                     ! which will be subtracted out from the rhs such that with an increasing number
                     ! of iterations the true implicit lhs pivot is cancelled out (if it converges!)
@@ -1650,7 +1650,7 @@ contains
                     ! evaluate the nonlinear face value that will go into the rhs
                     ! this is the value that you choose the discretisation for and
                     ! that will become the dominant term once convergence is achieved
-                    call evaluate_face_val(tfield_face_val, oldtfield_face_val, & 
+                    call evaluate_face_val(tfield_face_val, oldtfield_face_val, &
                                           iloc, oloc, ggi, upwind_nodes, &
                                           t_cvshape, &
                                           tfield_ele, oldtfield_ele, &
@@ -1712,7 +1712,7 @@ contains
                                       + ptheta*(-udotn)*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
                                       - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
                                       + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val*oldtfield_ele(oloc)
-                                      
+
                     else
                       if(assemble_advection_matrix) then
                         mat_local(iloc, oloc) = mat_local(iloc, oloc) &
@@ -1734,7 +1734,7 @@ contains
                       rhs_local(oloc) = rhs_local(oloc) &
                                       + ptheta*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                       - (-udotn)*detwei(ggi)*tfield_theta_val &
-                                      + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*oldtfield_ele(oloc)                  
+                                      + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*oldtfield_ele(oloc)
                     end if
                   end if
 
@@ -1765,7 +1765,7 @@ contains
                       end do dimension_loop1
 
                     case(CV_DIFFUSION_ELEMENTGRADIENT)
-                    
+
                      if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
                         ! This allows us to use the Diffusivity term as the heat flux term
                         ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
@@ -1773,7 +1773,7 @@ contains
                         ! where k is the effective conductivity and Cv is the specific heat
                         ! at constant volume. The division by Cv is needed because the heat flux
                         ! is defined in terms of temperature T = ie/Cv.
-                     
+
                         do dloc=1,size(dt_t,1)
                            ! n_i K_{ij} dT/dx_j
                            diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
@@ -1783,7 +1783,7 @@ contains
                            diff_mat_local(oloc, dloc) = diff_mat_local(oloc,dloc) - &
                            sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*(-normgi), 1)*detwei(ggi)*nvfrac_gi(ggi)
                         end do
-                     else       
+                     else
                         do dloc=1,size(dt_t,1)
                            ! n_i K_{ij} dT/dx_j
                            diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
@@ -1848,7 +1848,7 @@ contains
 
       ! loop over the surface elements
       surface_element_loop: do sele = 1, surface_element_count(tfield)
-        
+
         if((tfield_bc_type(sele)==BC_TYPE_INTERNAL)) cycle
 
         ele = face_ele(x, sele)
@@ -1877,7 +1877,7 @@ contains
           !  call transform_to_physical(x_ele_bdy, x_cvbdyshape_full, &
           !                            m=t_cvbdyshape_full, dm_t=dt_ft)
           dt_ft = 0.0 ! at the moment its not possible to get the full gradient
-                      ! so until this is fixed we're just going to have to assume 
+                      ! so until this is fixed we're just going to have to assume
                       ! zero neumann on outflow boundaries
           diffusivity_gi_f = face_val_at_quad(diffusivity, sele, diff_cvbdyshape_full)
         end if
@@ -1926,7 +1926,7 @@ contains
 
             tdensity_ele_bdy=face_val(tdensity, sele)
             oldtdensity_ele_bdy=face_val(oldtdensity, sele)
-            
+
             if(multiphase) then
                tdensity_ele_bdy=tdensity_ele_bdy*face_val(nvfrac, sele)
                oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(oldvfrac, sele)
@@ -1970,7 +1970,7 @@ contains
 
                 ! global gauss point index
                 ggi = (face-1)*cvfaces%shape%ngi + gi
-                
+
                 if(include_advection) then
 
                   ! u.n
@@ -1989,7 +1989,7 @@ contains
                       udotn = divudotn
                     end if
                   end if
-                  
+
                   if(udotn>0) then
                     income=0.0 ! flow leaving the domain
                   else
@@ -2015,26 +2015,26 @@ contains
                     if(assemble_advection_matrix) then
                       ! if iloc is the donor we can do this implicitly
                       mat_local_bdy(iloc) = mat_local_bdy(iloc) &
-                                      + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &  
+                                      + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &
                                       - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn*tdensity_theta_val
                     end if
 
                     ! but we can't if it's the downwind
                     rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
-                                  - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(iloc) & 
+                                  - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(iloc) &
                                   - (1.-ptheta)*udotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_face_val &
                                   + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(iloc)
                   else
                     if(assemble_advection_matrix) then
                       ! if iloc is the donor we can do this implicitly
                       mat_local_bdy(iloc) = mat_local_bdy(iloc) &
-                                      + ptheta*detwei_bdy(ggi)*udotn*(1.-income) &  
+                                      + ptheta*detwei_bdy(ggi)*udotn*(1.-income) &
                                       - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn
                     end if
 
                     ! but we can't if it's the downwind
                     rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
-                                  - ptheta*udotn*detwei_bdy(ggi)*income*ghost_tfield_ele_bdy(iloc) & 
+                                  - ptheta*udotn*detwei_bdy(ggi)*income*ghost_tfield_ele_bdy(iloc) &
                                   - (1.-ptheta)*udotn*detwei_bdy(ggi)*oldtfield_face_val &
                                   + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*oldtfield_ele_bdy(iloc)
                   end if
@@ -2095,17 +2095,17 @@ contains
                                   -detwei_bdy(ggi)*ghost_gradtfield_ele_bdy(iloc)
 
                     else if (tfield_bc_type(sele)==BC_TYPE_ROBIN) then
-                        
+
                         ! Add first coeff term to rhs
                         robin_diff_rhs_local_bdy(iloc) = robin_diff_rhs_local_bdy(iloc) - &
                                                          detwei_bdy(ggi) * &
                                                          robin_bc_val1_ele_bdy(iloc)
-                                                
+
                         ! Add implicit second coeff * tfield term to matrix
                         robin_diff_mat_local_bdy(iloc) = robin_diff_mat_local_bdy(iloc) + &
                                                          detwei_bdy(ggi) * &
                                                          robin_bc_val2_ele_bdy(iloc)
-                    
+
                     else
 
                       ! because transform to physical doesn't give the full gradient at a face
@@ -2165,11 +2165,11 @@ contains
               call addto(diff_rhs, nodes_bdy, div_rhs_local_bdy)
 
             else if (tfield_bc_type(sele)==BC_TYPE_ROBIN) then
-              
+
                call addto(diff_rhs, nodes_bdy, robin_diff_rhs_local_bdy)
-               
+
                call addto_diag(D_m, nodes_bdy, robin_diff_mat_local_bdy)
-              
+
             else
 
             !    assume zero neumann for the moment
@@ -2271,7 +2271,7 @@ contains
       integer :: i, f, c, nfields, nfield_groups
 
       ewrite(1,*) 'in coupled_cv_field_eqn'
-      
+
       ! find the number of fields in all states (assumed to be in material_phases) that use the coupled_cv
       ! this is the maximum possible of fields we'll have to actually solve for (in reality will be fewer)
       nfields = option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")
@@ -2312,7 +2312,7 @@ contains
         end do
 
       end do
-      
+
       ewrite(2,*) 'nfield_groups = ', nfield_groups
 
       do i = 1, nfield_groups
@@ -2348,7 +2348,7 @@ contains
       ! Coordinate field
       type(vector_field), pointer :: x, x_old, x_new
       type(vector_field) :: x_tfield
-      
+
       type(scalar_field_pointer), dimension(nfields) :: source, absorption
 
       ! Change in tfield over one timestep.
@@ -2360,8 +2360,8 @@ contains
       ! sparsity structure to construct the matrices with
       type(csr_sparsity), pointer :: mesh_sparsity, mesh_sparsity_x
 
-      ! Right hand side vector, cv mass matrix, 
-      ! locally iterated field (for advection iterations) 
+      ! Right hand side vector, cv mass matrix,
+      ! locally iterated field (for advection iterations)
       ! and local old field (for subcycling)
       type(scalar_field), dimension(nfields) :: rhs, advit_tfield
       type(scalar_field_pointer), dimension(nfields) :: l_old_tfield
@@ -2369,7 +2369,7 @@ contains
       type(scalar_field), pointer :: t_abs_src_cvmass
       type(scalar_field_pointer), dimension(nfields) :: t_cvmass
       type(scalar_field) :: t_cvmass_old, t_cvmass_new
-      
+
       ! local copy of option_path for solution field
       character(len=OPTION_PATH_LEN), dimension(nfields) :: option_path
       character(len=OPTION_PATH_LEN), dimension(nfields) :: tdensity_option_path
@@ -2459,7 +2459,7 @@ contains
       include_absorption = .false.
       include_mass = .true.
       include_advection = .true.
-      
+
       ! allocate dummy density in case density field isn't needed (this can be a constant field!)
       allocate(dummydensity)
       call allocate(dummydensity, tmpfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -2471,7 +2471,7 @@ contains
       call allocate(dummyscalar, tmpfield%mesh, name="DummyScalar", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummyscalar)
       dummyscalar%option_path = ""
-      
+
       ! now extract everything in the right order
       do f = 1, nfields
         ewrite(2,*) 'extracting '//trim(field_name)//' from state '//trim(state(state_indices(f))%name)
@@ -2488,7 +2488,7 @@ contains
         it_tfield=>extract_scalar_field(state(state_indices(f)), "Iterated"//trim(field_name))
         ! and set tfield to them:
         call set(tfield(f)%ptr, it_tfield)
-        
+
         include_density = .false.
         ! find out equation type and hence if density is needed or not
         equation_type=equation_type_index(trim(option_path(f)))
@@ -2541,7 +2541,7 @@ contains
         source(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Source", stat=stat)
         if(stat==0) then
           FLExit("Coupled CV broken with Sources")
-          ! If Coupled CV is ever fixed to work with Sources then the 
+          ! If Coupled CV is ever fixed to work with Sources then the
           ! option source(f)%option_path//'/diagnostic/add_directly_to_rhs'
           ! should be accounted for.
         end if
@@ -2556,21 +2556,21 @@ contains
         explicit(f)=have_option(trim(option_path(f))//"/prognostic/explicit")
 
       end do
-      
+
       ! we assume that all fields are on the same mesh as for the method to the work the faces must intersect!
       do f = 2, nfields
         assert(tfield(f)%ptr%mesh%shape%degree==tfield(1)%ptr%mesh%shape%degree)
         assert(all(tfield(f)%ptr%mesh%ndglno==tfield(1)%ptr%mesh%ndglno))
       end do
-      
-      ! for now we assume as this is a effectively a multimaterial problem 
+
+      ! for now we assume as this is a effectively a multimaterial problem
       ! that all fields are advected using the same velocity
       ! on the same coordinate field
       ! extract velocity and coordinate fields from state
       nu=>extract_vector_field(state(state_indices(1)), "NonlinearVelocity")
       x=>extract_vector_field(state(state_indices(1)), "Coordinate")
       x_tfield = get_coordinate_field(state(state_indices(1)), tfield(1)%ptr%mesh)
-      
+
       ! find relative velocity
       call allocate(advu, nu%dim, nu%mesh, "RelativeVelocity")
       call set(advu, nu)
@@ -2616,13 +2616,13 @@ contains
         if(.not.explicit(f)) then
           call allocate(M(f), mesh_sparsity, name=trim(field_name)//"Matrix")
           call zero(M(f))
-  
+
           ! allocate the advection matrix
           call allocate(A_m(f), mesh_sparsity, name=trim(field_name)//int2str(f)//"AdvectionMatrix")
           call zero(A_m(f))
         else
           call allocate(cvmass(f), tfield(1)%ptr%mesh, name=trim(field_name)//"LocalCVMass")
-          call zero(cvmass(f)) 
+          call zero(cvmass(f))
         end if
 
         ! allocate the rhs of the equation
@@ -2632,9 +2632,9 @@ contains
       ! find the cv mass that is used for the absorption and source terms
       t_abs_src_cvmass => get_cv_mass(state, tfield(1)%ptr%mesh)
       ewrite_minmax(t_abs_src_cvmass)
-      
+
       ! find the cv mass that is used for the time term derivative:
-      do f = 1,nfields                  
+      do f = 1,nfields
          t_cvmass(f)%ptr => t_abs_src_cvmass
          ewrite_minmax(t_cvmass(f)%ptr)
       end do
@@ -2649,12 +2649,12 @@ contains
         x_new=>extract_vector_field(state(1), "IteratedCoordinate")
         call allocate(t_cvmass_old, tfield(1)%ptr%mesh, name=trim(field_name)//"OldCVMass")
         call allocate(t_cvmass_new, tfield(1)%ptr%mesh, name=trim(field_name)//"NewCVMass")
-        
+
         call compute_cv_mass(x_old, t_cvmass_old)
         call compute_cv_mass(x_new, t_cvmass_new)
         ewrite_minmax(t_cvmass_old)
         ewrite_minmax(t_cvmass_new)
-        
+
         ug=>extract_vector_field(state(1), "GridVelocity")
         ewrite_minmax(ug)
 
@@ -2716,7 +2716,7 @@ contains
       cfl_sub_stat = 1
       max_sub_cfl=0.0
       if(stat/=0) then
-        ! have not specified a number of subcycles but perhaps we're using a 
+        ! have not specified a number of subcycles but perhaps we're using a
         ! courant number definition?
         do f = 1, nfields
           call get_option(trim(option_path(f))//"/prognostic/temporal_discretisation&
@@ -2756,7 +2756,7 @@ contains
 
           do f = 1, nfields
             getmat(f)=(adv_it==1).and.(sub==1).and.(.not.explicit(f)).and.include_advection
-            
+
             ! record the value of tfield since the previous iteration
             call set(advit_tfield(f), tfield(f)%ptr)
           end do
@@ -2854,7 +2854,7 @@ contains
       end if
       call deallocate(ug_cvshape)
       call deallocate(ug_cvbdyshape)
-      
+
     end subroutine solve_coupled_cv
 
     ! coupled assembly:
@@ -3043,11 +3043,11 @@ contains
         ! some temporal discretisation options for clarity
         ptheta(f) = tfield_options(f)%ptheta
         beta(f) = tfield_options(f)%beta
-        
+
       end do
-      
+
       call couple_upwind_values(tfield_upwind, oldtfield_upwind, tfield_options)
-      
+
       ! loop over elements
       element_loop: do ele=1, element_count(tfield(1)%ptr)
         x_ele=ele_val(x, ele)
@@ -3074,7 +3074,7 @@ contains
         do f = 1, nfields
           tfield_ele(f,:) = ele_val(tfield(f)%ptr, ele)
           oldtfield_ele(f,:) = ele_val(oldtfield(f)%ptr, ele)
-          
+
           do f2 = f, nfields
             sum_tfield_ele(f2,:) = sum_tfield_ele(f2,:) + tfield_ele(f,:)
             sum_oldtfield_ele(f2,:) = sum_oldtfield_ele(f2,:) + oldtfield_ele(f,:)
@@ -3091,7 +3091,7 @@ contains
 
           ! loop over cv faces internal to this element
           face_loop: do face = 1, cvfaces%faces
-          
+
             ! is this a face neighbouring iloc?
             if(cvfaces%neiloc(iloc, face) /= 0) then
               oloc = cvfaces%neiloc(iloc, face)
@@ -3132,16 +3132,16 @@ contains
                     ! this is the value that you choose the discretisation for and
                     ! that will become the dominant term once convergence is achieved
 
-                    call evaluate_face_val(tfield_face_val(f), oldtfield_face_val(f), & 
+                    call evaluate_face_val(tfield_face_val(f), oldtfield_face_val(f), &
                                           iloc, oloc, ggi, upwind_nodes, &
                                           t_cvshape, &
                                           tfield_ele(f,:), oldtfield_ele(f,:), &
                                           tfield_upwind(f), oldtfield_upwind(f), &
                                           inflow, cfl_ele, &
                                           tfield_options(f), save_pos=upwind_pos)
-                    
+
                     if(f>1) then
-                    
+
                       call couple_face_value(tfield_face_val(f), oldtfield_face_val(f), &
                                              sum(tfield_face_val(1:f-1)), sum(oldtfield_face_val(1:f-1)), &
                                              tfield_ele(f,:), oldtfield_ele(f,:), &
@@ -3239,18 +3239,18 @@ contains
                                     ptheta(f)*(-udotn)*detwei(ggi)*tfield_pivot_val &
                                   - (-udotn)*detwei(ggi)*tfield_theta_val &
                                   + (1.-ftheta)*(1.-beta(f))*detwei(ggi)*(-divudotn)*oldtfield_ele(f,oloc)) ! notvisited
-                    
+
                     end if
 
                   end do field_loop
-                  
+
                 end if ! notvisited
               end do quadrature_loop
             end if ! neiloc
           end do face_loop
         end do nodal_loop_i
       end do element_loop
-      
+
       ! allocate memory for assembly
       allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
               detwei_bdy(x_cvbdyshape%ngi), &
@@ -3277,12 +3277,12 @@ contains
           "zero_flux    "/), tfield_bc(f), tfield_bc_type(f,:))
         call get_entire_boundary_condition(tdensity(f)%ptr, (/"weakdirichlet"/), tdensity_bc(f), tdensity_bc_type(f,:))
       end do
-      
+
       ! loop over the surface elements
       surface_element_loop: do sele = 1, surface_element_count(tfield(1)%ptr)
 
         if(any(tfield_bc_type(:,sele)==BC_TYPE_INTERNAL)) cycle
-        
+
         ele = face_ele(x, sele)
         x_ele = ele_val(x, ele)
         x_ele_bdy = face_val(x, sele)
@@ -3352,7 +3352,7 @@ contains
                 else
                   udotn_bdy = divudotn
                 end if
-                
+
                 if(udotn_bdy>0) then
                   income=0.0 ! flow leaving the domain
                 else
@@ -3365,7 +3365,7 @@ contains
                 ! if the flow is outgoing then use the surface nodes value
 
                 surface_field_loop: do f = 1, nfields
-                  
+
                   if((tfield_bc_type(f,sele)==BC_TYPE_ZEROFLUX)) then
                     ! zero_flux
                     udotn = 0.0
@@ -3408,7 +3408,7 @@ contains
                     call addto(rhs(f), nodes_bdy(iloc), &
                                 -ptheta(f)*udotn*detwei_bdy(ggi)*income*ghost_tfield_ele_bdy(f,iloc) & ! but we can't if it's the downwind
                                 -(1.-ptheta(f))*udotn*detwei_bdy(ggi)*oldtfield_face_val(f) &
-                                +(1.-ptheta(f))*(1.-beta(f))*divudotn*detwei_bdy(ggi)*oldtfield_ele_bdy(f,iloc))                  
+                                +(1.-ptheta(f))*(1.-beta(f))*divudotn*detwei_bdy(ggi)*oldtfield_ele_bdy(f,iloc))
                   end if
 
                 end do surface_field_loop
@@ -3557,9 +3557,9 @@ contains
        logical :: write_convergence_file
        character(len=10) :: format, iformat
        integer :: fileno
-       
+
        integer :: convergence_norm
-       
+
        convergence_norm = convergence_norm_integer(trim(field%option_path)//&
                           "/prognostic/temporal_discretisation/control_volumes/number_advection_iterations/tolerance")
 
@@ -3660,14 +3660,14 @@ contains
                 ewrite(-1,*) "Use control volume discretisation if you want diffusion."
                 FLExit("Multiple coupled control volume discretisation not compatible with Diffusivity")
               end if
-              
+
               if(.not.have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/priority")) then
                 FLExit("Coupled control volume discretisation requires a priority option.")
               end if
-              
+
               if(explicit) then
-                
+
                 call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/temporal_discretisation/theta", theta)
                 if (theta/=0.0) then
@@ -3676,7 +3676,7 @@ contains
                                 trim(mat_name)//"."
                   FLExit("Explicit coupled control volume discretisations must use temporal_discretisation/theta = 0.0")
                 end if
-                
+
                 call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/temporal_discretisation/control_volumes/pivot_theta", p_theta, default=1.0)
                 if (p_theta/=0.0) then
@@ -3685,7 +3685,7 @@ contains
                   trim(mat_name)//"."
                   FLExit("Explicit coupled control volume discretisations must use temporal_discretisation/control_volumes/pivot_theta = 0.0")
                 end if
-                
+
               end if
             elseif(cv_disc) then
               if(diff) then
@@ -3703,7 +3703,7 @@ contains
                 end select
               end if
               if(explicit) then
-                
+
                 call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/temporal_discretisation/theta", theta)
                 if (theta/=0.0) then
@@ -3712,7 +3712,7 @@ contains
                                 trim(mat_name)//"."
                   FLExit("Explicit control volume discretisations must use temporal_discretisation/theta = 0.0")
                 end if
-                
+
                 call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/temporal_discretisation/control_volumes/pivot_theta", p_theta, default=1.0)
                 if (p_theta/=0.0) then
@@ -3721,7 +3721,7 @@ contains
                   trim(mat_name)//"."
                   FLExit("Explicit control volume discretisations must use temporal_discretisation/control_volumes/pivot_theta = 0.0")
                 end if
-                
+
               end if
             else
               if(conv_file) then
@@ -3743,7 +3743,7 @@ contains
                 FLExit("Only pure control volume or coupled_cv discretisations can solve explicitly")
               end if
             end if
-                 
+
             if(mmat_cv_disc .or. cv_disc) then
                if (have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                     "]/prognostic/scalar_field::SinkingVelocity")) then

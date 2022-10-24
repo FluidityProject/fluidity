@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -37,8 +37,8 @@
 
 using namespace std;
 
-extern "C" { // This is the glue between METIS and fluidity  
-  
+extern "C" { // This is the glue between METIS and fluidity
+
   // Declarations needed from METIS
   typedef int idxtype;
 #ifdef PARMETIS_V3
@@ -62,9 +62,9 @@ namespace Fluidity{
   int FormGraph(const vector<int>& ENList, const int& dim, const int& nloc, const int& nnodes,
                 vector<set<int> >& graph){
     int num_elems = ENList.size()/nloc;
-  
+
     graph.clear();  graph.resize(nnodes);
-    
+
     switch (dim){
     case 1:
       switch(nloc){
@@ -76,7 +76,7 @@ namespace Fluidity{
         }
         break;
       default:
-        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
         return -1;
       }
       break;
@@ -94,7 +94,7 @@ namespace Fluidity{
         }
         break;
       default:
-        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
         return -1;
       }
       break;
@@ -128,50 +128,50 @@ namespace Fluidity{
           graph[ENList[i*nloc  ]-1].insert(ENList[i*nloc+1]);
           graph[ENList[i*nloc  ]-1].insert(ENList[i*nloc+2]);
           graph[ENList[i*nloc  ]-1].insert(ENList[i*nloc+4]);
-          
+
           graph[ENList[i*nloc+1]-1].insert(ENList[i*nloc  ]);
           graph[ENList[i*nloc+1]-1].insert(ENList[i*nloc+3]);
           graph[ENList[i*nloc+1]-1].insert(ENList[i*nloc+5]);
-          
+
           graph[ENList[i*nloc+2]-1].insert(ENList[i*nloc  ]);
           graph[ENList[i*nloc+2]-1].insert(ENList[i*nloc+3]);
           graph[ENList[i*nloc+2]-1].insert(ENList[i*nloc+6]);
-          
+
           graph[ENList[i*nloc+3]-1].insert(ENList[i*nloc+1]);
           graph[ENList[i*nloc+3]-1].insert(ENList[i*nloc+2]);
           graph[ENList[i*nloc+3]-1].insert(ENList[i*nloc+7]);
-          
+
           graph[ENList[i*nloc+4]-1].insert(ENList[i*nloc  ]);
           graph[ENList[i*nloc+4]-1].insert(ENList[i*nloc+5]);
           graph[ENList[i*nloc+4]-1].insert(ENList[i*nloc+6]);
-          
+
           graph[ENList[i*nloc+5]-1].insert(ENList[i*nloc+1]);
           graph[ENList[i*nloc+5]-1].insert(ENList[i*nloc+4]);
           graph[ENList[i*nloc+5]-1].insert(ENList[i*nloc+7]);
-          
+
           graph[ENList[i*nloc+6]-1].insert(ENList[i*nloc+2]);
           graph[ENList[i*nloc+6]-1].insert(ENList[i*nloc+4]);
           graph[ENList[i*nloc+6]-1].insert(ENList[i*nloc+7]);
-          
+
           graph[ENList[i*nloc+7]-1].insert(ENList[i*nloc+3]);
           graph[ENList[i*nloc+7]-1].insert(ENList[i*nloc+5]);
           graph[ENList[i*nloc+7]-1].insert(ENList[i*nloc+6]);
         }
         break;
       default:
-        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
       return -1;
       }
       break;
     default:
-      cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+      cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
       return -1;
     }
-    
+
     return 0;
   }
-  
-  int gpartition(const vector< set<int> > &graph, int npartitions, int partition_method, vector<int> &decomp){  
+
+  int gpartition(const vector< set<int> > &graph, int npartitions, int partition_method, vector<int> &decomp){
     // If no partitioning method is set, choose a default.
     if(partition_method<0){
       if(npartitions<=8)
@@ -182,7 +182,7 @@ namespace Fluidity{
 
     int nnodes = graph.size();
 
-    // Compress graph    
+    // Compress graph
     vector<idxtype> xadj(nnodes+1), adjncy;
     int pos=0;
     xadj[0]=1;
@@ -193,9 +193,10 @@ namespace Fluidity{
       }
       xadj[i+1] = pos+1;
     }
-    
+
     // Partition graph
     decomp.resize(nnodes);
+    [[maybe_unused]]
     int wgtflag=0, numflag=1, edgecut=0;
 #ifdef PARMETIS_V3
     int options[] = {0};
@@ -207,7 +208,7 @@ namespace Fluidity{
 #endif
     if(partition_method){
 #ifdef PARMETIS_V3
-      METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
+      METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag,
                           &numflag, &npartitions, options, &edgecut, &(decomp[0]));
 #else
       METIS_PartGraphKway(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
@@ -216,7 +217,7 @@ namespace Fluidity{
 #endif
     }else{
 #ifdef PARMETIS_V3
-      METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
+      METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag,
                                &numflag, &npartitions, options, &edgecut, &(decomp[0]));
 #else
       METIS_PartGraphRecursive(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
@@ -224,7 +225,7 @@ namespace Fluidity{
 			  &(decomp[0]));
 #endif
     }
-    
+
     // number from zero
     for(int i=0;i<nnodes;i++)
       decomp[i]--;
@@ -256,9 +257,10 @@ namespace Fluidity{
             }
           }
         }
-        
+
         vector<int> pdecomp, ncores(npartitions[1], 0);
         set<int> parts;
+        [[maybe_unused]]
         int sedgecut = gpartition(pgraph, npartitions[1], partition_method, pdecomp);
         for(map<int, int>::const_iterator it=renumber.begin();it!=renumber.end();++it){
           ncores[pdecomp[it->second]]++;
@@ -280,19 +282,19 @@ namespace Fluidity{
     if(ret != 0){
       return ret;
     }
-  
+
     int edgecut = hpartition(graph, npartitions, partition_method, decomp);
-    
+
     return edgecut;
-  }  
-  
+  }
+
   int partition(const vector<int> &ENList, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
     return partition(ENList, 3, nloc, nnodes, npartitions, partition_method, decomp);
   }
-  
+
   int partition(const vector<int> &ENList, const vector<int> &surface_nids, const int& dim, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
     int num_elems = ENList.size()/nloc;
-    
+
     set<int> surface_nodes;
     for(vector<int>::const_iterator it=surface_nids.begin(); it!=surface_nids.end(); ++it){
       surface_nodes.insert(*it);
@@ -318,12 +320,12 @@ namespace Fluidity{
         cerr<<"ERROR: Extrude support not implemented for hex's\n";
         exit(-1);
       default:
-        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+        cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
         return -1;
       }
       break;
     default:
-      cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl; 
+      cerr<<"ERROR: element type not recognised - dim = "<<dim<<", nloc = "<<nloc<<endl;
       return -1;
     }
 
@@ -336,17 +338,17 @@ namespace Fluidity{
       }
     vector<int> sdecomp(snnodes);
     int edgecut = hpartition(cgraph, npartitions, partition_method, sdecomp);
-    
+
     // Map 2D decomposition onto 3D mesh.
     decomp.resize(nnodes);
     for(int i=0;i<nnodes;i++)
       decomp[i] = sdecomp[surface_nids[i]-1];
-        
+
     return edgecut;
-  }  
-  
+  }
+
   int partition(const vector<int> &ENList, const vector<int> &surface_nids, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
-                
+
     return partition(ENList, surface_nids, 3, nloc, nnodes, npartitions, partition_method, decomp);
   }
 }

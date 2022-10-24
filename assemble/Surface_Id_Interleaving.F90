@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h" 
+#include "fdebug.h"
 
 module surface_id_interleaving
 
@@ -37,13 +37,13 @@ module surface_id_interleaving
   implicit none
 
   private
-  
+
   public :: deinterleave_surface_ids, interleave_surface_ids
 
   interface interleave_surface_ids
     module procedure interleave_surface_ids_mesh, interleave_surface_ids_vector
   end interface interleave_surface_ids
-  
+
   interface deinterleave_surface_ids
     module procedure deinterleave_surface_ids_mesh, &
       & deinterleave_surface_ids_vector
@@ -54,19 +54,19 @@ contains
   subroutine interleave_surface_ids_mesh(mesh, max_coplanar_id)
     !!< Interleave all surface ID information for the supplied mesh, and store
     !!< it on the boundary IDs
-  
+
     type(mesh_type), intent(inout) :: mesh
     integer, intent(out) :: max_coplanar_id
-    
+
     integer, dimension(surface_element_count(mesh)) :: surface_ids
-    
+
     if(associated(mesh%faces)) then
       call interleave_surface_ids(mesh, surface_ids, max_coplanar_id)
       if(.not. associated(mesh%faces%boundary_ids)) allocate(mesh%faces%boundary_ids(size(surface_ids)))
       mesh%faces%boundary_ids = surface_ids
       if(associated(mesh%faces%coplanar_ids)) mesh%faces%coplanar_ids = 0
     end if
-    
+
   end subroutine interleave_surface_ids_mesh
 
   subroutine interleave_surface_ids_vector(mesh, interleaved_surface_ids, max_coplanar_id)
@@ -139,16 +139,16 @@ contains
     end if
 
   end subroutine interleave_surface_ids_vector
-  
+
   subroutine deinterleave_surface_ids_mesh(mesh, max_coplanar_id)
     !!< De-interleave all surface ID information for the supplied mesh, stored
     !!< on the boundary IDs
-  
+
     type(mesh_type), intent(inout) :: mesh
     integer, intent(in) :: max_coplanar_id
-    
+
     integer, dimension(surface_element_count(mesh)) :: boundary_ids, coplanar_ids
-    
+
     if(associated(mesh%faces)) then
       assert(associated(mesh%faces%boundary_ids))
       call deinterleave_surface_ids(mesh%faces%boundary_ids, max_coplanar_id, boundary_ids, coplanar_ids)
@@ -156,7 +156,7 @@ contains
       if (.not. associated(mesh%faces%coplanar_ids)) allocate(mesh%faces%coplanar_ids(surface_element_count(mesh)))
       mesh%faces%coplanar_ids = coplanar_ids
     end if
-    
+
   end subroutine deinterleave_surface_ids_mesh
 
   subroutine deinterleave_surface_ids_vector(interleaved_surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)

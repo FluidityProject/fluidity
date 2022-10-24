@@ -38,7 +38,7 @@ subroutine test_curl
   call vtk_write_fields("data/curl_out", 0, positions, mesh, sfields=(/field, curl_norm/), &
                                                            & vfields=(/curl_field/))
 
-  
+
   fail = curl_norm%val .fne. 0.0
   call report_test("[curl]", fail, .false., "curl(grad(phi)) == 0 everywhere, remember?")
 
@@ -52,4 +52,3 @@ function solution(pos)
 
   solution = x + y
 end function solution
-

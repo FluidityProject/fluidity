@@ -54,7 +54,7 @@ Element &Element::operator=( const Element &e ){
   MFnodes  = e.MFnodes;
   ifields  = e.ifields;
   fields   = e.fields;
-  
+
   return( *this );
 }
 
@@ -62,7 +62,7 @@ Element &Element::operator=( const Element &e ){
 // Two elements are considered to be equivalent if they contain the same nodes.
 bool Element::operator==(const Element& elem) const{
   unsigned len = nodes.size();
-  
+
   // If these are not the same length then obviously...
   if(len != elem.nodes.size())
     return(false);
@@ -81,11 +81,11 @@ bool Element::operator==(const Element& elem) const{
 
   len = MFnodes.size();
   { // Mixed-Formulation
-  
+
     // If these are not the same length then obviously...
     if(len != elem.MFnodes.size())
       return(false);
-    
+
     // Make no assumption about the order
     for(unsigned j=0; j<len; j++){
       bool found = false;
@@ -106,40 +106,40 @@ bool Element::operator!=(const Element& elem) const{
 }
 
 bool Element::operator<(const Element& in) const{
-  
-  if(*this == in) 
+
+  if(*this == in)
     return false;
-  
+
   unsigned len = nodes.size();
   if(len != in.nodes.size())
     return(len<in.nodes.size());
-  
+
   {
     set<unsigned> set1;
     set<unsigned> set2;
-    
+
     for(unsigned i=0; i<len; i++){
       set1.insert(nodes[i]);
       set2.insert(in.nodes[i]);
     }
-    
+
     if(set1!=set2)
       return(set1<set2);
   }
-  
+
   len = MFnodes.size();
   if(len != in.MFnodes.size())
     return(len<in.MFnodes.size());
-  
+
   {
     set<unsigned> set1;
     set<unsigned> set2;
-    
+
     for(unsigned i=0; i<len; i++){
       set1.insert( MFnodes[i] );
       set2.insert( in.MFnodes[i] );
     }
-    
+
     if(set1!=set2)
       return(set1<set2);
   }
@@ -153,15 +153,15 @@ bool Element::operator<(const Element& in) const{
   }else{
       cerr<<"they are different"<<endl;
   }
-  
+
   exit(-1);
-  
+
   return false;
 }
 
 void Element::append_field(const std::vector<samfloat_t>& _field){
   fields.insert(fields.end(), _field.begin(), _field.end());
-  
+
 }
 
 void Element::append_field(const samfloat_t* _field, const size_t block_size){
@@ -169,25 +169,25 @@ void Element::append_field(const samfloat_t* _field, const size_t block_size){
     fields.push_back(_field[i]);
 }
 
-void Element::set_eid(const eid_t _eid){ 
-  eid = _eid; 
+void Element::set_eid(const eid_t _eid){
+  eid = _eid;
 }
-eid_t Element::get_eid() const{ 
-  return eid; 
-}
-
-void Element::set_flags(const unsigned char _flags){ 
-  flags = _flags; 
-}
-unsigned char Element::get_flags() const{ 
-  return flags; 
+eid_t Element::get_eid() const{
+  return eid;
 }
 
-void Element::set_enlist(const vector<unn_t>& in){ 
-  nodes = in; 
+void Element::set_flags(const unsigned char _flags){
+  flags = _flags;
+}
+unsigned char Element::get_flags() const{
+  return flags;
+}
+
+void Element::set_enlist(const vector<unn_t>& in){
+  nodes = in;
 }
 void Element::set_MFenlist(const vector<unn_t>& in){
-  MFnodes = in; 
+  MFnodes = in;
 }
 //void          Element::set_enlist(const unn_t* _unn, const unsigned len){
 //  nodes.resize(len);
@@ -195,61 +195,61 @@ void Element::set_MFenlist(const vector<unn_t>& in){
 //    nodes[i] = _unn[i];
 //}
 const vector<unn_t>& Element::get_enlist() const{
-  return nodes; 
+  return nodes;
 }
-//const unn_t*              Element::get_cptr_enlist() const{ 
-//  return nodes.begin(); 
+//const unn_t*              Element::get_cptr_enlist() const{
+//  return nodes.begin();
 //}
 const vector<unn_t>& Element::get_MFenlist() const{
   return( MFnodes );
 }
 
-unsigned Element::get_size_enlist() const{ 
-  return nodes.size(); 
+unsigned Element::get_size_enlist() const{
+  return nodes.size();
 }
 unsigned Element::get_size_MFenlist() const{
-  return MFnodes.size(); 
+  return MFnodes.size();
 }
 
-void Element::set_ifields(const vector<int>& in){ 
-  ifields = in; 
+void Element::set_ifields(const vector<int>& in){
+  ifields = in;
 }
-const vector<int>& Element::get_ifields() const{ 
-  return ifields; 
+const vector<int>& Element::get_ifields() const{
+  return ifields;
 }
-size_t Element::get_size_ifields() const{ 
-  return ifields.size(); 
+size_t Element::get_size_ifields() const{
+  return ifields.size();
 }
 
-void Element::set_fields(const vector<samfloat_t>& in){ 
-  fields = in; 
+void Element::set_fields(const vector<samfloat_t>& in){
+  fields = in;
 }
-const vector<samfloat_t>& Element::get_fields() const{ 
+const vector<samfloat_t>& Element::get_fields() const{
   return fields;
 }
-size_t Element::get_size_fields() const{ 
-  return fields.size(); 
+size_t Element::get_size_fields() const{
+  return fields.size();
 }
 
-void Element::pack(char *buffer, int& bsize, int& offset) const{  
+void Element::pack(char *buffer, int& bsize, int& offset) const{
   ECHO("packing..." << *this);
-  
+
   //  MPI_Pack(&eid, 1, EID_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   MPI_Pack(&flags, 1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
-  
+
   { // Pack element-node list for this element
     unsigned ncnt = nodes.size();
     MPI_Pack(&ncnt, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     MPI_Pack(&(nodes[0]), ncnt, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
-  
+
   { // Pack Mixed-Formulation based element-node lists for this element
     unsigned ncnt = MFnodes.size();
     MPI_Pack(&ncnt, 1,MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
     if( ncnt > 0 )
       MPI_Pack(&(MFnodes[0]), ncnt, UNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   }
-  
+
   { // Pack integer fields
     unsigned icnt = ifields.size();
     MPI_Pack(&icnt, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
@@ -265,21 +265,21 @@ void Element::pack(char *buffer, int& bsize, int& offset) const{
 }
 
 void Element::unpack(char *buffer, int& bsize, int& offset){
-  
+
   // MPI_Unpack(buffer, bsize, &offset, &eid,  1, EID_T, MPI_COMM_WORLD);
   MPI_Unpack(buffer, bsize, &offset, &flags,1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD);
-  
+
   { // unpack element-node list
     unsigned ncnt;
     MPI_Unpack(buffer, bsize, &offset, &ncnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
     nodes.resize(ncnt);
     MPI_Unpack(buffer, bsize, &offset, &(nodes[0]), ncnt, UNN_T, MPI_COMM_WORLD);
   }
-  
+
   { // unpack pressure element-node list
     unsigned ncnt;
     MPI_Unpack(buffer, bsize, &offset, &ncnt, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
-    
+
     if( ncnt > 0 ){
       MFnodes.resize( ncnt );
       MPI_Unpack(buffer, bsize, &offset, &(MFnodes[0]), ncnt, UNN_T, MPI_COMM_WORLD);
@@ -305,20 +305,20 @@ void Element::unpack(char *buffer, int& bsize, int& offset){
 //
 // Get an estimate of the number of bytes required to pack an element.
 //
-unsigned Element::pack_size() const{  
+unsigned Element::pack_size() const{
   int total=0,s1,s2;
-  
+
   MPI_Pack_size(1, EID_T, MPI_COMM_WORLD, &s1);
   MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s2);
   total += (s1 + s2);
-  
+
   { // Pack_size element-node list for this element
     unsigned ncnt = nodes.size();
     MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
     MPI_Pack_size(ncnt, UNN_T, MPI_COMM_WORLD, &s2);
     total += (s1 + s2);
   }
-  
+
   { // Pack_size Mixed-Formulation based element-node lists for this element
     unsigned ncnt = MFnodes.size();
     MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
@@ -327,7 +327,7 @@ unsigned Element::pack_size() const{
       MPI_Pack_size(ncnt, UNN_T, MPI_COMM_WORLD, &s2);
       total += s2;
   }
-  
+
   { // Pack_size the ifields
     unsigned icnt = ifields.size();
     MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
@@ -336,7 +336,7 @@ unsigned Element::pack_size() const{
       MPI_Pack_size(icnt, MPI_INT, MPI_COMM_WORLD, &s2);
       total += s2;
   }
-  
+
   { // Pack_size element-wise field values
     unsigned fcnt = fields.size();
     MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
@@ -345,17 +345,17 @@ unsigned Element::pack_size() const{
       MPI_Pack_size(fcnt, SAMFLOAT, MPI_COMM_WORLD, &s2);
       total += s2;
   }
-  
+
   return total;
 }
 
 // printing operator for Element
 ostream& operator<<(ostream& s, const Element& e){
   s << "Element Profile" << endl;
-  
+
   s << "ID number\t\t" << e.eid << endl;
   s << "Flags\t\t\t" << (unsigned)(e.flags) << endl;
-  
+
   { // Node info.
     s << "Number of regular nodes in element\t" << e.nodes.size() << endl;
     s << "{";
@@ -383,7 +383,7 @@ ostream& operator<<(ostream& s, const Element& e){
       s<<endl;
     }
   }
-  
+
   { // real fields
     if(e.fields.size() ){
       s << "Element real fields: ";
@@ -393,6 +393,6 @@ ostream& operator<<(ostream& s, const Element& e){
       s<<endl;
     }
   }
-  
+
   return(s);
 }

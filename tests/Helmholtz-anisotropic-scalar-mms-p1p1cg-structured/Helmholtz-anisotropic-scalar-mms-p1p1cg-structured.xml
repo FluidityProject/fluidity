@@ -445,4 +445,3 @@ assert(cd_convergence_mlcomm[0] &gt; 0.6)
   <warn_tests>
   </warn_tests>
 </testproblem>
-

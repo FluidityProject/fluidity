@@ -40,7 +40,7 @@ location=u.GetLocations()
 
 for i in range(ilen):
   if location[i,0] + tolerance &lt; 0.0:
-    raise Exception("Failure: Node outside of x in [0.0,1.0E6].  Lower bound exceeded.") 
+    raise Exception("Failure: Node outside of x in [0.0,1.0E6].  Lower bound exceeded.")
     </test>
     <test name="mesh_geometry_in_bound_x_upper" language="python">import vtktools
 import math
@@ -51,7 +51,7 @@ location=u.GetLocations()
 
 for i in range(ilen):
   if 1.0E6 &lt; location[i,0] - tolerance:
-    raise Exception("Failure: Node outside of x in [0.0,1.0E6].  Upper bound exceeded.") 
+    raise Exception("Failure: Node outside of x in [0.0,1.0E6].  Upper bound exceeded.")
       </test>
     <test name="mesh_geometry_in_bound_y_lower" language="python">import vtktools
 import math
@@ -62,7 +62,7 @@ location=u.GetLocations()
 
 for i in range(ilen):
   if location[i,1] + tolerance &lt; -1.0E3:
-    raise Exception("Failure: Node outside of y in [-1.0E3,1.0E2].  Lower bound exceeded.") 
+    raise Exception("Failure: Node outside of y in [-1.0E3,1.0E2].  Lower bound exceeded.")
     </test>
     <test name="mesh_geometry_in_bound_y_upper" language="python">import vtktools
 import math
@@ -73,7 +73,7 @@ location=u.GetLocations()
 
 for i in range(ilen):
   if 1.0E2 &lt; location[i,1] - tolerance:
-    raise Exception("Failure: Node outside of y in [-1.0E3,1.0E2].  Upper bound exceeded.") 
+    raise Exception("Failure: Node outside of y in [-1.0E3,1.0E2].  Upper bound exceeded.")
     </test>
     <test name="surface_node_in_bound_mesh_transform" language="python">import vtktools
 import math
@@ -86,7 +86,7 @@ for i in range(ilen):
   if location[i,1] &gt; -1.0E3:
     if 0.0 &lt;= location[i,0] &lt; 5.0E5:
       if ( location[i,1] - ( - 9.0E2 + (9.0E2/5.0E5) * location[i,0] ) ) &gt; tolerance:
-        raise Exception("Failure: Surface node out of bounds in the region where the mesh is transformed.  Check scripts/gmsh_mesh_transform.") 
+        raise Exception("Failure: Surface node out of bounds in the region where the mesh is transformed.  Check scripts/gmsh_mesh_transform.")
     </test>
     <test name="surface_node_in_bound_freesurface_initial_condition" language="python">import vtktools
 import math
@@ -99,7 +99,7 @@ for i in range(ilen):
   if location[i,1] &gt; -1.0E3:
     if 5.0E5 &lt;= location[i,0] &lt;= 1.0E6:
       if ( location[i,1] - 1.0E2 ) &gt; tolerance:
-        raise Exception("Failure: Surface node out of bounds in the region where the free-surface initial condition is applied.") 
+        raise Exception("Failure: Surface node out of bounds in the region where the free-surface initial condition is applied.")
     </test>
     <test name="surface_node_number_check_within_bound" language="python">import math
 assert ( ( abs(surface_node_number) % 3 == 0 ) and ( abs(102 - surface_node_number) / 3 &lt;= 2 ) )
@@ -108,5 +108,3 @@ assert ( ( abs(surface_node_number) % 3 == 0 ) and ( abs(102 - surface_node_numb
   </pass_tests>
   <warn_tests/>
 </testproblem>
-
-

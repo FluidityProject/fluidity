@@ -5,7 +5,7 @@ running and visualising simulations. It is assumed that you have access to a
 system running Linux or UNIX with all the \fluidity\ supporting libraries
 installed. If not, you may wish to reference appendix \ref{chap:external} which
 contains detailed information for your systems administrator to help setting up
-a Linux workstation. 
+a Linux workstation.
 
 \section{Obtaining \fluidity}
 \label{sec:obtaining_fluidity}
@@ -83,7 +83,7 @@ tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
 
 \fluidity\ is distributed for Fedora 19 (but not yet for Fedora 20 due to VTK6
 incompatibility) via a package repository which can be installed by all users
-who have administrative privileges on their computer by typing the following 
+who have administrative privileges on their computer by typing the following
 all on one line:
 
 \begin{lstlisting}[language=Bash]
@@ -223,7 +223,7 @@ the directory containing your local source code check out, which is denoted
 by \fluiditysourcepath\ in this manual:
 
 \begin{lstlisting}[language=Bash]
-cd `\fluiditysourcepath' 
+cd `\fluiditysourcepath'
 ./configure
 make
 \end{lstlisting}
@@ -235,7 +235,7 @@ these procedures.
 
 Note that at this point configuration refers to the build-time configuration
 options which define how the \fluidity\ program will be compiled, and do not
-refer to configuration of the options that you will run \fluidity\ with once it 
+refer to configuration of the options that you will run \fluidity\ with once it
 has built. However, presence or lack of features configured at the build stage
 may change what is available to you at run time.
 
@@ -282,7 +282,7 @@ all on the same configuration command line, separated by spaces. For example:
 \end{lstlisting}
 
 Note that there is one key option NOT enabled by default which users running
-the \fluidity\ examples will need to enable to make all examples work. This is 
+the \fluidity\ examples will need to enable to make all examples work. This is
 \lstinline[language=Bash]+--enable-2d-adaptivity+ , which cannot be turned on
 as a default as it makes use of external code that is not license-compatible
 with all other \fluidity\ codes. Hence, it is a reasonable default state for
@@ -393,7 +393,7 @@ make
 
 which will generate \fluidity\ and Diamond programs in the
 \lstinline[language=Bash]+bin/+ directory and a set of libraries in the
-\lstinline[language=Bash]+lib/+ directory. 
+\lstinline[language=Bash]+lib/+ directory.
 
 If you have a modern, powerful computer then you can speed this process up
 significantly by parallelising the make, running:
@@ -470,7 +470,7 @@ specify a directory there, it will try to install into the
 privileges. If you get a lot of 'permission denied' messages, you probably
 forgot to specify a prefix (or specified an invalid prefix) at configure time,
 and the install is trying to write to a superuser-only or nonexistant
-directory. 
+directory.
 
 Assuming you specified a prefix of \lstinline[language=Bash]+\$HOME+, \fluidity
 will install into directories such as \lstinline[language=Bash]+bin/+,
@@ -546,9 +546,9 @@ To run \fluidity\ in serial use the following command:
 \end{lstlisting}
 
 Here, \lstinline[language=Bash]+foo.flml+ is a \fluidity\ configuration file
-which defines the options for the model. These files are covered in detail in 
+which defines the options for the model. These files are covered in detail in
 Chapter \ref{chap:configuration} and are set up using a simple Graphical User
-Interface, Diamond. See section \ref{sec:running_diamond} for more information 
+Interface, Diamond. See section \ref{sec:running_diamond} for more information
 on how to run Diamond.
 
 There are other options that can be passed to the \fluidity\ executable. A full
@@ -605,7 +605,7 @@ Options:
 
 Note that this also gives information on which version is being used, the
 build-time configuration options used and a list of command-line options for
-\fluidity. 
+\fluidity.
 
 Running \fluidity\ will produce several output files. See Chapter \ref{chap:visualisation_and_diagnostics}
 for more information.

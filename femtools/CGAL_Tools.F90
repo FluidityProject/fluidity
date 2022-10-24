@@ -6,7 +6,7 @@ module cgal_tools
   use element_numbering
   implicit none
 
-  interface 
+  interface
     subroutine convex_hull_area_3d(nodes, sz, area)
       integer, intent(in) :: sz
       real, dimension(sz*3), intent(in) :: nodes
@@ -24,7 +24,7 @@ module cgal_tools
     type(vector_field), intent(in) :: positions
     real :: area
 #ifndef HAVE_LIBCGAL
-    FLAbort("Called a routine which depends on CGAL without CGAL")  
+    FLAbort("Called a routine which depends on CGAL without CGAL")
     area = 0.0 * positions%dim
 #else
     real, dimension(positions%dim * node_count(positions)) :: nodes

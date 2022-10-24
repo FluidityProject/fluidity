@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -24,7 +24,7 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-   
+
 #include "fdebug.h"
 module shape_functions_test
   !!< Support module for all unit tests related to shape_functions.
@@ -43,7 +43,7 @@ contains
   !------------------------------------------------------------------------
 
   function shape_integrate(integrand, element) result (integral)
-    !!< Integrate the function integrand over an element using the 
+    !!< Integrate the function integrand over an element using the
     !!< specified shape functions and quadrature.
     real :: integral
     interface
@@ -55,21 +55,21 @@ contains
     type(element_type), intent(in) :: element
 
     real :: tmpval
-    integer :: i,j 
+    integer :: i,j
 
     integral=0.0
 
     do i=1, element%loc
 
-       tmpval=integrand(local_coords(i,element))       
-       
+       tmpval=integrand(local_coords(i,element))
+
        do j=1, element%quadrature%ngi
 
           integral=integral+element%quadrature%weight(j)*tmpval*element%n(i,j)
-          
+
        end do
     end do
-       
+
   end function shape_integrate
 
   function shape_integrate_diff(integrand, element, dim) result (integral)
@@ -86,16 +86,16 @@ contains
     integer, intent(in) :: dim
 
     real :: tmpval
-    integer :: i,j 
+    integer :: i,j
 
     integral=0.0
 
     do i=1, element%loc
-       
+
        tmpval=integrand(local_coords(i,element))
 
        do j=1, element%quadrature%ngi
-          
+
           integral=integral&
                +element%quadrature%weight(j)*tmpval*element%dn(i,j,dim)
 
@@ -108,11 +108,11 @@ contains
     !!< Calculate x^n
     real :: monic
     real, dimension(:), intent(in) :: coords
-    
+
     monic=coords(1)**power
-    
+
   end function monic
-  
+
   function cube_monic(coords)
     ! Calculate.
     real :: cube_monic

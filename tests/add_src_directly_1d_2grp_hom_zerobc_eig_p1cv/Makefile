@@ -18,7 +18,7 @@ input: clean
 	interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
 	interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) $(SIM)_B
 	interval --dx=$(MESH_SIZE_C) $(LEFT_X) $(RIGHT_X) $(SIM)_C
-	interval --dx=$(MESH_SIZE_D) $(LEFT_X) $(RIGHT_X) $(SIM)_D	
+	interval --dx=$(MESH_SIZE_D) $(LEFT_X) $(RIGHT_X) $(SIM)_D
 	cp $(SIM)_A.flml $(SIM)_B.flml
 	cp $(SIM)_A.flml $(SIM)_C.flml
 	cp $(SIM)_A.flml $(SIM)_D.flml
@@ -32,13 +32,13 @@ clean:
 	rm -f $(SIM)*.bound
 	rm -f $(SIM)*.edge
 	rm -f $(SIM)*.face
-	rm -f $(SIM)*.vtu 
-	rm -f $(SIM)*.pvtu 
-	rm -f $(SIM)*.s 
-	rm -f $(SIM)*.d.* 
-	rm -f $(SIM)*.stat 
-	rm -f $(SIM)*.log-0 
-	rm -f $(SIM)*.err-0 
+	rm -f $(SIM)*.vtu
+	rm -f $(SIM)*.pvtu
+	rm -f $(SIM)*.s
+	rm -f $(SIM)*.d.*
+	rm -f $(SIM)*.stat
+	rm -f $(SIM)*.log-0
+	rm -f $(SIM)*.err-0
 	rm -f $(SIM)*.msh
 	rm -f $(SIM)*.halo
 	rm -f fluidity.err*

@@ -40,7 +40,7 @@
 #include "Node.h"
 #include "PressureNode.h"
 
-// This class deals with 
+// This class deals with
 // - Who knows what nodes and elements
 // - Who will need to know what nodes and elements
 // - What nodes and elements are we responsible for
@@ -52,20 +52,20 @@ class MI5{
   unsigned __nelems;
   int MyRank;
   int NProcs;
-  
-  // Given a node number, keep a list of partitions that 
+
+  // Given a node number, keep a list of partitions that
   // already know its particulars.
   std::vector< std::set<unsigned short> > nodeKnowers;
-  
-  // Given a node number, who will need to know this node in the 
+
+  // Given a node number, who will need to know this node in the
   // next round.
   std::vector< std::set<unsigned short> > nodeKnowers_next;
-  
-  // Given an element number, keep a list of partitions that 
+
+  // Given an element number, keep a list of partitions that
   // already know its particulars.
   std::vector< std::set<unsigned short> > elementKnowers;
-  
-  // Given an element number, keep a list of partitions that 
+
+  // Given an element number, keep a list of partitions that
   // will need to know this node in the next round.
   std::vector< std::set<unsigned short> > elementKnowers_next;
 
@@ -78,8 +78,8 @@ class MI5{
   bool rankNeedsNode(unsigned node, unsigned short wiseguy);
   bool elementKnownBy(unsigned elem, unsigned short wiseguy);
   bool rankNeedsElement(unsigned elem, unsigned short wiseguy);
-  
- public:  
+
+ public:
   void clear();
 
   // List of nodes to be sent each rank.
@@ -93,11 +93,11 @@ class MI5{
 
   // List of nodes that we are keeping.
   std::deque<int> new_owned_nodes;
-  
+
   // New halo nodes...They are being copied to that they
   // don't get overwritten!
   std::vector< std::map<unsigned, Node> > new_halo_nodes;
-  
+
   // List of elements that we are keeping.
   std::deque<int> new_elements;
 
@@ -107,7 +107,7 @@ class MI5{
 
   MI5(int nnodes, int nelems);
   ~MI5();
-  
+
   // This function compiles all the information to determine who
   // knows what and what I need to tell others.
   void spy(Mesh& );
@@ -126,13 +126,3 @@ class MI5{
 };
 
 #endif
-
-
-
-
-
-
-
-
-
-

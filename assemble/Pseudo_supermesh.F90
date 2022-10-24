@@ -6,10 +6,10 @@ module pseudo_supermesh
 !!< exists at x in any of the input meshes,
 !!< a node exists at x in the supermesh.
 !!< In a pseudo-supermesh, this requirement
-!!< is relaxed; instead we demand that 
-!!< local mesh density in a ball around 
+!!< is relaxed; instead we demand that
+!!< local mesh density in a ball around
 !!< a given point x in the supermesh is
-!!< the densest of all the densities 
+!!< the densest of all the densities
 !!< around x in the input meshes -- i.e.,
 !!< we substitute guarantees about exact
 !!< nodal placement for heuristic statements

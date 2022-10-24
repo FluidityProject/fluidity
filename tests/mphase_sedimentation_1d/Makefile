@@ -1,4 +1,4 @@
-preprocess: 
+preprocess:
 	@echo **********Generating a 1D mesh for the [0,1] interval:
 	../../bin/interval --dx=0.025 --reverse 0 1 line
 
@@ -14,4 +14,3 @@ clean:
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly *.bound
 	rm -f matrixdump* *log* *err*
-

@@ -55,13 +55,13 @@ endif
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
-	$(CC) $(CFLAGS) -c $< 
+	$(CC) $(CFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -c $< 
+	$(CXX) $(CXXFLAGS) -c $<
 
 
 ifeq (@HYPERLIGHT@,yes)

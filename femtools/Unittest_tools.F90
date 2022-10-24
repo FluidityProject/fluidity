@@ -5,7 +5,6 @@ module unittest_tools
   use fldebug
   use vector_tools
   use reference_counting
-  use ieee_arithmetic
   use sparse_tools
   implicit none
 
@@ -16,7 +15,7 @@ module unittest_tools
     random_symmetric_matrix, random_posdef_matrix, random_sparse_matrix, &
     get_mat_diag, get_matrix_identity, mat_clean, vec_clean, flt, fgt, &
     report_test_no_references
-  
+
   interface operator(.flt.)
     module procedure flt_op
   end interface
@@ -40,12 +39,7 @@ module unittest_tools
   interface fnequals
     module procedure fne_scalar, fne_array, fne_array_scalar, fne_matrix, fne_matrix_scalar
   end interface
-  
-  interface is_nan
-    module procedure is_nan_scalar, is_nan_vector, is_nan_tensor2, &
-      & is_nan_tensor3
-  end interface is_nan
-  
+
   interface write_vector
     module procedure write_vector_real, write_vector_integer
   end interface
@@ -75,18 +69,18 @@ module unittest_tools
 
   subroutine report_test_no_references()
     !!< Report the output of a test for the absence of references
-  
+
     logical :: fail
-    
+
     fail = associated(refcount_list%next)
-    
+
     call report_test("[No references]", fail, .false., "Have references remaining")
     if(fail) then
       ewrite(0, *) "References remaining:"
       call print_references(0)
     end if
-    
-  end subroutine report_test_no_references  
+
+  end subroutine report_test_no_references
 
   pure function fequals_scalar_op(float1, float2) result(equals)
     real, intent(in) :: float1
@@ -146,41 +140,41 @@ module unittest_tools
     nequals = .not. fequals(array1, float2)
 
   end function fne_array_scalar_op
-  
+
   pure function fequals_matrix_op(mat1, mat2) result(equals)
     real, dimension(:, :), intent(in) :: mat1
     real, dimension(size(mat1, 1), size(mat1, 2)), intent(in) :: mat2
-    
+
     logical :: equals
 
     equals = fequals(mat1, mat2)
 
   end function fequals_matrix_op
-  
+
   pure function fne_matrix_op(mat1, mat2) result (nequals)
     real, dimension(:, :), intent(in) :: mat1
     real, dimension(size(mat1, 1), size(mat1, 2)), intent(in) :: mat2
-    
+
     logical :: nequals
 
     nequals = fnequals(mat1, mat2)
 
   end function fne_matrix_op
-  
+
   pure function fequals_matrix_scalar_op(mat1, float2) result(equals)
     real, dimension(:, :), intent(in) :: mat1
     real, intent(in) :: float2
-    
+
     logical :: equals
 
     equals = fequals(mat1, float2)
 
   end function fequals_matrix_scalar_op
-  
+
   pure function fne_matrix_scalar_op(mat1, float2) result (nequals)
     real, dimension(:, :), intent(in) :: mat1
     real, intent(in) :: float2
-    
+
     logical :: nequals
 
     nequals = fnequals(mat1, float2)
@@ -193,7 +187,7 @@ module unittest_tools
     real, intent(in) :: float1
     real, intent(in) :: float2
     real, intent(in), optional :: tol
-    
+
     logical :: equals
 
     real :: eps
@@ -256,7 +250,7 @@ module unittest_tools
     real, intent(in), optional :: tol
 
     logical :: equals
-    
+
     integer :: i
 
     do i = 1, size(array1)
@@ -285,7 +279,7 @@ module unittest_tools
     real, dimension(:, :), intent(in) :: mat1
     real, dimension(size(mat1, 1), size(mat1, 2)), intent(in) :: mat2
     real, optional, intent(in) :: tol
-    
+
     logical :: equals
 
     integer :: i
@@ -300,12 +294,12 @@ module unittest_tools
     equals = .true.
 
   end function fequals_matrix
-  
+
   pure function fne_matrix(mat1, mat2, tol) result (nequals)
     real, dimension(:, :), intent(in) :: mat1
     real, dimension(size(mat1, 1), size(mat1, 2)), intent(in) :: mat2
     real, optional, intent(in) :: tol
-    
+
     logical :: nequals
 
     nequals = .not. fequals(mat1, mat2, tol = tol)
@@ -316,7 +310,7 @@ module unittest_tools
     real, dimension(:, :), intent(in) :: mat1
     real, intent(in) :: float2
     real, optional, intent(in) :: tol
-    
+
     logical :: equals
 
     integer :: i
@@ -331,12 +325,12 @@ module unittest_tools
     equals = .true.
 
   end function fequals_matrix_scalar
-  
+
   pure function fne_matrix_scalar(mat1, float2, tol) result (nequals)
     real, dimension(:, :), intent(in) :: mat1
     real, intent(in) :: float2
     real, optional, intent(in) :: tol
-    
+
     logical :: nequals
 
     nequals = .not. fequals(mat1, float2, tol = tol)
@@ -348,22 +342,22 @@ module unittest_tools
     logical dcsr_fequals
     type(dynamic_csr_matrix), intent(in):: A, B
     real, intent(in), optional :: tol
-    
+
     integer, dimension(:), pointer:: cols
     integer i, j
-    
+
     if (size(A,1)/=size(B,1) .or. size(A,2)/=size(B,2)) then
       dcsr_fequals=.false.
       return
     end if
-    
+
     do i=1, size(A,1)
       cols => row_m_ptr(A, i)
       if (size(cols)/=row_length(B,i)) then
         dcsr_fequals=.false.
         return
       end if
-      
+
       do j=1, size(cols)
         if (.not. &
           fequals( val(A, i, cols(j)), val(B, i, cols(j)) , tol) &
@@ -373,9 +367,9 @@ module unittest_tools
         end if
       end do
     end do
-    
+
     dcsr_fequals=.true.
-    
+
   end function dcsr_fequals
 
   function flt_op(float1, float2) result(less_than)
@@ -434,61 +428,21 @@ module unittest_tools
 
   end function fgt
 
-  function is_nan_scalar(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, intent(in) :: float1
-    
+  elemental function is_nan(x) result(nan)
+    !! Check if a number is NaN. Should be safe to use with aggressive optimisations.
+    !! Additional information can be found at:
+    !! https://stackoverflow.com/q/35638400/10640534
+    !! https://stackoverflow.com/q/17389958/10640534
+    !!
+    !! @note ieee_is_nan(val) or the older check val /= val are always
+    !! optimised to .false. whenever finite math optimisations are ebaled
+
+    real, intent(in) :: x
     logical :: nan
 
-    nan = ieee_is_nan(float1)
-    
-  end function is_nan_scalar
-  
-  function is_nan_vector(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:), intent(in) :: float1
-    
-    logical, dimension(size(float1)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1)
-      nan(i) = is_nan(float1(i))
-    end do
-    
-  end function is_nan_vector
-  
-  function is_nan_tensor2(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:, :), intent(in) :: float1
-    
-    logical, dimension(size(float1, 1), size(float1, 2)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1, 1)
-      nan(i, :) = is_nan(float1(i, :))
-    end do
-    
-  end function is_nan_tensor2
-  
-  function is_nan_tensor3(float1) result(nan)
-    !!< This function checks if float1 is NaN.
-    
-    real, dimension(:, :, :), intent(in) :: float1
-    
-    logical, dimension(size(float1, 1), size(float1, 2), size(float1, 3)) :: nan
-    
-    integer :: i
-    
-    do i = 1, size(float1, 1)
-      nan(i, :, :) = is_nan(float1(i, :, :))
-    end do
-    
-  end function is_nan_tensor3
+    nan = (.not. (x <= huge(x) .and. x >= -huge(x))) .and. (.not. abs(x) > huge(x))
+
+  end function is_nan
 
   function mat_is_symmetric(mat) result(symmetric)
     !!< This function checks if mat is a symmetric matrix.
@@ -514,7 +468,7 @@ module unittest_tools
   function mat_zero(mat, tol) result(zero)
     !!< This function checks if mat is zero.
     !!< It does this by computing the Frobenius norm of the matrix.
-    
+
     real, dimension(:, :), intent(in) :: mat
     real, optional :: tol
     real :: ltol
@@ -607,7 +561,7 @@ module unittest_tools
       call random_number(rand)
       mat(i, i) = rand
     end do
-    
+
     do i=1,dim
       do j=i+1,dim
         call random_number(rand)
@@ -616,7 +570,7 @@ module unittest_tools
     end do
 
   end function random_symmetric_matrix
-  
+
   function random_posdef_matrix(dim) result(mat)
     !!< This function generates a random symmetric positive definite matrix of dimension dim.
 
@@ -635,14 +589,14 @@ module unittest_tools
     end function random_posdef_matrix
 
     function random_sparse_matrix(rows, cols, nnz) result(mat)
-      !!< This function returns a random rows x cols sparse_matrix 
+      !!< This function returns a random rows x cols sparse_matrix
       !!<  with at most nnz entries.
     type(dynamic_csr_matrix) mat
     integer, intent(in):: rows, cols, nnz
-    
+
       integer i, row, col
       real val, rand
-      
+
       call allocate(mat, rows, cols)
       do i=1, nnz
         call random_number(rand)
@@ -653,7 +607,7 @@ module unittest_tools
         val=(rand-0.5)*1e10
         call set(mat, row, col, val)
       end do
-      
+
     end function random_sparse_matrix
 
     function get_mat_diag(vec) result(mat)
@@ -668,7 +622,7 @@ module unittest_tools
         mat(i, i) = vec(i)
       end do
     end function get_mat_diag
-    
+
     function get_matrix_identity(dim) result(id)
       !!< Return the identity matrix
       integer, intent(in) :: dim

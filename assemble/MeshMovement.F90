@@ -26,7 +26,6 @@ module meshmovement
   use sparsity_patterns_meshes
 
   implicit none
-  integer,save :: MeshCount=0
 
   interface
 
@@ -38,37 +37,37 @@ module meshmovement
      subroutine reset_debug_level
      end subroutine reset_debug_level
   end interface
-  
+
   private
-  
+
   public :: move_mesh_imposed_velocity, move_mesh_pseudo_lagrangian
 
 contains
 
   subroutine move_mesh_imposed_velocity(states)
   type(state_type), dimension(:), intent(inout) :: states
-  
+
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
     type(vector_field), pointer :: velocity
     type(vector_field), pointer :: grid_velocity
-    
+
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
-    
+
     if(.not.have_option("/mesh_adaptivity/mesh_movement/imposed_grid_velocity")) return
     call IncrementEventCounter(EVENT_MESH_MOVEMENT)
-    
+
     ewrite(1,*) 'Entering move_mesh_imposed_velocity'
-    
+
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
-    
+
     coordinate => extract_vector_field(states(1), "Coordinate")
     old_coordinate => extract_vector_field(states(1), "OldCoordinate")
     new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
-    
+
     call get_option("/timestepping/timestep", dt)
-    
+
     found_velocity = .false.
     do i = 1, size(states)
       velocity => extract_vector_field(states(i), "Velocity", stat)
@@ -84,34 +83,34 @@ contains
     if(.not.found_velocity) then
       itheta = 0.5
     end if
-    
+
     call set(new_coordinate, old_coordinate)
     call addto(new_coordinate, grid_velocity, scale=dt)
-    
+
     call set(coordinate, new_coordinate, old_coordinate, itheta)
-  
+
   end subroutine move_mesh_imposed_velocity
 
   subroutine move_mesh_pseudo_lagrangian(states)
   type(state_type), dimension(:), intent(inout) :: states
-  
+
     type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
     type(vector_field), pointer :: velocity
     type(vector_field), pointer :: grid_velocity
-    
+
     integer :: i, stat
     real :: itheta, dt
     logical :: found_velocity
-    
+
     character(len=FIELD_NAME_LEN) :: state_name
-    
+
     if(.not.have_option("/mesh_adaptivity/mesh_movement/pseudo_lagrangian")) return
     call IncrementEventCounter(EVENT_MESH_MOVEMENT)
-    
+
     ewrite(1,*) 'Entering move_mesh_pseudo_lagrangian'
-    
+
     grid_velocity => extract_vector_field(states(1), "GridVelocity")
-    
+
     call get_option("/mesh_adaptivity/mesh_movement/pseudo_lagrangian/velocity_material_phase/material_phase_name", &
                     state_name, stat=stat)
     if(stat==0) then
@@ -120,15 +119,15 @@ contains
     else
       velocity => extract_vector_field(states(1), "Velocity")
     end if
-    
+
     call set(grid_velocity, velocity)
-    
+
     coordinate => extract_vector_field(states(1), "Coordinate")
     old_coordinate => extract_vector_field(states(1), "OldCoordinate")
     new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
-    
+
     call get_option("/timestepping/timestep", dt)
-    
+
     found_velocity = .false.
     do i = 1, size(states)
       velocity => extract_vector_field(states(i), "Velocity", stat)
@@ -144,14 +143,12 @@ contains
     if(.not.found_velocity) then
       itheta = 0.5
     end if
-    
+
     call set(new_coordinate, old_coordinate)
     call addto(new_coordinate, grid_velocity, scale=dt)
-    
+
     call set(coordinate, new_coordinate, old_coordinate, itheta)
-  
+
   end subroutine move_mesh_pseudo_lagrangian
 
 end module meshmovement
-
-

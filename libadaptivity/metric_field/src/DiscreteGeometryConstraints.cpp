@@ -123,12 +123,12 @@ void DiscreteGeometryConstraints::set_volume_input(vtkUnstructuredGrid *_ug){
         nid2=tetra->GetPointId(1);
         nid3=tetra->GetPointId(2);
       }
-      
+
       for(set<size_t>::iterator it=NEList[nid1].begin();it!=NEList[nid1].end();++it){
         if((*it)==i){
           continue;
         }
-        
+
         if(NEList[nid2].find(*it)!=NEList[nid2].end()){
           if(NEList[nid3].find(*it)!=NEList[nid3].end()){
             found=true;
@@ -154,7 +154,7 @@ void DiscreteGeometryConstraints::set_surface_input(vtkUnstructuredGrid *_ug, ve
     cout<<"void DiscreteGeometryConstraints::set_surface_input(vtkUnstructuredGrid *ug, vector<int> &_SENList, vector<int> &ids)\n";
   ug = _ug;
   SENList = _SENList;
-  
+
   // Create EEList for surface
   size_t NSElements = SENList.size()/3;
   for(size_t i=0;i<NSElements;i++){
@@ -162,7 +162,7 @@ void DiscreteGeometryConstraints::set_surface_input(vtkUnstructuredGrid *_ug, ve
       SNEList[SENList[3*i+j]].insert(i);
     }
   }
-  
+
   coplanar_ids = ids;
 
   return;
@@ -172,7 +172,7 @@ void DiscreteGeometryConstraints::set_surface_input(vtkUnstructuredGrid *_ug, ve
 void DiscreteGeometryConstraints::write_vtk(std::string filename){
   if(verbose)
     cout<<"void DiscreteGeometryConstraints::write_vtk(std::string filename)\n";
-  
+
   vtkUnstructuredGrid *sug = vtkUnstructuredGrid::New();
   sug->SetPoints(ug->GetPoints());
 
@@ -226,7 +226,7 @@ void DiscreteGeometryConstraints::write_vtk(std::string filename){
 #endif
   sug_writer->Write();
   sug_writer->Delete();
-  
+
   sug->Delete();
   return;
 }
@@ -237,7 +237,7 @@ void DiscreteGeometryConstraints::normal(int v1, int v2, int v3, double *n){
   ug->GetPoint(v1, r1);
   ug->GetPoint(v2, r2);
   ug->GetPoint(v3, r3);
-    
+
   double ax = r3[0] - r2[0];
   double ay = r3[1] - r2[1];
   double az = r3[2] - r2[2];
@@ -245,17 +245,17 @@ void DiscreteGeometryConstraints::normal(int v1, int v2, int v3, double *n){
   double bx = r1[0] - r2[0];
   double by = r1[1] - r2[1];
   double bz = r1[2] - r2[2];
-  
+
   n[0] = (ay * bz - az * by);
   n[1] = (az * bx - ax * bz);
   n[2] = (ax * by - ay * bx);
 
   double length = sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
-  
+
   n[0]/=length;
   n[1]/=length;
   n[2]/=length;
-  
+
   return;
 }
 
@@ -276,7 +276,7 @@ void DiscreteGeometryConstraints::get_coplanar_ids(){
       SNEList[SENList[3*i+j]].insert(i);
     }
   }
-  
+
   EEList.resize(NSElements*3);
   for(size_t i=0;i<NSElements;i++){
     for(size_t j=0;j<3;j++){
@@ -286,7 +286,7 @@ void DiscreteGeometryConstraints::get_coplanar_ids(){
         if((*it)==i){
           continue;
         }
-        
+
         if(SNEList[nid2].find(*it)!=SNEList[nid2].end()){
           EEList[i*3+j] = *it;
           break;
@@ -299,7 +299,7 @@ void DiscreteGeometryConstraints::get_coplanar_ids(){
   coplanar_ids.resize(NSElements);
   for(vector<int>::iterator it=coplanar_ids.begin(); it!=coplanar_ids.end(); ++it)
     *it = 0;
-  
+
   size_t current_id = 1;
   for(size_t pos = 0;pos<NSElements;){
     // Create a new starting point
@@ -313,28 +313,28 @@ void DiscreteGeometryConstraints::get_coplanar_ids(){
           break;
         }
       }
-      
+
       // Jump out of this while loop if we are finished
       if(i==NSElements)
         break;
     }
-    
+
     // Initialise the front
     set<int> front;
     front.insert(pos);
-          
+
     // Advance this front
     while(!front.empty()){
       int sele = *front.begin();
       front.erase(front.begin());
 
-      // Check surrounding surface elements:      
+      // Check surrounding surface elements:
       for(int i=0; i<3; i++){
         int sele2 = EEList[sele*3+i];
-        
+
         if(coplanar_ids[sele2]>0)
           continue;
-          
+
         double coplanar =
           ref_normal[0]*normals[sele2*3  ]+
           ref_normal[1]*normals[sele2*3+1]+
@@ -372,7 +372,7 @@ void DiscreteGeometryConstraints::find_geometry_constraints(){
   double bbox[6];
   ug->GetBounds(bbox);
   double max_dist = max(max(bbox[1]-bbox[0], bbox[3]-bbox[2]), bbox[5]-bbox[4]);
-    
+
   // Initialise geometry constraints
   size_t NNodes = ug->GetNumberOfPoints();
   gconstraint.resize(NNodes);
@@ -389,21 +389,21 @@ void DiscreteGeometryConstraints::find_geometry_constraints(){
   // Loop over each patch, merging in the constraints from each patch
   // into the nodes that lie along geometry edges.
   for(size_t p=0;p<npatches;p++){
-    
+
     map<size_t, set<size_t> > corner;
     // Identify the corner nodes of this patch.
     for(size_t ele=0;ele<NSElements;ele++){
       if(coplanar_ids[ele]!=(int)p)
         continue;
-      
+
       for(size_t j=0;j<3;j++){
         size_t nid = SENList[ele*3+j];
-        
+
         set<size_t> patches;
         for(set<size_t>::iterator it=SNEList[nid].begin();it!=SNEList[nid].end();++it){
           patches.insert(coplanar_ids[*it]);
         }
-        
+
         if(patches.size()>2){
           corner[nid] = patches;
         }
@@ -427,7 +427,7 @@ void DiscreteGeometryConstraints::find_geometry_constraints(){
         double dx = r0[0] - r1[0];
         double dy = r0[1] - r1[1];
         double dz = r0[2] - r1[2];
-        
+
         double d = sqrt(dx*dx+dy*dy+dz*dz);
 
         dist = min(dist, d);

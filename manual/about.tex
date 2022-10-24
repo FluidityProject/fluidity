@@ -20,7 +20,7 @@ invited to email comments, corrections and contributions to
 
 A further source of material may be found at \url{http://amcg.ese.ic.ac.uk/}
 This points to a collection of wiki web pages that all users are able to
-update and add to. 
+update and add to.
 
 \section{Audience and Scope}
 
@@ -60,9 +60,9 @@ our cousins across the Pond means:
 
 Sections, tables, figures and equations should be labelled consistenly.
 
-Sections should be labelled as \verb+\label{sec:unique_section_name}+, 
+Sections should be labelled as \verb+\label{sec:unique_section_name}+,
 tables should labelled as \verb+\label{tab:unique_table_name}+, figures as
-\verb+\label{fig:unique_figure_name}+, and equations as 
+\verb+\label{fig:unique_figure_name}+, and equations as
 \verb+\label{eq:unique_equation_name}+.
 
 Note that all label names should be unique across the manual.
@@ -149,12 +149,12 @@ Source code and commands entered in the shell can be typeset using the
 \lstinline[language=TeX]+lstlisting+ environment. The environment typesets
 its argument literally so unlike normal \LaTeX, spaces and carriage returns
 are replicated in the output. The environment takes optional configuration
-parameters of which the most important is 
+parameters of which the most important is
 \lstinline[language=TeX]+language+ which is used to select the programming
 language. \LaTeX will highlight the syntax of the chosen language. Inline
 commands can be typeset using\linebreak
 \lstinline[language=TeX]*\lstinline[language=TeX]+command+* substituting any
-applicable language. 
+applicable language.
 
 \subsubsection{Shell commands}
 
@@ -170,7 +170,7 @@ box.node  gmon.out        traffic_0.vtu  traffic.stat   vaf.dat
 \end{verbatim}
 will be rendered:
 \begin{lstlisting}[language=bash]
-dham@popper traffic > ls 
+dham@popper traffic > ls
 box.ele   fluidity.err-0  Makefile       traffic_1.vtu  traffic.xml
 box.face  fluidity.log-0  src            traffic.flml   vaf.bin
 box.node  gmon.out        traffic_0.vtu  traffic.stat   vaf.dat
@@ -269,7 +269,7 @@ Table \ref{tab:derivatives}\ shows the derivative functions available.
     \lstinline[language=TeX]+\DDx[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDx{}$\\
     \lstinline[language=TeX]+\DDxx[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDxx{}$\\
     \lstinline[language=TeX]+\DDt[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDt{}$\\
-    \lstinline[language=TeX]+\DDtt[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDtt{}$\\ 
+    \lstinline[language=TeX]+\DDtt[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDtt{}$\\
   \end{tabular}
   \caption{Functions for correctly typesetting derivatives.}
   \label{tab:derivatives}
@@ -324,4 +324,4 @@ added to \lstinline[language=bash]+notation.tex+.
 
 Abbreviations in formulae should be typeset in upright maths mode using
 \lstinline[language=TeX]+\mathrm+. For example
-\lstinline[language=TeX]+F_{\mathrm{wall}}+ ($F_{\mathrm{wall}}$).  
+\lstinline[language=TeX]+F_{\mathrm{wall}}+ ($F_{\mathrm{wall}}$).

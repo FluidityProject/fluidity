@@ -4,9 +4,9 @@
   <owner userid="rhodrid"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 MMS_A.flml &gt;MMS_A.log &amp;&amp; 
-fluidity -v2 MMS_B.flml &gt;MMS_B.log &amp;&amp; 
-fluidity -v2 MMS_C.flml &gt; MMS_C.log &amp;&amp; 
+    <command_line>fluidity -v2 MMS_A.flml &gt;MMS_A.log &amp;&amp;
+fluidity -v2 MMS_B.flml &gt;MMS_B.log &amp;&amp;
+fluidity -v2 MMS_C.flml &gt; MMS_C.log &amp;&amp;
 fluidity -v2 MMS_D.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>

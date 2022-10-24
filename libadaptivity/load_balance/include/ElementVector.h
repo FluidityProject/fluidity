@@ -44,7 +44,7 @@ class ElementVector: public std::deque<ElementType>{
   ElementVector();
   ElementVector(const ElementVector&);
   ~ElementVector();
-  
+
   // Overloaded operators.
   ElementVector &operator=(const ElementVector<ElementType> &in);
 #ifndef NDEBUG
@@ -54,11 +54,11 @@ class ElementVector: public std::deque<ElementType>{
 
   // Other member functions.
   void shrink(const unsigned);
-  
+
   void push_back(const ElementType& in);
   unsigned size() const;
   void clear();
-  
+
  private:
   unsigned len;
 };
@@ -83,7 +83,7 @@ template<class ElementType>
 ElementVector<ElementType>& ElementVector<ElementType>::operator=(const ElementVector<ElementType>& in){
   len = in.len;
   this->insert( (*this).end(), in.begin(), in.end() );
-  
+
   return *this;
 }
 
@@ -91,16 +91,16 @@ ElementVector<ElementType>& ElementVector<ElementType>::operator=(const ElementV
 template<class ElementType>
 ElementType& ElementVector<ElementType>::operator[](const unsigned i){
   // Don't forgive out of bounds referencing.
-  assert(i<len); 
+  assert(i<len);
   return *(this->begin() + i);
 }
 
 template<class ElementType>
 const ElementType& ElementVector<ElementType>::operator[](const unsigned i) const{
-  
+
   // Don't forgive out of bounds referencing.
-  assert( (i>=0)&&(i<len)); 
-  
+  assert( (i>=0)&&(i<len));
+
   return *(this->begin() + i);
 }
 #endif
@@ -116,7 +116,7 @@ template<class ElementType>
 void ElementVector<ElementType>::shrink(const unsigned newlen){
   if(newlen == len)
     return;
-  
+
   assert(newlen < len);
   this->resize( newlen );
   len = newlen;
@@ -134,5 +134,3 @@ void ElementVector<ElementType>::clear(){
 }
 
 #endif
-
-

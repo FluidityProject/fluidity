@@ -58,16 +58,16 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
   unsigned nnodes = num_nodes("total");
   vector<int> noddom( nnodes );
 
-  ECHO("Building csr for ParMetis...."); 
-  
+  ECHO("Building csr for ParMetis....");
+
   // Creating a node adjancy list in CSR format. This get initalised
   // using a node-node list generated using UNN's
   map<unsigned, set<unsigned> > edges = mknnlist(true);
-  csr::Graph csr_graph( edges );  
+  csr::Graph csr_graph( edges );
   edges.clear();
-  
+
   ECHO("...built.");
-  
+
   // This may be required
   deque< set<unsigned> > nelist;
 
@@ -110,13 +110,13 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OP);
       break;
     }
-    ECHO("Got node weights.");    
+    ECHO("Got node weights.");
   }
-  
-  
+
+
   { // Calculate any edge weights
     // Note: The really strange scoping came about because of some odd
-    // compiler bug in gcc. Namely "crosses initialization of".    
+    // compiler bug in gcc. Namely "crosses initialization of".
     CHECK( options[4] );
 
     switch( options[4] ){
@@ -129,12 +129,12 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
 	deque<samfloat_t> elem_fxnls( __num_elements_total );
 	if(nelist.empty())
 	  nelist = mknelist();
-	
+
 	ECHO("Calculating all the element functionals...");
 	for(unsigned i=0; i<__num_elements_total; i++)
 	  elem_fxnls[i] = element_functional(i);
 	ECHO("...done");
-	
+
 	{
 	  ECHO("Calculating a unn2gnn mapping...");
 	  map<unsigned, unsigned> unn2gnn;
@@ -143,9 +143,9 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
 	    unn2gnn[ (*it).get_unn() ] = pos++;
 	  }
 	  ECHO("...done");
-	  
+
 	  ECHO("Deriving edge weights...");
-	  csr_graph.buildEdgeWeights_adapt(nelist, unn2gnn, elem_fxnls, 
+	  csr_graph.buildEdgeWeights_adapt(nelist, unn2gnn, elem_fxnls,
 					   functional_tolerence);
 	  ECHO("...done");
 	}
@@ -173,10 +173,10 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
 
     // Make space to store times
     vector<samfloat_t> times(NUMBER_OF_BENCHMARK_TRIALS*NProcs);
-    
+
     // Make space to store standard errors
     vector<samfloat_t> std_err(NProcs);
-  
+
     // Make space to store means
     vector<samfloat_t> mean(NProcs);
 
@@ -185,7 +185,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       MPI_Barrier(MPI_COMM_WORLD);
       mpi_nbm(nbm_cacheater, times.begin() + trial*NProcs);
     }
-    
+
     // Get mean
     for(unsigned p=0; p<(unsigned)NProcs; p++){
       samfloat_t sum = 0;
@@ -207,7 +207,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
     samfloat_t sum = 0.0;
     samfloat_t maxt = times[0];
     samfloat_t mint = times[0];
-    for(unsigned p=0; p<(unsigned)NProcs; p++){      
+    for(unsigned p=0; p<(unsigned)NProcs; p++){
       maxt = max(maxt, times[p]);
       mint = min(mint, times[p]);
       sum += times[p];
@@ -226,7 +226,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
     }
 #endif
   } // Finished setting up heterogeneous support for processing power
-  
+
 
   // Set up vtxdist.
   ECHO("size vtxdist = " << unn_offsets.size());
@@ -234,25 +234,25 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
     ECHO("vtxdist["<<p<<"] = " <<  unn_offsets[p]);
   for(unsigned i=0; i<5; i++)
     ECHO("decomposition options["<<i<<"] = " << options[i]);
-  
-  
+
+
   // Chose your domain decomposition method
   switch( options[1] ){
   case 1: // clean repartitioning into nparts
-    
+
     ECHO("Doing ParMETIS V3 PartKway .. ");
     csr_graph.Repart(unn_offsets, noddom, options[0]);
     ECHO("...done.");
     break;
-    
+
   default:
-    
+
     ECHO("Doing RepartRemap (ParMetis) .. ");
     csr_graph.RepartRemap(unn_offsets, noddom);
     ECHO("...done.");
     break;
   }
-  
+
   ECHO("Finished ParMetis.");
 
   //
@@ -262,7 +262,7 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
   vector< vector<unsigned> > shared_noddom(NProcs);
   for(int i=0; i<NProcs; i++){
     int len = shared_nodes[i].size();
-    if(len==0) 
+    if(len==0)
       continue;
 
     shared_noddom[i].resize( len );
@@ -270,10 +270,10 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
     for(set<unsigned>::iterator it = shared_nodes[i].begin(); it != shared_nodes[i].end(); ++it)
       shared_noddom[i][cnt++] = noddom[unn2gnn(*it)];
   }
-  
+
   vector< vector<unsigned> > halo_noddom;
   halo_update(shared_noddom, halo_noddom);
-  
+
   // Write in the mapping
   for(unsigned i=0; i<(unsigned)NProcs; i++){
     unsigned cnt=0;
@@ -281,6 +281,6 @@ std::vector<int> Mesh::decomp(const vector<int>& options){
       noddom[unn2gnn(*it)] = halo_noddom[i][cnt++];
     }
   }
-  
+
   return noddom;
 }

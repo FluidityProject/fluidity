@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -47,7 +47,7 @@ extern "C" {
 #include <string>
 #include <iostream>
 
-using namespace std; 
+using namespace std;
 
 void project_vtu_usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename [donor_mesh] target_mesh output_filename\n"
@@ -71,13 +71,13 @@ int main(int argc, char **argv){
         abort();
   }
 #endif
-  
+
   // Initialise PETSc (this also parses PETSc command line arguments)
   PetscInit(argc, argv);
- 
+
   // Get any command line arguments
   // reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "hv")) != -1){
@@ -103,7 +103,7 @@ int main(int argc, char **argv){
     project_vtu_usage(argv[0]);
     exit(-1);
   }
-  
+
   if (argc-optind<3 || argc-optind>4) {
     cerr << "Need three or four non-option arguments" << endl;
     project_vtu_usage(argv[0]);
@@ -118,7 +118,7 @@ int main(int argc, char **argv){
 
   string input_filename = argv[optind];
   size_t input_filename_len = input_filename.size();
-  
+
   string donor_basename;
   size_t donor_basename_len;
   int targetind;
@@ -131,15 +131,15 @@ int main(int argc, char **argv){
     donor_basename_len = donor_basename.size();
     targetind = optind + 2;
   }
-  
+
   string target_basename = argv[targetind];
   size_t target_basename_len = target_basename.size();
-  
+
   string output_filename = argv[targetind + 1];
   size_t output_filename_len = output_filename.size();
 
   project_vtu(input_filename.c_str(), input_filename_len, donor_basename.c_str(), donor_basename_len, target_basename.c_str(), target_basename_len, output_filename.c_str(), output_filename_len);
-    
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif

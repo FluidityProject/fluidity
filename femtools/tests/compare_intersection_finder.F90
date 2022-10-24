@@ -3,13 +3,13 @@
 subroutine compare_intersection_finder
   !!< Compares intersection finder algorithms. For intersection finding paper
   !!< results.
-  
+
   use fields
   use global_parameters, only : debug_error_unit
   use intersection_finder_module
   use linked_lists
   use mesh_files
-  
+
   implicit none
 
   character(len = 255) :: base1, base2
@@ -21,23 +21,23 @@ subroutine compare_intersection_finder
   do i = 8, 1, -1
     base1 = int2str(i) // ".1"
     base2 = int2str(i) // ".2"
-    
+
     ewrite(0, *), "################"
     ewrite(0, *), "### New base ###"
     ewrite(0, *), "################"
     ewrite(0, *), "Base1 = " // trim(base1)
     ewrite(0, *), "Base2 = " // trim(base2)
-        
+
     ! Load in the mesh fields
     mesh_field_a = read_mesh_files("data/" // trim(base1), quad_degree = 1, format="gmsh")
     mesh_field_b = read_mesh_files("data/" // trim(base2), quad_degree = 1, format="gmsh")
-    
+
     allocate(map_ab_af(ele_count(mesh_field_a)))
     allocate(map_ab(ele_count(mesh_field_a)))
-    
+
 !    do j = 1, 3
     do j = 1, 1
-    
+
       ! Advancing front
       call reset_intersection_tests_counter()
 !      call cpu_time(start_cpu_time)
@@ -68,7 +68,7 @@ subroutine compare_intersection_finder
         ewrite(0, *), "Advancing front map verified against rtree"
       end if
       call flush_lists(map_ab)
-    
+
       call flush(debug_error_unit)
 
 !      ! Brute force
@@ -88,19 +88,19 @@ subroutine compare_intersection_finder
       ewrite(0, *) "Brute force, loop " // int2str(j) // ", intersections: " // int2str(intersections)
       ewrite(0, *) "Brute force, loop " // int2str(j) // ", intersection tests: " // int2str(intersection_tests())
       call flush_lists(map_ab)
-    
+
       call flush(debug_error_unit)
 
       call flush_lists(map_ab_af)
     end do
-  
+
     ! Deallocate
     call deallocate(mesh_field_a)
     call deallocate(mesh_field_b)
-    
+
     deallocate(map_ab_af)
     deallocate(map_ab)
-  
+
   end do
-  
+
 end subroutine compare_intersection_finder

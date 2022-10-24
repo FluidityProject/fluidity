@@ -226,7 +226,7 @@
             <string_value type="code" language="python" lines="20">import channel_tools
 global sol
 sol=channel_tools.solution(channel_tools.forcing)
-        
+
 def val(X,t):
         return (sol(X), 0.0)</string_value>
           </python>

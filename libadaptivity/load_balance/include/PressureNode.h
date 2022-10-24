@@ -50,15 +50,15 @@
 #define NODE_CHECKED 0x4
 #define NODE_HALO    0x8
 
-class PressureNode{  
+class PressureNode{
  public:
   PressureNode();                                   // "No argument" constructor
   PressureNode(const PressureNode& node);           // Copy constructor
   ~PressureNode();                                  // destructer
-  
+
   // Overloaded operators.
   friend std::ostream &operator<<(std::ostream& out, const PressureNode& in);
-  PressureNode &operator=(const PressureNode &in); 
+  PressureNode &operator=(const PressureNode &in);
   bool operator==(const PressureNode& in) const;
   bool operator!=(const PressureNode& in) const;
   bool operator<(const PressureNode& in) const;
@@ -70,10 +70,10 @@ class PressureNode{
 
   void            set_unn(const unsigned);
   unsigned        get_unn() const;
-  
+
   void            set_gnn(const unsigned);
   unsigned        get_gnn() const;
-  
+
   void            set_flags(const unsigned char);
   unsigned char   get_flags() const;
 
@@ -84,23 +84,14 @@ class PressureNode{
   void            set_pressure(const std::vector<samfloat_t>);
   samfloat_t      get_pressure(const int) const;
   std::vector<samfloat_t> get_pressure() const;
-  
+
  private:
-  unsigned unn;                             // Universal Node Number.        
-  unsigned gnn;                             // Partition-wide node number.   
-  unsigned char  flags;                     // flags! 
+  unsigned unn;                             // Universal Node Number.
+  unsigned gnn;                             // Partition-wide node number.
+  unsigned char  flags;                     // flags!
   unsigned owner;
   // For multiphase calculations, pressure can have n-degrees of freedom
   std::vector<samfloat_t> pressure;
 };
 
 #endif
-
-
-
-
-
-
-
-
-

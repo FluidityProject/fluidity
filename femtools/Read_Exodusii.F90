@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -74,7 +74,7 @@ contains
     type(quadrature_type) :: quad
     type(element_type) :: shape
     integer :: dim, loc
-    
+
     ewrite(1,*) "In read_exodusii_simple"
 
     if(isparallel()) then
@@ -156,7 +156,7 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read database parameters from "//trim(lfilename))
     end if
-    
+
     ! Check for boundaries (internal boundaries currently not supported):
     if (num_side_sets /= 0) then
        boundaryFlag = 1 ! physical boundaries found
@@ -186,11 +186,11 @@ contains
     ! file are taken into account. Thus the actual number of volume
     ! elements is computed when the CoordinateMesh is assembled.
     if(present(numElementsOut)) numElementsOut=num_allelem
-    ! Here we assume all (volume) elements of the mesh have the same 
-    ! number of vertices/nodes. Since the exodusII mesh could contain 
+    ! Here we assume all (volume) elements of the mesh have the same
+    ! number of vertices/nodes. Since the exodusII mesh could contain
     ! surface elements (as described above) we set locOut to be the
-    ! max number of nodes per elements. Checking for hybrid meshes, 
-    ! that are currently not supported in Fluidity, is done when 
+    ! max number of nodes per elements. Checking for hybrid meshes,
+    ! that are currently not supported in Fluidity, is done when
     ! assembling the CoordinateMesh.
     if(present(locOut)) locOut=maxval(num_nodes_per_elem)
     if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
@@ -234,7 +234,7 @@ contains
     real(c_float), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
-    
+
     integer :: num_faces, num_elem, faceType
     integer :: loc, sloc
     integer :: eff_dim, f, gdim
@@ -326,7 +326,7 @@ contains
     ! read element connectivity:
     allocate(elem_connectivity(0))
     call get_element_connectivity(exoid, block_ids, num_elem_blk, num_nodes_per_elem, num_elem_in_block, lfilename, elem_connectivity)
-    
+
     ! Initialize logical variables:
     ! We have RegionIDs when there are blockIDs assigned to elements
     ! so basically always when supplying an exodusII mesh, as an blockID is assigned
@@ -403,7 +403,7 @@ contains
     if (haveBoundaries) then
        call allelements_add_boundary_ids(num_side_sets, num_elem_in_set, total_side_sets_elem_list, side_set_ids, allelements)
     end if
-   ! At this stage, the elements of 'allelements' have been correctly tagged, 
+   ! At this stage, the elements of 'allelements' have been correctly tagged,
    ! meaning they carry the side set ID(s) as tags, which later will
    ! become the boundary ID of their face(s)
 
@@ -411,7 +411,7 @@ contains
     ! Identify Faces           !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Now faces:
-    ! First of all: Face elements in the mesh (-file) are neglected, thus get the 
+    ! First of all: Face elements in the mesh (-file) are neglected, thus get the
     ! number of elements (-minus number of face-elements in the mesh),
     ! and by 'elements' we mean no edges/faces in 2D/3D.
     ! And then subtract the amount of elements that carry at least one side-set-id
@@ -432,7 +432,7 @@ contains
     ! e.g. if faceType = 2 (triangle), it should have 3 nodes, which is faceType+1
     sloc = faceType+1
     ! Now check for site-set-id/physical-id, if element has numTags>0,
-    ! than an edge/face will be generated next to that element, 
+    ! than an edge/face will be generated next to that element,
     ! and the element's side-set-ID will be assigned to the newly generated edge/face
     if (haveBoundaries) then
        call get_num_faces(num_allelem, allelements, num_faces)
@@ -501,10 +501,10 @@ contains
 
     ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
-    deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
+    deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map);
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
-    deallocate(elem_type) 
-    deallocate(elem_connectivity); 
+    deallocate(elem_type)
+    deallocate(elem_connectivity);
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
@@ -537,7 +537,7 @@ contains
                               num_elem_in_block, &
                               num_nodes_per_elem, &
                               elem_type)
-    ! This subroutine get block specific data from the mesh file, 
+    ! This subroutine get block specific data from the mesh file,
     ! e.g. the element type (Triangle/Quad/Tet/Hex...)
     ! number of elements (and nodes per element) per block:
     integer, intent(in) :: exoid
@@ -548,7 +548,7 @@ contains
     integer, dimension(:), intent(inout) :: num_nodes_per_elem
     integer, dimension(:), intent(inout) :: elem_type
 
-    character(len=6) :: elem_type_char    
+    character(len=6) :: elem_type_char
     integer, allocatable, dimension(:) :: num_attr
     integer :: i, ierr
 
@@ -587,7 +587,7 @@ contains
        if (ierr /= 0) then
           FLExit("Unable to read in element block parameters from "//trim(lfilename))
        end if
-       deallocate(num_attr)  
+       deallocate(num_attr)
 
   end subroutine get_block_param
 
@@ -598,7 +598,7 @@ contains
                                                    elem_type, &
                                                    lfilename, &
                                                    faceType)
-    ! This subroutine get block specific data from the mesh file, 
+    ! This subroutine get block specific data from the mesh file,
     ! e.g. the element type (Triangle/Quad/Tet/Hex...)
     ! number of elements (and nodes per element) per block:
     integer, intent(in) :: num_dim
@@ -610,11 +610,11 @@ contains
     integer :: i, elementType
 
        elementType = 0; faceType = 0
-       ! Practically looping over the blocks, and checking the combination of face/element types for 
+       ! Practically looping over the blocks, and checking the combination of face/element types for
        ! each block in the supplied mesh, plus exit if dimension of mesh is 1!
        do i=1, num_elem_blk
           ! 2D meshes:
-          if (num_dim == 2) then 
+          if (num_dim == 2) then
              if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
                 if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
                    ewrite(-1,*) "Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells."
@@ -644,7 +644,7 @@ contains
              FLExit("1D exodusII mesh files are not supported.")
           end if
        end do
-     
+
   end subroutine check_combination_face_element_types
 
   ! -----------------------------------------------------------------
@@ -678,7 +678,7 @@ contains
       if (ierr /= 0) then
          FLExit("Unable to read in element connectivity from "//trim(lfilename))
       end if
-  
+
   end subroutine get_element_connectivity
 
   ! -----------------------------------------------------------------
@@ -777,7 +777,7 @@ contains
                                       elem_connectivity, &
                                       elem_type, &
                                       total_elem_node_list)
-    integer, intent(in) :: num_elem_blk    
+    integer, intent(in) :: num_elem_blk
     integer, dimension(:), intent(in) :: num_nodes_per_elem
     integer, dimension(:), intent(in) :: num_elem_in_block
     integer, dimension(:), intent(in) :: elem_connectivity
@@ -845,11 +845,11 @@ contains
     integer :: i, e, n, z, z2
     ! Subroutine to assemble a bucket full of element related data,
     ! e.g. element id, which block id it belongs to, its element type,
-    ! its node ids. 
+    ! its node ids.
     ! This is done for all elements of the mesh, e.g. also for surface
-    ! elements of a 3D mesh. These surface elements won't be passed 
+    ! elements of a 3D mesh. These surface elements won't be passed
     ! to the fluidity structure later on, but are added to allelements
-    ! here. 
+    ! here.
     ! Also: Potential boundaryID numbers are added in the seperate
     ! subroutine 'allelements_add_boundary_ids'.
 
@@ -877,9 +877,9 @@ contains
        end do
 
   end subroutine assemble_allelements
-  
+
   ! -----------------------------------------------------------------
-  
+
   subroutine allelements_add_boundary_ids(num_side_sets, &
                                             num_elem_in_set, &
                                             total_side_sets_elem_list, &
@@ -954,9 +954,9 @@ contains
 
     integer :: i
     ! This subroutines computes the number of elements, which will be
-    ! included in the fluidity mesh, thus num_elem is the number of 
+    ! included in the fluidity mesh, thus num_elem is the number of
     ! elements of the mesh - the number of face-elements, e.g.
-    ! in a 3D mesh the number of tetrahedras minus the number of 
+    ! in a 3D mesh the number of tetrahedras minus the number of
     ! triangles on surfaces.
 
     do i=1, num_elem_blk
@@ -981,7 +981,7 @@ contains
     integer, intent(in) :: num_allelem
     type(EXOelement), pointer, dimension(:), intent(in) :: allelements
     integer, intent(inout) :: num_faces
-    
+
     integer :: i, elemID, num_tags_elem
     ! This subroutines computes the number of faces, which will be
     ! included in the fluidity mesh. These are the elements of the mesh
@@ -999,7 +999,7 @@ contains
 
   end subroutine get_num_faces
 
-  ! -----------------------------------------------------------------  
+  ! -----------------------------------------------------------------
 
   subroutine assemble_actual_elements(num_dim, num_elem_blk, num_elem_in_block, elem_type, allElements, exo_element)
     integer, intent(in) :: num_dim
@@ -1008,7 +1008,7 @@ contains
     integer, dimension(:), intent(in) :: elem_type
     type(EXOelement), pointer, dimension(:), intent(in) :: allelements
     type(EXOelement), pointer, dimension(:), intent(inout) :: exo_element
-  
+
     integer :: b, e, i, exo_e
     ! This subroutine assembles a bucket (called exo_element) which corresponds
     ! to the actual elements of the mesh, meaning in a 3D mesh only to the volume

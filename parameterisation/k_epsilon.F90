@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -57,7 +57,7 @@ module k_epsilon
 
   ! locally allocatad fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.                     
+  logical, save  :: low_Re = .false.
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
@@ -72,7 +72,7 @@ contains
 subroutine keps_advdif_diagnostics(state)
 
   type(state_type), intent(inout) :: state
-  
+
   call keps_damping_functions(state, advdif=.true.)
   call keps_eddyvisc(state, advdif=.true.)
   call keps_diffusion(state)
@@ -84,7 +84,7 @@ end subroutine keps_advdif_diagnostics
 subroutine keps_momentum_diagnostics(state)
 
   type(state_type), intent(inout) :: state
-  
+
   call keps_damping_functions(state, advdif=.false.)
   call keps_eddyvisc(state, advdif=.false.)
 
@@ -96,7 +96,7 @@ subroutine keps_damping_functions(state, advdif)
 
   type(state_type), intent(in) :: state
   logical, intent(in) :: advdif
-  
+
   type(scalar_field), pointer :: f_1, f_2, f_mu, y, dummydensity, density
   type(scalar_field) :: k, eps
   type(tensor_field), pointer :: bg_visc
@@ -119,14 +119,14 @@ subroutine keps_damping_functions(state, advdif)
   call set(f_mu, 1.0)
 
   call get_option(trim(state%option_path)// &
-       & "/subgridscale_parameterisations/k-epsilon/max_damping_value", fields_max) 
+       & "/subgridscale_parameterisations/k-epsilon/max_damping_value", fields_max)
 
   ! Low Reynolds damping functions
   ! Check for low reynolds boundary condition and calculate damping functions
   ! Lam-Bremhorst model (Wilcox 1998 - Turbulence modelling for CFD)
   if (low_Re .or. &
        have_option(trim(option_path)//"debugging_options/enable_lowRe_damping")) then
-  
+
      bg_visc => extract_tensor_field(state, "BackgroundViscosity")
      y => extract_scalar_field(state, "DistanceToWall", stat = stat)
      if (stat /= 0) then
@@ -169,8 +169,8 @@ subroutine keps_damping_functions(state, advdif)
 
            f_mu_val = (1.0 - exp(- 0.0165*R_y))**2.0
            f_1_val = (0.05/node_val(f_mu,node))**3.0 + 1.0
-           f_2_val = 1.0        
-        else 
+           f_2_val = 1.0
+        else
            Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
                 (node_val(eps,node) * node_val(bg_visc,1,1,node))
            R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
@@ -184,8 +184,8 @@ subroutine keps_damping_functions(state, advdif)
         ! limit values of damping functions
         call set(f_mu, node, min(f_mu_val, 1.0))
         call set(f_1, node, min(f_1_val, fields_max))
-        call set(f_2, node, min(f_2_val, fields_max))       
-        
+        call set(f_2, node, min(f_2_val, fields_max))
+
      end do node_loop
 
      call deallocate(k)
@@ -196,7 +196,7 @@ subroutine keps_damping_functions(state, advdif)
   end if
 
 end subroutine keps_damping_functions
-    
+
 !------------------------------------------------------------------------------!
 
 subroutine keps_calculate_rhs(state)
@@ -212,17 +212,17 @@ subroutine keps_calculate_rhs(state)
   integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
-  character(len=OPTION_PATH_LEN) :: option_path 
+  character(len=OPTION_PATH_LEN) :: option_path
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
 
   type(vector_field) :: bc_value
-  integer, dimension(:,:), allocatable :: bc_type    
+  integer, dimension(:,:), allocatable :: bc_type
   logical :: dg_velocity, dg_keps
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
-  if (.not. have_option(trim(option_path))) then 
+  if (.not. have_option(trim(option_path))) then
      return
   end if
 
@@ -232,7 +232,7 @@ subroutine keps_calculate_rhs(state)
   call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
-  
+
   ! get field data
   x => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
@@ -253,8 +253,8 @@ subroutine keps_calculate_rhs(state)
 
   !! required for dg gradient calculation of u
   if(dg_velocity) then
-      allocate(bc_type(u%dim, 1:surface_element_count(u)))	
-      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)	
+      allocate(bc_type(u%dim, 1:surface_element_count(u)))
+      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)
   end if
 
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
@@ -271,7 +271,7 @@ subroutine keps_calculate_rhs(state)
         ! developer error... out of sync options input and code
         FLAbort("Unknown equation type for velocity")
   end select
-  
+
   if(have_buoyancy_turbulence) then
      buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
   else
@@ -285,7 +285,7 @@ subroutine keps_calculate_rhs(state)
   else
      multiphase = .false.
   end if
-  
+
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
 
@@ -296,7 +296,7 @@ subroutine keps_calculate_rhs(state)
      end if
 
      !-----------------------------------------------------------------------------------
-     
+
      ! Setup
      src => extract_scalar_field(state, trim(field_names(i))//"Source")
      abs => extract_scalar_field(state, trim(field_names(i))//"Absorption")
@@ -317,10 +317,10 @@ subroutine keps_calculate_rhs(state)
      dg_keps = continuity(fields(1))<0
 
      ! Assembly loop
-     do ele = 1, ele_count(fields(1))  
+     do ele = 1, ele_count(fields(1))
        ! In parallel, we construct terms on elements we own and those in
        ! the L1 element halo.
-       ! This is because we need neighbour info to determin jumps between elements and 
+       ! This is because we need neighbour info to determin jumps between elements and
        ! calculate a dg gradient.
        ! Note that element_neighbour_owned(u, ele) may return .false. if
        ! ele is owned.  For example, if ele is the only owned element on
@@ -344,7 +344,7 @@ subroutine keps_calculate_rhs(state)
      if(continuity(fields(1))>=0) then
         lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
         do term = 1, 3
-           call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
+           call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)
         end do
      end if
      !-----------------------------------------------------------------------------------
@@ -355,7 +355,7 @@ subroutine keps_calculate_rhs(state)
              trim(src_abs_terms(term)%name))) then
            call zero(src_abs_terms(term))
         end if
-     end do    
+     end do
      !-----------------------------------------------------------------------------------
 
      ! Produce debugging output
@@ -367,7 +367,7 @@ subroutine keps_calculate_rhs(state)
         end if
      end do
      !-----------------------------------------------------------------------------------
-     
+
      ! Implement terms as source or absorbtion
      do term = 1, 3
         call get_option(trim(option_path)//&
@@ -411,11 +411,11 @@ subroutine keps_calculate_rhs(state)
      call deallocate(fields(2))
 
   end do field_loop
-  
+
   !! deallocate velocity bc_type
   if(dg_velocity) then
       deallocate(bc_type)
-      call deallocate(bc_value)	
+      call deallocate(bc_value)
   end if
   call deallocate(dummydensity)
   deallocate(dummydensity)
@@ -425,7 +425,7 @@ subroutine keps_calculate_rhs(state)
   end if
 
 end subroutine keps_calculate_rhs
-    
+
 !------------------------------------------------------------------------------!
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
@@ -449,7 +449,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   type(element_type), pointer :: shape, shape_u
   integer :: term, ngi, dim, gi, i
 
-  type(vector_field), intent(in) :: bc_value	
+  type(vector_field), intent(in) :: bc_value
   integer, dimension(:,:), allocatable, intent(in) :: bc_type
 
   real, dimension(:, :, :), allocatable :: dshape_u
@@ -482,7 +482,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      allocate(dshape_u(ele_loc(u, ele), ele_ngi(u, ele), X%dim))
      call transform_to_physical( X, ele, shape_u, dshape=dshape_u )
      grad_u = ele_grad_at_quad(u, ele, dshape_u)
-     deallocate(dshape_u)  
+     deallocate(dshape_u)
   else
      if(continuity(u)<0) then
         grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
@@ -521,30 +521,30 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   else
      rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
   end if
-  
-  ! Gk:  
+
+  ! Gk:
   ! Calculate buoyancy turbulence term and add to addto array
-  if(have_buoyancy_turbulence) then    
-  
-    ! calculate scalar and vector components of the source term    
+  if(have_buoyancy_turbulence) then
+
+    ! calculate scalar and vector components of the source term
     allocate(dshape_density(ele_loc(buoyancy_density, ele), ele_ngi(buoyancy_density, ele), X%dim))
     if(.not.(buoyancy_density%mesh == k%mesh)) then
        shape_density => ele_shape(buoyancy_density, ele)
-       call transform_to_physical( X, ele, shape_density, dshape=dshape_density ) 
+       call transform_to_physical( X, ele, shape_density, dshape=dshape_density )
     else
        dshape_density = dshape
     end if
-     
+
     scalar = -1.0*g_magnitude*ele_val_at_quad(scalar_eddy_visc, ele)/(sigma_p*ele_val_at_quad(density,ele))
     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyancy_density, ele, dshape_density)
-    
+
     ! multiply vector component by scalar and sum across dimensions - note that the
     ! vector part has been multiplied by the gravitational direction so that it is
     ! zero everywhere apart from in this direction.
     do gi = 1, ngi
        scalar(gi) = sum(scalar(gi) * vector(:, gi))
     end do
-   
+
     if (field_id == 2) then
        ! calculate c_eps_3 = tanh(v/u)
        g_quad = ele_val_at_quad(g, ele)
@@ -554,11 +554,11 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
           if (u_xy > fields_min) then
-             c_eps_3(gi) = tanh(u_z/u_xy) 
+             c_eps_3(gi) = tanh(u_z/u_xy)
           else
              c_eps_3(gi) = 1.0
           end if
-       end do     
+       end do
        scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*eps_ele/k_ele
     end if
 
@@ -568,12 +568,12 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
     else
        rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
     end if
-    
+
     deallocate(dshape_density)
-    
+
   else
     ! No buoyancy term, so set this part of the array to zero.
-    rhs_addto(3,:) = 0.0    
+    rhs_addto(3,:) = 0.0
   end if
 
   ! In the DG case we apply the inverse mass locally.
@@ -596,11 +596,11 @@ end subroutine assemble_rhs_ele
 function tensor_inner_product(A, B)
 
   real, dimension(:,:,:), intent(in) :: A, B
-  
+
   real, dimension(size(A,1), size(A,2), size(A,3)) :: C
   real, dimension(size(A,3)) :: tensor_inner_product
   integer :: i
-  
+
   C = A*B
   do i = 1, size(A,3)
      tensor_inner_product(i) = sum(C(:,:,i))
@@ -624,7 +624,7 @@ subroutine keps_eddyvisc(state, advdif)
   type(scalar_field), pointer      :: scalar_eddy_visc, ll, f_mu, density, dummydensity, filter
   type(scalar_field)               :: ev_rhs
   integer                          :: i, j, ele, stat
-  
+
   ! Options grabbed from the options tree
   real                             :: c_mu
   character(len=OPTION_PATH_LEN)   :: option_path
@@ -633,7 +633,7 @@ subroutine keps_eddyvisc(state, advdif)
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
-  if (.not. have_option(trim(option_path))) then 
+  if (.not. have_option(trim(option_path))) then
      return
   end if
 
@@ -641,7 +641,7 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Get model constant
   call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
-  
+
   ! Get field data
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
   call time_averaged_value(state, eps, "TurbulentDissipation", advdif, option_path)
@@ -660,12 +660,12 @@ subroutine keps_eddyvisc(state, advdif)
   ewrite_minmax(kk)
   ewrite_minmax(eps)
   ewrite_minmax(scalar_eddy_visc)
-  
+
   allocate(dummydensity)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
-  
+
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
        "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
@@ -686,10 +686,10 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! Initialise viscosity to background value
   if (have_visc) then
-     ewrite(1,*) "Entering Initialise Viscosity to Background Viscosity"   
+     ewrite(1,*) "Entering Initialise Viscosity to Background Viscosity"
      ! Checking if the viscosity field is on a discontinuous mesh and the bg_viscosity is on continuous mesh
      ! We need to remap before setting the field as the set subroutine does not remap automatically.
-     if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then     
+     if (continuity(viscosity)<0 .and. continuity(bg_visc)>=0) then
         ewrite(1,*) "Entering background viscosity remap conditional"
         call allocate(visc_dg, viscosity%mesh, "RemappedBackgroundViscosityDG")
         call remap_field(bg_visc,visc_dg,stat)
@@ -704,7 +704,7 @@ subroutine keps_eddyvisc(state, advdif)
      end if
      ewrite(1,*) "Exiting initialise viscosity to bg visc"
   end if
-  
+
   ! Compute the length scale diagnostic field here.
   do i = 1, node_count(scalar_eddy_visc)
      call set(ll, i, max(node_val(kk,i), fields_min)**1.5 / max(node_val(eps,i), fields_min))
@@ -718,9 +718,9 @@ subroutine keps_eddyvisc(state, advdif)
   ! For non-DG we apply inverse mass globally
   if(continuity(scalar_eddy_visc)>=0) then
      lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
-     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
+     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)
   end if
-  
+
   ! Allow for prescribed eddy-viscosity
   if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
      call set(scalar_eddy_visc, ev_rhs)
@@ -737,7 +737,7 @@ subroutine keps_eddyvisc(state, advdif)
   call deallocate(ev_rhs)
   call deallocate(kk)
   call deallocate(eps)
-  
+
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
@@ -747,7 +747,7 @@ subroutine keps_eddyvisc(state, advdif)
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
-     ! Although the k-epsilon model assumes isotropic viscosity all terms of the viscosity tensor are modified 
+     ! Although the k-epsilon model assumes isotropic viscosity all terms of the viscosity tensor are modified
      ! because of the way CG method treats the viscosity tensor.
      do i = 1, eddy_visc%dim(1)
         do j = 1, eddy_visc%dim(1)
@@ -766,10 +766,10 @@ subroutine keps_eddyvisc(state, advdif)
   ewrite_minmax(eddy_visc)
   ewrite_minmax(viscosity)
   ewrite_minmax(scalar_eddy_visc)
-  ewrite_minmax(ll)  
-  
+  ewrite_minmax(ll)
+
   contains
-  
+
    subroutine vles_filter(filter, scalar_eddy_visc, ll, eps, X)
 
       type(scalar_field), intent(inout) :: scalar_eddy_visc, filter
@@ -814,30 +814,30 @@ subroutine keps_eddyvisc(state, advdif)
    end subroutine vles_filter
 
    subroutine keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs)
-   
+
       type(vector_field), intent(in)   :: x
       type(scalar_field), intent(in)   :: kk, eps, scalar_eddy_visc, f_mu, density
       type(scalar_field), intent(inout):: ev_rhs
       integer, intent(in)              :: ele
-      
+
       type(element_type), pointer      :: shape_ev
       integer, pointer, dimension(:)   :: nodes_ev
       real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: detwei
       real, dimension(ele_loc(scalar_eddy_visc, ele)) :: rhs_addto
       real, dimension(ele_loc(scalar_eddy_visc, ele), ele_loc(scalar_eddy_visc, ele)) :: invmass
       real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, eps_at_quad
-      
-   
+
+
       nodes_ev => ele_nodes(scalar_eddy_visc, ele)
       shape_ev =>  ele_shape(scalar_eddy_visc, ele)
-      
+
       ! Get detwei
       call transform_to_physical(X, ele, detwei=detwei)
-      
+
       ! Get the k and epsilon values at the Gauss points
       kk_at_quad = ele_val_at_quad(kk,ele)
       eps_at_quad = ele_val_at_quad(eps,ele)
-      
+
       ! Clip the field values at the Gauss points.
       ! Note 1: This isn't a permanent change directly to the field itself,
       ! only to the values used in the computation of the eddy viscosity.
@@ -850,20 +850,20 @@ subroutine keps_eddyvisc(state, advdif)
       where (eps_at_quad < fields_min)
          eps_at_quad = fields_min
       end where
-      
+
       ! Compute the eddy viscosity
       rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
                      ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
-            
+
       ! In the DG case we will apply the inverse mass locally.
       if(continuity(scalar_eddy_visc)<0) then
          invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
          rhs_addto = matmul(rhs_addto, invmass)
       end if
-      
+
       ! Add the element's contribution to the nodes of ev_rhs
-      call addto(ev_rhs, nodes_ev, rhs_addto)    
-   
+      call addto(ev_rhs, nodes_ev, rhs_addto)
+
    end subroutine keps_eddyvisc_ele
 
 end subroutine keps_eddyvisc
@@ -879,11 +879,11 @@ subroutine keps_diffusion(state)
   type(scalar_field) :: vfrac, remapvfrac
   real :: sigma_k, sigma_eps
   integer :: i, j
-  character(len=OPTION_PATH_LEN) :: option_path 
+  character(len=OPTION_PATH_LEN) :: option_path
   logical :: multiphase
 
   ewrite(1,*) 'in keps_diffusion'
-  
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   eddy_visc => extract_tensor_field(state, "EddyViscosity")
@@ -893,7 +893,7 @@ subroutine keps_diffusion(state)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
-  
+
   ! PhaseVolumeFraction for multiphase flow simulations
   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
      multiphase = .true.
@@ -903,7 +903,7 @@ subroutine keps_diffusion(state)
   else
      multiphase = .false.
   end if
-  
+
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
@@ -923,13 +923,13 @@ subroutine keps_diffusion(state)
         if(multiphase) then
            call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_eps)
-        else   
+        else
            call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
            call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
         end if
      end do
   end do
-  
+
   if(multiphase) then
      call deallocate(remapvfrac)
      call deallocate(vfrac)
@@ -962,18 +962,18 @@ subroutine keps_tracer_diffusion(state)
           '/prognostic/subgridscale_parameterisation::k-epsilon')) then
 
         ewrite(1,*) 'Calculating turbulent diffusivity for field: ', s_field%name
-        
+
         ! check options
         if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon')))&
              & then
            FLExit('you must have /subgridscale_parameterisations/k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
         end if
 
-        t_field => extract_tensor_field(state, trim(s_field%name)//'Diffusivity', stat=stat) 
+        t_field => extract_tensor_field(state, trim(s_field%name)//'Diffusivity', stat=stat)
         if (stat /= 0) then
-           FLExit('you must have a Diffusivity field to be able to calculate diffusivity based upon the k-epsilon model')        
+           FLExit('you must have a Diffusivity field to be able to calculate diffusivity based upon the k-epsilon model')
         else if (.not. have_option(trim(t_field%option_path)//"/diagnostic/algorithm::Internal")) then
-           FLExit('you must have a diagnostic Diffusivity field with algorithm::Internal to be able to calculate diffusivity based upon the k-epsilon model')  
+           FLExit('you must have a diagnostic Diffusivity field with algorithm::Internal to be able to calculate diffusivity based upon the k-epsilon model')
         end if
 
         ! get sigma_p number
@@ -990,7 +990,7 @@ subroutine keps_tracer_diffusion(state)
         call get_option(trim(s_field%option_path)//&
              '/prognostic/subgridscale_parameterisation::k-epsilon/background_diffusivity', &
              local_background_diffusivity, stat=stat)
-        if (stat == 0) then 
+        if (stat == 0) then
            ! set local isotropic background diffusivity
            call addto(local_background_diffusivity_field, local_background_diffusivity)
            do i = 1, background_diffusivity%dim(1)
@@ -998,7 +998,7 @@ subroutine keps_tracer_diffusion(state)
            end do
         else
            global_background_diffusivity => extract_tensor_field(state, 'BackgroundDiffusivity', stat=stat)
-           if (stat == 0) then 
+           if (stat == 0) then
               call set(background_diffusivity, global_background_diffusivity)
            end if
         end if
@@ -1029,16 +1029,13 @@ subroutine keps_bcs(state)
   type(state_type), intent(in)               :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
-  type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
+  type(scalar_field), pointer                :: scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
-  type(scalar_field)                         :: rhs_field, surface_values
-  type(mesh_type), pointer                   :: surface_mesh
-  integer                                    :: i, j, sele, index, nbcs, stat
-  integer, dimension(:), pointer             :: surface_elements, surface_node_list
+  integer                                    :: i, index, nbcs, stat
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
-  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
+  character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
 
@@ -1058,7 +1055,7 @@ subroutine keps_bcs(state)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
-  
+
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
   select case(equation_type)
@@ -1100,7 +1097,7 @@ subroutine keps_bcs(state)
         call get_option(trim(bc_path_i)//"/type::k_epsilon/", wall_fns, stat=stat)
 
         if (trim(bc_type)=="k_epsilon" .and. wall_fns=="low_Re") then
-           ! lowRe BC's are just zero Dirichlet or Neumann - damping functions get calculated in 
+           ! lowRe BC's are just zero Dirichlet or Neumann - damping functions get calculated in
            ! keps_calc_rhs
            low_Re = .true.
         end if
@@ -1115,16 +1112,16 @@ end subroutine keps_bcs
 !---------------------------------------------------------------------------------
 
 subroutine time_averaged_value(state, A, field_name, advdif, option_path)
-  
+
   type(state_type), intent(in) :: state
   type(scalar_field), intent(inout) :: A
   character(len=*), intent(in) :: field_name
   logical, intent(in) :: advdif    ! advdif or mom - whether to use old or iterated values
-  character(len=OPTION_PATH_LEN), intent(in) :: option_path 
+  character(len=OPTION_PATH_LEN), intent(in) :: option_path
 
   real :: theta
   type(scalar_field), pointer :: old, iterated
-  
+
   call get_option(trim(option_path)//'time_discretisation/theta', theta)
 
   old => extract_scalar_field(state, "Old"//trim(field_name))
@@ -1148,16 +1145,16 @@ end subroutine time_averaged_value
 !---------------------------------------------------------------------------------
 
 subroutine solve_cg_inv_mass(state, A, lump, option_path)
-  
+
   type(state_type), intent(inout) :: state
   type(scalar_field), intent(inout) :: A
   logical, intent(in) :: lump
-  character(len=OPTION_PATH_LEN), intent(in) :: option_path 
+  character(len=OPTION_PATH_LEN), intent(in) :: option_path
 
   type(scalar_field), pointer :: lumped_mass
   type(csr_matrix), pointer :: mass_matrix
   type(scalar_field) :: inv_lumped_mass, x
-  
+
   if (lump) then
      call allocate(inv_lumped_mass, A%mesh)
      lumped_mass => get_lumped_mass(state, A%mesh)
@@ -1179,17 +1176,17 @@ end subroutine solve_cg_inv_mass
 !---------------------------------------------------------------------------------
 
 subroutine solve_cg_inv_mass_vector(state, A, lump, option_path)
-  
+
   type(state_type), intent(inout) :: state
   type(vector_field), intent(inout) :: A
   logical, intent(in) :: lump
-  character(len=OPTION_PATH_LEN), intent(in) :: option_path 
+  character(len=OPTION_PATH_LEN), intent(in) :: option_path
 
   type(scalar_field), pointer :: lumped_mass
   type(csr_matrix), pointer :: mass_matrix
   type(scalar_field) :: inv_lumped_mass
   type(vector_field) :: x
-  
+
   if (lump) then
      call allocate(inv_lumped_mass, A%mesh)
      lumped_mass => get_lumped_mass(state, A%mesh)
@@ -1223,9 +1220,9 @@ subroutine k_epsilon_check_options
   do istate = 0, n_phases-1
 
      option_path = "/material_phase["//int2str(istate)//"]/subgridscale_parameterisations/k-epsilon"
-     
+
      ! one dimensional problems not supported
-     call get_option("/geometry/dimension/", dimension) 
+     call get_option("/geometry/dimension/", dimension)
      if (dimension .eq. 1 .and. have_option(trim(option_path))) then
         FLExit("k-epsilon model is only supported for dimension > 1")
      end if
@@ -1345,7 +1342,7 @@ subroutine k_epsilon_check_options
      if (.not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
           "/tensor_field::Viscosity/") .and. &
           .not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prescribed")) then
-        FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
+        FLExit("Need viscosity switched on under the Velocity field for k-epsilon.")
      end if
      ! check that the user has switched Velocity/viscosity to diagnostic
      if (have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic") .and. &

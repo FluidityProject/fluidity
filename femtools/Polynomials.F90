@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -29,7 +29,7 @@
 module polynomials
   !!< Module implementing real polynomials of one variable. Available
   !!< operations are addition, subtraction, multiplication and taking the
-  !!< derivative.  
+  !!< derivative.
   !!<
   !!< The polynomials can, of course, be evaluated at any point.
   !!<
@@ -38,7 +38,7 @@ module polynomials
   !!<
   !!< The polynomial module also treats real vectors as
   !!< polynomials where the entries of the vector are read as the
-  !!< coefficients of the polynomial. That is (/3.5, 1.0, 2.0/) is 
+  !!< coefficients of the polynomial. That is (/3.5, 1.0, 2.0/) is
   !!< 3.5*x**2+x+2.
   !!<
   !!< To allow polynomials to grow from the front of the coefs array, the
@@ -52,14 +52,14 @@ module polynomials
   !!<
   use FLDebug
   use futils
-  
+
   implicit none
 
   type polynomial
      real, dimension(:), pointer :: coefs=>null()
      integer :: degree=-1
   end type polynomial
-     
+
   interface assignment(=)
      module procedure assign_vec_poly, assign_poly_vec
   end interface
@@ -115,14 +115,14 @@ contains
 
     poly%degree=size(vec)-1
     poly%coefs(:size(vec))=reverse(vec)
-           
+
   end subroutine assign_vec_poly
 
   subroutine assign_poly_vec(vec, poly)
     ! Assign a vector to a poly.
     type(polynomial), intent(in) :: poly
     real, dimension(poly%degree+1), intent(out) :: vec
-    
+
     vec=reverse(poly%coefs(:poly%degree+1))
 
   end subroutine assign_poly_vec
@@ -230,7 +230,7 @@ contains
     ! Multiply two polynomials returning a vector.
     type(polynomial), intent(in) :: poly1, poly2
     real, dimension(poly1%degree+poly2%degree+1) :: product
-    
+
     integer :: i
 
     ! In this algorithm, product is assembled in increasing power order and
@@ -242,9 +242,9 @@ contains
        product(i:i+poly2%degree)=product(i:i+poly2%degree)+&
             poly1%coefs(i)*poly2%coefs(:poly2%degree+1)
     end do
-    
+
     product=reverse(product)
-    
+
   end function mult_poly_poly
 
   function mult_poly_vec(poly,vec) result (product)
@@ -252,7 +252,7 @@ contains
     type(polynomial), intent(in) :: poly
     real, dimension(:), intent(in) :: vec
     real, dimension(poly%degree+size(vec)) :: product
-    
+
     integer :: i
 
     ! In this algorithm, product is assembled in increasing power order and
@@ -264,9 +264,9 @@ contains
        product(i:i+poly%degree)=product(i:i+poly%degree)+&
             vec(size(vec)+1-i)*poly%coefs(:poly%degree+1)
     end do
-    
+
     product=reverse(product)
-    
+
   end function mult_poly_vec
 
   function mult_vec_poly(vec,poly) result (product)
@@ -274,7 +274,7 @@ contains
     type(polynomial), intent(in) :: poly
     real, dimension(:), intent(in) :: vec
     real, dimension(poly%degree+size(vec)) :: product
-    
+
     integer :: i
 
     ! In this algorithm, product is assembled in increasing power order and
@@ -286,9 +286,9 @@ contains
        product(i:i+poly%degree)=product(i:i+poly%degree)+&
             vec(size(vec)+1-i)*poly%coefs(:poly%degree+1)
     end do
-    
+
     product=reverse(product)
-    
+
   end function mult_vec_poly
 
   function mult_poly_scalar(poly, scalar) result (product)
@@ -296,7 +296,7 @@ contains
     type(polynomial), intent(in) :: poly
     real, intent(in) :: scalar
     real, dimension(poly%degree+1) :: product
-    
+
     product=poly
     product=product*scalar
 
@@ -307,7 +307,7 @@ contains
     type(polynomial), intent(in) :: poly
     real, intent(in) :: scalar
     real, dimension(poly%degree+1) :: product
-    
+
     product=poly
     product=product*scalar
 
@@ -318,7 +318,7 @@ contains
     type(polynomial), intent(in) :: poly
     real, intent(in) :: scalar
     real, dimension(poly%degree+1) :: quotient
-    
+
     quotient=poly
     quotient=quotient/scalar
 
@@ -367,7 +367,7 @@ contains
     do i=0,poly%degree
 
        val=val+poly%coefs(i+1)*scalar**i
-       
+
     end do
 
   end function eval_poly_scalar
@@ -385,13 +385,13 @@ contains
     do i=0,poly%degree
 
        val=val+poly%coefs(i+1)*vector**i
-       
+
     end do
 
   end function eval_poly_vector
 
   pure function eval_vec_scalar(vec, scalar) result (val)
-    ! Evaluate vec(scalar) interpreting vec as a vector and 
+    ! Evaluate vec(scalar) interpreting vec as a vector and
     ! returning a scalar.
     real, dimension(:), intent(in) :: vec
     real, intent(in) :: scalar
@@ -404,7 +404,7 @@ contains
     do i=0,size(vec)-1
 
        val=val+vec(size(vec)-i)*scalar**i
-       
+
     end do
 
   end function eval_vec_scalar
@@ -422,19 +422,19 @@ contains
     do i=0,size(vec)-1
 
        val=val+vec(size(vec)-i)*vector**i
-       
+
     end do
 
   end function eval_vec_vector
 
   subroutine upsize(poly, degree, preserve)
     ! Ensure poly can handle entries of degree.
-    ! This preserves existing data unless preserve is 
-    ! present and .false. in which case the polynomial is zeroed. 
+    ! This preserves existing data unless preserve is
+    ! present and .false. in which case the polynomial is zeroed.
     type(polynomial), intent(inout) :: poly
     integer, intent(in) :: degree
     logical, intent(in), optional :: preserve
-    
+
     real, dimension(:), pointer :: lcoefs
 
     if (associated(poly%coefs)) then
@@ -450,7 +450,7 @@ contains
 
     allocate(poly%coefs(degree+1))
     poly%coefs=0.0
-    
+
     if (associated(lcoefs)) then
        ! Preserve existing data
        if (.not.present_and_false(preserve)) then
@@ -491,9 +491,9 @@ contains
     real, dimension(size(vec)) :: reverse
 
     reverse=vec(size(vec):1:-1)
-    
+
   end function reverse
-  
+
   subroutine write_polynomial(unit, poly, format)
     !!< Output polynomial on unit. If format is present it specifies the
     !!< format of coefficients, otherwise f8.3 is used.
@@ -501,7 +501,7 @@ contains
     type(polynomial), intent(in) :: poly
     character(len=*), intent(in), optional :: format
     character(len=poly%degree*20+20) :: string
-    
+
     string=poly2string(poly, format)
 
     write(unit, "(a)") trim(string)
@@ -532,11 +532,11 @@ contains
     else
        lformat='f8.3'
     end if
-    
+
     forall (i=1:poly%degree-1) r_i(i)%i=i+1
-    
+
     r_i%r=poly%coefs(3:)
-    
+
     ! Special case degree 0 and 1 polynomials
     select case(poly%degree)
     case (0)

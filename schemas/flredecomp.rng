@@ -50,7 +50,7 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
       <optional>
         <element name="field_weighted_partitions">
           <element name="scalar_field">
-            <a:documentation>Field weighted partitions: turning on this option allows one to 
+            <a:documentation>Field weighted partitions: turning on this option allows one to
 weight mesh partitions, based upon a prescribed scalar field.
 Note that the field should have a minimum value of 0 and a maximum
 value of 1 (no normalisation is done within the code).</a:documentation>
@@ -132,7 +132,7 @@ One dump file is created for each rank.</a:documentation>
           <optional>
             <element name="dump_field_sizes">
               <a:documentation>Print out a dump file of field sizes.
-Zoltan needs to be told how much data is associated with the fields for each 
+Zoltan needs to be told how much data is associated with the fields for each
 element when we're transfering fields.
 Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
 owned node.

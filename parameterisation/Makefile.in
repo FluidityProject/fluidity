@@ -53,7 +53,7 @@ iceshelf_meltrate_surf_normal.o
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib

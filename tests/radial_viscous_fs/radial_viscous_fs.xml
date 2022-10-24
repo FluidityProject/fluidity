@@ -8,7 +8,7 @@
     <command_line>mpiexec flredecomp -i 1 -o 4 radial-viscous-fs P4-radial-viscous-fs &amp;&amp; mpiexec fluidity -v2 -l P4-radial-viscous-fs.flml</command_line>
   </problem_definition>
 
-<variables>  
+<variables>
 
 <variable name="solvers_converged" language="python">
 import os
@@ -35,13 +35,8 @@ assert(abs_free_surface &lt; 5e4)
 </test>
 
 </pass_tests>
-                                                                                                                                                                              
+
 <warn_tests>
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

@@ -59,12 +59,12 @@ class ErrorMeasure{
 
   /// Destructor.
   ~ErrorMeasure();
-  
+
   /// Add a field that contribures to the construction of the error metric tensor field.
   void add_field(std::string name, double error, bool relative, double sigma);
-  
+
   /// Apply mesh gradation. Algorithm based on:
-  /// Anisotropic mesh gradation control (2004), 
+  /// Anisotropic mesh gradation control (2004),
   /// Xiangrong Li, Jean-françois Remacle, Nicolas Chevaugeon,
   /// Mark S. Shephard in Thirteenth International Meshing Roundtable.
   void apply_gradation(double gradation);
@@ -129,10 +129,10 @@ class ErrorMeasure{
 
   /// Cartesian distance between two points
   inline double length(size_t, size_t) const;
-  
+
   /// Calculate volume of element
   // double calc_volume(int e) const;
- 
+
   // Mesh
   vtkUnstructuredGrid *ug;
   size_t dim;

@@ -37,7 +37,7 @@ module element_set
     integer, intent(out) :: size
 
     call ele_get_size(size)
-  end subroutine 
+  end subroutine
 
   subroutine eleset_fetch_list(arr)
     !!< Fetch the list and clear it.

@@ -296,7 +296,7 @@ h5u_set_view (
 	h5_debug ("Total = %lld", (long long) total);
 	if (total <= 0) {
 		/*
-		  iteration does not contain a dataset yet! 
+		  iteration does not contain a dataset yet!
 		*/
 		/*
 		  :FIXME: Should 'total == 0' be considered valid or not?
@@ -317,7 +317,7 @@ h5u_set_view (
 		if (end < 0) {
 			end = total + end;
 		}
-	}	
+	}
 	if ((start < 0)      ||
 	    (start >= total) ||
 	    (end >= total)   ||
@@ -329,7 +329,7 @@ h5u_set_view (
 			(long long)end,
 			(long long)total);
 	}
-	
+
 	/* setting up the new view */
 	u->viewstart =  start;
 	u->viewend =    end;
@@ -396,7 +396,7 @@ h5u_set_view_length (
 		H5_LEAVE (H5_SUCCESS);
 	}
 
-	if (start < 0 || length < 0 || start+length > total) 
+	if (start < 0 || length < 0 || start+length > total)
                 H5_RETURN_ERROR (
 			H5_ERR_INVAL,
 			"Invalid view: start=%lld, length=%lld, total=%lld",
@@ -585,7 +585,7 @@ h5u_has_dataset (
 	const char* const name
 	) {
 	h5_file_p f = (h5_file_p)fh;
-	H5_CORE_API_ENTER (h5_err_t, 
+	H5_CORE_API_ENTER (h5_err_t,
 			   "f=%p, name='%s'",
 			   f, name);
 	check_iteration_handle_is_valid (f);
@@ -622,7 +622,7 @@ h5priv_get_dataset_info_by_idx (
  	h5_int64_t* dataset_type,	/*!< [out] Type of data in dataset */
 	h5_size_t* dataset_nelem	/*!< [out] Number of elements. */
 	) {
-	H5_PRIV_API_ENTER (h5_err_t, 
+	H5_PRIV_API_ENTER (h5_err_t,
 			   "id=%lld, "
 			   "dataset_idx=%lld, "
 			   "dataset_name='%s', len_dataset_name=%llu, "
@@ -660,7 +660,7 @@ h5u_get_dataset_info_by_idx (
 	h5_size_t *dataset_nelem	/*!< [out] Number of elements. */
 	) {
         h5_file_p f = (h5_file_p)fh;
-	H5_CORE_API_ENTER (h5_err_t, 
+	H5_CORE_API_ENTER (h5_err_t,
 			   "f=%p, "
 			   "idx=%lld, "
 			   "dataset_name='%s', len_dataset_name=%llu, "
@@ -686,7 +686,7 @@ h5priv_get_dataset_info_by_name (
  	h5_int64_t* dataset_type,	/*!< [out] Type of data in dataset */
 	h5_size_t* dataset_nelem	/*!< [out] Number of elements. */
 	) {
-	H5_PRIV_API_ENTER (h5_err_t, 
+	H5_PRIV_API_ENTER (h5_err_t,
 			   "id=%lld, "
 			   "dataset_name='%s' "
 			   "dataset_type=%p, dataset_nelem=%p",
@@ -773,4 +773,3 @@ h5u_get_chunk (
 	h5_info ("Found chunk size of %lld particles", (long long)*size);
 	H5_RETURN (H5_SUCCESS);
 }
-

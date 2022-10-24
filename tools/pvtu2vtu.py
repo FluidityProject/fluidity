@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 #
 # James Maddison
-
 """
 Script to combine pvtus into vtus
 """
-
 import optparse
 
 import fluidity.diagnostics.debug as debug

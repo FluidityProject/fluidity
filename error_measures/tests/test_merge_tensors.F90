@@ -73,7 +73,7 @@ subroutine test_merge_tensors
       if (.not. fequals(tensor3(i, j), tensor5(i, j))) fail = .true.
     end do
   end do
-  
+
   call report_test("[merge tensors: 3]", fail, warn, "Merging identical metrics should yield the metric back.")
 
   fail = .false.
@@ -99,7 +99,7 @@ subroutine test_merge_tensors
   tensor3(1, :) = (/1.00467, 0.00162196, -0.24383/)
   tensor3(2, :) = (/0.00162196, 6.2432, -1.98199/)
   tensor3(3, :) = (/-0.24383, -1.98199, 14.4226/)
-  
+
   tensor4(1, :) = (/4.05543, 0.0983953, 0.643409/)
   tensor4(2, :) = (/0.0983953, 1.34818, -0.989943/)
   tensor4(3, :) = (/0.643409, -0.989943, 4.09606/)
@@ -117,14 +117,14 @@ subroutine test_merge_tensors
   end do
 
   !call report_test("[merge tensors: 5]", fail, warn, "Previous bugs should not happen again.")
-  
+
   fail = .false.
   warn = .false.
 
   tensor3(1, :) = (/4.42362, 0.409988, -0.491779/)
   tensor3(2, :) = (/0.409988, 5.55217, -2.27999/)
   tensor3(3, :) = (/-0.491779, -2.27999, 7.35012/)
-  
+
   tensor4(1, :) = (/6.35559, -0.789674, -0.0779207/)
   tensor4(2, :) = (/-0.789674, 2.75034, 0.084052/)
   tensor4(3, :) = (/-0.0779207, 0.084052, 1.11065/)

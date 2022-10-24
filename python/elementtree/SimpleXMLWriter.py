@@ -44,7 +44,6 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
 # Tools to write XML files, without having to deal with encoding
 # issues, well-formedness, etc.
@@ -86,20 +85,25 @@
 # w.close(html)
 # </pre>
 ##
-
-import re, sys, string
+import re
+import string
 
 try:
-    unicode("")
+    str("")
 except NameError:
+
     def encode(s, encoding):
         # 1.5.2: application must use the right encoding
         return s
-    _escape = re.compile(r"[&<>\"\x80-\xff]+") # 1.5.2
+
+    _escape = re.compile(r"[&<>\"\x80-\xff]+")  # 1.5.2
 else:
+
     def encode(s, encoding):
         return s.encode(encoding)
+
     _escape = re.compile(eval(r'u"[&<>\"\u0080-\uffff]+"'))
+
 
 def encode_entity(text, pattern=_escape):
     # map reserved and non-ascii characters to numerical entities
@@ -108,13 +112,16 @@ def encode_entity(text, pattern=_escape):
         for char in m.group():
             out.append("&#%d;" % ord(char))
         return string.join(out, "")
+
     return encode(pattern.sub(escape_entities, text), "ascii")
+
 
 del _escape
 
 #
 # the following functions assume an ascii-compatible encoding
 # (or "utf-16")
+
 
 def escape_cdata(s, encoding=None, replace=string.replace):
     s = replace(s, "&", "&amp;")
@@ -127,10 +134,11 @@ def escape_cdata(s, encoding=None, replace=string.replace):
             return encode_entity(s)
     return s
 
+
 def escape_attrib(s, encoding=None, replace=string.replace):
     s = replace(s, "&", "&amp;")
     s = replace(s, "'", "&apos;")
-    s = replace(s, "\"", "&quot;")
+    s = replace(s, '"', "&quot;")
     s = replace(s, "<", "&lt;")
     s = replace(s, ">", "&gt;")
     if encoding:
@@ -140,6 +148,7 @@ def escape_attrib(s, encoding=None, replace=string.replace):
             return encode_entity(s)
     return s
 
+
 ##
 # XML writer class.
 #
@@ -147,15 +156,15 @@ def escape_attrib(s, encoding=None, replace=string.replace):
 #    a <b>write</b> method that takes an 8-bit string.
 # @param encoding Optional encoding.
 
-class XMLWriter:
 
+class XMLWriter:
     def __init__(self, file, encoding="us-ascii"):
         if not hasattr(file, "write"):
             file = open(file, "w")
         self.__write = file.write
         if hasattr(file, "flush"):
             self.flush = file.flush
-        self.__open = 0 # true if start tag is open
+        self.__open = 0  # true if start tag is open
         self.__tags = []
         self.__data = []
         self.__encoding = encoding
@@ -207,9 +216,9 @@ class XMLWriter:
             for k, v in attrib:
                 k = escape_cdata(k, self.__encoding)
                 v = escape_attrib(v, self.__encoding)
-                self.__write(" %s=\"%s\"" % (k, v))
+                self.__write(' {}="{}"'.format(k, v))
         self.__open = 1
-        return len(self.__tags)-1
+        return len(self.__tags) - 1
 
     ##
     # Adds a comment to the output stream.
@@ -238,8 +247,9 @@ class XMLWriter:
     def end(self, tag=None):
         if tag:
             assert self.__tags, "unbalanced end(%s)" % tag
-            assert escape_cdata(tag, self.__encoding) == self.__tags[-1],\
-                   "expected end(%s), got %s" % (self.__tags[-1], tag)
+            assert (
+                escape_cdata(tag, self.__encoding) == self.__tags[-1]
+            ), "expected end({}), got {}".format(self.__tags[-1], tag)
         else:
             assert self.__tags, "unbalanced end()"
         tag = self.__tags.pop()
@@ -267,7 +277,7 @@ class XMLWriter:
     # can be omitted.
 
     def element(self, tag, text=None, attrib={}, **extra):
-        apply(self.start, (tag, attrib), extra)
+        self.start(tag, attrib, extra)
         if text:
             self.data(text)
         self.end()
@@ -276,4 +286,4 @@ class XMLWriter:
     # Flushes the output stream.
 
     def flush(self):
-        pass # replaced by the constructor
+        pass  # replaced by the constructor

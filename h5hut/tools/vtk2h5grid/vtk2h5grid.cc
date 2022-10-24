@@ -74,7 +74,7 @@ init (
         int iarg = 0;
 
         //turn off getopt error message
-        opterr = 1; 
+        opterr = 1;
 
         while(iarg != -1) {
                 iarg = getopt_long(argc, argv, "vh?", longopts, &index);
@@ -111,9 +111,9 @@ convert_vtk2h5grid (
         int h5_vertex_idx = 0;
         H5FedBeginStoreVertices (h5_grid, num_vtk_pts);
         for (vtkIdType vtk_cell_id = 0; vtk_cell_id < num_vtk_cells; vtk_cell_id++) {
-                if (vtk_grid->GetCellType (vtk_cell_id) != cell_type) 
+                if (vtk_grid->GetCellType (vtk_cell_id) != cell_type)
                         continue;
-                
+
                 vtkIdType num_pts;
                 vtkIdType* pts;
                 vtk_grid->GetCellPoints (vtk_cell_id, num_pts, pts);

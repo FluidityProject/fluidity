@@ -34,4 +34,3 @@ else
 #endif /* _FLUIDITY_VERSION_H */\n" > $@ &&
     echo "DEFINE __FLUIDITY_VERSION__")
 fi
-

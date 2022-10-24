@@ -22,12 +22,12 @@ module limit_metric_module
   interface expected_nodes
     module procedure expected_nodes_expected_elements, expected_nodes_metric
   end interface expected_nodes
-  
+
   interface limit_metric
     module procedure limit_metric_nodes_options, limit_metric_nodes_minmax, &
       & limit_metric_nodes_target
   end interface limit_metric
-  
+
   interface limit_metric_elements
     module procedure limit_metric_elements_minmax, limit_metric_elements_target
   end interface limit_metric_elements
@@ -41,7 +41,7 @@ contains
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
     integer :: max_nodes, min_nodes, nodes, stat
     real :: increase_tolerance
-    
+
     call mesh_stats(positions, nodes = nodes)
 
     call get_option(base_path // "/minimum_number_of_nodes", min_nodes, default = 1)
@@ -60,25 +60,25 @@ contains
     call limit_metric(positions, metric, min_nodes, max_nodes)
 
   end subroutine limit_metric_nodes_options
-  
+
   subroutine limit_metric_nodes_minmax(positions, metric, min_nodes, max_nodes)
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(inout) :: metric
     integer, intent(in) :: min_nodes
     integer, intent(in) :: max_nodes
-    
+
     integer :: elements, max_eles, min_eles, nodes
     ! The ratio of elements to nodes
     real :: eles_per_node
-    
+
     assert(min_nodes > 0)
     assert(max_nodes >= min_nodes)
-    
+
     call mesh_stats(positions, nodes = nodes, elements = elements)
-    
+
     ! FIXME: maybe a better way to do this?
     eles_per_node = float(elements) / float(nodes)
-    
+
     min_eles = eles_per_node * min_nodes
     max_eles = eles_per_node * max_nodes
 
@@ -92,21 +92,21 @@ contains
     end if
 
     call limit_metric_elements(positions, metric, min_eles, max_eles)
-    
+
   end subroutine limit_metric_nodes_minmax
-  
+
   subroutine limit_metric_elements_minmax(positions, metric, min_eles, max_eles)
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(inout) :: metric
     integer, intent(in) :: min_eles
     integer, intent(in) :: max_eles
-    
+
     integer :: expected_eles
     ! the scaling factor to divide the metric by
     real :: beta
-    
+
     expected_eles = expected_elements(positions, metric, global = .true.)
-    
+
     if(expected_eles > max_eles) then
       beta = ((1.0 / expected_eles) * max_eles) ** (2.0 / positions%dim)
       ewrite(2,*) "Scaling factor to conform to maximum node limit: ", beta
@@ -116,25 +116,25 @@ contains
       ewrite(2,*) "Scaling factor to conform to minimum node limit: ", beta
       call scale(metric, beta)
     end if
-    
+
   end subroutine limit_metric_elements_minmax
-  
+
   subroutine limit_metric_nodes_target(positions, metric, target_nodes)
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(inout) :: metric
     integer, intent(in) :: target_nodes
-    
+
     call limit_metric(positions, metric, min_nodes = target_nodes, max_nodes = target_nodes)
-    
+
   end subroutine limit_metric_nodes_target
-  
+
   subroutine limit_metric_elements_target(positions, metric, target_eles)
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(inout) :: metric
     integer, intent(in) :: target_eles
-    
+
     call limit_metric_elements(positions, metric, min_eles = target_eles, max_eles = target_eles)
-    
+
   end subroutine limit_metric_elements_target
 
   function expected_elements(old_positions, metric, global) result(xpct)
@@ -147,9 +147,9 @@ contains
     real :: sumvol, det
     integer :: xpct
     real :: gamma
-    
+
     logical :: lglobal
-    
+
     lglobal = present_and_true(global)
 
     sumvol = 0.0
@@ -222,7 +222,7 @@ contains
       nodes = node_count(old_positions)
       elements = ele_count(old_positions)
     end if
-      
+
     ! FIXME: maybe a better way to do this?
     expected_nods = (float(nodes) / float(elements)) * expected_eles
 
@@ -244,18 +244,18 @@ contains
     expected_nods = expected_nodes(old_positions, expected_eles, global)
 
   end function expected_nodes_metric
-  
+
   subroutine limit_metric_module_check_options()
     !!< Check metric limiting specific options
-    
+
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
     integer :: max_nodes, min_nodes, stat
-   
+
     if(.not. have_option(base_path)) then
       ! Nothing to check
       return
     end if
-   
+
     call get_option(base_path // "/minimum_number_of_nodes", min_nodes, default = 0)
     call get_option(base_path // "/maximum_number_of_nodes", max_nodes, stat = stat)
     if(stat /= SPUD_NO_ERROR) then
@@ -263,7 +263,7 @@ contains
     else if(min_nodes > max_nodes) then
       FLExit("The minimum number of nodes cannot be greater than the maximum number of nodes")
     end if
-    
+
   end subroutine limit_metric_module_check_options
 
 end module limit_metric_module

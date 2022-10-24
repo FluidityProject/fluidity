@@ -11,155 +11,155 @@ fluidity mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.flml
 fluidity mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.flml
 fluidity mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.flml
     </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="pressure_p0p1_2d" language="python">
 import fluidity_tools
 pressure_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['Pressure']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="minpressure_p0p1_2d" language="python">
 import fluidity_tools
 minpressure_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['Pressure']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="velocity_p0p1_2d" language="python">
 import fluidity_tools
 velocity_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="max_cvdiv_p0p1_2d" language="python">
 import fluidity_tools
 max_cvdiv_p0p1_2d = max(abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['ControlVolumeDivergence']['max'][-1]),
                         abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['ControlVolumeDivergence']['min'][-1]))
-    </variable>    
-     <variable name="mxvfrac_p0p1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac_p0p1_2d" language="python">
 import fluidity_tools
 mxvfrac_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac_p0p1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac_p0p1_2d" language="python">
 import fluidity_tools
 mnvfrac_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
-     <variable name="mxvfrac2_p0p1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac2_p0p1_2d" language="python">
 import fluidity_tools
 mxvfrac2_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac2_p0p1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac2_p0p1_2d" language="python">
 import fluidity_tools
 mnvfrac2_p0p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="pressure_p1dgp2_2d" language="python">
 import fluidity_tools
 pressure_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['Pressure']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="minpressure_p1dgp2_2d" language="python">
 import fluidity_tools
 minpressure_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['Pressure']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="velocity_p1dgp2_2d" language="python">
 import fluidity_tools
 velocity_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="max_cvdiv_p1dgp2_2d" language="python">
 import fluidity_tools
 max_cvdiv_p1dgp2_2d = max(abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['ControlVolumeDivergence']['max'][-1]),
                         abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['ControlVolumeDivergence']['min'][-1]))
-    </variable>    
-     <variable name="mxvfrac_p1dgp2_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac_p1dgp2_2d" language="python">
 import fluidity_tools
 mxvfrac_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac_p1dgp2_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac_p1dgp2_2d" language="python">
 import fluidity_tools
 mnvfrac_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
-     <variable name="mxvfrac2_p1dgp2_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac2_p1dgp2_2d" language="python">
 import fluidity_tools
 mxvfrac2_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac2_p1dgp2_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac2_p1dgp2_2d" language="python">
 import fluidity_tools
 mnvfrac2_p1dgp2_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="pressure_p2lumpedp1_2d" language="python">
 import fluidity_tools
 pressure_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['Pressure']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="minpressure_p2lumpedp1_2d" language="python">
 import fluidity_tools
 minpressure_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['Pressure']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="velocity_p2lumpedp1_2d" language="python">
 import fluidity_tools
 velocity_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="max_cvdiv_p2lumpedp1_2d" language="python">
 import fluidity_tools
 max_cvdiv_p2lumpedp1_2d = max(abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['ControlVolumeDivergence']['max'][-1]),
                         abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['ControlVolumeDivergence']['min'][-1]))
-    </variable>    
-     <variable name="mxvfrac_p2lumpedp1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac_p2lumpedp1_2d" language="python">
 import fluidity_tools
 mxvfrac_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac_p2lumpedp1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac_p2lumpedp1_2d" language="python">
 import fluidity_tools
 mnvfrac_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
-     <variable name="mxvfrac2_p2lumpedp1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac2_p2lumpedp1_2d" language="python">
 import fluidity_tools
 mxvfrac2_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac2_p2lumpedp1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac2_p2lumpedp1_2d" language="python">
 import fluidity_tools
 mnvfrac2_p2lumpedp1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="pressure_p2p1_2d" language="python">
 import fluidity_tools
 pressure_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['Pressure']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="minpressure_p2p1_2d" language="python">
 import fluidity_tools
 minpressure_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['Pressure']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="velocity_p2p1_2d" language="python">
 import fluidity_tools
 velocity_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="max_cvdiv_p2p1_2d" language="python">
 import fluidity_tools
 max_cvdiv_p2p1_2d = max(abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['ControlVolumeDivergence']['max'][-1]),
                         abs(fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['ControlVolumeDivergence']['min'][-1]))
-    </variable>    
-     <variable name="mxvfrac_p2p1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac_p2p1_2d" language="python">
 import fluidity_tools
 mxvfrac_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac_p2p1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac_p2p1_2d" language="python">
 import fluidity_tools
 mnvfrac_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
-     <variable name="mxvfrac2_p2p1_2d" language="python"> 
+    </variable>
+     <variable name="mxvfrac2_p2p1_2d" language="python">
 import fluidity_tools
 mxvfrac2_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p2p1_2d.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac2_p2p1_2d" language="python"> 
+    </variable>
+     <variable name="mnvfrac2_p2p1_2d" language="python">
 import fluidity_tools
 mnvfrac2_p2p1_2d = fluidity_tools.stat_parser("mmat-gravity-col-press_cg_test_cty_cv_p0p1_2d.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
    </variables>
-    <pass_tests>  
+    <pass_tests>
     <test name="check maximum pressure_p0p1_2d is 10.0 with tolerance 1.0e-10" language="python">
 print('max pressure error: ',abs(pressure_p0p1_2d-1e+1))
 assert abs(pressure_p0p1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check pressure_p0p1_2d range is 10.0 with tolerance 1.0e-10" language="python">
 print('pressure range error: ',abs(pressure_p0p1_2d-minpressure_p0p1_2d-1e+1))
 assert abs(pressure_p0p1_2d-minpressure_p0p1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check maximum speed_p0p1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p0p1_2d) &lt; 1.0e-10
     </test>
@@ -181,11 +181,11 @@ assert abs(mnvfrac2_p0p1_2d) &lt; 1.0e-10
     <test name="check maximum pressure_p1dgp2_2d is 10.0 with tolerance 1.0e-10" language="python">
 print('max pressure error: ',abs(pressure_p1dgp2_2d-1e+1))
 assert abs(pressure_p1dgp2_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check pressure_p1dgp2_2d range is 10.0 with tolerance 1.0e-10" language="python">
 print('pressure range error: ',abs(pressure_p1dgp2_2d-minpressure_p1dgp2_2d-1e+1))
 assert abs(pressure_p1dgp2_2d-minpressure_p1dgp2_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check maximum speed_p1dgp2_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p1dgp2_2d) &lt; 1.0e-10
     </test>
@@ -207,11 +207,11 @@ assert abs(mnvfrac2_p1dgp2_2d) &lt; 1.0e-10
     <test name="check maximum pressure_p2lumpedp1_2d is 10.0 with tolerance 1.0e-10" language="python">
 print('max pressure error: ',abs(pressure_p2lumpedp1_2d-1e+1))
 assert abs(pressure_p2lumpedp1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check pressure_p2lumpedp1_2d range is 10.0 with tolerance 1.0e-10" language="python">
 print('pressure range error: ',abs(pressure_p2lumpedp1_2d-minpressure_p2lumpedp1_2d-1e+1))
 assert abs(pressure_p2lumpedp1_2d-minpressure_p2lumpedp1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check maximum speed_p2lumpedp1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p2lumpedp1_2d) &lt; 1.0e-10
     </test>
@@ -233,11 +233,11 @@ assert abs(mnvfrac2_p2lumpedp1_2d) &lt; 1.0e-10
     <test name="check maximum pressure_p2p1_2d is 10.0 with tolerance 1.0e-10" language="python">
 print('max pressure error: ',abs(pressure_p2p1_2d-1e+1))
 assert abs(pressure_p2p1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check pressure_p2p1_2d range is 10.0 with tolerance 1.0e-10" language="python">
 print('pressure range error: ',abs(pressure_p2p1_2d-minpressure_p2p1_2d-1e+1))
 assert abs(pressure_p2p1_2d-minpressure_p2p1_2d-1e+1) &lt; 1.0e-10
-</test>    
+</test>
     <test name="check maximum speed_p2p1_2d is zero with tolerance 1.0e-10" language="python">
 assert abs(velocity_p2p1_2d) &lt; 1.0e-10
     </test>

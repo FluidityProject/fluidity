@@ -20,7 +20,7 @@ subroutine test_integer_set
   do i=1,len
     fail = (fetch(iset, i) /= i+3)
     call report_test("[fetch]", fail, .false., "Should give i+3")
-  end do 
+  end do
 
   fail = has_value(iset, 99)
   call report_test("[integer_set_has_value]", fail, .false., "Should be .false.!")

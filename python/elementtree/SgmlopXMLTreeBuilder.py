@@ -2,7 +2,7 @@
 # ElementTree
 # $Id$
 #
-# A simple XML tree builder, based on the sgmlop library.
+# A simple XML tree builder, based on the ElementTree XML library.
 #
 # Note that this version does not support namespaces.  This may be
 # changed in future versions.
@@ -42,37 +42,28 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
-# Tools to build element trees from XML, based on the SGMLOP parser.
-# <p>
-# The current version does not support XML namespaces.
-# <p>
-# This tree builder requires the <b>sgmlop</b> extension module
-# (available from
-# <a href='http://effbot.org/downloads'>http://effbot.org/downloads</a>).
+# Tools to build element trees from XML, based on the ElementTree XML parser.
 ##
-
 import ElementTree
 
 ##
-# ElementTree builder for XML source data, based on the SGMLOP parser.
+# ElementTree builder for XML source data, based on the ElementTree XML parser.
 #
 # @see elementtree.ElementTree
 
-class TreeBuilder:
 
+class TreeBuilder:
     def __init__(self, html=0):
-        try:
-            import sgmlop
-        except ImportError:
-            raise RuntimeError("sgmlop parser not available")
+        from xml.etree.ElementTree import XMLParser
+
         self.__builder = ElementTree.TreeBuilder()
         if html:
-            import htmlentitydefs
-            self.entitydefs.update(htmlentitydefs.entitydefs)
-        self.__parser = sgmlop.XMLParser()
-        self.__parser.register(self)
+            from html.entities import entitydefs
+
+            self.entitydefs.update(entitydefs)
+        self.__parser = XMLParser()
+        # self.__parser.register(self)
 
     ##
     # Feeds data to the parser.

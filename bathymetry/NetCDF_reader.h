@@ -46,7 +46,7 @@ class NetCDF_reader{
  public:
   NetCDF_reader(const char *, bool);
   ~NetCDF_reader();
-  
+
   int GetDimension(int &ilen, int &jlen) const;
   int GetSpacing(double &dx, double &dy) const;
   int GetXRange(double &xmin, double &xmax) const;
@@ -59,7 +59,7 @@ class NetCDF_reader{
 
   void VerboseOff();
   void VerboseOn();
-  
+
  private:
   int ncid;                   // netCDF file handle
   enum {gebco , coards, coards_cf10, unknown} data_source;

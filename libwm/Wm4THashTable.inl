@@ -186,7 +186,7 @@ TVALUE* THashTable<TKEY,TVALUE>::GetNext (TKEY* ptKey) const
             *ptKey = m_pkItem->m_tKey;
             return &m_pkItem->m_tValue;
         }
-        
+
         for (m_iIndex++; m_iIndex < m_iTableSize; m_iIndex++)
         {
             if (m_apkTable[m_iIndex])

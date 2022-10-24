@@ -4,7 +4,7 @@
   <owner userid="ffm10"/>
   <tags>exodusii</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity exodusii_read_support_2d_with_sideset.flml; 
+    <command_line>fluidity exodusii_read_support_2d_with_sideset.flml;
     fluidity exodusii_read_support_2d_without_sideset.flml;
     fluidity exodusii_read_support_3d.flml;
     </command_line>
@@ -13,7 +13,7 @@
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <!-- Below variables for 2D WITH sideset, testing correct read functionality of mesh and boundary conditions -->
     <variable name="ElapsedTime_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
@@ -91,4 +91,3 @@ fluidity_tools.compare_variable(NumberNodes_ExodusII_3D[-1], 146, 1.0e-6)
     </test>
   </pass_tests>
 </testproblem>
-

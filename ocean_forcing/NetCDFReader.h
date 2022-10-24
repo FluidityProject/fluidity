@@ -2,7 +2,7 @@
  *    Copyright (c) 2004-2006 by Gerard Gorman
  *    Copyright (c) 2006- Imperial College London
  *    See COPYING file for copying and redistribution conditions.
- *   
+ *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
  *    License as published by the Free Software Foundation,
@@ -49,16 +49,16 @@ class NetCDFReader{
   NetCDFReader();
   NetCDFReader(const char *);
   ~NetCDFReader();
-  
+
   // Overloaded operators.
   const NetCDFReader& operator=(const NetCDFReader &in);
 
   void Close();
 
-  int GetDimension(int &ilen, int &jlen) const;  
-  int GetSpacing(double &dx, double &dy) const;  
-  int GetXRange(double &xmin, double &xmax) const;  
-  int GetYRange(double &ymin, double &ymax) const; 
+  int GetDimension(int &ilen, int &jlen) const;
+  int GetSpacing(double &dx, double &dy) const;
+  int GetXRange(double &xmin, double &xmax) const;
+  int GetYRange(double &ymin, double &ymax) const;
   int Read(std::string varname, std::vector<double> &var);
 
   void SetFile(const char *filename);

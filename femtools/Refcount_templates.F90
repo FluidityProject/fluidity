@@ -9,15 +9,15 @@
     if (associated(object%refcount)) then
        ! Reference count already exists, just increment it.
        object%refcount%count=object%refcount%count+1
-       
+
     else
        id = id + 1
        object%refcount=>new_refcount("REFCOUNT_TYPE", object%name)
        object%refcount%id = id
     end if
-    
+
   end subroutine addref_REFCOUNT_TYPE
-  
+
   subroutine incref_REFCOUNT_TYPE(object)
     !!< Increment the reference count of object. If there are no references
     !!< then error.
@@ -30,13 +30,13 @@
     if (.not.associated(object%refcount)) then
        FLAbort ("Attempt to incref REFCOUNT_TYPE "//trim(object%name)//" which has no references")
     end if
-       
+
     ! Reference count already exists, just increment it.
     ptr=>object%refcount%count
     ptr=ptr+1
 
-  end subroutine incref_REFCOUNT_TYPE  
-  
+  end subroutine incref_REFCOUNT_TYPE
+
   subroutine decref_REFCOUNT_TYPE(object)
     !!< Decrement the reference count on object. If the reference count drops
     !!< to 0 deallocate the refcount as a hint to the calling routine that
@@ -66,9 +66,9 @@
        if (associated(object%refcount%next)) then
           object%refcount%next%prev=>object%refcount%prev
        end if
-       
+
        deallocate(object%refcount)
-       
+
     end if
 
   end subroutine decref_REFCOUNT_TYPE
@@ -77,8 +77,7 @@
     !!< Return true if there are any references to object
     type(REFCOUNT_TYPE), intent(in) :: object
     logical :: has_references
-    
+
     has_references=associated(object%refcount)
 
   end function has_references_REFCOUNT_TYPE
-

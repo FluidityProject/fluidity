@@ -26,7 +26,7 @@ subroutine test_elementwise_error_adaptivity
   real, dimension(4), target :: hminxx, hminxy, hminxz, hminyy, hminyz, hminzz
   real, dimension(4), target :: hmaxxx, hmaxxy, hmaxxz, hmaxyy, hmaxyz, hmaxzz
   integer :: i, nhsamp
-  real :: x, y, z 
+  real :: x, y, z
   integer :: ierr
 
   pseudo2d_coord = 3
@@ -96,5 +96,5 @@ subroutine test_elementwise_error_adaptivity
   positions => extract_vector_field(state, "Coordinate")
   ptr_field => extract_scalar_field(state, "Field")
 
-  call vtk_write_fields("data/elementwise_error", 1, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("data/elementwise_error", 1, positions,  mesh, sfields=(/ptr_field/))
 end subroutine test_elementwise_error_adaptivity

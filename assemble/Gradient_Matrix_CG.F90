@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -50,7 +50,7 @@ module gradient_matrix_cg
 
 contains
 
-    subroutine assemble_gradient_matrix_cg(C_m, state, c_rhs, & 
+    subroutine assemble_gradient_matrix_cg(C_m, state, c_rhs, &
                                            test_mesh, field, option_path, &
                                            grad_mass, div_mass)
 
@@ -97,7 +97,7 @@ contains
       type(scalar_field) :: field_bc
 
       real, dimension(:,:), allocatable :: div_mass_mat, grad_mass_mat
-      
+
       integer :: stat
 
       ! =============================================================
@@ -148,7 +148,7 @@ contains
           ! transform the velociy derivatives into physical space
           ! (and get detwei)
           call transform_to_physical(X, ele, field_shape, dshape=dfield_t,&
-               & detwei=detwei) 
+               & detwei=detwei)
 
           ele_mat = shape_dshape(test_shape, dfield_t, detwei)
         end if
@@ -195,7 +195,7 @@ contains
 
           call transform_facet_to_physical(X, sele, &
               &                          detwei_f=detwei_bdy,&
-              &                          normal=normal_bdy) 
+              &                          normal=normal_bdy)
 
           ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
 
@@ -224,4 +224,3 @@ contains
     end subroutine assemble_gradient_matrix_cg
 
 end module gradient_matrix_cg
-

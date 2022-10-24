@@ -2,7 +2,7 @@
 \index{mesh!generation}
 \index{grid|see{mesh}}
 
-This chapter describes the information contained in a mesh file and the 
+This chapter describes the information contained in a mesh file and the
 two mesh formats that can be read by \fluidity: the gmsh and
 ExodusII format.
 For an overview and further pointers on how to generate these meshes
@@ -50,7 +50,7 @@ Numbers can be assigned to label particular facets (boundary nodes, edges or
 faces in 1, 2 or 3 dimensions respectively) in order to set
 boundary conditions or other parameters. This number can then be used to
 specify which surface a particular boundary condition should be applied to
-in \fluidity. 
+in \fluidity.
 
 \subsection{Region IDs}\label{sec:region_ids}
 \index{region ID} These are analogous to surface IDs, however they are
@@ -71,10 +71,10 @@ combinations of element dimension and geometry.
 
 \begin{tabular}{ l l l }
 \textbf{Dimension} & \textbf{Geometry} & \textbf{Number of vertices per element} \\ \hline
-1D & Line & 2\\ 
-2D & Triangles &  3 \\ 
+1D & Line & 2\\
+2D & Triangles &  3 \\
 2D & Quadrilateral & 4 \\
-3D & Tetrahedra & 4 \\ 
+3D & Tetrahedra & 4 \\
 3D & Hexahedra & 8 \\
 \end{tabular}
 
@@ -93,16 +93,16 @@ will now be explained:
 This file holds the coordinates of the nodes. The file structure is:
 
 First line
-\begin{lstlisting}: 
+\begin{lstlisting}:
 <total number of vertices> <dimension (must be 1,2 or 3)> 0 0
 \end{lstlisting}
 Remaining lines
 \begin{lstlisting}
 <vertex number> <x> [<y> [<z>]]
-\end{lstlisting} 
+\end{lstlisting}
 where x, y and z are the coordinates.
 
-Vertices must be numbered consecutively, starting from one. 
+Vertices must be numbered consecutively, starting from one.
 
 \item[.ele file] Saves the elements of the mesh. The file structure is:
 \index{region ID}
@@ -112,9 +112,9 @@ First line:
  <total number of elements> <nodes per element>  1
 \end{lstlisting}
 Remaining lines:
-\begin{lstlisting} 
+\begin{lstlisting}
 <element number> <node> <node> <node> ... <region id>
-\end{lstlisting}  
+\end{lstlisting}
 The elements must be numbered consecutively, starting from one. Nodes are
 indices into the corresponding .node file. For example in case of describing
 a 2D triangle mesh, the first three nodes are the corner vertices. The
@@ -130,9 +130,9 @@ First line:
  <total number of boundary points> 1
 \end{lstlisting}
 Remaining lines:
-\begin{lstlisting} 
+\begin{lstlisting}
 <boundary point number> <node> <surface id>
-\end{lstlisting}  
+\end{lstlisting}
 The boundary points must be numbered consecutively, starting from one. Nodes
 are indices into the corresponding .node file. The surface ID is used by
 \fluidity\ to specify parts of the surface where different boundary
@@ -147,9 +147,9 @@ First line:
  <total number of edges> 1
 \end{lstlisting}
 Remaining lines:
-\begin{lstlisting} 
+\begin{lstlisting}
 <edge number> <node> <node> ... <surface id>
-\end{lstlisting}  
+\end{lstlisting}
 The edges must be numbered consecutively, starting from one. Nodes are
 indices into the corresponding .node file. The surface ID is used by
 \fluidity\ to specify parts of the surface where different boundary
@@ -165,16 +165,16 @@ First line:
  <total number of faces> 1
 \end{lstlisting}
 Remaining lines:
-\begin{lstlisting} 
+\begin{lstlisting}
 <face number> <node> <node> <node> ... <surface id>
-\end{lstlisting}  
+\end{lstlisting}
 The faces must be numbered consecutively, starting from one. Nodes are
 indices into the corresponding .node file. The surface ID is used by
 \fluidity\ to specify parts of the surface where different boundary
 conditions will be applied, see section \ref{sec:surface_ids}.
 \end{description}
 
-To clarify the file format, a simple 1D example is shown: 
+To clarify the file format, a simple 1D example is shown:
 The following .node file defines 6 equidistant nodes from 0.0 to 5.0
 \begin{lstlisting}
 # example.node
@@ -208,8 +208,8 @@ points an assigns the surface IDs 1 and 2 to them.
 \section{The Gmsh format}\label{sec:gmsh_format}
 
 \fluidity\ contains  support for the Gmsh format. Gmsh is a mesh
-generator freely available on the Web at (\url{http://geuz.org/gmsh/}), and 
-is included in Linux distributions such as Ubuntu. 
+generator freely available on the Web at (\url{http://geuz.org/gmsh/}), and
+is included in Linux distributions such as Ubuntu.
 
 Gmsh meshes are contained within one file, which have
 the extension \lstinline[language=bash]+.msh+. The file contents may
@@ -224,7 +224,7 @@ section for nodes, and one for elements. These  are explained in more
 detail below.
 
 \subsubsection*{The header}\label{sec:gmsh_header_section}
-This contains Gmsh file version information, and indicates whether 
+This contains Gmsh file version information, and indicates whether
 the main data is in ASCII or binary format. This will typically look like:
 \begin{lstlisting}
 $MeshFormat
@@ -290,30 +290,30 @@ of tetrahedra and triangles, then triangles must be the facets.
 \label{sec:gmsh_internal_use_section}
 
 \fluidity\ occasionally augments GMSH files for its own internal use. It
-does this in two cases. Firstly, when generating periodic meshes 
+does this in two cases. Firstly, when generating periodic meshes
 through \lstinline+periodise+ (section \ref{sec:decomposing_meshes_periodise}), the
 fourth element tag is reserved to label elements at the periodic boundary.
 Secondly, when checkpointing extruded meshes, a new section called
 \lstinline+$NodeData+ is created at the end of the GMSH file; this contains
 essential node column ID information.
- 
+
 \section{The ExodusII format}
 \label{sec:exodusii_format}
 \index{exodusii}
 
-Currently Fluidity support read-only support for serial ExodusII files. It is the default 
+Currently Fluidity support read-only support for serial ExodusII files. It is the default
 output mesh format of the automated mesh generation toolkit \href{http://cubit.sandia.gov/}{Cubit}.
-The mesh is stored within one binary file and typically has one of the following file extensions: 
+The mesh is stored within one binary file and typically has one of the following file extensions:
 \texttt{.e}, \texttt{.E}, \texttt{.exo}, or \texttt{.EXO}.
 
-A brief description of the structure of an ExodusII file is given. Interested readers can find a 
-more detailed description of the ExodusII format in the official manual at 
+A brief description of the structure of an ExodusII file is given. Interested readers can find a
+more detailed description of the ExodusII format in the official manual at
 \url{http://sourceforge.net/projects/exodusii/}.
 
 \subsubsection*{The header}
 \label{ssec:exodusii_header_section}
 
-The header contains basic information about the ExodusII file, such as the number of dimensions, 
+The header contains basic information about the ExodusII file, such as the number of dimensions,
 nodes, elements, blocks, sidesets and many more. Below an excerpt of the header is given.
 \begin{lstlisting}
 netcdf \2dbox_with_sideset {
@@ -332,26 +332,26 @@ dimensions:
     ...
 \end{lstlisting}
 
-From this header we can identify that the file contains a 2-dimensional 
-mesh (\texttt{num\_dim = 2}), with 23 nodes (\texttt{num\_nodes}), and 
-35 elements (\texttt{num\_elem}). Furthermore, the mesh was divided into 
-two blocks (\texttt{num\_el\_blk = 2}), whereas the first block has 
-30 elements (\texttt{num\_el\_in\_blk1}) and the number of nodes of each 
-element in this block is three (\texttt{num\_nod\_per\_el1 = 3}). In addition 
-to the blocks, four sidesets were defined (\texttt{num\_side\_sets}), 
+From this header we can identify that the file contains a 2-dimensional
+mesh (\texttt{num\_dim = 2}), with 23 nodes (\texttt{num\_nodes}), and
+35 elements (\texttt{num\_elem}). Furthermore, the mesh was divided into
+two blocks (\texttt{num\_el\_blk = 2}), whereas the first block has
+30 elements (\texttt{num\_el\_in\_blk1}) and the number of nodes of each
+element in this block is three (\texttt{num\_nod\_per\_el1 = 3}). In addition
+to the blocks, four sidesets were defined (\texttt{num\_side\_sets}),
 whereas the first sideset contains 5 elements (\texttt{num\_side\_ss1 = 5}).
-The ids of the blocks and sidesets are not to be confused with the numbering 
-of the blocks and sidesets above. The corresponding ids are stored in the 
-\texttt{data} section of an ExodusII file, which is covered in the following 
+The ids of the blocks and sidesets are not to be confused with the numbering
+of the blocks and sidesets above. The corresponding ids are stored in the
+\texttt{data} section of an ExodusII file, which is covered in the following
 section.
 
 \subsubsection*{The data section}
 \label{ssec:exodusii_data_section}
 
 The data section contains the actual mesh properties, such as block and sideset ids,
-the list of elements and sides of each sideset, the node connectivity of each 
-defined block, and of course the element mapping of the entire mesh and the 
-coordinates of the vertices. 
+the list of elements and sides of each sideset, the node connectivity of each
+defined block, and of course the element mapping of the entire mesh and the
+coordinates of the vertices.
 \begin{lstlisting}
 data:
 ...
@@ -361,7 +361,7 @@ data:
 ...
  elem_ss2 = 2, 4, 13 ;
 ...
- elem_map = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+ elem_map = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
     19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 ;
 ...
  eb_prop1 = 1, 2 ;
@@ -374,50 +374,49 @@ data:
   15, 16 ;
 ...
   coord =
-  0.283701736685801, 0.166666666666667, 0.0265230044875502, 0.5, 
-    -0.0944251982348238, -0.258225085856399, -0.5, -0.5, -0.166666666666667, 
-    0.218376401545253, 0.283363015396065, 0.5, -0.166666666666667, 
-    -0.25779029343402, -0.5, -0.5, 0.0259480610716054, 0.5, 0.5, -0.5, 
+  0.283701736685801, 0.166666666666667, 0.0265230044875502, 0.5,
+    -0.0944251982348238, -0.258225085856399, -0.5, -0.5, -0.166666666666667,
+    0.218376401545253, 0.283363015396065, 0.5, -0.166666666666667,
+    -0.25779029343402, -0.5, -0.5, 0.0259480610716054, 0.5, 0.5, -0.5,
     -0.321383277222933, 0.166666666666667, -0.5,
-  0.280428743148782, 0.5, 0.242760465386713, 0.5, -0.00227602386180678, 
-    0.188837287760358, 0.5, 0.3, 0.5, -0.00202880785288154, 
-    -0.284316506446615, -0.166666666666667, -0.5, -0.193411124527211, -0.3, 
-    -0.5, -0.247855406465798, -0.5, 0.166666666666667, 0.1, 
+  0.280428743148782, 0.5, 0.242760465386713, 0.5, -0.00227602386180678,
+    0.188837287760358, 0.5, 0.3, 0.5, -0.00202880785288154,
+    -0.284316506446615, -0.166666666666667, -0.5, -0.193411124527211, -0.3,
+    -0.5, -0.247855406465798, -0.5, 0.166666666666667, 0.1,
     -0.00195855747202122, -0.5, -0.1 ;
 \end{lstlisting}
 
-Here \texttt{ss\_prop1} lists the id numbers of the defined sidesets, e.g.~the 
-id number $10$ was assigned to the first sideset. As stated in the header, the 
-first sideset contains five elements (\texttt{num\_side\_ss1 = 5}), which are 
+Here \texttt{ss\_prop1} lists the id numbers of the defined sidesets, e.g.~the
+id number $10$ was assigned to the first sideset. As stated in the header, the
+first sideset contains five elements (\texttt{num\_side\_ss1 = 5}), which are
 listed in the data section under \texttt{elem\_ss1 = 4, 8, 19, 20, 21 ;}
 
-As stated above, the mesh was divided into two blocks. Their id numbers are 1 
-and 2, as can be seen under \texttt{eb\_prop1 = 1, 2;} The element connectivity 
-stored for each block separately under \texttt{connect1} and \texttt{connect2}. 
+As stated above, the mesh was divided into two blocks. Their id numbers are 1
+and 2, as can be seen under \texttt{eb\_prop1 = 1, 2;} The element connectivity
+stored for each block separately under \texttt{connect1} and \texttt{connect2}.
 
 Finally the coordinates of the vertices are stored under \texttt{coord = ...}
 
 \subsection*{Use within Fluidity}
 \label{ssec:exodusii_use_within_fluidity}
 
-Once the mesh is generated, it can be read in by Fluidity by simply setting the 
+Once the mesh is generated, it can be read in by Fluidity by simply setting the
 mesh format in Diamond to \texttt{exodusii} and providing its file name.
 
-The region ids and surface ids set in Diamond are the block ids and sideset ids 
-in the ExodusII file respectively. 
+The region ids and surface ids set in Diamond are the block ids and sideset ids
+in the ExodusII file respectively.
 
 
 \subsection*{Current restrictions}
 \label{ssec:exodusii_restrictions}
 
-This is work in progress and the following restrictions apply to using the ExodusII 
+This is work in progress and the following restrictions apply to using the ExodusII
 mesh format:
 \begin{itemize}
  \item Currently only serial mesh files can be read in
  \item Currently Fluidity does not support writing ExodusII files, thus whenever
- an ExodusII mesh file is read in, the checkpointed mesh files that are written are 
+ an ExodusII mesh file is read in, the checkpointed mesh files that are written are
  in the gmsh mesh format.
  \item FLTools such as periodise currently do not support the ExodusII mesh format.
 
 \end{itemize}
-

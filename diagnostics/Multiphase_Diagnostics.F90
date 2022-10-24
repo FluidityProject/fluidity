@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -41,11 +41,11 @@ module multiphase_diagnostics
    use state_fields_module
 
    implicit none
-   
+
    private
 
    public :: calculate_particle_reynolds_number, calculate_apparent_density
-  
+
    contains
 
       subroutine calculate_particle_reynolds_number(states, state_index, s_field)
@@ -60,7 +60,7 @@ module multiphase_diagnostics
          !! Sub-options of the diagnostic field
          real :: dia ! Particle diameter
          character(len = OPTION_PATH_LEN) :: pd_field_name !name of scalar field that defines particle diameter (can be the sauter mean dia)
-         type(scalar_field), pointer :: pd_scalar_field ! scalar field referring to particle diameter 
+         type(scalar_field), pointer :: pd_scalar_field ! scalar field referring to particle diameter
          logical :: have_constant_pd ! checks if the particle diameter is a constant or not
          character(len = OPTION_PATH_LEN) :: continuous_phase_name
 
@@ -224,4 +224,3 @@ module multiphase_diagnostics
       end subroutine calculate_apparent_density
 
 end module multiphase_diagnostics
-

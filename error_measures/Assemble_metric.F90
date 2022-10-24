@@ -40,12 +40,12 @@ module metric_assemble
   use anisotropic_zz_module
   use reference_meshes
   use hadapt_metric_based_extrude, only: get_1d_mesh, recombine_metric, get_1d_tensor
-  
+
   implicit none
 
   private
   public :: assemble_metric, apply_vertical_gradation, apply_horizontal_gradation
-  
+
   contains
 
   subroutine assemble_metric(state, error_metric)
@@ -79,10 +79,10 @@ module metric_assemble
 
     if (debug_metric) then
       do i=1,size(state)
-        write(buf, '(i0)') i 
+        write(buf, '(i0)') i
 
         call vtk_write_state(trim("metric_input_") // trim(buf),&
-             & adaptcnt, state=(/state(i)/)) 
+             & adaptcnt, state=(/state(i)/))
       end do
       adaptcnt = adaptcnt + 1
     end if
@@ -112,12 +112,12 @@ module metric_assemble
       call halo_update(error_metric)
       call form_anisotropic_zz_metric(state, error_metric)
     end if
-    
+
     if (use_richardson_number_metric) then
       call form_richardson_number_metric(state, error_metric)
       call halo_update(error_metric)
-    end if 
-    
+    end if
+
     if (use_boundary_metric) then
       call form_boundary_metric(error_metric, positions)
       call halo_update(error_metric)
@@ -132,7 +132,7 @@ module metric_assemble
 
     ! gradation might be left until the metric is split into horizontal and vertical components
     if(.not.split_gradation) then
-    
+
       call apply_gradation(error_metric, positions, state(1))
 
     end if
@@ -153,22 +153,22 @@ module metric_assemble
       call limit_metric(positions, error_metric)
     end if
     call halo_update(error_metric)
-    
+
   end subroutine assemble_metric
-  
+
   subroutine apply_gradation(error_metric, positions, state, gamma)
     type(tensor_field), intent(inout) :: error_metric
     type(vector_field), intent(in) :: positions
     type(state_type), intent(in) :: state
     type(tensor_field), intent(in), optional :: gamma
-    
+
     integer :: noits, grad_count
 
 #ifdef HAVE_MPI
     include 'mpif.h'
     integer::noits_max, ierr
 #endif
-  
+
     if (use_anisotropic_gradation) then
       call form_anisotropic_gradation_metric(error_metric, positions, state, gamma_field=gamma)
     else if (use_gradation_metric) then
@@ -189,7 +189,7 @@ module metric_assemble
         end do
       end if
     end if
-  
+
   end subroutine apply_gradation
 
   subroutine apply_horizontal_gradation(state, horizontal_metric, full_metric, horizontal_positions)
@@ -207,7 +207,7 @@ module metric_assemble
     type(tensor_field) :: horizontal_min_bound, horizontal_max_bound
 
     if(.not.(use_anisotropic_gradation.or.use_gradation_metric)) return
-    
+
     ewrite(1,*) 'in apply_horizontal_gradation'
 
     if (use_anisotropic_gradation) then
@@ -256,7 +256,7 @@ module metric_assemble
     type(vector_field), intent(in) :: full_positions
     type(tensor_field), intent(inout) :: full_metric
     type(vector_field), intent(in) :: horizontal_positions
-    
+
     integer :: column, node, i
     type(csr_sparsity) :: back_columns
     type(element_type) :: oned_shape
@@ -274,11 +274,11 @@ module metric_assemble
     type(tensor_field) :: min_edge, max_edge
     type(tensor_field) :: min_bound, max_bound
     type(tensor_field) :: oned_min_bound, oned_max_bound
-    
+
     if(.not.(use_anisotropic_gradation.or.use_gradation_metric)) return
 
     ewrite(1,*) 'in apply_vertical_gradation'
-    
+
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
@@ -297,7 +297,7 @@ module metric_assemble
       end if
 
       call initialise_field(full_gamma, gamma_path, full_positions)
-      
+
       is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
       if (is_constant) then
         call allocate(min_edge, full_metric%mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
@@ -312,7 +312,7 @@ module metric_assemble
           call set(min_bound, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
         end do
       end if
-        
+
       call deallocate(min_edge)
 
       is_constant = (have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant"))
@@ -329,7 +329,7 @@ module metric_assemble
           call set(max_bound, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
         end do
       end if
-      
+
       if (mesh_periodic(full_metric)) then
         do i=1, mesh_dim(full_metric)
           if (minval(max_edge%val(i,i,:))<0.33*(domain_bbox(i,2)-domain_bbox(i,1))) then
@@ -338,24 +338,24 @@ module metric_assemble
           end if
         end do
       end if
-        
+
       call deallocate(max_edge)
-      
+
     end if
 
     do column=1,node_count(horizontal_positions)
       if(use_anisotropic_gradation) then
         call get_1d_mesh(column, full_positions, back_columns, full_metric, oned_shape, oned_positions)
-        
+
         call allocate(oned_metric, oned_positions%mesh, "1DMetric")
         call allocate(oned_gamma, oned_positions%mesh, "1DGamma", field_type=full_gamma%field_type)
         call get_1d_tensor(column, full_metric, oned_metric, back_columns)
         call get_1d_tensor(column, full_gamma, oned_gamma, back_columns)
-        
+
         call apply_gradation(oned_metric, oned_positions, state, gamma=oned_gamma)
-        
+
         call deallocate(oned_gamma)
-        
+
         ! bounding the metric won't have happened yet because the min and max
         ! eigenbounds are the wrong size (and they weren't in state)... so do it now!
         ! (min and max refer to edge lengths, not eigenvalues)
@@ -370,11 +370,11 @@ module metric_assemble
         call deallocate(oned_max_bound)
       else
         call get_1d_mesh(column, full_positions, back_columns, full_metric, oned_shape, oned_positions)
-        
+
         call allocate(oned_metric, oned_positions%mesh, "1DMetric")
-        
+
         call get_1d_tensor(column, full_metric, oned_metric, back_columns)
-        
+
         call apply_gradation(oned_metric, oned_positions, state)
       end if
 
