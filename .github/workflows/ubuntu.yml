@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal", "Build Groovy" ]
+        name: [ "Build Bionic", "Build Focal", "Build Impish" ]
         include:
         
           - name: "Build Bionic"
@@ -28,9 +28,9 @@ jobs:
           - name: "Build Focal"
             release: focal
     
-          - name: "Build Groovy"
-            release: groovy
-    
+          - name: "Build Impish"
+            release: impish
+
     steps:
 
       - name: Check Out Repo 
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Groovy", "Short Groovy", "Medium Groovy" ]
+        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Impish", "Short Impish", "Medium Impish" ]
         include:
         
           - name: "Unit Bionic"
@@ -94,18 +94,18 @@ jobs:
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
-          - name: "Unit Groovy"
-            release: groovy
+          - name: "Unit Impish"
+            release: impish
             command: "make unittest"
             output: "test_results_unittests.xml"
           
-          - name: "Short Groovy"
-            release: groovy
+          - name: "Short Impish"
+            release: impish
             command: "make THREADS=2 test"
             output: "test_results.xml"
 
-          - name: "Medium Groovy"
-            release: groovy
+          - name: "Medium Impish"
+            release: impish
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 

@@ -36,9 +36,7 @@ use populate_state_module
 use field_options
 use halos_registration
 use parallel_tools
-#ifdef HAVE_PETSC_MODULES
-  use petsc 
-#endif
+use petsc
 implicit none
 #include "petsc_legacy.h"
   ! options read from command-line (-prns_... options)

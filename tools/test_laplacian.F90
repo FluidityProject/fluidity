@@ -22,10 +22,7 @@ program test_laplacian
   use state_module
   use adapt_state_module 
   use boundary_conditions
-
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
   implicit none
 #include "petsc_legacy.h"
   
@@ -63,10 +60,8 @@ program test_laplacian
   end interface
   character(len=256) :: filename
 
-#ifdef HAVE_PETSC
   integer :: ierr
   call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-#endif
 
   call python_init
 

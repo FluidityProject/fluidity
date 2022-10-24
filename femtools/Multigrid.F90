@@ -6,9 +6,7 @@ use FLDebug
 use spud
 use futils
 use parallel_tools
-#ifdef HAVE_PETSC_MODULES
   use petsc
-#endif
 use Sparse_tools
 use Petsc_Tools
 use sparse_tools_petsc
@@ -229,9 +227,9 @@ integer :: linternal_smoothing_option
      call PCSetType(prec, PCCOMPOSITE, ierr)
      call PCCompositeSetType(prec, PC_COMPOSITE_MULTIPLICATIVE, ierr)
      ! consisting of outer SOR iterations and the composite PC
-     call PCCompositeAddPC(prec, PCSOR, ierr)     
-     call PCCompositeAddPC(prec, PCCOMPOSITE, ierr)
-     call PCCompositeAddPC(prec, PCSOR, ierr)
+     call PCCompositeAddPCType(prec, PCSOR, ierr)     
+     call PCCompositeAddPCType(prec, PCCOMPOSITE, ierr)
+     call PCCompositeAddPCType(prec, PCSOR, ierr)
      
      !set up the forward SOR
      call PCCompositeGetPC(prec, 0, subprec, ierr)
@@ -252,8 +250,8 @@ integer :: linternal_smoothing_option
      call PCCompositeSetType(subprec, PC_COMPOSITE_ADDITIVE, ierr)
      !consisting of the vertical lumped mg, and the internal smoother 
      !which is a shell
-     call PCCompositeAddPC(subprec, PCMG, ierr)
-     call PCCompositeAddPC(subprec, PCSHELL, ierr)
+     call PCCompositeAddPCType(subprec, PCMG, ierr)
+     call PCCompositeAddPCType(subprec, PCSHELL, ierr)
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
@@ -277,8 +275,8 @@ integer :: linternal_smoothing_option
      call PCCompositeSetType(prec, PC_COMPOSITE_ADDITIVE, ierr)
      !consisting of the vertical lumped mg, and the internal smoother 
      !which is a shell
-     call PCCompositeAddPC(prec, PCMG, ierr)
-     call PCCompositeAddPC(prec, PCSHELL, ierr)
+     call PCCompositeAddPCType(prec, PCMG, ierr)
+     call PCCompositeAddPCType(prec, PCSHELL, ierr)
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
@@ -412,8 +410,7 @@ logical, intent(in), optional :: no_top_smoothing
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-        ! See note below about PETSC_NULL_KSP argument
-        call PCMGSetLevels(prec, 1, PETSC_NULL_KSP, ierr)
+        call PCMGSetLevels_nocomms(prec, 1, ierr)
         ierror=1
         return
       end if
@@ -435,10 +432,9 @@ logical, intent(in), optional :: no_top_smoothing
       nolevels=i
     end if
     
-    ! NOTE: in petsc v3.8 it's unclear what the legal null argument should be for MPI_Comm *comms
-    ! it does not accept any scalar null object (e.g. PETSC_NULL_INTEGER) - luckily there's no
-    ! explicit interface so we can pass this instead which does get correctly translated to a null argument
-    call PCMGSetLevels(prec, nolevels, PETSC_NULL_KSP, ierr)
+    ! NOTE: we use a wrapper around PCMGLEVELS defined in femtools/ISCopyIndices.cpp
+    ! to deal with bug in https://gitlab.com/petsc/petsc/-/issues/868
+    call PCMGSetLevels_nocomms(prec, nolevels, ierr)
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
