@@ -54,14 +54,14 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
-    if: always()
+    if: success() || failure()
 
     strategy:
       fail-fast: false
       matrix:
         name: [ "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Jammy", "Short Jammy", "Medium Jammy" ]
         include:
-        
+
           - name: "Short Bionic"
             release: bionic
             command: "make THREADS=2 test"
@@ -86,7 +86,7 @@ jobs:
             release: jammy
             command: "make unittest"
             output: "test_results_unittests.xml"
-          
+
           - name: "Short Jammy"
             release: jammy
             command: "make THREADS=2 test"
@@ -123,7 +123,7 @@ jobs:
     name: longtest-${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
-    if: always()
+    if: success() || failure()
 
     strategy:
       fail-fast: false
