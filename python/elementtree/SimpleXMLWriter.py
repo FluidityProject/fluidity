@@ -89,7 +89,7 @@ import re
 import string
 
 try:
-    str("")
+    ""
 except NameError:
 
     def encode(s, encoding):

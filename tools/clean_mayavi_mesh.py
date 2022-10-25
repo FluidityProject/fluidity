@@ -70,7 +70,7 @@ def set_linestyle(ps):
 
 def process_file(inname, outname, options):
 
-    ps = open(inname, "r").readlines()
+    ps = open(inname).readlines()
 
     set_bounding_box(ps, options.margin)
     set_linestyle(ps)

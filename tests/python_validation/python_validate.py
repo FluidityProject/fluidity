@@ -39,7 +39,7 @@ def fix_snippet(name, snippet):
     os.close(temp)
     # use the local reindent script to update to 4 spaces and no tabs
     subprocess.call(["python3 -m reindent -n %s" % temp_name], shell=True)
-    with open(temp_name, "r") as temp:
+    with open(temp_name) as temp:
         out = temp.read()
     os.remove(temp_name)
     if out == snippet:
@@ -78,7 +78,7 @@ def process_snippet(name, snippet):
 
 def validate_file(filename, fix):
     """Run the validator on a whole file."""
-    with open(filename, "r") as testfile:
+    with open(filename) as testfile:
         failed = process_snippet(filename, testfile.read())
         # if failed:
         #     if fix:

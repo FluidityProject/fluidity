@@ -210,14 +210,14 @@ def plot_meanvelo(type, profiles, xarray, yarray):
     # Plot evolution of velocity profiles at different points behind step
 
     # get profiles from Ilinca's experimental/numerical data
-    datafile = open("../Ilinca-data/Ilinca-U-expt-1.33.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-expt-1.33.dat")
     print("reading in data from file: Ilinca-U-expt-1.33.dat")
     y1 = []
     U1 = []
     for line in datafile:
         U1.append(float(line.split()[0]))
         y1.append(float(line.split()[1]))
-    datafile = open("../Ilinca-data/Ilinca-U-num-1.33.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-num-1.33.dat")
     print("reading in data from file: Ilinca-U-num-1.33.dat")
     yn1 = []
     Un1 = []
@@ -225,14 +225,14 @@ def plot_meanvelo(type, profiles, xarray, yarray):
         Un1.append(float(line.split()[0]))
         yn1.append(float(line.split()[1]))
 
-    datafile = open("../Ilinca-data/Ilinca-U-expt-2.66.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-expt-2.66.dat")
     print("reading in data from file: Ilinca-U-expt-2.66.dat")
     y3 = []
     U3 = []
     for line in datafile:
         U3.append(float(line.split()[0]))
         y3.append(float(line.split()[1]))
-    datafile = open("../Ilinca-data/Ilinca-U-num-2.66.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-num-2.66.dat")
     print("reading in data from file: Ilinca-U-num-2.66.dat")
     yn3 = []
     Un3 = []
@@ -240,14 +240,14 @@ def plot_meanvelo(type, profiles, xarray, yarray):
         Un3.append(float(line.split()[0]))
         yn3.append(float(line.split()[1]))
 
-    datafile = open("../Ilinca-data/Ilinca-U-expt-5.33.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-expt-5.33.dat")
     print("reading in data from file: Ilinca-U-expt-5.33.dat")
     y5 = []
     U5 = []
     for line in datafile:
         U5.append(float(line.split()[0]))
         y5.append(float(line.split()[1]))
-    datafile = open("../Ilinca-data/Ilinca-U-num-5.33.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-num-5.33.dat")
     print("reading in data from file: Ilinca-U-num-5.33.dat")
     yn5 = []
     Un5 = []
@@ -255,14 +255,14 @@ def plot_meanvelo(type, profiles, xarray, yarray):
         Un5.append(float(line.split()[0]))
         yn5.append(float(line.split()[1]))
 
-    datafile = open("../Ilinca-data/Ilinca-U-expt-8.0.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-expt-8.0.dat")
     print("reading in data from file: Ilinca-U-expt-8.0.dat")
     y8 = []
     U8 = []
     for line in datafile:
         U8.append(float(line.split()[0]))
         y8.append(float(line.split()[1]))
-    datafile = open("../Ilinca-data/Ilinca-U-num-8.0.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-num-8.0.dat")
     print("reading in data from file: Ilinca-U-num-8.0.dat")
     yn8 = []
     Un8 = []
@@ -270,14 +270,14 @@ def plot_meanvelo(type, profiles, xarray, yarray):
         Un8.append(float(line.split()[0]))
         yn8.append(float(line.split()[1]))
 
-    datafile = open("../Ilinca-data/Ilinca-U-expt-16.0.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-expt-16.0.dat")
     print("reading in data from file: Ilinca-U-expt-16.0.dat")
     y16 = []
     U16 = []
     for line in datafile:
         U16.append(float(line.split()[0]))
         y16.append(float(line.split()[1]))
-    datafile = open("../Ilinca-data/Ilinca-U-num-16.0.dat", "r")
+    datafile = open("../Ilinca-data/Ilinca-U-num-16.0.dat")
     print("reading in data from file: Ilinca-U-num-16.0.dat")
     yn16 = []
     Un16 = []

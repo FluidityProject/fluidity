@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from numpy import cos, exp, pi, poly1d
 from scipy.special import erf
 

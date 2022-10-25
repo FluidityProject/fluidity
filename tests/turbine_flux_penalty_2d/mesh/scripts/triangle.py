@@ -14,21 +14,21 @@ debug = 0
 
 
 def read_nodefile(filename):
-    f = open(filename, "r")
+    f = open(filename)
     global nodes, dim
     [nodes, dim] = pnode(f)
     f.close()
 
 
 def read_elefile(filename):
-    f = open(filename, "r")
+    f = open(filename)
     global eles
     eles = peles(f)
     f.close()
 
 
 def read_edgefile(filename):
-    f = open(filename, "r")
+    f = open(filename)
     global edges, surface_ids, edge_attribute1
     [edges, surface_ids, edge_attribute1] = pedges(f)
     f.close()

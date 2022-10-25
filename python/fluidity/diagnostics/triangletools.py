@@ -60,7 +60,7 @@ def ReadTriangle(baseName):
 
     # Read the .node file
 
-    nodeHandle = open(baseName + ".node", "r")
+    nodeHandle = open(baseName + ".node")
 
     # Extract the meta data
     line = ReadNonCommentLine(nodeHandle)
@@ -94,7 +94,7 @@ def ReadTriangle(baseName):
         # Read the .bound file
         debug.dprint("Reading .bound file")
 
-        boundHandle = open(baseName + ".bound", "r")
+        boundHandle = open(baseName + ".bound")
 
         # Extract the meta data
         line = ReadNonCommentLine(boundHandle)
@@ -124,7 +124,7 @@ def ReadTriangle(baseName):
         # Read the .edge file
         debug.dprint("Reading .edge file")
 
-        edgeHandle = open(baseName + ".edge", "r")
+        edgeHandle = open(baseName + ".edge")
 
         # Extract the meta data
         line = ReadNonCommentLine(edgeHandle)
@@ -154,7 +154,7 @@ def ReadTriangle(baseName):
         # Read the .face file
         debug.dprint("Reading .face file")
 
-        faceHandle = open(baseName + ".face", "r")
+        faceHandle = open(baseName + ".face")
 
         # Extract the meta data
         line = ReadNonCommentLine(faceHandle)
@@ -186,7 +186,7 @@ def ReadTriangle(baseName):
         # Read the .ele file
         debug.dprint("Reading .ele file")
 
-        eleHandle = open(baseName + ".ele", "r")
+        eleHandle = open(baseName + ".ele")
 
         # Extract the meta data
         line = ReadNonCommentLine(eleHandle)
@@ -408,9 +408,9 @@ def hasPeriodicBoundary(basename):
     hasEdge = hasEdgeFile(basename)
     hasFace = hasFaceFile(basename)
     if hasEdge:
-        fileHandle = open(basename + ".edge", "r")
+        fileHandle = open(basename + ".edge")
     elif hasFace:
-        fileHandle = open(basename + ".face", "r")
+        fileHandle = open(basename + ".face")
     else:
         return
     line = fileHandle.readline()

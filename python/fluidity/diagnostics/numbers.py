@@ -109,20 +109,20 @@ def EkmanBoundaryLayerThickness(omega, nu, H, D=None):
 
 class numbersUnittests(unittest.TestCase):
     def testThermalBoundaryLayerThickness(self):
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             ThermalBoundaryLayerThickness(
                 g=1.0 / 16.0, alpha=1.0, deltaT=1.0, nu=1.0, kappa=1.0, H=1.0
             ),
             2.0,
         )
         H = math.pow(1.0 / 16.0, 1.0 / 3.0)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             ThermalBoundaryLayerThickness(
                 g=1.0, alpha=1.0, deltaT=1.0, nu=1.0, kappa=1.0, H=H
             ),
             2.0 * H,
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             ThermalBoundaryLayerThickness(
                 g=1.0, alpha=1.0, deltaT=1.0, nu=1.0, kappa=1.0, H=H, D=0.5 * H
             ),
@@ -132,10 +132,10 @@ class numbersUnittests(unittest.TestCase):
         return
 
     def testBoundaryEkmanLayerThickness(self):
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             EkmanBoundaryLayerThickness(omega=4.0, nu=1.0, H=1.0), 0.5
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             EkmanBoundaryLayerThickness(omega=4.0, nu=1.0, H=1.0, D=2.0), 1.0
         )
 

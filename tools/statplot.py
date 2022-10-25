@@ -315,7 +315,7 @@ class StatplotWindow(Gtk.Window):
         def GatherEntries(stat2read):
             print("Reading " + stat2read)
             entries = []
-            with open(stat2read, "r") as fid:
+            with open(stat2read) as fid:
                 for num, line in enumerate(fid):
                     if line.startswith("<field"):
                         info = etree.fromstring(line)

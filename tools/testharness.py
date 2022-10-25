@@ -29,14 +29,14 @@ try:
     from junit_xml import TestCase, TestSuite
 except ImportError:
 
-    class TestSuite(object):
+    class TestSuite:
         def __init__(self, name, test_cases):
             self.test_cases = test_cases
 
         def to_file(self, *args):
             print("cannot generate xml report without junit_xml module.")
 
-    class TestCase(object):
+    class TestCase:
         def __init__(self, *args, **kwargs):
             pass
 
@@ -129,9 +129,9 @@ class TestHarness:
             files = [file]
         elif from_file:
             try:
-                f = open(from_file, "r")
+                f = open(from_file)
                 files = [line[:-1] for line in f.readlines()]
-            except IOError as e:
+            except OSError as e:
                 sys.stderr.write(
                     "Unable to read tests from file {}: {}".format(from_file, e)
                 )

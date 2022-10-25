@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 
 
 def plot_convergence(name1, logfile1, name2, logfile2):
-    file1 = open(str(logfile1), "r").readlines()
+    file1 = open(str(logfile1)).readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
     aniso1 = data1[1::3]
     ml1 = data1[2::3]
 
-    file2 = open(str(logfile2), "r").readlines()
+    file2 = open(str(logfile2)).readlines()
     data2 = [float(line.split()[1]) for line in file2]
     iso2 = data2[0::3]
     aniso2 = data2[1::3]
@@ -73,13 +73,13 @@ def plot_convergence(name1, logfile1, name2, logfile2):
 
 
 def plot_commerror(name1, logfile1, name2, logfile2):
-    file1 = open(str(logfile1), "r").readlines()
+    file1 = open(str(logfile1)).readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
     aniso1 = data1[1::3]
     ml1 = data1[2::3]
 
-    file2 = open(str(logfile2), "r").readlines()
+    file2 = open(str(logfile2)).readlines()
     data2 = [float(line.split()[1]) for line in file2]
     iso2 = data2[0::3]
     aniso2 = data2[1::3]
@@ -154,13 +154,13 @@ def plot_commerror(name1, logfile1, name2, logfile2):
 
 
 def plot_commconv(name1, logfile1, name2, logfile2):
-    file1 = open(str(logfile1), "r").readlines()
+    file1 = open(str(logfile1)).readlines()
     data1 = [float(line.split()[1]) for line in file1]
     iso1 = data1[0::3]
     aniso1 = data1[1::3]
     ml1 = data1[2::3]
 
-    file2 = open(str(logfile2), "r").readlines()
+    file2 = open(str(logfile2)).readlines()
     data2 = [float(line.split()[1]) for line in file2]
     iso2 = data2[0::3]
     aniso2 = data2[1::3]

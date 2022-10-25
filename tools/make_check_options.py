@@ -25,9 +25,9 @@ outfile = "preprocessor/check_options.F90"
 # avoid doing.
 orig = hashlib.sha1()
 try:
-    f = open(outfile, "r")
+    f = open(outfile)
     orig.update(f.read().encode("utf8"))
-except IOError:
+except OSError:
     pass
 else:
     f.close()
@@ -87,7 +87,7 @@ if new.digest() != orig.digest():
     try:
         f = open(outfile, "w")
         f.write(output.getvalue())
-    except IOError:
+    except OSError:
         # Fixme, this should fail better
         pass
     else:

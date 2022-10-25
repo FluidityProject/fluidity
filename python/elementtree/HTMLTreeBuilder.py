@@ -178,7 +178,7 @@ class HTMLTreeBuilder(HTMLParser):
     # (Internal) Handles character data.
 
     def handle_data(self, data):
-        if isinstance(data, type("")) and not data.isascii():
+        if isinstance(data, str) and not data.isascii():
             # convert to unicode, but only if necessary
             data = data.decode(self.encoding, "ignore")
         self.__builder.data(data)

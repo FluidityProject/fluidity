@@ -122,7 +122,7 @@ def check(file):
         )
     try:
         f = open(file)
-    except IOError as e:
+    except OSError as e:
         errprint(f"{file}: I/O Error: {e}")
         return
 

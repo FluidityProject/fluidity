@@ -210,7 +210,7 @@ def rename_vtu(base_filename, filelist, index, verbose=False):
                     print("moving", filelist[i], "to", newfilename)
                 shutil.move(filelist[i], newfilename)
                 # must also adjust content of pvtu so it points at moved parallel vtus
-                pvtufile = open(newfilename, "r")
+                pvtufile = open(newfilename)
                 lines = pvtufile.readlines()
                 pvtufile.close()
                 for line in range(len(lines)):
@@ -249,9 +249,9 @@ def concat_statfile(base_filename):
     statfile = base_filename + ".stat"
 
     # open the basename stat in read mode first
-    sf = open(statfile, "r")
+    sf = open(statfile)
     # open the checkpointed statfile in read mode
-    sfc = open(statfile_check, "r")
+    sfc = open(statfile_check)
 
     # find the last time in the basename stat
     for line in sf:

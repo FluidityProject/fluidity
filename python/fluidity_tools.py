@@ -21,7 +21,7 @@ def parse_s(str):
     if os.stat(str)[6] == 0:
         raise Exception("Error: %s must not be empty!" % str)
 
-    f = open(str, "r")
+    f = open(str)
     for line in f:
         if line.startswith("@@"):
             var_count = int(line[2:])
@@ -43,7 +43,7 @@ def parse_s(str):
 
     # now let's see if it matches the expected pattern
     linecount = 0
-    f = open(str, "r")
+    f = open(str)
     actual_line_pattern = []
     for line in f:
         if not line.startswith("@"):
@@ -59,7 +59,7 @@ def parse_s(str):
     no_lines = int(math.ceil(var_count / float(fields_per_line)))
     lines = []
 
-    f = open(str, "r")
+    f = open(str)
 
     for line in f:
         if line.startswith("@("):
@@ -340,7 +340,7 @@ class stat_parser(dict):
     def __init__(self, filename, subsample=1):
         assert subsample > 0
 
-        statfile = open(filename, "r")
+        statfile = open(filename)
         header_re = re.compile(r"</header>")
         xml = ""  # xml header.
 

@@ -17,7 +17,6 @@
 # Tools to build element trees from HTML, using the external <b>tidy</b>
 # utility.
 ##
-from __future__ import print_function
 
 import glob
 import os
@@ -83,7 +82,7 @@ def getbody(file, **options):
         tree = tidy(file, options)
         if tree is None:
             return
-    except IOError as v:
+    except OSError as v:
         print("***", v)
         return None
 
