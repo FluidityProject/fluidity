@@ -1190,9 +1190,7 @@ class annulus_meshUnittests(unittest.TestCase):
             )
         self.assertAlmostEqual(coords[5], 2.0)
         self.assertAlmostEqual(coords[-2], 2.9)
-        self.assertAlmostEqual(
-            (coords[-3] - coords[-2]) / (coords[-2] - coords[-1]), r
-        )
+        self.assertAlmostEqual((coords[-3] - coords[-2]) / (coords[-2] - coords[-1]), r)
         for i in range(3):
             self.assertAlmostEqual(
                 (coords[-i - 3] - coords[-i - 2]) / (coords[-i - 2] - coords[-i - 1]), r

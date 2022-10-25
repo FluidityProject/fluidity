@@ -139,29 +139,25 @@ def ercoftacvelocityprofiles():
     U10 = []
     y19 = []
     U19 = []
-    datafile = open(
-        str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat")
+    datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat")
     for line in range(1):
         datafile.readline()
     for line in datafile:
         y4.append(float(line.split()[0]))
         U4.append(float(line.split()[1]))
-    datafile = open(
-        str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat")
+    datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat")
     for line in range(1):
         datafile.readline()
     for line in datafile:
         y6.append(float(line.split()[0]))
         U6.append(float(line.split()[1]))
-    datafile = open(
-        str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat")
+    datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat")
     for line in range(1):
         datafile.readline()
     for line in datafile:
         y10.append(float(line.split()[0]))
         U10.append(float(line.split()[1]))
-    datafile = open(
-        str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat")
+    datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat")
     for line in range(1):
         datafile.readline()
     for line in datafile:
@@ -173,8 +169,7 @@ def ercoftacvelocityprofiles():
 
 def ercoftacrestressprofiles():
 
-    datafile = open(
-        str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC181-table.dat")
+    datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC181-table.dat")
     print("reading in data from file: BFS-SEM-ERCOFTAC181-table.dat")
     # ignore header line
     for line in range(1):

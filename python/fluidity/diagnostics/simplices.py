@@ -90,9 +90,7 @@ def SimplexIntegral(nodeCoords, nodeCoordVals):
 class simplicesUnittests(unittest.TestCase):
     def testSimplexVolume(self):
         self.assertAlmostEqual(SimplexVolume([[0.0], [1.0]]), 1.0)
-        self.assertAlmostEqual(
-            SimplexVolume([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]), 0.5
-        )
+        self.assertAlmostEqual(SimplexVolume([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]), 0.5)
         self.assertAlmostEqual(
             SimplexVolume(
                 [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]
