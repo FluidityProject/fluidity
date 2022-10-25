@@ -20,7 +20,7 @@ repos:
         exclude: ref_vtk_hexahedra.vtu
     -   id: trailing-whitespace
 -   repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.10.0
     hooks:
     -   id: black
 -   repo: https://github.com/PyCQA/isort
@@ -29,11 +29,11 @@ repos:
     -   id: isort
         args: ["--profile", "black", "--filter-files"]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.1
+    rev: v3.1.0
     hooks:
     -   id: pyupgrade
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 5.0.4
     hooks:
     -   id: flake8
         args: ["--max-line-length", "88", "--extend-ignore", "E203,E722"]
