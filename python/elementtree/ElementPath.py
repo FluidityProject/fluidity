@@ -90,7 +90,7 @@ class Path:
                     raise SyntaxError("expected path separator (%s)" % (op or tag))
         if self.path and isinstance(self.path[-1], xpath_descendant_or_self):
             raise SyntaxError("path cannot end with //")
-        if len(self.path) == 1 and isinstance(self.path[0], type("")):
+        if len(self.path) == 1 and isinstance(self.path[0], str):
             self.tag = self.path[0]
 
     ##
@@ -139,7 +139,7 @@ class Path:
             if isinstance(path, xpath_descendant_or_self):
                 try:
                     tag = self.path[index]
-                    if not isinstance(tag, type("")):
+                    if not isinstance(tag, str):
                         tag = None
                     else:
                         index = index + 1

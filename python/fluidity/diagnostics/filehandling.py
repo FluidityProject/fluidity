@@ -171,7 +171,7 @@ def FindAndReplace(filename, find, replace):
 
     # Could do this out-of-core
 
-    inputHandle = open(filename, "r")
+    inputHandle = open(filename)
     inputString = inputHandle.read()
     inputHandle.close()
 

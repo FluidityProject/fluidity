@@ -14,7 +14,7 @@ try:
     from junit_xml import TestCase
 except ImportError:
 
-    class TestCase(object):
+    class TestCase:
         def __init__(self, *args, **kwargs):
             pass
 
@@ -208,7 +208,7 @@ class TestProblem:
 
         if nLogLines is None or nLogLines > 0:
             for filename in logs:
-                log = open(filename, "r").read().split("\n")
+                log = open(filename).read().split("\n")
                 if nLogLines is not None:
                     log = log[-nLogLines:]
                 self.log("Log: " + filename)
@@ -217,7 +217,7 @@ class TestProblem:
 
         for filename in errLogs:
             self.log("Log: " + filename)
-            log = open(filename, "r").read().split("\n")
+            log = open(filename).read().split("\n")
             for line in log:
                 self.log(line)
 

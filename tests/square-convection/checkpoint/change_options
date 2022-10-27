@@ -4,7 +4,7 @@ import sys
 file_name = "square-convection_50_checkpoint.flml"
 
 try:
-    flml_file = open(file_name, "r")
+    flml_file = open(file_name)
     flml_options = flml_file.readlines()
     flml_file.close()
 except Exception as e:

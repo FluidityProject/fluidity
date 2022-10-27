@@ -12,7 +12,7 @@ def read_chl_h42(filename):
     except Exception:
         print("No such file: " + str(filename))
         sys.exit(1)
-    f = open(filename, "r")
+    f = open(filename)
     for i in range(0, 10):
         # skip header lines
         line = f.readline()

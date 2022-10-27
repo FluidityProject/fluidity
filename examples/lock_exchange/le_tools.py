@@ -148,7 +148,7 @@ def GetAverageRange(X, lower_lim, domainheight):
 def ReadLog(log_name):
     # reads log with name log_name and returns values as an array of floats
     # log needs to contain only one value per line
-    file_name = open(log_name, "r")
+    file_name = open(log_name)
     file_read = []
     for line in file_name:
         file_read.append(float(line.split("\n")[0]))

@@ -148,7 +148,7 @@ that contains the option paths and parameter sets that are to be used."""
 
 # set up parameter space
 def read_param_space(param_space_file):
-    f = open(param_space_file, "r")
+    f = open(param_space_file)
 
     param_space = []
     paths = []

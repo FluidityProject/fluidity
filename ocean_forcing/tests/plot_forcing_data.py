@@ -32,7 +32,7 @@ for file in files:
 
     # make a graphic filename by stripping off the csv and adding png
 
-    f = open(file, "r")
+    f = open(file)
     nLines = 0
     q_flux = []
     q_era40 = []

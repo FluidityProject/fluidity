@@ -66,7 +66,7 @@ def ReadGid(filename):
 
     debug.dprint("Reading GiD mesh with filename " + filename)
 
-    fileHandle = open(filename, "r")
+    fileHandle = open(filename)
 
     # Read the header
     header = fileHandle.readline()

@@ -71,7 +71,7 @@ def get_cloud_front(path_prefix, n_files, resolution, threshold):
 
 times, upper_positions, lower_positions = get_cloud_front("./", 501, 0.0085, 0.05)
 
-f = open("upper.prn", "r")
+f = open("upper.prn")
 experimental_times = []
 experimental_positions = []
 for line in f:
@@ -81,7 +81,7 @@ for line in f:
 f.close()
 plt.plot(experimental_times, experimental_positions, "-r", label="Experimental (upper)")
 
-f = open("lower.prn", "r")
+f = open("lower.prn")
 experimental_times = []
 experimental_positions = []
 for line in f:

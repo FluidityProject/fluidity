@@ -22,7 +22,7 @@ dep_exclusions = [
 ]
 
 
-class dependency_list(object):
+class dependency_list:
     """Class to store and process the dependencies of a single .o and its
     associated .mod(s) if any."""
 
@@ -171,7 +171,7 @@ def generate_dependencies(fortran):
             )
             if process.wait() == 0:
                 this_deps = dependency_list(
-                    obj, f, open(obj + "_dependencies", "r").readlines()
+                    obj, f, open(obj + "_dependencies").readlines()
                 )
 
                 # Remove unwanted dependencies

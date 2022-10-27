@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from math import log
 
 from fluidity_tools import stat_parser as stat

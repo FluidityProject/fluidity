@@ -55,7 +55,6 @@
 # not reliable (you can run the module as a script to find out exactly
 # how unreliable it is on your Python version).
 ##
-from __future__ import print_function
 
 import string
 from xml.etree.ElementTree import XMLParser

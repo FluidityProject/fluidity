@@ -244,7 +244,7 @@ else:
     if args.test:
         tests = [tests_dir / args.test]
     elif args.from_file:
-        with open(args.from_file, "r") as fid:
+        with open(args.from_file) as fid:
             tests = [tests_dir / test_name.rstrip() for test_name in fid]
     else:
         tests = tests_dir.glob("test*")

@@ -13,7 +13,7 @@ append_options.append("            </adapt_at_first_timestep>\n")
 
 for f in range(len(file_name)):
     try:
-        flml_file = open(file_name[f], "r")
+        flml_file = open(file_name[f])
         flml_options = flml_file.readlines()
         flml_file.close()
     except Exception:

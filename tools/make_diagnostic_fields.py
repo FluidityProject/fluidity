@@ -22,9 +22,9 @@ outputFilename = baseName + ".F90"
 # avoid doing.
 orig = hashlib.sha1()
 try:
-    f = open(outputFilename, "r")
+    f = open(outputFilename)
     orig.update(f.read().encode("utf8"))
-except IOError:
+except OSError:
     pass
 else:
     f.close()
@@ -75,7 +75,7 @@ for file in [inputFilename, outputFilename] + disabledDiags:
         pass
 
 for file in diagFiles:
-    fileHandle = open(file, "r")
+    fileHandle = open(file)
     code = fileHandle.read()
     fileHandle.close()
 
@@ -176,7 +176,7 @@ for file in diagFiles:
                 Error("Unexpected diagnostic field type")
 
 # Read input
-fileHandle = open(inputFilename, "r")
+fileHandle = open(inputFilename)
 outputCode = fileHandle.read()
 fileHandle.close()
 
@@ -211,7 +211,7 @@ if new.digest() != orig.digest():
     try:
         f = open(outputFilename, "w")
         f.write(outputCode)
-    except IOError:
+    except OSError:
         # Fixme, this should fail better
         pass
     else:

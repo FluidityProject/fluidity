@@ -6,7 +6,6 @@
 #  but we still want state_types
 #
 ##########################################
-from __future__ import print_function
 
 import copy
 import functools
@@ -194,7 +193,7 @@ try:
 
 except ImportError:
 
-    class CsrMatrix(object):
+    class CsrMatrix:
         def __init__(self, *args, **kwargs):
             raise ImportError("No such module scipy.sparse")
 

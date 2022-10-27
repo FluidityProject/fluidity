@@ -6,7 +6,7 @@ def inflow_data(plane):
     # Extract mean velocity and Reynolds stresses from ERCOFTAC data at given plane.
     # Ignore file header
     ignore = 3
-    ercoftac = open("x." + str(plane), "r")
+    ercoftac = open("x." + str(plane))
     print("reading in data from file: x." + str(plane))
     for line in range(ignore):
         ercoftac.readline()

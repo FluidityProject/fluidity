@@ -583,7 +583,7 @@ class vtu:
         self.ugrid = cdtpd.GetUnstructuredGridOutput()
 
 
-class VTU_Probe(object):
+class VTU_Probe:
     """A class that combines a vtkProbeFilter with a list of invalid points (points that
     it failed to probe where we take the value of the nearest point)"""
 

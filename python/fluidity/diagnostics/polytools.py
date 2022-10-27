@@ -53,7 +53,7 @@ def ReadPoly(filename):
 
         return line
 
-    fileHandle = open(filename, "r")
+    fileHandle = open(filename)
 
     # Read the nodes meta data
     line = ReadNonCommentLine(fileHandle)

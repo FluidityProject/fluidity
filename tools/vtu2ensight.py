@@ -156,7 +156,7 @@ def main(args):
     # get list of vtu/pvtu files:
     vtus = getvtulist(basename, dumpno, lastdump)
     if not vtus:
-        raise IOError
+        raise OSError
     # prevent reading errors, if only one vtu file was found, set static to True:
     if len(vtus) == 1:
         static = True
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     try:
         main(args)
         print("EnSight output files have been written successfully.")
-    except IOError:
+    except OSError:
         print(
             f'Error: Could not find any output files with a basename "{args.basename}".'
         )

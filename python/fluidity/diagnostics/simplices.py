@@ -89,11 +89,9 @@ def SimplexIntegral(nodeCoords, nodeCoordVals):
 
 class simplicesUnittests(unittest.TestCase):
     def testSimplexVolume(self):
-        self.assertAlmostEquals(SimplexVolume([[0.0], [1.0]]), 1.0)
-        self.assertAlmostEquals(
-            SimplexVolume([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]), 0.5
-        )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(SimplexVolume([[0.0], [1.0]]), 1.0)
+        self.assertAlmostEqual(SimplexVolume([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]), 0.5)
+        self.assertAlmostEqual(
             SimplexVolume(
                 [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]
             ),
@@ -103,21 +101,21 @@ class simplicesUnittests(unittest.TestCase):
         return
 
     def testTetVolume(self):
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             TetVolume(
                 [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
                 signed=True,
             ),
             1.0 / 6.0,
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             TetVolume(
                 [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]],
                 signed=True,
             ),
             -1.0 / 6.0,
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             TetVolume(
                 [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]
             ),
@@ -132,13 +130,13 @@ class simplicesUnittests(unittest.TestCase):
         return
 
     def testSimplexIntegral(self):
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             SimplexIntegral([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], [1.0, 1.0, 1.0]), 0.5
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             SimplexIntegral([[1.0, 1.0], [2.0, 1.0], [1.0, 2.0]], [1.0, 1.0, 1.0]), 0.5
         )
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             SimplexIntegral([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], [2.0, 2.0, 2.0]), 1.0
         )
 
