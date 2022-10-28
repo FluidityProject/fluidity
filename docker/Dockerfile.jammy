@@ -1,10 +1,10 @@
 # DockerFile for a Fludity development container
 
-# Use a Focal base image
-FROM ubuntu:focal
+# Use an Jammy base image
+FROM ubuntu:jammy
 
 # This DockerFile is looked after by
-MAINTAINER Tim Greaves
+MAINTAINER Stephan Kramer <s.kramer@imperial.ac.uk>
 
 # Installs shouldn't expect input
 ENV DEBIAN_FRONTEND=noninteractive
@@ -13,23 +13,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
      apt-get -y dist-upgrade && \
      apt-get -y install gnupg dirmngr && \
-     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu focal main" > /etc/apt/sources.list.d/fluidity-core-ppa-focal.list && \
+     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/fluidity-core-ppa-jammy.list && \
      gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
      gpg --export --armor 33BAC3BE | apt-key add - && \
      apt-get update && \
      echo "Europe/London" > /etc/timezone && \
      apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip && \
-     rm -rf /var/cache/apt && \
-     rm -rf /var/lib/apt/lists
+     apt-get clean
 
 RUN python3 -m pip install --upgrade junit-xml
 
 WORKDIR /usr/local
 RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
 
-ENV PETSC_DIR /usr/lib/petscdir/3.12
-ENV LDFLAGS -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-ENV CPPFLAGS -I/usr/include/hdf5/openmpi
 ENV OMPI_MCA_btl_vader_single_copy_mechanism none
 ENV OMPI_MCA_rmaps_base_oversubscribe 1
 
