@@ -52,9 +52,9 @@ int Mesh::writeVTK(const string vtkfilename){
     float x = node_list[i].get_x();
     float y = node_list[i].get_y();
     float z = node_list[i].get_z();
-    vtkfile.putPoint(x,y,z); 
+    vtkfile.putPoint(x,y,z);
   }
- 
+
   // Write out elements
   for(unsigned i=0; i<elen; i++){
     unsigned char flag = element_list[i].get_flags();

@@ -16,4 +16,3 @@ clean:
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly *.bound
 	rm -f matrixdump* *.log* *.err*
-

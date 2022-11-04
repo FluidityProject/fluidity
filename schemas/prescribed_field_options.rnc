@@ -18,7 +18,7 @@ prescribed_scalar_field_no_adapt =
       prescribed_detector_options,
       prescribed_particle_options
    )
-   
+
 prescribed_values_scalar_field =
    (
       (
@@ -51,7 +51,7 @@ prescribed_vector_field =
       discrete_properties_algorithm_vector?,
       recalculation_options?
    )
-   
+
 # Default child of prescribed vector field without adaptivity options
 # This is a choice of ways of inputing the prescribed field
 prescribed_vector_field_no_adapt =
@@ -114,7 +114,7 @@ prescribed_tensor_field =
       prescribed_particle_options,
       adaptivity_options_tensor_field
    )
-   
+
 # Default child of prescribed tensor field
 # This is a choice of ways of inputing the prescribed tensor field
 # If the field is constant then a symmetric, or asymmetric tensor may be entered

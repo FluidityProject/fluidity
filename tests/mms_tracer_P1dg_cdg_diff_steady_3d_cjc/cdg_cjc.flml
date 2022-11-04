@@ -213,11 +213,11 @@ sage: T_z = diff(T,z)
 sage: T_xx = diff(T_x,x)
 sage: T_yy = diff(T_y,y)
 sage: T_zz = diff(T_z,z)
-sage: 
+sage:
 sage: u(x,y,z,t) = sin(5*(x^2+y^2+z^2))
 sage: v(x,y,z,t) = cos(3*(x^2-y^2+z^2))
 sage: w(x,y,z,t) = sin(3*(-x^2-y^2+z^2))
-sage: 
+sage:
 sage: u_x = diff(u,x)
 sage: u_y = diff(u,y)
 sage: u_z = diff(u,z)
@@ -227,10 +227,10 @@ sage: v_z = diff(v,z)
 sage: w_x = diff(w,x)
 sage: w_y = diff(w,y)
 sage: w_z = diff(w,z)
-sage: 
+sage:
 sage: S = T_t + adv*(u*T_x + v*T_y + w*T_z + beta*(T*(u_x + v_y + w_z))) - nu*(T_xx + T_yy + T_zz)
-sage: 
-sage: 
+sage:
+sage:
 sage: S
 (x, y, z, t, nu, adv, beta, omega) |--&gt; -(2*(2*(y + z)/sqrt(x*z + 1.00000000000000) - sin(25*x*y*z + omega*t))*(5*x*cos(5*x^2 + 5*y^2 + 5*z^2) + 3*y*sin(3*x^2 - 3*y^2 + 3*z^2) + 3*z*cos(-3*x^2 - 3*y^2 + 3*z^2))*beta - (25*y*z*cos(25*x*y*z + omega*t) + (y + z)*z/(x*z + 1.00000000000000)^(3/2))*sin(5*x^2 + 5*y^2 + 5*z^2) - (25*x*z*cos(25*x*y*z + omega*t) - 2/sqrt(x*z + 1.00000000000000))*cos(3*x^2 - 3*y^2 + 3*z^2) - (25*x*y*cos(25*x*y*z + omega*t) + (y + z)*x/(x*z + 1.00000000000000)^(3/2) - 2/sqrt(x*z + 1.00000000000000))*sin(-3*x^2 - 3*y^2 + 3*z^2))*adv + 1/2*(1250*x^2*y^2*sin(25*x*y*z + omega*t) + 1250*x^2*z^2*sin(25*x*y*z + omega*t) + 1250*y^2*z^2*sin(25*x*y*z + omega*t) + 3*(y + z)*x^2/(x*z + 1.00000000000000)^(5/2) + 3*(y + z)*z^2/(x*z + 1.00000000000000)^(5/2) - 4*x/(x*z + 1.00000000000000)^(3/2))*nu + omega*cos(25*x*y*z + omega*t)</comment>
               </python>

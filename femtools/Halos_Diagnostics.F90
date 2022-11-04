@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -54,14 +54,14 @@ contains
     type(mesh_type) :: lmesh
     type(element_type) :: shape
     integer :: node, ele
-    
+
     assert(has_global_to_universal_numbering(halo))
 
     if (halo%data_type==HALO_TYPE_ELEMENT) then
        shape=make_element_shape(mesh%shape, degree=0)
        lmesh=make_mesh(position%mesh, shape=shape, continuity=-1)
        call allocate(field, lmesh, name="UniversalNumber")
-       
+
        ! Drop excess mesh and shape references
        call deallocate(lmesh)
        call deallocate(shape)
@@ -72,7 +72,7 @@ contains
        end do
 
     else
-       
+
        lmesh=mesh
        call allocate(field, mesh, name="UniversalNumber")
 
@@ -87,7 +87,7 @@ contains
          & sfields=(/field/))
 
     call deallocate(field)
-    
+
   end subroutine write_universal_numbering
-  
+
 end module halos_diagnostics

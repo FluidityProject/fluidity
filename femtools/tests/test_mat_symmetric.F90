@@ -2,7 +2,7 @@ subroutine test_mat_symmetric
 
   use unittest_tools
   implicit none
-  
+
   real, dimension(3, 3) :: mat
   logical :: fail, warn
 

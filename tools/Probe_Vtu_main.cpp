@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ extern "C" {
 #include <string>
 #include <iostream>
 
-using namespace std; 
+using namespace std;
 
 void project_vtu_usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] VTU FIELDNAME X Y Z\n"
@@ -70,13 +70,13 @@ int main(int argc, char **argv){
         abort();
   }
 #endif
-  
+
   // Initialise PETSc (this also parses PETSc command line arguments)
   PetscInit(argc, argv);
- 
+
   // Get any command line arguments
   // reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "hv")) != -1){
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
     project_vtu_usage(argv[0]);
     exit(-1);
   }
-  
+
   if (optind >= argc - 2 or optind < argc - 5){
     cerr << "Need between three and five non-option arguments" << endl;
     project_vtu_usage(argv[0]);
@@ -116,26 +116,26 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string vtu_filename = argv[optind];
-  size_t vtu_filename_len = vtu_filename.size();  
-  
+  size_t vtu_filename_len = vtu_filename.size();
+
   string fieldname = argv[optind + 1];
   size_t fieldname_len = fieldname.size();
-  
+
   size_t dim = 1;
   double x, y = 0.0, z = 0.0;
-  
-  x = atof(argv[optind + 2]);  
+
+  x = atof(argv[optind + 2]);
   if(optind < argc - 3){
     y = atof(argv[optind + 3]);
     dim++;
-  }  
+  }
   if(optind < argc - 4){
     z = atof(argv[optind + 4]);
     dim++;
   }
-  
+
   probe_vtu(vtu_filename.c_str(), vtu_filename_len, fieldname.c_str(), fieldname_len, x, y, z, dim);
-    
+
 #ifdef HAVE_PETSC
   PetscFinalize();
 #endif

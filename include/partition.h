@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -39,7 +39,7 @@ namespace Fluidity{
 
   int partition(const std::vector<int> &ENList, const int& dim, int nloc, int nnodes,
                 std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
-                
+
   int partition(const std::vector<int> &ENList, int nloc, int nnodes,
                 std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
 
@@ -49,5 +49,5 @@ namespace Fluidity{
   int partition(const std::vector<int> &ENList, const std::vector<int> &surface_nids, int nloc, int nnodes,
                 std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
 }
-              
+
 #endif

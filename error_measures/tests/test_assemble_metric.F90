@@ -16,7 +16,7 @@ subroutine test_assemble_metric
   type(metric_options) :: opts
   logical :: fail = .false., warn = .false.
   integer :: i, j
-  real :: x, y, z 
+  real :: x, y, z
   real :: max_eigenbound, min_eigenbound
   real, dimension(3) :: evalues
   real, dimension(3,3) :: evectors

@@ -78,7 +78,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 
 .c.o:
 	@echo "        CC $<"
@@ -109,4 +109,3 @@ Mba3d_Integration.o ../include/mba3d_integration.mod: \
 endif
 
 include Makefile.dependencies
-

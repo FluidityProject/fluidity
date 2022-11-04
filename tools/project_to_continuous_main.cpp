@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -48,7 +48,7 @@ extern "C" {
 #include <string>
 #include <iostream>
 #include "c++debug.h"
-using namespace std; 
+using namespace std;
 
 void usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] vtufile meshname.\n"
@@ -71,10 +71,10 @@ int main(int argc, char **argv){
         abort();
   }
 #endif
- 
+
   // Get any command line arguments
   // reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   int no_option_args=0;
   map<char, string> flArgs;
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
     usage(argv[0]);
     exit(-1);
   }
-  
+
   if (argc-no_option_args != 3){
     cerr << "Need exactly two non-option arguments" << endl;
     usage(argv[0]);
@@ -124,7 +124,7 @@ int main(int argc, char **argv){
   size_t meshlen = meshfile.size();
 
   project_to_continuous(vtufile.c_str(),vtulen,meshfile.c_str(),meshlen);
-  
+
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif

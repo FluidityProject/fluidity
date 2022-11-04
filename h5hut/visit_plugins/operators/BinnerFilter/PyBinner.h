@@ -18,4 +18,3 @@ std::string     PyBinner_GetLogString();
 std::string     PyBinner_ToString(const Binner *, const char *);
 
 #endif
-

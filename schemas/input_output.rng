@@ -101,8 +101,8 @@ not necessarily correspond to the data in a given file.</a:documentation>
           <element name="surface_height">
             <a:documentation>If you are reading data from a file whose top layer height
 is not equal to zero, set the height of that top layer here.
-Note however that the height of the top layer in the the 
-extruded mesh will still be equal to zero (if planar) or 
+Note however that the height of the top layer in the the
+extruded mesh will still be equal to zero (if planar) or
 the radius of the shell mesh (if spherical), the given domain
 will in effect have been shifted down.</a:documentation>
             <ref name="real"/>
@@ -229,8 +229,8 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <element name="from_file">
         <a:documentation>Initialise the field from an existing file (indended
 primarily for use in checkpointing). The file mesh must match
-the mesh of this field  (except for piecewise constant fields 
-which will be remapped back from the discontinuous nodal values). 
+the mesh of this field  (except for piecewise constant fields
+which will be remapped back from the discontinuous nodal values).
 In parallel the process number is
 appended to the filename, e.g. if the file_name attribute is
 set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
@@ -261,7 +261,7 @@ be set to use this option.</a:documentation>
         <a:documentation>Initialize a single field from data contained within a NetCDF file.
 Data should be in the form x, y, z(y,x) where x and y are the coordinates
 (either cartesian or longitude-latitude) and z is the value of the initial
-condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
+condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats).
 Note: This option currently only supports 'single layer' data sets.
 
 Current format options are: raw
@@ -296,8 +296,8 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <element name="from_file">
         <a:documentation>Initialise the field from an existing file (indended
 primarily for use in checkpointing). The file mesh must match
-the mesh of this field  (except for piecewise constant fields 
-which will be remapped back from the discontinuous nodal values). 
+the mesh of this field  (except for piecewise constant fields
+which will be remapped back from the discontinuous nodal values).
 In parallel the process number is
 appended to the filename, e.g. if the file_name attribute is
 set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
@@ -336,7 +336,7 @@ be set to use this option.</a:documentation>
         <a:documentation>Initialize a single field from data contained within a NetCDF file.
 Data should be in the form x, y, z(y,x) where x and y are the coordinates
 (either cartesian or longitude-latitude) and z is the value of the initial
-condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
+condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats).
 Note: This option currently only supports 'single layer' data sets.
 
 Current format options are: raw
@@ -488,7 +488,7 @@ be set to use this option.</a:documentation>
       <element name="python">
         <a:documentation>Python command prescribing symmetric tensor input.
 
-Note that it is for the python function to determine 
+Note that it is for the python function to determine
 that the results it produces are, in fact, symmetric.
 
 An example that returns the three-dimensional identity:
@@ -597,7 +597,7 @@ Currently only works with triangle files created by gmsh2triangle.</a:documentat
       <ref name="input_choice_real_plus_field"/>
       <element name="synthetic_eddy_method">
         <element name="number_of_eddies">
-          <a:documentation>use a large number to ensure Gaussian 
+          <a:documentation>use a large number to ensure Gaussian
 behaviour of the fluctuating component</a:documentation>
           <ref name="integer"/>
         </element>
@@ -615,14 +615,14 @@ for ABL simulations use a log profile</a:documentation>
           <a:documentation>Reynolds stresses profile
 
 usually a function of height,
-assumes that the remaining stresses are negligible </a:documentation>
+assumes that the remaining stresses are negligible</a:documentation>
           <ref name="input_choice_real"/>
         </element>
       </element>
       <element name="foam_flow">
         <optional>
           <element name="factor">
-            <a:documentation>use the normal component of the remapped foam velocity </a:documentation>
+            <a:documentation>use the normal component of the remapped foam velocity</a:documentation>
             <ref name="integer"/>
           </element>
         </optional>

@@ -1,6 +1,6 @@
 subroutine test_differentiate_field_discontinuous
   ! unit test to test differentiate_field_discontinuous in field_derivatives
-  ! computes linear discontuous gradient of pressure field from 
+  ! computes linear discontuous gradient of pressure field from
   ! quadratic polynomial, so should give the exact answer
   use elements
   use quadrature
@@ -35,7 +35,7 @@ subroutine test_differentiate_field_discontinuous
   qmesh=make_mesh(mesh, qshape, name="QuadraticMesh")
   ! linear discontinuous mesh
   dgmesh=make_mesh(mesh, continuity=-1, name="LinearDGMesh")
-  
+
   call allocate(pressure_field, qmesh, "Pressure")
   call allocate(qposition_field, 3, qmesh, "QuadraticCoordinate")
   call remap_field(position_field, qposition_field)
@@ -59,7 +59,7 @@ subroutine test_differentiate_field_discontinuous
   failx=.false.
   faily=.false.
   failz=.false.
-  
+
   do ele=1, ele_count(dgmesh)
     cgnodes => ele_nodes(mesh, ele)
     dgnodes => ele_nodes(dgmesh, ele)
@@ -76,13 +76,13 @@ subroutine test_differentiate_field_discontinuous
       if (.not. fequals(derz, 18*x+27*y+36*z+66, tol = 1.0e-10)) failz=.true.
     end do
   end do
-      
+
   warn=.false.
-  
+
   call report_test("[linear discontinous exact x derivative]", failx, warn, "X derivative is wrong")
 
   call report_test("[linear discontinous exact y derivative]", faily, warn, "Y derivative is wrong")
 
   call report_test("[linear discontinous exact z derivative]", failz, warn, "Z derivative is wrong")
-  
+
 end subroutine test_differentiate_field_discontinuous

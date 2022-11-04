@@ -1,4 +1,4 @@
-FROM fluidity/baseimages:impish
+FROM fluidity/baseimages:jammy
 
 USER root
 

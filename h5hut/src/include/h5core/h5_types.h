@@ -17,7 +17,7 @@
 
 #ifndef H5_HAVE_PARALLEL
 /*
-  If someone want's to use serial H5hut with MPI, he must include 
+  If someone want's to use serial H5hut with MPI, he must include
   the header file "mpi.h" before including H5hut's header file. According
   to the MPI standard the macro MPI_VERSION must be defined after reading
   "mpi.h".

@@ -57,7 +57,7 @@ PressureNode &PressureNode::operator=( const PressureNode &n ){
   flags    = n.flags;
   owner    = n.owner;
   pressure = n.pressure;
-  
+
   return( *this );
 }
 
@@ -65,7 +65,7 @@ PressureNode &PressureNode::operator=( const PressureNode &n ){
 bool PressureNode::operator==(const PressureNode& node) const{
   if(unn != node.unn)
     return false;
-  
+
   return(true);
 }
 
@@ -78,51 +78,51 @@ bool PressureNode::operator<(const PressureNode& node) const{
 }
 
 // UNN stuff
-void PressureNode::set_unn(const unn_t in){ 
-  unn = in; 
+void PressureNode::set_unn(const unn_t in){
+  unn = in;
 }
 unn_t PressureNode::get_unn() const{
-  return unn; 
+  return unn;
 }
 
 // GNN stuff
-void PressureNode::set_gnn(const unn_t in){ 
-  gnn = in; 
+void PressureNode::set_gnn(const unn_t in){
+  gnn = in;
 }
-unn_t PressureNode::get_gnn() const{ 
-  return gnn; 
+unn_t PressureNode::get_gnn() const{
+  return gnn;
 }
 
 // Flags??
-void PressureNode::set_flags(const unsigned char in){ 
-  flags = in; 
+void PressureNode::set_flags(const unsigned char in){
+  flags = in;
 }
-unsigned char PressureNode::get_flags() const{ 
-  return flags; 
+unsigned char PressureNode::get_flags() const{
+  return flags;
 }
 
 // Owner stuff.
-void PressureNode::set_owner(const unsigned in){ 
-  owner = in; 
+void PressureNode::set_owner(const unsigned in){
+  owner = in;
 }
-unsigned PressureNode::get_owner() const{ 
-  return owner; 
+unsigned PressureNode::get_owner() const{
+  return owner;
 }
 
 // Pressure value
-void PressureNode::set_pressure(const samfloat_t p){ 
-  pressure.clear(); 
-  pressure.push_back(p); 
+void PressureNode::set_pressure(const samfloat_t p){
+  pressure.clear();
+  pressure.push_back(p);
 }
-void PressureNode::set_pressure(const vector<samfloat_t> p){ 
-  pressure = p; 
+void PressureNode::set_pressure(const vector<samfloat_t> p){
+  pressure = p;
 }
-samfloat_t PressureNode::get_pressure(const int i) const{ 
+samfloat_t PressureNode::get_pressure(const int i) const{
   assert( i < (int)pressure.size() );
-  return pressure[i]; 
+  return pressure[i];
 }
-vector<samfloat_t> PressureNode::get_pressure() const{ 
-  return pressure; 
+vector<samfloat_t> PressureNode::get_pressure() const{
+  return pressure;
 }
 
 void PressureNode::pack(char *buffer, int& bsize, int& offset) const{
@@ -130,7 +130,7 @@ void PressureNode::pack(char *buffer, int& bsize, int& offset) const{
   MPI_Pack(&gnn,           1, GNN_T, buffer, bsize, &offset, MPI_COMM_WORLD);
   MPI_Pack(&flags, 1, MPI_UNSIGNED_CHAR, buffer, bsize, &offset, MPI_COMM_WORLD);
   MPI_Pack(&owner,     1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
-  
+
   unsigned nDofF = pressure.size();
   MPI_Pack(&nDofF, 1, MPI_UNSIGNED, buffer, bsize, &offset, MPI_COMM_WORLD);
   if( nDofF>0 )
@@ -144,26 +144,26 @@ void PressureNode::unpack(char *buffer, int& bsize, int& offset){
   MPI_Unpack(buffer, bsize, &offset, &gnn,  1, GNN_T, MPI_COMM_WORLD);
   MPI_Unpack(buffer, bsize, &offset, &flags,1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD);
   MPI_Unpack(buffer, bsize, &offset, &owner,1, MPI_UNSIGNED, MPI_COMM_WORLD);
-  
+
   unsigned nDofF;
   MPI_Unpack(buffer, bsize, &offset, &nDofF,1, MPI_UNSIGNED, MPI_COMM_WORLD);
   pressure.resize( nDofF );
   if( nDofF>0 )
     MPI_Unpack(buffer, bsize, &offset, &(pressure[0]), nDofF, SAMFLOAT, MPI_COMM_WORLD);
-  
+
   return;
 }
 
 unsigned PressureNode::pack_size() const{
   int total=0,s1,s2,s3,s4;
-  
+
   MPI_Pack_size(1, UNN_T, MPI_COMM_WORLD, &s1);
   MPI_Pack_size(1, GNN_T, MPI_COMM_WORLD, &s2);
   MPI_Pack_size(1, MPI_UNSIGNED_CHAR, MPI_COMM_WORLD, &s3);
   MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s4);
   total = s1 + s2 + s3 + s4;
   {
-    unsigned nfields = pressure.size();      
+    unsigned nfields = pressure.size();
     total += MPI_Pack_size(1, MPI_UNSIGNED, MPI_COMM_WORLD, &s1);
     total += MPI_Pack_size(nfields, SAMFLOAT, MPI_COMM_WORLD, &s2);
     total += (s1 + s2);
@@ -182,6 +182,6 @@ ostream& operator<<(ostream& s, const PressureNode& n){
   for(vector<samfloat_t>::const_iterator it=n.pressure.begin(); it != n.pressure.end(); ++it)
     s << *it << " ";
   s << endl;
-   
+
   return(s);
 }

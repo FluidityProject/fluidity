@@ -8,7 +8,7 @@
     ../../bin/fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;
     mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l lock_exchange_2d_parallel lock_exchange_2d_parallel_flredecomp &amp;&amp;
     mpiexec ../../bin/fluidity -v3 -l lock_exchange_2d_parallel_flredecomp.flml
-    </command_line> 
+    </command_line>
   </problem_definition>
   <variables>
     <variable name="times" language="python">
@@ -316,7 +316,7 @@ errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
 </test>
     <test name="check difference between parallel and serial at end of run" language="python">
     for err in errors[1][1][:6]: print(err); assert err &lt; 1.E-6
-</test>  
+</test>
     <test name="check error to PE/BPE in serial at first time step" language="python">
     for err in errors[2][0]: print(err); assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
 </test>

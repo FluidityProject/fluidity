@@ -47,7 +47,7 @@ H5GetNumAttachments (
   \return   \c H5_FAILURE on error
 */
 static inline h5_err_t
-H5GetAttachmentInfoByIdx (      	
+H5GetAttachmentInfoByIdx (
 	const h5_file_t f,              ///< [in]  file handle.
 	const h5_size_t idx,		///< [in]  index of attachment to be queried.
 	char* const fname,		///< [out] original file name.
@@ -146,7 +146,7 @@ H5DeleteAttachment (
 /**
    @}
 */
-	
+
 #ifdef __cplusplus
 }
 #endif

@@ -118,7 +118,7 @@ h5bl_3d_getview (
 h5_int64_t
 h5bl_3d_getreducedview (
 	const h5_int64_t* const fh,
-	h5_int64_t* const i_start, 
+	h5_int64_t* const i_start,
 	h5_int64_t* const i_end,
 	h5_int64_t* const j_start,
 	h5_int64_t* const j_end,

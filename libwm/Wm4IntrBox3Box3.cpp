@@ -307,7 +307,7 @@ bool IntrBox3Box3<Real>::Test (Real fTMax,
         afAW[i] = akA[i].Dot(kW);
         fMin0 = -afEA[i];
         fMax0 = +afEA[i];
-        fRadius = afEB[0]*aafAbsC[i][0] + afEB[1]*aafAbsC[i][1] + 
+        fRadius = afEB[0]*aafAbsC[i][0] + afEB[1]*aafAbsC[i][1] +
             afEB[2]*aafAbsC[i][2];
         fMin1 = afAD[i] - fRadius;
         fMax1 = afAD[i] + fRadius;

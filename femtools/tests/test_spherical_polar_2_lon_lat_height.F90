@@ -1,5 +1,5 @@
 !    Copyright (C) 2012 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -64,7 +64,7 @@ subroutine test_spherical_polar_2_lon_lat_height
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: Spherical-polar to lon-lat-height.]", &
                    fail, .false., "Position vector components not transformed correctly.")
-  
+
   call deallocate(difference)
 
 end subroutine

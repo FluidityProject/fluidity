@@ -18,13 +18,13 @@ clean:
 	rm -f $(SIM)*.bound
 	rm -f $(SIM)*.edge
 	rm -f $(SIM)*.face
-	rm -f $(SIM)*.vtu 
-	rm -f $(SIM)*.pvtu 
-	rm -f $(SIM)*.s 
-	rm -f $(SIM)*.d.* 
-	rm -f $(SIM)*.stat 
-	rm -f $(SIM)*.log-0 
-	rm -f $(SIM)*.err-0 
+	rm -f $(SIM)*.vtu
+	rm -f $(SIM)*.pvtu
+	rm -f $(SIM)*.s
+	rm -f $(SIM)*.d.*
+	rm -f $(SIM)*.stat
+	rm -f $(SIM)*.log-0
+	rm -f $(SIM)*.err-0
 	rm -f $(SIM)*.msh
 	rm -f $(SIM)*.halo
 	rm -f fluidity.err*

@@ -21,9 +21,8 @@ postprocess: envcheck
 	cd ..
 
 input: clean
-	$(MAKE) preprocess 
+	$(MAKE) preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
 	rm -rf simulation *.pdf *flredecomp*
-

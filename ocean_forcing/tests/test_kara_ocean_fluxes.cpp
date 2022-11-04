@@ -9,15 +9,15 @@ using namespace std;
 
 
 extern "C" {
-#define test_kara_ocean_fluxes_fc F77_FUNC(test_kara_ocean_fluxes, TEST_KARA_OCEAN_FLUXES)  
+#define test_kara_ocean_fluxes_fc F77_FUNC(test_kara_ocean_fluxes, TEST_KARA_OCEAN_FLUXES)
     void test_kara_ocean_fluxes_fc();
 }
 
 extern void report_test(const string& title, const bool& fail, const bool& warn, const string& msg);
 
 void test_kara_ocean_fluxes_fc() {
-  
-   
+
+
 #ifdef HAVE_LIBUDUNITS
     FluxesReader FluxesReader_ERAdata;
     bool fail = true;
@@ -38,9 +38,9 @@ void test_kara_ocean_fluxes_fc() {
     FluxesReader_global.AddFieldOfInterest("strd"); //  3   | Surface thermal radiation downwards
     FluxesReader_global.AddFieldOfInterest("ro");   //  4   | Runoff
     FluxesReader_global.AddFieldOfInterest("tp");   //  5   | Total precipitation
-    FluxesReader_global.AddFieldOfInterest("d2");   //  6   | Dewpoint temp at 2m 
-    FluxesReader_global.AddFieldOfInterest("t2");   //  7   | Air temp at 2m 
-    FluxesReader_global.AddFieldOfInterest("msl");  //  8   | Mean sea level pressure 
+    FluxesReader_global.AddFieldOfInterest("d2");   //  6   | Dewpoint temp at 2m
+    FluxesReader_global.AddFieldOfInterest("t2");   //  7   | Air temp at 2m
+    FluxesReader_global.AddFieldOfInterest("msl");  //  8   | Mean sea level pressure
     FluxesReader_global.SetSimulationTimeUnits("seconds since 1970-01-02 00:00:0.0");
     FluxesReader_global.SetTimeSeconds(time);
 
@@ -53,9 +53,9 @@ void test_kara_ocean_fluxes_fc() {
     FluxesReader_ERAdata.AddFieldOfInterest("slhf"); // 1 | surface latent heat flux
     FluxesReader_ERAdata.AddFieldOfInterest("ssr");  // 2 | surface solar radiation
     FluxesReader_ERAdata.AddFieldOfInterest("str");  // 3 | surface thermal radiation
-    FluxesReader_ERAdata.AddFieldOfInterest("ewss"); // 4 | east-west surface stress 
-    FluxesReader_ERAdata.AddFieldOfInterest("nsss"); // 5 | north-south surface stress 
-    FluxesReader_ERAdata.AddFieldOfInterest("e");    // 6 | evaporation    
+    FluxesReader_ERAdata.AddFieldOfInterest("ewss"); // 4 | east-west surface stress
+    FluxesReader_ERAdata.AddFieldOfInterest("nsss"); // 5 | north-south surface stress
+    FluxesReader_ERAdata.AddFieldOfInterest("e");    // 6 | evaporation
 
     int const nFields_in=9, nFields_out=7;
     double values_in[nFields_in];
@@ -75,7 +75,7 @@ void test_kara_ocean_fluxes_fc() {
     cartesian_2_lon_lat_height_c(&X[0], &Y[0], &Z[0],
                                  &longitude, &latitude, &height,
                                  &surface_radius);
-   
+
     FluxesReader_ERAdata.GetScalars(longitude, latitude, values_out);
     FluxesReader_global.GetScalars(longitude, latitude, values_in);
     double temp =  (values_in[3] - values_out[3]);
@@ -100,14 +100,14 @@ void test_kara_ocean_fluxes_fc() {
     ofstream test;
     test.open("test_data_kara.csv");
     test.clear();
-    test <<"Time,ERA40_Q,Flux_Q,ERA40_Tau_X,Flux_Tau_X,ERA40_Tau_Y,Flux_Tau_Y,ERA40_F,Flux_F" << endl; 
+    test <<"Time,ERA40_Q,Flux_Q,ERA40_Tau_X,Flux_Tau_X,ERA40_Tau_Y,Flux_Tau_Y,ERA40_F,Flux_F" << endl;
 #endif
-   
+
     formula = 2;
 
     // Do the fluxes for a month, then compare
     for (int t = 86400 ; t < 2592000; t += 21600) {
-    
+
         FluxesReader_ERAdata.SetTimeSeconds(t);
         FluxesReader_ERAdata.GetScalars(longitude, latitude, values_out);
         FluxesReader_global.SetTimeSeconds(t);
@@ -145,7 +145,7 @@ void test_kara_ocean_fluxes_fc() {
         sumQ_era402 += Q_out*Q_out;
         sumF_era402 += F_out*F_out;
         sumTauX_era402 += Tau_u_out*Tau_u_out;
-        sumTauY_era402 += Tau_v_out*Tau_v_out;        
+        sumTauY_era402 += Tau_v_out*Tau_v_out;
         sumQ += Q_as[0];
         sumF += F_as[0];
         sumTauX += tau_u[0];
@@ -155,9 +155,9 @@ void test_kara_ocean_fluxes_fc() {
         sumTauX_era40 += Tau_u_out;
         sumTauY_era40 += Tau_v_out;
 
-/*********************************************        
+/*********************************************
         // This table is useful when debugging
-  
+
         cout<<values_out[0]/accumulated_correction<<","<<q_h[0]<<endl;
         cout <<"Flux                 |    ERA40 value     |  Our value   "<<endl;
         cout <<"---------------------+--------------------+---------------"<<endl;
@@ -173,7 +173,7 @@ void test_kara_ocean_fluxes_fc() {
 
 // Want to print graphics? Then compile with -DGRAPHIC
 #ifdef GRAPHIC
-    test <<double(t/(24.*60.*60.))<< "," << Q_out << "," << Q_as[0]<< "," << Tau_u_out << "," <<tau_u[0]<<","<<Tau_v_out<<","<<tau_v[0]<<","<<F_out<<","<<F_as[0] << endl; 
+    test <<double(t/(24.*60.*60.))<< "," << Q_out << "," << Q_as[0]<< "," << Tau_u_out << "," <<tau_u[0]<<","<<Tau_v_out<<","<<tau_v[0]<<","<<F_out<<","<<F_as[0] << endl;
 #endif
 
 
@@ -211,7 +211,7 @@ void test_kara_ocean_fluxes_fc() {
     fail = true;
     warn = false;
     if (rms_q < 1e-4) fail = false;
-    sprintf(errorMessage, "RMS error > 1e-4 and is %g",rms_q); 
+    sprintf(errorMessage, "RMS error > 1e-4 and is %g",rms_q);
     report_test("[test_kara_ocean_forcing: heat flux error to ERA40]",fail,warn,errorMessage);
 
     fail = true;
@@ -230,22 +230,22 @@ void test_kara_ocean_fluxes_fc() {
     report_test("[test_kara_ocean_forcing: tau y momentum error to ERA40]",fail,warn,errorMessage);
     // check we have the right direction of forcing
     if (r_q > .9) fail = false;
-    sprintf(errorMessage, "Correlation coefficient < .9: Is %g",r_q); 
+    sprintf(errorMessage, "Correlation coefficient < .9: Is %g",r_q);
     report_test("[test_kara_ocean_forcing: heat flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_f > .9) fail = false;
-    sprintf(errorMessage, "Correlation coefficient < .9: Is %g",r_f); 
+    sprintf(errorMessage, "Correlation coefficient < .9: Is %g",r_f);
     report_test("[test_kara_ocean_forcing: freshwater flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_tauX > .88) fail = false;
-    sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauX); 
+    sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauX);
     report_test("[test_kara_ocean_forcing: momentum (X) flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_tauY > .88) fail = false;
-    sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauY); 
+    sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauY);
     report_test("[test_kara_ocean_forcing: momentum (Y) flux correlation]",fail,warn,errorMessage);
 
 #endif

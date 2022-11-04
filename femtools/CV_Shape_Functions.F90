@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -32,7 +32,7 @@ module cv_shape_functions
   use shape_functions
   use cv_faces, only: cv_faces_type
   implicit none
-  
+
   private
   public :: make_cv_element_shape, make_cvbdy_element_shape
 
@@ -120,7 +120,7 @@ contains
         ! Get the local numbering of our element
         ele_num=>find_element_numbering(loc, &
                   dim, parentshape%degree, type=parentshape%numbering%type)
-  
+
         if (.not.associated(ele_num)) then
           if (present(stat)) then
               stat=1
@@ -252,7 +252,7 @@ contains
         ! Get the local numbering of our element
         ele_num=>find_element_numbering(loc, &
                   dim, parentshape%degree, type=parentshape%numbering%type)
-  
+
         if (.not.associated(ele_num)) then
           if (present(stat)) then
               stat=1

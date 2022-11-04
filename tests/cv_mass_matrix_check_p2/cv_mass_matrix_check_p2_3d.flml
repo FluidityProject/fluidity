@@ -181,7 +181,7 @@
 sum_cvmass = sum(cvmass.val)
 
 for ele in range(field.element_count):
-   
+
    field.set(ele, sum_cvmass)</string_value>
         </algorithm>
         <mesh name="DGP0"/>
@@ -209,7 +209,7 @@ for ele in range(field.element_count):
 sum_felmass = sum(felmass.val)
 
 for ele in range(field.element_count):
-   
+
    field.set(ele, sum_felmass)</string_value>
         </algorithm>
         <mesh name="DGP0"/>

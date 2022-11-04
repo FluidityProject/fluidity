@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -39,9 +39,9 @@ module mesh_diagnostics
   use diagnostic_source_fields
 
   implicit none
-  
+
   private
-  
+
   public :: calculate_column_ids, calculate_universal_column_ids
   public :: calculate_mesh_quality, calculate_region_ids
 
@@ -50,7 +50,7 @@ contains
   subroutine calculate_column_ids(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
-    
+
     ewrite(1, *) "In calculate_column_ids"
 
     if(.not.associated(s_field%mesh%columns)) then
@@ -60,11 +60,11 @@ contains
         FLExit("Requested column_id output on non-extruded mesh.")
       end if
     end if
-    
+
     call set_all(s_field, float(s_field%mesh%columns))
-    
+
     ewrite(1, *) "Exiting calculate_column_ids"
-  
+
   end subroutine calculate_column_ids
 
   subroutine calculate_universal_column_ids(state, s_field)
@@ -74,7 +74,7 @@ contains
     type(mesh_type), pointer :: from_mesh
     character(len=FIELD_NAME_LEN) :: from_mesh_name
     integer :: nhalos
-    
+
     ewrite(1, *) "In calculate_universal_column_ids"
 
     if(.not.associated(s_field%mesh%columns)) then
@@ -93,9 +93,9 @@ contains
     else
       call set_all(s_field, float(s_field%mesh%columns))
     end if
-    
+
     ewrite(1, *) "Exiting calculate_universal_column_ids"
-  
+
   end subroutine calculate_universal_column_ids
 
   subroutine calculate_mesh_quality(state, s_field)

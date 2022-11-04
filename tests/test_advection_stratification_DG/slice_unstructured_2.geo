@@ -10,4 +10,3 @@ Physical Line(9) = {4};
 Physical Line(10) = {3};
 Physical Line(11) = {1};
 Physical Surface(7) = {5};
-

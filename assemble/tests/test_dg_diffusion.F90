@@ -14,13 +14,13 @@ subroutine test_dg_diffusion
   type(csr_matrix) :: big_m, mass
   type(csr_sparsity) :: sparsity
   type(scalar_field) :: rhs, tracer
-  
+
   call load_options("test_dg_diffusion_1d.flml")
   call populate_state(states)
   call allocate_and_insert_auxilliary_fields(states)
 
   tracer = extract_scalar_field(states(1), "Tracer")
-  
+
   call allocate(rhs, tracer%mesh, "RHS")
 
   sparsity = make_sparsity_transpose(tracer%mesh, tracer%mesh, "Sparsity")

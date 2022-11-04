@@ -36,7 +36,7 @@
 #define ECHO(X)    std::cerr <<"("<<__FILE__<<","<<__LINE__<<"): "<<X<<std::endl
 #define CHECK(X)   std::cerr <<"("<<__FILE__<<","<<__LINE__<<"): "<<#X<<" = "<<X<<std::endl
 #define WARNING(X) std::cerr <<"("<<__FILE__<<","<<__LINE__<<"): WARNING - "<<X<<std::endl
-#else 
+#else
 #define ECHO(X)
 #define CHECK(X)
 #define WARNING(X)

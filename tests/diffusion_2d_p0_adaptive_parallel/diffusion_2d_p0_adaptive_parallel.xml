@@ -108,11 +108,11 @@ import numpy
 assert(numpy.all(abs(tracer_integral[1:] - tracer_integral[0]) &lt; 1e-8))
     </test>
     <test name="tracer error is initially less than 0.01" language="python">
-assert tracer_error[0] &lt; 0.01 
+assert tracer_error[0] &lt; 0.01
     </test>
     <test name="tracer error less than 0.01" language="python">
 import numpy
-assert(numpy.all(abs(tracer_error[1:]-tracer_error[0]) &lt; 1.e-9)) 
+assert(numpy.all(abs(tracer_error[1:]-tracer_error[0]) &lt; 1.e-9))
     </test>
     <test name="regionids integral is initially 39.0" language="python">
 assert abs(regionids_integral[0] - 39.0) &lt; 1e-9
@@ -146,7 +146,7 @@ assert(numpy.array([detectors["Water"]["RegionIDs"][d][0]&gt;17
 import numpy
 for d in detectors["Water"]["RegionIDs"].keys():
   print d, detectors["Water"]["RegionIDs"][d][0]
-assert(numpy.array([numpy.all(abs(detectors["Water"]["RegionIDs"][d][1:]-detectors["Water"]["RegionIDs"][d][0])&lt;1.e-9) 
+assert(numpy.array([numpy.all(abs(detectors["Water"]["RegionIDs"][d][1:]-detectors["Water"]["RegionIDs"][d][0])&lt;1.e-9)
                               for d in detectors["Water"]["RegionIDs"].keys()], dtype=bool).all())
     </test>-->
   </pass_tests>

@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -93,7 +93,7 @@ namespace Fluidity
   const unsigned long indexCapacity = 10;
   // Node leaf capacity in the rtree
   const unsigned long leafCapacity = 10;
-  
+
   // Customised version of PyListVisitor class in
   // wrapper.cc in Rtree 0.4.1
   class ElementListVisitor : public SpatialIndex::IVisitor, public std::vector< int >
@@ -103,17 +103,17 @@ namespace Fluidity
       {
         return;
       }
-      
+
       inline virtual ~ElementListVisitor()
       {
         return;
       }
-      
+
       inline virtual void visitNode(const SpatialIndex::INode& node)
       {
         return;
       }
-      
+
       inline virtual void visitData(const SpatialIndex::IData& data)
       {
         push_back(data.getIdentifier());
@@ -161,7 +161,7 @@ namespace Fluidity
     protected:
       void Initialise();
       void Free();
-    
+
       int dim, loc;
       SpatialIndex::IStorageManager* storageManager;
       SpatialIndex::StorageManager::IBuffer* storage;
@@ -175,46 +175,46 @@ namespace Fluidity
   {
     public:
       virtual ~ElementIntersector();
-      
+
       virtual unsigned int GetDim() const = 0;
       virtual unsigned int GetExactness() const;
-      
+
       virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc);
       virtual void Intersect() = 0;
-      virtual void QueryOutput(int& nnodes, int& nelms) const = 0; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const = 0;
       virtual void GetOutput(double*& positions, int*& enlist) const = 0;
     protected:
       ElementIntersector();
-      
+
       double* positionsA;
       double* positionsB;
       int loc;
       int dim;
       int exactness;
   };
-  
+
   class ElementIntersector1D : public ElementIntersector
   {
     public:
       ElementIntersector1D();
       virtual ~ElementIntersector1D();
-      
+
       inline virtual unsigned int GetDim() const
       {
         return 1;
       }
-      
+
       inline virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc)
       {
         assert(dim == 1);
         assert(loc == 2);
         ElementIntersector::SetInput(positionsA, positionsB, dim, loc);
-        
+
         return;
       }
-      
+
       virtual void Intersect();
-      virtual void QueryOutput(int& nnodes, int& nelms) const; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const;
       virtual void GetOutput(double*& positions, int*& enlist) const;
     protected:
       double positionsC[2];
@@ -226,24 +226,24 @@ namespace Fluidity
     public:
       ElementIntersector2D();
       virtual ~ElementIntersector2D();
-      
+
       inline virtual unsigned int GetDim() const
       {
         return 2;
       }
-      
+
       inline virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc)
       {
         assert(dim == 2);
         assert(loc == 3 || loc == 4);
         ElementIntersector::SetInput(positionsA, positionsB, dim, loc);
-      
+
         return;
       }
       virtual void Intersect();
-      virtual void QueryOutput(int& nnodes, int& nelms) const; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const;
       virtual void GetOutput(double*& positions, int*& enlist) const;
-      
+
       typedef Wm4::IntrTriangle2Triangle2<GEOM_REAL> IntrTriangle2Triangle2;
       typedef Wm4::Triangle2<GEOM_REAL> Triangle2;
       typedef Wm4::Vector2<GEOM_REAL> Vector2;
@@ -260,24 +260,24 @@ namespace Fluidity
     public:
       ElementIntersectorCGAL2D();
       virtual ~ElementIntersectorCGAL2D();
-      
+
       inline virtual unsigned int GetDim() const
       {
         return 2;
       }
-      
+
       inline virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc)
       {
         assert(dim == 2);
         assert(loc == 3 || loc == 4);
         ElementIntersector::SetInput(positionsA, positionsB, dim, loc);
-      
+
         return;
       }
       virtual void Intersect();
-      virtual void QueryOutput(int& nnodes, int& nelms) const; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const;
       virtual void GetOutput(double*& positions, int*& enlist) const;
-      
+
 #ifdef HAVE_LIBCGAL
       typedef CGAL::Lazy_exact_nt< CGAL::Quotient<CGAL::MP_Float> > NT;
       typedef CGAL::Cartesian< NT > Kernel;
@@ -289,7 +289,7 @@ namespace Fluidity
       typedef Triangulation::Point_iterator Point_iterator;
       typedef Triangulation::Finite_faces_iterator Finite_faces_iterator;
 #endif
-      
+
     protected:
 #ifdef HAVE_LIBCGAL
        Triangulation* triangulation;
@@ -306,18 +306,18 @@ namespace Fluidity
       {
         return 3;
       }
-      
+
       inline virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc)
       {
         assert(dim == 3);
-      
+
         ElementIntersector::SetInput(positionsA, positionsB, dim, loc);
-        
+
         return;
       }
 
       virtual void Intersect() = 0;
-      virtual void QueryOutput(int& nnodes, int& nelms) const = 0; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const = 0;
       virtual void GetOutput(double*& positions, int*& enlist) const = 0;
   };
 
@@ -326,19 +326,19 @@ namespace Fluidity
     public:
       WmElementIntersector3D();
       virtual ~WmElementIntersector3D();
-      
+
       inline virtual void SetInput(double*& positionsA, double*& positionsB, const int& dim, const int& loc)
       {
         assert(loc == 4);
         ElementIntersector3D::SetInput(positionsA, positionsB, dim, loc);
-        
+
         return;
       }
 
       virtual void Intersect();
-      virtual void QueryOutput(int& nnodes, int& nelms) const; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const;
       virtual void GetOutput(double*& positions, int*& enlist) const;
-      
+
       typedef Wm4::IntrTetrahedron3Tetrahedron3<GEOM_REAL> IntrTetrahedron3Tetrahedron3;
       typedef Wm4::Tetrahedron3<GEOM_REAL> Tetrahedron3;
       typedef Wm4::Vector3<GEOM_REAL> Vector3;
@@ -353,7 +353,7 @@ namespace Fluidity
     public:
       ElementIntersectorCGAL3D();
       virtual ~ElementIntersectorCGAL3D();
-      
+
       inline virtual unsigned int GetDim() const
       {
         return 3;
@@ -363,14 +363,14 @@ namespace Fluidity
       {
         assert(loc == 4);
         ElementIntersector3D::SetInput(positionsA, positionsB, dim, loc);
-        
+
         return;
       }
 
       virtual void Intersect();
-      virtual void QueryOutput(int& nnodes, int& nelms) const; 
+      virtual void QueryOutput(int& nnodes, int& nelms) const;
       virtual void GetOutput(double*& positions, int*& enlist) const;
-      
+
 #ifdef HAVE_LIBCGAL
       typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
       typedef CGAL::Triangulation_3< Kernel > Triangulation;
@@ -380,7 +380,7 @@ namespace Fluidity
       typedef Triangulation::Point_iterator Point_iterator;
       typedef Triangulation::Finite_cells_iterator Finite_cells_iterator;
 #endif
-      
+
     protected:
 #ifdef HAVE_LIBCGAL
        Triangulation* triangulation;
@@ -408,10 +408,10 @@ extern "C"
 
 #define cIntersectorDrive F77_FUNC(cintersector_drive, CINTERSECTOR_DRIVE)
   void cIntersectorDrive();
-  
+
 #define cIntersectorQuery F77_FUNC(cintersector_query, CINTERSECTOR_QUERY)
   void cIntersectorQuery(int* nnodes, int* nelms);
-  
+
 #define cIntersectorGetOutput F77_FUNC(cintersector_get_output, CINTERSECTOR_GET_OUTPUT)
   void cIntersectorGetOutput(const int* nnodes, const int* nelms, const int* dim, const int* loc, double* positions, int* enlist);
 
@@ -419,10 +419,10 @@ extern "C"
   void cIntersectionFinderReset(int* ntests);
 
 #define cIntersectionFinderSetInput F77_FUNC(cintersection_finder_set_input, CINTSERSECTION_FINDER_SET_INPUT)
-  void cIntersectionFinderSetInput(const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements);  
+  void cIntersectionFinderSetInput(const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements);
 
 #define cIntersectionFinderFind F77_FUNC(cintersection_finder_find, CINTSERSECTION_FINDER_FIND)
-  void cIntersectionFinderFind(const double* positions, const int* dim, const int* loc);  
+  void cIntersectionFinderFind(const double* positions, const int* dim, const int* loc);
 
 #define cIntersectionFinderQueryOutput F77_FUNC(cintersection_finder_query_output, CINTSERSECTION_FINDER_QUERY_OUTPUT)
   void cIntersectionFinderQueryOutput(int* nelms);

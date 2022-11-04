@@ -49,7 +49,7 @@ contains
 
     type(state_type), intent(inout) :: state
 
-    integer :: i, stat
+    integer :: i
     type(vector_field), pointer :: K1, foamvel, liquidvelocity, liqcontentvel, source, absor
     type(scalar_field), pointer :: p, liquidcontent, K2
 
@@ -79,7 +79,7 @@ contains
             liquidvelocity => extract_vector_field(state,'Velocity')
             call zero(liqcontentvel)
             call allocate(rho_remap, liquidvelocity%mesh, 'RemappedLiquidContent')
-            call remap_field(liquidcontent, rho_remap) 
+            call remap_field(liquidcontent, rho_remap)
             do i=1, node_count(liqcontentvel)
                  call set(liqcontentvel, i, ( node_val(rho_remap, i)*node_val(liquidvelocity, i)  ) )
             enddo
@@ -93,14 +93,14 @@ contains
           source => extract_vector_field(state,'VelocitySource')
           if (have_option(trim(source%option_path)//'/diagnostic')) then
             call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
-                            atmospheric_pressure, default=0.0)            
+                            atmospheric_pressure, default=0.0)
             call zero(source)
 
             call allocate(p_remap, source%mesh, 'RemappedPressure')
             call allocate(K1_remap, source%dim, source%mesh, 'RemappedK1')
             call allocate(K2_remap, source%mesh, 'RemappedK2')
             call allocate(foamvel_remap, source%dim, source%mesh, 'RemappedFoamVelocity')
-            call remap_field(p, p_remap)            
+            call remap_field(p, p_remap)
             call remap_field(K1, K1_remap)
             call remap_field(K2, K2_remap)
             call remap_field(foamvel, foamvel_remap)
@@ -127,9 +127,9 @@ contains
             call allocate(p_remap, absor%mesh, 'RemappedPressure')
             call allocate(K2_remap, source%mesh, 'RemappedK2')
             call remap_field(p, p_remap)
-            call remap_field(K2, K2_remap)            
+            call remap_field(K2, K2_remap)
 
-            allocate (absor_val(absor%dim))  
+            allocate (absor_val(absor%dim))
 
              do i=1, node_count(absor)
                 absor_val = (1/node_val(K2_remap, i))*(node_val(p_remap, i)+atmospheric_pressure )**0.5
@@ -146,7 +146,3 @@ contains
   end subroutine calculate_drainage_source_absor
 
 end module foam_drainage
-
-
-
-

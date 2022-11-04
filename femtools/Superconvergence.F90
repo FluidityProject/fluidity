@@ -3,7 +3,7 @@
 module superconvergence
 !!< This module contains the information on the superconvergent
 !!< points for various element types.
-!!< See 
+!!< See
 !!< Zienkiewicz & Zhu, Int. J. Numer. Methods Eng, 33, 1331-1364 (1992)
 !! This is primarily used by field_derivatives.
 
@@ -92,7 +92,7 @@ contains
 !------------------------------------
 !     pure function matrix_size_spr()
 !       integer :: matrix_size_spr
-! 
+!
 !       matrix_size_spr = 4
 !     end function matrix_size_spr
 !------------------------------------
@@ -117,7 +117,7 @@ contains
       !!< For a given node, the algorithm solves Ax = b, where
       !!< A = sum(over superconvergent points) of P^T(x, y, z) * P(x, y, z)
       !!< This function returns P^T(x, y, z) * P(x, y, z) for a given position.
-   
+
       type(element_type), intent(in) :: element
       real :: positions(:)
       real, dimension(MATRIX_SIZE_SPR, MATRIX_SIZE_SPR) :: pTp
@@ -134,7 +134,7 @@ contains
     !!< This function is the same as above, but for the right hand side.
     !!< Unlike the matrix, the rhs depends on which derivative you're taking.
     !!< Here b = sum(over superconvergent points) of P^T(x, y, z) * diff(field, coordinate)(x, y, z)
-    
+
       type(element_type), intent(in) :: element
       real :: positions(:)
       real, intent(in) ::  derivative
@@ -142,13 +142,13 @@ contains
 
       assert(element%dim .eq. size(positions))
 
-      b = derivative * getP_spr(positions, element) 
+      b = derivative * getP_spr(positions, element)
     end function compute_rhs_contribution_spr
 
 !-----------------------------------
 !     pure function matrix_size_qf()
 !       integer :: matrix_size_qf
-! 
+!
 !       matrix_size_qf = 11
 !     end function matrix_size_qf
 !-----------------------------------
@@ -176,7 +176,7 @@ contains
       !!< For a given node, the algorithm solves Ax = b, where
       !!< A = sum(over superconvergent points) of P^T(x, y, z) * P(x, y, z)
       !!< This function returns P^T(x, y, z) * P(x, y, z) for a given position.
-   
+
       real :: positions(:)
       real, dimension(MATRIX_SIZE_QF, MATRIX_SIZE_QF) :: pTp
       real, dimension(MATRIX_SIZE_QF) :: P
@@ -188,12 +188,12 @@ contains
     function compute_rhs_contribution_qf(positions, derivative) result(b)
     !!< This function is the same as above, but for the right hand side.
     !!< Here b = sum(over patch points) of P^T(x, y, z) * diff(field, coordinate)(x, y, z)
-    
+
       real :: positions(:)
       real, intent(in) ::  derivative
       real, dimension(MATRIX_SIZE_QF) :: b
 
-      b = derivative * getP_qf(positions) 
+      b = derivative * getP_qf(positions)
     end function compute_rhs_contribution_qf
 
     function evaluate_qf(b, positions) result(fitted)
@@ -240,7 +240,7 @@ contains
       !!< For a given node, the algorithm solves Ax = b, where
       !!< A = sum(over superconvergent points) of P^T(x, y, z) * P(x, y, z)
       !!< This function returns P^T(x, y, z) * P(x, y, z) for a given position.
-   
+
       real :: positions(:)
       real, dimension(MATRIX_SIZE_CF, MATRIX_SIZE_CF) :: pTp
       real, dimension(MATRIX_SIZE_CF) :: P
@@ -252,12 +252,12 @@ contains
     function compute_rhs_contribution_cf(positions, derivative) result(b)
     !!< This function is the same as above, but for the right hand side.
     !!< Here b = sum(over patch points) of P^T(x, y, z) * diff(field, coordinate)(x, y, z)
-    
+
       real :: positions(:)
       real, intent(in) ::  derivative
       real, dimension(MATRIX_SIZE_CF) :: b
 
-      b = derivative * getP_cf(positions) 
+      b = derivative * getP_cf(positions)
     end function compute_rhs_contribution_cf
 
     function evaluate_cf(b, positions) result(fitted)

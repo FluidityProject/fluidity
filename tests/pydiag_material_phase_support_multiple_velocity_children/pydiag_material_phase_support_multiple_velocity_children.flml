@@ -250,14 +250,14 @@
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="tensor_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the viscosity
 dummy_visc = states["phase2"].scalar_fields["DummyFieldVisc"]
 
 for ele in range(field.element_count):
-   
+
    dummy_visc_ele = dummy_visc.node_val(ele)
-   
+
    field.set(ele,dummy_visc_ele)</string_value>
             </algorithm>
             <output/>
@@ -273,14 +273,14 @@ for ele in range(field.element_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the source
 dummy_src = states["phase2"].scalar_fields["DummyFieldSrc"]
 
 for ele in range(field.element_count):
-   
+
    dummy_src_ele = dummy_src.node_val(ele)
-   
+
    field.set(ele,dummy_src_ele)</string_value>
             </algorithm>
             <output/>
@@ -305,14 +305,14 @@ for ele in range(field.element_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the absorption
 dummy_abs = states["phase2"].scalar_fields["DummyFieldAbs"]
 
 for ele in range(field.element_count):
-   
+
    dummy_abs_ele = dummy_abs.node_val(ele)
-   
+
    field.set(ele,dummy_abs_ele)</string_value>
             </algorithm>
             <output/>
@@ -573,14 +573,14 @@ for ele in range(field.element_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="tensor_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the viscosity
 dummy_visc = states["phase1"].scalar_fields["DummyFieldVisc"]
 
 for ele in range(field.element_count):
-   
+
    dummy_visc_ele = dummy_visc.node_val(ele)
-   
+
    field.set(ele,dummy_visc_ele)</string_value>
             </algorithm>
             <output/>
@@ -596,14 +596,14 @@ for ele in range(field.element_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the source
 dummy_src = states["phase1"].scalar_fields["DummyFieldSrc"]
 
 for ele in range(field.element_count):
-   
+
    dummy_src_ele = dummy_src.node_val(ele)
-   
+
    field.set(ele,dummy_src_ele)</string_value>
             </algorithm>
             <output/>
@@ -628,14 +628,14 @@ for ele in range(field.element_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use 
+              <string_value type="code" language="python" lines="20"># Pull a field from the other phase to use
 # for setting the absorption
 dummy_abs = states["phase1"].scalar_fields["DummyFieldAbs"]
 
 for ele in range(field.element_count):
-   
+
    dummy_abs_ele = dummy_abs.node_val(ele)
-   
+
    field.set(ele,dummy_abs_ele)</string_value>
             </algorithm>
             <output/>

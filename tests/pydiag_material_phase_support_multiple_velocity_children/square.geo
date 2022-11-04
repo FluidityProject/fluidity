@@ -7,11 +7,11 @@ len = 300.0;
 Point(1) = {0.0, 0.0, 0.0, 1.0};
 
 Extrude {len, 0.0, 0.0} {
-  Point{1}; Layers{lay}; 
+  Point{1}; Layers{lay};
 }
 
 Extrude {0.0, len, 0.0} {
-  Line{1}; Layers{lay}; 
+  Line{1}; Layers{lay};
 }
 
 Physical Line(7) = {1};

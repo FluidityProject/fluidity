@@ -54,30 +54,16 @@ class packing{
  public:
   packing(const MI5&, const Mesh&);
   ~packing();
-  
+
   unsigned int packCnt2Bytes(unsigned int);
 
   void pack(const MI5& intelligance_report,   Mesh &mesh);
   void send();
   void unpack(MI5& intelligance_report, Mesh &mesh);
   void clear();
-  
+
   std::vector<int> offsets; // int because of mpi calls
   std::vector< std::vector<char> > SendRecvBuffer;
 };
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-

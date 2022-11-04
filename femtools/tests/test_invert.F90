@@ -64,7 +64,7 @@ subroutine test_invert
 !!$        -7.9576252343771758e-05, 0.00020833333333333337/),(/10,10/))
 !!$
 !!$  buf="mm"
-!!$  
+!!$
 !!$  inv = mat; call invert(inv)
 !!$  tmp = matmul(mat, inv)
 !!$  tmp = tmp - id

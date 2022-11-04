@@ -10,7 +10,7 @@ subroutine test_vtk_read_state
 
   type(state_type) :: state
   type(mesh_type), pointer  :: mesh
-  
+
   ! This is what it SHOULD be.
   integer :: nodes = 8
   integer :: elementcnt = 6
@@ -22,10 +22,10 @@ subroutine test_vtk_read_state
 
   call vtk_read_state("data/mesh_0.vtu", state)
   mesh => extract_mesh(state, "Mesh")
-  
+
   if (mesh%nodes /= nodes) fail = .true.
   call report_test("[vtk_read_state nodecount]", fail, warn, "Nodecount should be the known value.")
-  
+
   fail = .false.
   if (mesh%elements /= elementcnt) fail = .true.
   call report_test("[vtk_read_state element count]", fail, warn, "Element count should be the known value.")
@@ -33,7 +33,7 @@ subroutine test_vtk_read_state
 
   fail = .false.
   if (ele_loc(mesh, 1) /= loccount) fail = .true.
-  call report_test("[vtk_read_state loccount]", fail, warn, "Element type should be the known value.")    
+  call report_test("[vtk_read_state loccount]", fail, warn, "Element type should be the known value.")
 
   fail = .false.
   if (mesh%shape%dim /= dim) fail = .true.

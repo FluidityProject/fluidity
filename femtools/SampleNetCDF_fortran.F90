@@ -1,5 +1,5 @@
 ! Copyright (C) 2006 Imperial College London and others.
-!   
+!
 ! Please see the AUTHORS file in the main source directory for a full list
 ! of copyright holders.
 !
@@ -9,7 +9,7 @@
 ! Imperial College London
 !
 ! amcgsoftware@imperial.ac.uk
-!  
+!
 ! This library is free software; you can redistribute it and/or
 ! modify it under the terms of the GNU Lesser General Public
 ! License as published by the Free Software Foundation,
@@ -62,18 +62,18 @@ module SampleNetCDF
   end interface
 
 contains
-  
+
   subroutine SampleNetCDF_Open(name, id)
     character(len=*), intent(in)::name
     integer, intent(out)::id
-    
+
     call samplenetcdf_open_c(name, len_trim(name), id)
   end subroutine SampleNetCDF_Open
 
   subroutine SampleNetCDF_SetVariable(id, varname)
     character(len=*), intent(in)::varname
     integer, intent(out)::id
-    
+
     call samplenetcdf_setvariable_c(id, varname, len_trim(varname))
   end subroutine SampleNetCDF_SetVariable
 
@@ -87,8 +87,8 @@ contains
 
   subroutine SampleNetCDF_Close(id)
     integer, intent(out)::id
-    
+
     call samplenetcdf_close_c(id)
   end subroutine SampleNetCDF_Close
-  
+
 end module SampleNetCDF

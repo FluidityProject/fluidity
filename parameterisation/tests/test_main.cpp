@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ extern "C" {
   void set_pseudo2d_domain_fc(int* val);
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   int val = 0;
 
@@ -64,11 +64,11 @@ int main(int argc, char **argv)
         abort();
   }
 #endif
-#ifdef HAVE_PETSC  
+#ifdef HAVE_PETSC
   PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
   PetscInitializeFortran();
 #endif
-  
+
 #ifdef HAVE_PYTHON
   // Initialize the Python Interpreter
   python_init_();
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
   // Finalize the Python Interpreter
   python_end_();
 #endif
-#ifdef HAVE_PETSC  
+#ifdef HAVE_PETSC
   PetscFinalize();
 #endif
 #ifdef HAVE_MPI

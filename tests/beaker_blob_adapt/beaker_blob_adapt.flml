@@ -613,7 +613,7 @@
             <string_value type="code" language="python" lines="20">def val(X,t):
 
   import numpy as np
-  
+
   if X[0] &lt; 0.45:
     return 0.0
   elif X[0] &gt; 0.55:

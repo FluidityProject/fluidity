@@ -2,7 +2,7 @@
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">mmat-gravity-col-press_cg_test_cty_cv_p1dgp2_2d</string_value>
-    <comment>NOTE that the material volume fractions are solved on the p1 
+    <comment>NOTE that the material volume fractions are solved on the p1
 coordinate mesh rather than the p2 pressure mesh as the latter
 crashes.</comment>
   </simulation_name>

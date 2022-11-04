@@ -1,25 +1,25 @@
 /*  Copyright (C) 2009 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
-    
+
     Prof. C Pain
     Applied Modelling and Computation Group
     Department of Earth Science and Engineering
     Imperial College London
-    
+
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
     version 2.1 of the License.
-    
+
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
-    
+
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -49,7 +49,7 @@ void get_nemo_variables_c(double *time, const double *X, const double *Y, const 
 
     const int nFields = 5; // number of fields being read in, currently temperature, salinity, U, V and sea surface height
     const int NNodes = *n;
-        
+
     double *salinity = new double[NNodes];
     double *seatemp = new double[NNodes];
     double *uvel = new double[NNodes];
@@ -58,7 +58,7 @@ void get_nemo_variables_c(double *time, const double *X, const double *Y, const 
     double *seash = new double[NNodes];
 
     NEMOReader_v2_global.SetTimeSeconds(*time);
-    
+
     // convert from Cart to long-lat
     double *x = new double[NNodes];
     double *y = new double[NNodes];
@@ -69,13 +69,13 @@ void get_nemo_variables_c(double *time, const double *X, const double *Y, const 
         y[i] = Y[i];
         z[i] = Z[i];
         depth[i] = DEPTH[i];
-    }    
+    }
 
     int ret = projections(NNodes, x, y, z, "cart", "spherical");
     if (ret != 0) {
         cerr<<"Error converting coord system"<<endl;
     }
-    
+
     /*
      * The "values" array below contains the scalar
      * values from the NEMOdata netCDF file. The table
@@ -93,8 +93,8 @@ void get_nemo_variables_c(double *time, const double *X, const double *Y, const 
 
     // loop over nodes
     for (int i=0; i<NNodes; i++) {
-        
-        double latitude = y[i]; 
+
+        double latitude = y[i];
         double longitude = x[i];
         double depth_p = depth[i];
 
@@ -117,7 +117,7 @@ void get_nemo_variables_c(double *time, const double *X, const double *Y, const 
         // planar cases an if if(have_option("/geometry/spherical_earth")) will need to be passed or
         // added.
         rotate_ll2cart(&longitude, &latitude, &u_rot, &v_rot, &uvel[i], &vvel[i], &wvel[i]);
-        
+
     }
 
     delete [] x;
@@ -155,29 +155,29 @@ extern "C" {
     NEMOReader_v2_global.AddFieldOfInterest(string(scalar));
     return;
   }
-  
+
   void nemo_v2_clearfields_c(){
     NEMOReader_v2_global.ClearFields();
     return;
   }
-  
+
   void nemo_v2_getscalars_c(const double *longitude, const double *latitude, const double *p_depth, double *scalars){
     NEMOReader_v2_global.GetScalars(*longitude, *latitude, *p_depth, scalars);
     return;
   }
-  
+
   void nemo_v2_registerdatafile_c(const char *filename){
     NEMOReader_v2_global.RegisterDataFile(string(filename));
     return;
   }
-  
+
   void nemo_v2_setsimulationtimeunits_c(const char *units){
-    NEMOReader_v2_global.SetSimulationTimeUnits(string(units));  
+    NEMOReader_v2_global.SetSimulationTimeUnits(string(units));
     return;
   }
-  
+
   void nemo_v2_settimeseconds_c(const double *time){
-    NEMOReader_v2_global.SetTimeSeconds(*time);  
+    NEMOReader_v2_global.SetTimeSeconds(*time);
     return;
   }
 }
@@ -188,36 +188,36 @@ extern "C" {
 
 void vtk_add_scalar(vector<double> &scalar, const char *scalar_name, vtkUnstructuredGrid *ug){
   int NNodes = ug->GetNumberOfPoints();
-  
+
   vtkDoubleArray *newScalars = vtkDoubleArray::New();
   newScalars->SetName(scalar_name);
   newScalars->SetNumberOfComponents(1);
   newScalars->SetNumberOfTuples(NNodes);
-  
+
   for(int i=0; i<NNodes; i++)
     newScalars->InsertValue(i, scalar[i]);
-  
+
   ug->GetPointData()->AddArray(newScalars);
   ug->GetPointData()->SetActiveAttribute(scalar_name, vtkDataSetAttributes::SCALARS);
-  
+
   ug->Update();
   newScalars->Delete();
 }
 
 void vtk_add_vector(vector<double> &vx, vector<double> &vy, vector<double> &vz, const char *vector_name, vtkUnstructuredGrid *ug){
   int NNodes = ug->GetNumberOfPoints();
-  
+
   vtkDoubleArray *newVectors = vtkDoubleArray::New();
   newVectors->SetName(vector_name);
   newVectors->SetNumberOfComponents(3);
   newVectors->SetNumberOfTuples(NNodes);
-  
+
   for(int i=0; i<NNodes; i++)
     newVectors->SetTuple3(i, vx[i], vy[i], vz[i]);;
-  
+
   ug->GetPointData()->AddArray(newVectors);
   ug->GetPointData()->SetActiveAttribute(vector_name, vtkDataSetAttributes::VECTORS);
-  
+
   ug->Update();
   newVectors->Delete();
 }
@@ -230,15 +230,15 @@ int main(int argc, char **argv){
     vtkXMLUnstructuredGridReader *reader = vtkXMLUnstructuredGridReader::New();
     reader->SetFileName(filename);
     reader->Update();
-  
+
     vtkUnstructuredGrid *ug = reader->GetOutput();
 
     int NNodes = ug->GetNumberOfPoints();
-    double time = 0.0;  
-    vector<double> Te(NNodes, 0.0), Sa(NNodes, 0.0), U(NNodes, 0.0), V(NNodes, 0.0), 
-    W(NNodes, 0.0), SSH(NNodes, 0.0), X(NNodes, 0.0), Y(NNodes, 0.0), Z(NNodes, 0.0), 
+    double time = 0.0;
+    vector<double> Te(NNodes, 0.0), Sa(NNodes, 0.0), U(NNodes, 0.0), V(NNodes, 0.0),
+    W(NNodes, 0.0), SSH(NNodes, 0.0), X(NNodes, 0.0), Y(NNodes, 0.0), Z(NNodes, 0.0),
     x(NNodes,0.0), y(NNodes,0.0), z(NNodes,0.0), r(NNodes,0.0), depth(NNodes,0.0);
- 
+
     for (int i=0; i<NNodes; i++) {
         double r[3];
         ug->GetPoints()->GetPoint(i, r);
@@ -251,13 +251,13 @@ int main(int argc, char **argv){
         z[i] = Z[i];
         r[i] = sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
     }
-    
+
     double REdum=0.0;
-    
+
     for (int i=0; i<NNodes; i++) {
       if(r[i]>REdum) REdum=r[i];
     }
-    
+
     for (int i=0; i<NNodes; i++) {
       depth[i]=REdum-r[i];
     }
@@ -274,8 +274,8 @@ int main(int argc, char **argv){
     NEMOReader_v2_global.AddFieldOfInterest("u");            //  2   | Azimuthal velocity
     NEMOReader_v2_global.AddFieldOfInterest("v");            //  3   | Meridional velocity
     NEMOReader_v2_global.AddFieldOfInterest("ssh");          //  4   | Sea surface height
-    
-  
+
+
     int ret = projections(NNodes, &x[0], &y[0], &z[0], "cart", "spherical");
     if (ret != 0) {
         cerr<<"Error converting coord system"<<endl;
@@ -300,7 +300,7 @@ int main(int argc, char **argv){
     vtk_add_scalar(W, "W", ug);
     vtk_add_vector(U, V, W, "Velocity", ug);
     vtk_add_scalar(SSH, "Sea surface height", ug);
-    
+
     // now print values at a single node
     int n = 1;
     // A point in the North West Approaches
@@ -319,7 +319,7 @@ int main(int argc, char **argv){
     if (ret != 0) {
         cerr<<"Error converting coord system"<<endl;
     }
-    
+
     NEMOReader_v2_global.GetScalars(x[0], y[0], location_depth, values_in);
 
     Te[0] = values_in[0];

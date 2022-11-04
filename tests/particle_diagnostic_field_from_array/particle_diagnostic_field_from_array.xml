@@ -5,8 +5,8 @@
   <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="4">
-    <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 4 particle-diagnostic-field-from-array particle-diagnostic-field-from-array-flredecomp;      
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 4 particle-diagnostic-field-from-array particle-diagnostic-field-from-array-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l particle-diagnostic-field-from-array-flredecomp.flml
     </command_line>
   </problem_definition>
@@ -36,5 +36,3 @@ assert abs(Max_conservation_error).max() &lt; 2.5e-2
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

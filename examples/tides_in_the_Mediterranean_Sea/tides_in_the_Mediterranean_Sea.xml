@@ -47,7 +47,7 @@ import vtktools
 import vtk
 import math
 import sys
-import numpy 
+import numpy
 
 #Read in Fluidity results and change point coordinates to longitude-latitude.
 ugrid = u=vtktools.vtu("med_10.pvtu")
@@ -129,8 +129,8 @@ fluidity_O1amp *= 100.0
 ampdiff = fluidity_O1amp.flatten() - tidalGauge_O1amp
 O1RMS = numpy.sqrt(numpy.sum(numpy.power(ampdiff,2))/len(ampdiff))
     </variable>
- </variables>    
- <pass_tests> 
+ </variables>
+ <pass_tests>
     <test name="check that has run long enough" language="python">
 assert abs(final_time-720000) &gt; -10
     </test>
@@ -157,7 +157,7 @@ assert(K1RMS &lt; 2.5)
     <test name="check RMS difference for K1 amp not 0" language="python">
 print(K1RMS)
 assert(K1RMS &gt; 0.1)
-</test>   
+</test>
     <test name="check RMS difference for O1 amp not too big" language="python">
 print(O1RMS)
 assert(O1RMS &lt; 2.5)
@@ -165,7 +165,7 @@ assert(O1RMS &lt; 2.5)
     <test name="check RMS difference for O1 amp not 0" language="python">
 print(O1RMS)
 assert(O1RMS &gt; 0.1)
-</test> 
+</test>
  </pass_tests>
  <warn_tests>
  </warn_tests>

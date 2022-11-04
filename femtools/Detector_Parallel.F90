@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -44,7 +44,7 @@ module detector_parallel
   use detector_tools
 
   implicit none
-  
+
   private
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
@@ -112,7 +112,7 @@ contains
     type(detector_list_ptr), dimension(:), pointer :: detector_lists
     integer :: i
 
-    if (allocated(detector_list_array)) then 
+    if (allocated(detector_list_array)) then
        call get_registered_detector_lists(detector_lists)
        do i=1, get_num_detector_lists()
           call deallocate(detector_lists(i)%ptr)
@@ -124,7 +124,7 @@ contains
   end subroutine deallocate_detector_list_array
 
   subroutine distribute_detectors(state, detector_list, positions)
-    ! Loop over all the detectors in the list and check that I own the element they are in. 
+    ! Loop over all the detectors in the list and check that I own the element they are in.
     ! If not, they need to be sent to the processor owner before adaptivity happens
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
@@ -134,11 +134,11 @@ contains
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
     type(detector_type), pointer :: detector, node_to_send, bcast_detector
     type(vector_field), pointer :: xfield
-    integer :: i,j,k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
+    integer :: i, k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
                ierr, ndata_per_det, bcast_rounds, round, accept_detector
     integer, dimension(:), allocatable :: ndets_being_bcast
     real, allocatable :: send_buff(:), recv_buff(:)
-    type(element_type), pointer :: shape  
+    type(element_type), pointer :: shape
 
     ewrite(2,*) "In distribute_detectors"
     if (present(positions)) then
@@ -179,7 +179,7 @@ contains
        end if
     end do
 
-    ! Exchange detectors if there are any detectors to exchange 
+    ! Exchange detectors if there are any detectors to exchange
     ! via the point-to-point sendlists
     all_send_lists_empty=0
     do k=1, nprocs
@@ -218,8 +218,8 @@ contains
 
        ! If there are unknown detectors we need to broadcast.
        ! Since we can not be sure whether any processor will accept a detector
-       ! we broadcast one at a time so we can make sure somebody accepted it. 
-       ! If there are no takers we keep the detector with element -1, 
+       ! we broadcast one at a time so we can make sure somebody accepted it.
+       ! If there are no takers we keep the detector with element -1,
        ! becasue it has gone out of the domain, and this will be caught at a later stage.
        bcast_rounds = maxval(ndets_being_bcast)
        call allmax(bcast_rounds)
@@ -250,7 +250,7 @@ contains
 
                    ! If we're the sender and nobody accepted the detector
                    ! we keep it, to deal with it later in the I/O routines
-                   if (accept_detector == 0 .and. i == getprocno()) then                   
+                   if (accept_detector == 0 .and. i == getprocno()) then
                       ewrite(2,*) "WARNING: Could not find processor for detector. Detector is probably outside the domain!"
 
                       ! Unpack detector again and put in a temporary lost_detectors_list
@@ -265,7 +265,7 @@ contains
                 else
                    ! Allocate memory to receive into
                    allocate(recv_buff(ndata_per_det))
-             
+
                    ! Receive broadcast
                    ewrite(2,*) "Receiving detector from process ", i
                    call mpi_bcast(recv_buff,ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
@@ -279,7 +279,7 @@ contains
 
                    ! Try to find the detector position locally
                    call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
-                   if (detector%element>0) then 
+                   if (detector%element>0) then
                       ! We found a new home...
                       call insert(detector, detector_list)
                       accept_detector = 1
@@ -309,7 +309,7 @@ contains
 
   subroutine exchange_detectors(state, detector_list, send_list_array, positions, &
       include_update_vector)
-    ! This subroutine serialises send_list_array, sends it, 
+    ! This subroutine serialises send_list_array, sends it,
     ! receives serialised detectors from all procs and unpacks them.
     type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
@@ -348,7 +348,7 @@ contains
     allocate( sendRequest(nprocs) )
     sendRequest = MPI_REQUEST_NULL
 
-    ! Get the element halo 
+    ! Get the element halo
     halo_level = element_halo_count(xfield%mesh)
     if (halo_level /= 0) then
        ele_halo => xfield%mesh%element_halos(halo_level)
@@ -423,10 +423,10 @@ contains
        ! this should predict whether to expect a message:
        if (halo_send_count(ele_halo, receive_proc)==0) cycle
 
-       call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
+       call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
+       call MPI_GET_COUNT(status(:), getpreal(), count, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        ndet_received=count/det_size
@@ -442,7 +442,7 @@ contains
        do j=1, ndet_received
           allocate(detector_received)
 
-          ! Unpack routine uses ele_numbering_inverse to translate universal element 
+          ! Unpack routine uses ele_numbering_inverse to translate universal element
           ! back to local detector element
           if (have_update_vector) then
              call unpack_detector(detector_received,recv_buffer(receive_proc)%ptr(j,1:det_size),dim, &
@@ -475,7 +475,7 @@ contains
 
     call deallocate(ele_numbering_inverse)
 
-    ewrite(2,*) "Exiting exchange_detectors"  
+    ewrite(2,*) "Exiting exchange_detectors"
 
   end subroutine exchange_detectors
 
@@ -505,7 +505,7 @@ contains
           ! we update det%position from the parametric coordinates
           if (present_and_true(reinterpolate_all) .or. detector_list_array(i)%ptr%move_with_mesh) then
              detector=>detector_list_array(i)%ptr%first
-             do while (associated(detector)) 
+             do while (associated(detector))
                 detector%position=detector_value(coordinate_field, detector)
                 detector=>detector%next
              end do

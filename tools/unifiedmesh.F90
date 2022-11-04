@@ -20,7 +20,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   use iso_c_binding
 
   implicit none
-  
+
   integer(kind=c_size_t), value :: filename1_len, filename2_len, output_len
   character(kind=c_char, len=1) :: filename1_(*), filename2_(*), output_(*)
 
@@ -31,15 +31,12 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   type(vector_field) :: positionsA, positionsB
   type(ilist), dimension(:), allocatable :: map_BA
   real, dimension(:), allocatable :: tri_detwei
-  integer :: ele_A, ele_B
-  type(inode), pointer :: llnode
-  type(vector_field) :: intersection
   type(element_type) :: supermesh_shape
   type(quadrature_type) :: supermesh_quad
   integer :: i, dim
 
   type(mesh_type) :: accum_mesh
-  type(vector_field) :: accum_positions, accum_positions_tmp
+  type(vector_field) :: accum_positions
 
   do i=1, filename1_len
     filename1(i:i)=filename1_(i)
@@ -50,7 +47,7 @@ subroutine unifiedmesh(filename1_, filename1_len, &
   do i=1, output_len
     output(i:i)=output_(i)
   end do
-  
+
   call set_global_debug_level(0)
 
   positionsA = read_mesh_files(trim(filename1), quad_degree=1, format="gmsh")

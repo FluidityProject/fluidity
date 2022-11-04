@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -60,7 +60,7 @@ void tests();
 // up
 extern "C" {
 #define projections_spherical_cartesian_fc F77_FUNC(projections_spherical_cartesian, PROJECTIONS_SPHERICAL_CARTESIAN)
-    int projections_spherical_cartesian_fc(int *nPoints, double *x, double *y, double *z);    
+    int projections_spherical_cartesian_fc(int *nPoints, double *x, double *y, double *z);
 
 #define projections_cartesian_spherical_fc F77_FUNC(projections_cartesian_spherical, PROJECTIONS_CARTESIAN_SPHERICAL)
     int projections_cartesian_spherical_fc(int *nPoints, double *x, double *y, double *z);
@@ -96,7 +96,7 @@ int spherical2cartesian(double longitude, double latitude, double &x, double &y,
 int cartesian2spherical(double x, double y, double z, double &longitude, double &latitude) {
 
     double r = sqrt(x*x + y*y + z*z);
-    
+
     longitude = atan2(y,x);
     latitude = acos(z/r);
     // convert to degrees
@@ -111,25 +111,25 @@ int spherical2stereographic(double longitude, double latitude, double &x, double
   // http://mathworld.wolfram.com/StereographicProjection.html
   longitude = radians(longitude);
   latitude  = radians(latitude);
-  
+
   double longitude_0 = 0.0;
   double latitude_0  = radians(90.0);
-  
+
   if(latitude_0==latitude){
     x = 0.0;
     y = 0.0;
     return -1;
   }
-  
+
   double k = 2.0*get_surface_radius()/
     (1.0 +
      sin(latitude_0)*sin(latitude) +
      cos(latitude_0)*cos(latitude)*cos(longitude-longitude_0));
-  
+
    x = k*cos(latitude)*sin(longitude-longitude_0);
    y = k*(cos(latitude_0)*sin(latitude) -
        sin(latitude_0)*cos(latitude)*cos(longitude-longitude_0));
-  
+
   return 0;
 }
 
@@ -144,35 +144,35 @@ int stereographic2spherical(double x, double y, double& longitude, double& latit
   // http://mathworld.wolfram.com/StereographicProjection.html
   double longitude_0 = 0.0;
   double latitude_0  = radians(90.0);
-  
+
   if((x==0.0)&&(y==0.0)){
     latitude  = degrees(latitude_0);
     longitude = degrees(longitude_0);
     return 0;
   }
-  
+
   double rho = sqrt(x*x + y*y);
   double c = 2.0*atan2(rho, 2*get_surface_radius());
-      
+
   latitude = asin(cos(c)*sin(latitude_0) + y*sin(c)*cos(latitude_0)/rho);
   longitude = longitude_0 + atan2(x*sin(c),
           rho*cos(latitude_0)*cos(c) -
           y*sin(latitude_0)*sin(c));
-  
+
   latitude  = degrees(latitude);
   longitude = degrees(longitude);
-  
+
   return 0;
 }
 
 int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord){
 
-       
+
     for (int i=0; i<nPoints; i++) {
         double new_x = 0.0;
         double new_y = 0.0;
         double new_z = 0.0;
- 
+
         if(current_coord == "stereo" && output_coord == "cart") {
             stereographic2cartesian(x[i], y[i], new_x, new_y, new_z);
             x[i] = new_x;
@@ -234,10 +234,10 @@ int main(int argc, char **argv){
 
     // now run a test on a vtk file
     vtkXMLUnstructuredGridReader* reader = vtkXMLUnstructuredGridReader::New();
-  
+
     reader->SetFileName(filename);
     reader->Update();
-  
+
     vtkUnstructuredGrid* grid = vtkUnstructuredGrid::New();
     grid->DeepCopy(reader->GetOutput());
     grid->Update();
@@ -314,7 +314,7 @@ void tests(){
   cartesian2spherical(x0, y0, z0, x1, y1);
   cout<<x0<<", "<<y0<<" --> "<<x1<<", "<<y1<<endl;
 
-  
+
 }
 
 #endif

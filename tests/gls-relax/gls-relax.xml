@@ -9,7 +9,7 @@
                       fluidity -l -v2 gls-orig.flml;
                       cp fluidity.log-0 fluidity.log_orig.0;
         </command_line>
-    </problem_definition>  
+    </problem_definition>
   <!-- Only way to check the relax is actually working is to use the logs
        and grep the first two instances of the min/max print outs of K_H and K_M
        printed out during the init. The first print out will be zero for max/min
@@ -18,7 +18,7 @@
        GLS variables, which then affects the diff/visc and hence it becomes
        tricky to work out the relax is what we expect.
   -->
-  <variables>     
+  <variables>
        <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -30,7 +30,7 @@ for line in open("fluidity.log_orig.0"):
     values = line.split('=')[1]
     NormalVertDiffStart = float(values.split()[-1])
     break
-    </variable>     
+    </variable>
     <variable name="NormalVertDiffEnd" language="python">
 n = 0
 for line in open("fluidity.log_orig.0"):
@@ -40,14 +40,14 @@ for line in open("fluidity.log_orig.0"):
     if (1 == n):
         break
     n += 1
-    </variable>    
+    </variable>
     <variable name="NormalVertViscStart" language="python">
 for line in open("fluidity.log_orig.0"):
   if "Min, max of K_M" in line:
     values = line.split('=')[1]
     NormalVertViscStart = float(values.split()[-1])
     break
-    </variable>     
+    </variable>
     <variable name="NormalVertViscEnd" language="python">
 n = 0
 for line in open("fluidity.log_orig.0"):
@@ -57,14 +57,14 @@ for line in open("fluidity.log_orig.0"):
     if (1 == n):
         break
     n += 1
-    </variable>     
+    </variable>
     <variable name="RelaxVertDiffStart" language="python">
 for line in open("fluidity.log_relax.0"):
   if "Min, max of K_H" in line:
     values = line.split('=')[1]
     RelaxVertDiffStart = float(values.split()[-1])
     break
-    </variable>  
+    </variable>
     <variable name="RelaxVertDiffEnd" language="python">
 n = 0
 for line in open("fluidity.log_relax.0"):
@@ -74,7 +74,7 @@ for line in open("fluidity.log_relax.0"):
     if (1 == n):
         break
     n += 1
-    </variable>    
+    </variable>
     <variable name="RelaxVertViscStart" language="python">
 for line in open("fluidity.log_relax.0"):
   if "Min, max of K_M" in line:
@@ -94,7 +94,7 @@ for line in open("fluidity.log_relax.0"):
     </variable>
 </variables>
 
-  <pass_tests> 
+  <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -29,7 +29,7 @@
 
 module futils
   !!< Some generic fortran utility functions.
-  
+
   use fldebug
   use global_parameters, only : real_digits_10
 
@@ -42,7 +42,7 @@ module futils
   interface real_format
     module procedure real_format_non_padded, real_format_padded
   end interface real_format
-  
+
   interface nullify
     module procedure nullify_integer_vector, nullify_integer_vector_vector, &
       & nullify_real_vector, nullify_real_vector_vector
@@ -78,46 +78,46 @@ module futils
        integer_vector, int2str, present_and_true, present_and_false, present_and_zero,&
        present_and_nonzero, present_and_nonempty, free_unit, nth_digit, count_chars,&
        multiindex, file_extension_len, file_extension, trim_file_extension_len,&
-       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize 
+       trim_file_extension, random_number_minmax, int2str_len, starts_with, tokenize
 
 contains
-  
+
   subroutine nullify_integer_vector(vector)
     type(integer_vector), intent(inout) :: vector
-    
+
     vector%ptr => null()
-    
+
   end subroutine nullify_integer_vector
-  
+
   subroutine nullify_integer_vector_vector(vector)
     type(integer_vector), dimension(:), intent(inout) :: vector
-    
+
     integer :: i
-    
+
     do i = 1, size(vector)
       vector(i)%ptr => null()
     end do
-    
+
   end subroutine nullify_integer_vector_vector
-  
+
   subroutine nullify_real_vector(vector)
     type(real_vector), intent(inout) :: vector
-    
+
     vector%ptr => null()
-    
+
   end subroutine nullify_real_vector
-  
+
   subroutine nullify_real_vector_vector(vector)
     type(real_vector), dimension(:), intent(inout) :: vector
-    
+
     integer :: i
-    
+
     do i = 1, size(vector)
       vector(i)%ptr => null()
     end do
-    
+
   end subroutine nullify_real_vector_vector
-  
+
   pure function present_and_true(flag)
     logical :: present_and_true
     logical, intent(in), optional :: flag
@@ -141,44 +141,44 @@ contains
     end if
 
   end function present_and_false
-  
+
   pure function present_and_zero(var)
     integer, optional, intent(in) :: var
-    
+
     logical :: present_and_zero
-    
+
     if(present(var)) then
       present_and_zero = (var == 0)
     else
       present_and_zero = .false.
     end if
-    
+
   end function present_and_zero
-  
+
   pure function present_and_nonzero(var)
     integer, optional, intent(in) :: var
-    
+
     logical :: present_and_nonzero
-    
+
     if(present(var)) then
       present_and_nonzero = (var /= 0)
     else
       present_and_nonzero = .false.
     end if
-    
+
   end function present_and_nonzero
-  
+
   pure function present_and_nonempty(var)
     character(len = *), optional, intent(in) :: var
-    
+
     logical :: present_and_nonempty
-    
+
     if(present(var)) then
       present_and_nonempty = (len_trim(var) > 0)
     else
       present_and_nonempty = .false.
     end if
-    
+
   end function present_and_nonempty
 
   function free_unit()
@@ -186,7 +186,7 @@ contains
     !!< we skip any preconnected units which may not be correctly identified
     !!< on some compilers.
     integer :: free_unit
-    
+
     logical :: connected
 
     do free_unit=10, 99
@@ -196,7 +196,7 @@ contains
        if (.not.connected) return
 
     end do
-    
+
     FLAbort("No free unit numbers avalable")
 
   end function
@@ -210,7 +210,7 @@ contains
     length = real_format_len(0)
 
   end function real_format_non_padded_len
-  
+
   pure function real_format_padded_len(padding) result(length)
     !!< Return the length of the format string for real data, with
     !!< padding characters
@@ -218,12 +218,12 @@ contains
     integer, intent(in) :: padding
 
     integer :: length
-    
+
     ! See real_format comment
     length = 2 + int2str_len(real_digits_10 + 10 + padding) + int2str_len(real_digits_10 + 2) + 1 + int2str_len(3)
-    
+
   end function real_format_padded_len
-  
+
   function real_format_non_padded() result(format)
     !!< Return a format string for real data, without padding characters
 
@@ -235,11 +235,11 @@ contains
 
   function real_format_padded(padding) result(format)
     !!< Return a format string for real data, with padding characters
-    
+
     integer, intent(in) :: padding
-    
+
     character(len = real_format_len()) :: format
-    
+
     ! Construct:
     !    (real_digits_10 + 2) + 8 + padding . (real_digits_10 + 2) e3
     ! (real_digits_10 + 2) seems to give sufficient digits to preserve
@@ -248,7 +248,7 @@ contains
     ! to be written. 3 (after "e") is the minimum number of characters allowing
     ! a general real exponent to be written.
     format = "e" // int2str(real_digits_10 + 10 + padding) // "." // int2str(real_digits_10 + 2) // "e" // int2str(3)
-    
+
   end function real_format_padded
 
   pure function nth_digit(number, digit)
@@ -258,11 +258,11 @@ contains
     !!< Digits are counted from the RIGHT.
     integer :: nth_digit
     integer, intent(in) :: number, digit
-    
+
     ! The divisions strip the trailing digits while the mod strips the
     ! leading digits.
     nth_digit=mod(abs(number)/10**(digit-1), 10)
-    
+
   end function nth_digit
 
   pure function count_chars(string, sep)
@@ -362,7 +362,7 @@ contains
     !!< Count number of digits in i.
 
     integer, intent(in) :: i
-    integer :: int2str_len 
+    integer :: int2str_len
 
     if(i==0) then
        int2str_len=1
@@ -391,27 +391,27 @@ contains
     logical :: starts_with
 
     character(len=*), intent(in):: string, start
-  
+
     if (len(start)>len(string)) then
       starts_with=.false.
-    else 
+    else
       starts_with= string(1:len(start))==start
     end if
-  
+
   end function starts_with
-  
+
   subroutine tokenize(string, tokens, delimiter)
     !!< Split the supplied string with the supplied delimiter. tokens is
     !!< allocated by this routine. Note that the whole of string is parsed and
     !!< compared with the whole of delimiter - it is the callers responsibility
     !!< to do any necessary trimming.
-    
+
     character(len = *), intent(in) :: string
     character(len = *), dimension(:), allocatable, intent(out) :: tokens
     character(len = *), intent(in) :: delimiter
-       
+
     integer :: end_index, i, tokens_size, start_index
-          
+
     tokens_size = 1
     do i = 1, len(string) - len(delimiter) + 1
       if(string(i:i + len(delimiter) - 1) == delimiter) then
@@ -419,7 +419,7 @@ contains
       end if
     end do
     allocate(tokens(tokens_size))
-   
+
     start_index = 1
     end_index = -len(delimiter)
     do i = 1, tokens_size
@@ -433,7 +433,7 @@ contains
       tokens(i) = adjustl(tokens(i))
     end do
     assert(start_index == len(string) + 1 + len(delimiter))
-    
+
   end subroutine tokenize
-  
+
 end module futils

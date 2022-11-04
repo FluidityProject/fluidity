@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -53,7 +53,7 @@ module dqmom
   real, save     :: fields_min = 1.0e-11
   !! TODO:
   !! 1. Make the algorithm work for multiple phases and make sure it works for
-  !!    several pop_balances - currently works for only one population balance 
+  !!    several pop_balances - currently works for only one population balance
   !! 2. Make check_options run
   !! 3. Check all prognostic fields are identical (possible bar initial conditions)
   !! 4. Check prognostic Source terms are set to diagnostic, Internal
@@ -71,13 +71,13 @@ contains
     type(scalar_field), pointer, intent(out) :: item
     integer, intent(out), optional :: stat
     logical, intent(in), optional :: iterated
-    
+
     character(len=FIELD_NAME_LEN) :: name
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
 
     call get_pop_option_path(state, i_pop, option_path)
     call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field -&
-         1)//']/name', name) 
+         1)//']/name', name)
     if (present(iterated)) then
        if (iterated) then
           name = 'Iterated'//trim(name)
@@ -90,7 +90,7 @@ contains
 
     type(state_type), intent(in) :: state
     integer, intent(in) :: i_pop
-    character(len=OPTION_PATH_LEN), intent(out) :: option_path 
+    character(len=OPTION_PATH_LEN), intent(out) :: option_path
 
     option_path = trim(state%option_path)//'/population_balance'
     if (option_count(option_path) > 1) then
@@ -105,7 +105,7 @@ contains
     type(state_type), intent(in), dimension(:) :: states
 
     integer :: i_state, i_pop
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
 
     do i_state = 1, option_count("/material_phase")
        do i_pop = 1, option_count(trim(states(i_state)%option_path)//&
@@ -126,7 +126,7 @@ contains
 
     ! Algorithm for calculating abscissa and weights from the moment of a distribution
     ! See Gordon 1968 and Mcgraw 1997
-   
+
     type(state_type), intent(in) :: state
     integer, intent(in) :: i_pop
 
@@ -167,7 +167,7 @@ contains
        call initialise_field_over_regions(moments(i_field)%ptr, &
             trim(moments(i_field)%ptr%option_path)//'/diagnostic/initial_condition', position)
     end do
-    
+
     do i_field = 1, n_abscissa
        ! collect weighted_abscissa and weight fields and zero
        type = 'weights'
@@ -186,13 +186,13 @@ contains
        alpha = 0.0
        e_vectors = 0.0
        e_values = 0.0
-       
+
        ! Construct P matrix
        P(1,1) = 1.0
        ! set the zero'th moment to 1.0 for the purposes of finding the abscissa
        ! weights will be multiplied by the zero'th moment later to obtain their correct
        ! values
-       P(1,2) = 1.0       
+       P(1,2) = 1.0
        do i = 2, 2*n_abscissa
           P(i,2) = (-1)**(i-1)*(node_val(moments(i)%ptr, i_node)/node_val(moments(1)%ptr, i_node))
        end do
@@ -214,7 +214,7 @@ contains
           Jac(i, i+1) = ((alpha(2*i + 1)*alpha(2*i))**2.0)**0.25
           Jac(i+1, i) = ((alpha(2*i + 1)*alpha(2*i))**2.0)**0.25
        end do
-       
+
        ! Calculate eigenvalues and eigenvectors
        call eigendecomposition_symmetric(Jac, e_vectors, e_values, stat)
        if (stat /= 0) then
@@ -228,11 +228,11 @@ contains
           call set(weighted_abscissa(i_field)%ptr, i_node, &
                node_val(weights(i_field)%ptr, i_node) * e_values(i_field))
        end do
-       
+
     end do
 
     deallocate(moments, weighted_abscissa, weights, P, Jac, alpha, e_vectors, e_values)
-    
+
   end subroutine dqmom_PD_algorithm
 
   subroutine dqmom_calculate_abscissa(states)
@@ -242,10 +242,10 @@ contains
     type(scalar_field), pointer :: abscissa, weight, weighted_abscissa
     type(scalar_field) :: inv_weight
     integer :: i_state, i_pop, i_abscissa
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
     character(len=FIELD_NAME_LEN) :: type
-    
-    ewrite(1, *) "In dqmom_calculate_abscissa" 
+
+    ewrite(1, *) "In dqmom_calculate_abscissa"
     do i_state = 1, option_count("/material_phase")
        do i_pop = 1, option_count(trim(states(i_state)%option_path)//'/population_balance')
           call get_pop_option_path(states(i_state), i_pop, option_path)
@@ -318,7 +318,7 @@ contains
   subroutine dqmom_calculate_source_terms(states, it)
 
     type(state_type), dimension(:), intent(inout) :: states
-    integer, intent(in) :: it    
+    integer, intent(in) :: it
 
     integer :: i_state, i_pop, cont_state = -1
     character(len=FIELD_NAME_LEN) :: cont_state_name
@@ -363,7 +363,7 @@ contains
     type(scalar_field) :: dummy_scalar
     real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
     integer :: i_pop, N, i, j, stat, i_node
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
     character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
     logical :: have_D = .false.
     logical :: have_growth = .FALSE.
@@ -390,7 +390,7 @@ contains
        ! get source fields (note this is the weighted abscissa source not the abscissa source)
        s_weight(i)%ptr => extract_scalar_field(state, trim(weight(i)%ptr%name)//'Source')
        call get_option(trim(option_path)//'/weighted_abscissa/scalar_field['// &
-            int2str(i - 1)//']/name', field_name) 
+            int2str(i - 1)//']/name', field_name)
        s_weighted_abscissa(i)%ptr => extract_scalar_field(state, trim(field_name)//'Source')
        call zero(s_weight(i)%ptr)
        call zero(s_weighted_abscissa(i)%ptr)
@@ -400,7 +400,7 @@ contains
        call get_option(trim(weight(i)%ptr%option_path)// &
             '/prognostic/temporal_discretisation/theta', theta)
        ! do not recalculate source terms if theta = 0.0 after first non-linear iteration
-       if ((theta == 0.0) .and. (it /= 1)) then 
+       if ((theta == 0.0) .and. (it /= 1)) then
           return
        end if
        call allocate(r_abscissa(i), abscissa(i)%ptr%mesh, &
@@ -411,8 +411,8 @@ contains
        call addto(r_abscissa(i), abscissa(i)%ptr, 1.0-theta)
        call set(r_weight(i), it_weight(i)%ptr)
        call scale(r_weight(i), theta)
-       call addto(r_weight(i), weight(i)%ptr, 1.0-theta)       
-    end do    
+       call addto(r_weight(i), weight(i)%ptr, 1.0-theta)
+    end do
 
     call allocate(dummy_scalar, r_abscissa(1)%mesh, name="DummyScalar")
 
@@ -464,16 +464,16 @@ contains
              FLAbort("I can't find the Turbulent Dissipation field of continuous phase for population balance aggregation term calculations.")
           end if
           if (have_option(trim(states(cont_state)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-             viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)  
+             viscosity_continuous => extract_tensor_field(states(cont_state), "BackgroundViscosity", stat=stat)
              if (stat/=0) then
                 FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
              end if
-          else 
+          else
              viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
              if (stat/=0) then
                 FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
              end if
-          end if 
+          end if
        end if
     else
        have_aggregation = .FALSE.
@@ -505,7 +505,7 @@ contains
                 if (stat/=0) then
                    FLAbort("I can't find the Background Viscosity field in k-epsilon for continuous phase for population balance aggregation term calculations.")
                 end if
-             else 
+             else
                 viscosity_continuous => extract_tensor_field(states(cont_state), "Viscosity", stat=stat)
                 if (stat/=0) then
                    FLAbort("I can't find the Viscosity field for continuous phase for population balance aggregation term calculations.")
@@ -521,7 +521,7 @@ contains
        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/laakkonen_2007')) then
           breakage_dist_type = 'laakkonen_2007'
        end if
-   
+
     else
        have_breakage = .FALSE.
     end if
@@ -530,7 +530,7 @@ contains
     call get_option(trim(option_path)//'/ill_conditioned_matrices/required_condition_number', cond)
     if (have_option(trim(option_path)//'/ill_conditioned_matrices/set_source_to_zero')) then
        singular_option = 'set_source_to_zero';
-    else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then 
+    else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then
        singular_option = 'perturbate';
        call get_option(trim(option_path)//'/ill_conditioned_matrices/perturbate/perturbation', perturb_val)
     else if (have_option(trim(option_path)//'/ill_conditioned_matrices/do_nothing')) then
@@ -545,9 +545,9 @@ contains
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, C5, &
                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, &
-                &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)       
+                &turbulent_dissipation, viscosity_continuous, X, singular_option, perturb_val, cond, i)
     end do
-    
+
     ! for non-DG we apply inverse mass globally
     if(continuity(r_abscissa(1))>=0) then
        if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')) then
@@ -570,7 +570,7 @@ contains
                      &/node_val(lumped_mass,i))
              end do
           end do
-       else 
+       else
           FLAbort("Check the .flml file. You must specify an option under 'population_balance/adv_diff_source_term_interpolation'")
        end if
     end if
@@ -591,7 +591,7 @@ contains
 
           call get_option(trim(option_path)//'/weighted_abscissa/scalar_field['// &
             int2str(i - 1)//']/name', field_name)
-          a_weighted_abscissa(i)%ptr => extract_scalar_field(state, trim(field_name)//'Absorption', stat)    
+          a_weighted_abscissa(i)%ptr => extract_scalar_field(state, trim(field_name)//'Absorption', stat)
           if (stat/=0) then
              FLAbort("Absorption scalar field could not be extracted for population balance weighted_abscissa. How can I apply the source as absorption now!")
           end if
@@ -632,7 +632,7 @@ contains
 
     end if
 
-    ! S = S_c + S_p phi_p. If S is positive, S=S_c otherwise S=S_p phi_p. This makes sure that the scalar remains non-negative. 
+    ! S = S_c + S_p phi_p. If S is positive, S=S_c otherwise S=S_p phi_p. This makes sure that the scalar remains non-negative.
     ! See Pg 145 Numerical Heat Transfer and Fluid Flow by Suhas V. Patankar
     if(have_option(trim(option_path)//'/apply_source_as_absorption_for_negative_source_only')) then
        do i =1, N
@@ -668,7 +668,7 @@ contains
                    call set(a_weighted_abscissa(i)%ptr, i_node, -1.0*node_val(s_weighted_abscissa(i)%ptr, i_node)*(1./node_val(dummy_scalar, i_node)))
                 else
                    call set(a_weighted_abscissa(i)%ptr, i_node, -1.0*node_val(s_weighted_abscissa(i)%ptr, i_node)*(1./fields_min))
-                end if 
+                end if
                 call set(s_weighted_abscissa(i)%ptr, i_node, 0.0)
              end if
           end do
@@ -725,7 +725,7 @@ contains
     real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val, C5
     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
     character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
-    
+
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: A_3
@@ -754,7 +754,7 @@ contains
     real :: sigma, density_continuous, density_dispersed
 
     N = size(abscissa)
-    
+
     nodes => ele_nodes(abscissa(1), ele)
     shape => ele_shape(abscissa(1), ele)
 
@@ -762,7 +762,7 @@ contains
 
     ! construct A matrices (lhs knowns)
     do i = 1, N
-       abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)       
+       abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)
     end do
     A = A_matrix(abscissa_val_at_quad)
 
@@ -787,7 +787,7 @@ contains
        C = 0.0
     end if
 
-    ! initialize dqmom source term to zero 
+    ! initialize dqmom source term to zero
     S_rhs = 0.0
 
     ! construct S vector (rhs pt.3) for GROWTH term
@@ -811,7 +811,7 @@ contains
     end if
 
     ! construct S vector for BREAKAGE
-    
+
     if (have_breakage) then
        if (breakage_freq_type=='constant_breakage') then
           break_freq = breakage_freq_const
@@ -824,7 +824,7 @@ contains
           density_dispersed = 1.205
           sigma = 0.072
           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
-          ! Assuming isotropic molecular viscosity here   
+          ! Assuming isotropic molecular viscosity here
           allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
           do i = 1, N
@@ -836,7 +836,7 @@ contains
        if (breakage_dist_type=='symmetric_fragmentation') then
           do i = 1, 2*N
              do j = 1, N
-                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))   
+                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))
              end do
           end do
        else if (breakage_dist_type=='mcCoy_madras_2003') then
@@ -853,7 +853,7 @@ contains
           end do
        end if
 
-       do i = 1, 2*N 
+       do i = 1, 2*N
           do j = 1, N
              ! birth term due to breakage
              S_rhs(:,i) = S_rhs(:,i) + break_freq(:,j)*ele_val_at_quad(weight(j), ele)*moment_daughter_dist_func(:,i,j)   ! daughter distribution function already includes the factor for number of particles formed after breakage
@@ -863,7 +863,7 @@ contains
        end do
     endif
 
-    
+
     !!! construct S vector for AGGREGATION
     if (have_aggregation) then
        if (aggregation_freq_type=='constant_aggregation') then
@@ -884,7 +884,7 @@ contains
           density_continuous = 998.2
           sigma = 0.072
           eps_ngi = ele_val_at_quad(turbulent_dissipation,ele)
-          ! Assuming isotropic molecular viscosity here   
+          ! Assuming isotropic molecular viscosity here
           allocate(visc_ngi(ele_ngi(abscissa(1), ele), viscosity_continuous%dim(1), viscosity_continuous%dim(1)))
           visc_ngi = ele_val_at_quad(viscosity_continuous,ele)
           do i = 1, N
@@ -922,7 +922,7 @@ contains
              do j = 1, 2*N
                 A(i,j,j) = 1.0
              end do
-          end if    
+          end if
        end do
     else if (singular_option=='do_nothing') then
        do i = 1, ele_ngi(abscissa(1), ele)
@@ -948,11 +948,11 @@ contains
 
     ! solve linear system to find source values for weights and weighted-abscissa equations
     do i = 1, ele_ngi(abscissa(1), ele)
-       b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)   
+       b(:,1) = matmul(A_3(i,:,:), C(i,:)) + S_rhs(i,:)
        call dqmom_solve(A(i,:,:), b, stat)
        weight_S_at_quad(i,:) = b(:N,1)
        abscissa_S_at_quad(i,:) = b(N+1:,1)
-    end do    
+    end do
 
     ! In the DG case we apply the inverse mass locally.
     invmass = inverse(shape_shape(shape, shape, detwei))
@@ -978,7 +978,7 @@ contains
     real, dimension(size(abscissa,1), size(abscissa,2)*2, size(abscissa,2)*2) :: A_matrix
     integer :: i, j, N
 
-    N = size(abscissa,2)        
+    N = size(abscissa,2)
     do i = 1, 2*N
        do j = 1, N
           A_matrix(:,i,j) = (2-i)*abscissa(:,j)**(i-1)
@@ -1000,7 +1000,7 @@ contains
     integer, dimension(size(A,1)) :: ipiv
     integer :: info
 
-    interface 
+    interface
 #ifdef DOUBLEP
        SUBROUTINE DGESV( N, NRHS, A, LDA, IPIV, B, LDB, INFO )
          INTEGER :: INFO, LDA, LDB, N, NRHS
@@ -1025,8 +1025,8 @@ contains
 #else
     call sgesv(&
 #endif
-    size(A,1), size(b,2), Atmp, size(A,1), ipiv, b, size(b,1), info) 
-    
+    size(A,1), size(b,2), Atmp, size(A,1), ipiv, b, size(b,1), info)
+
     if (present(stat)) then
        stat = info
     end if
@@ -1040,9 +1040,9 @@ contains
     type(scalar_field), pointer :: abscissa, weight, moment
     type(scalar_field) :: work
     integer :: i_pop, N, i_moment, i_abscissa, i
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
     character(len=FIELD_NAME_LEN) :: type
-    
+
     ewrite(1, *) "In dqmom_calculate_moments"
     do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
        call get_pop_option_path(state, i_pop, option_path)
@@ -1082,15 +1082,15 @@ contains
     type(scalar_field), pointer :: stats
     integer :: i_pop, N, i, j, i_stat
     real :: mean, std, scaling_factor_Dia
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
     character(len=FIELD_NAME_LEN) :: type
-    
+
     ewrite(1, *) "In dqmom_calculate_statistics"
     do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
        call get_pop_option_path(state, i_pop, option_path)
 
        if (option_count(trim(option_path)//'/statistics/scalar_field') > 0) then
-          
+
           N = option_count(trim(option_path)//'/moments/scalar_field')
           allocate(moments(N))
           do i = 1, N
@@ -1131,7 +1131,7 @@ contains
                 if (have_option(trim(option_path)//'/scaling_factor_Dia')) then
                    call get_option(trim(option_path)//'/scaling_factor_Dia', scaling_factor_Dia)
                 else
-                   scaling_factor_Dia=1.0 
+                   scaling_factor_Dia=1.0
                 end if
                 do j = 1, node_count(stats)
                    call set(stats, j, scaling_factor_Dia*(node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j)) )
@@ -1163,10 +1163,10 @@ contains
   subroutine dqmom_check_options
 
 !    type(state_type), intent(in) :: state
-    
+
     integer :: i_pop, i_state, i_field, stat
     integer :: n_abscissa, n_weights, n_weighted_abscissa, n_moments, n_statistics
-    character(len=OPTION_PATH_LEN) :: option_path 
+    character(len=OPTION_PATH_LEN) :: option_path
     character(len=FIELD_NAME_LEN)  :: old_msh, amsh, wmsh, wamsh, mmsh, smsh, type
 
     ewrite(1,*) 'in dqmom_check_options'
@@ -1188,26 +1188,26 @@ contains
           n_moments = option_count(trim(option_path)//'/moments/scalar_field')
           if((n_moments / 2) /= n_abscissa) then
              FLExit("The number of moments must be twice the number of abscissas in the population balance solver")
-          end if       
+          end if
 
           ! Need to check that all fields are on the same mesh
-    
+
           type='abscissa'
           do i_field = 1, n_abscissa
              call get_option(trim(option_path)//'/'//trim(type)//'/scalar_field['//int2str(i_field - 1)//']/diagnostic/mesh/name', amsh, stat)
              if (stat /= 0) then
                 FLExit("Abscissa scalar field must be diagnostic in population balance solver")
              else
-                if (i_field==1) then 
+                if (i_field==1) then
                    old_msh=amsh
-                else 
+                else
                    if (trim(amsh)/=trim(old_msh)) then
                       FLExit("All abscissas must be on the same mesh")
                    else
                       old_msh=amsh
                    end if
                 end if
-             end if  
+             end if
           end do
 
           type='weights'
@@ -1218,14 +1218,14 @@ contains
              else
                 if (i_field==1) then
                    old_msh=wmsh
-                else                
+                else
                    if (trim(wmsh)/=trim(old_msh)) then
                       FLExit("All weights must be on the same mesh")
                    else
                       old_msh=wmsh
                    end if
                 end if
-             end if             
+             end if
           end do
 
           type='weighted_abscissa'
@@ -1262,7 +1262,7 @@ contains
                    end if
                 end if
              end if
-          end do          
+          end do
 
           n_statistics = option_count(trim(option_path)//'/statistics/scalar_field')
           type='statistics'
@@ -1281,7 +1281,7 @@ contains
                    end if
                 end if
              end if
-          end do        
+          end do
 
           if (n_statistics == 0) then
              smsh = amsh

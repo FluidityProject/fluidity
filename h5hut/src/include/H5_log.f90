@@ -10,7 +10,7 @@
 
      !> \addtogroup h5_log_f
      !! @{
-     
+
      !>
      !! Set verbosity level to \c level.
      !!
@@ -44,7 +44,7 @@
 
      !> \addtogroup h5_debug_fvalue
      !! @{
-     
+
      !>
      !! Set debug mask. The debug mask is an or'ed value of
      !!

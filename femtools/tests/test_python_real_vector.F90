@@ -1,5 +1,5 @@
 !    Copyright (C) 2006-2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -38,7 +38,7 @@ subroutine test_python_real_vector
   logical :: fail
   real, dimension(:), pointer :: result
   integer :: stat
-  
+
   call real_vector_from_python(&
        "def val(t): return (1.0, 2.0, 3.0, 4.0)", 0.0,  result, stat)
 
@@ -48,7 +48,7 @@ subroutine test_python_real_vector
        "python and fortran should produce the same answer.")
 
   deallocate(result, stat=stat)
-  
+
   call report_test("[test_python_real_vector deallocate]", fail, .false., &
        "failed to deallocate result vector")
 

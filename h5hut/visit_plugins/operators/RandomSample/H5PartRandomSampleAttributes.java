@@ -16,7 +16,7 @@ import llnl.visit.Plugin;
 // Creation:   Thu Mar 16 10:26:56 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 public class H5PartRandomSampleAttributes extends AttributeSubject implements Plugin
@@ -73,4 +73,3 @@ public class H5PartRandomSampleAttributes extends AttributeSubject implements Pl
     // Attributes
     private float factor;
 }
-

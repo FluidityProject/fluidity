@@ -275,12 +275,12 @@ _write_file (
 		myproc, fname );
         h5_file_t file = H5OpenFile (fname, H5_O_WRONLY, H5_PROP_DEFAULT);
         H5SetStep (file, 0);
-	
+
 	_write_data (file, myproc, layout);
 	_write_attributes (file, myproc);
-	
+
 	H5CloseFile (file);
-	
+
 	return H5_SUCCESS;
 }
 
@@ -346,7 +346,7 @@ _read_attributes (
 	MPI_Comm comm
 	) {
 	h5_int64_t timestep = 0;
-	
+
 	H5SetStep (f, timestep);
 
 	char sval[16];
@@ -457,7 +457,7 @@ _read_file (
         _read_attributes (file, myproc, comm);
 
 	H5CloseFile (file);
-	
+
 	return H5_SUCCESS;
 }
 

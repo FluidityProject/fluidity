@@ -953,7 +953,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="code" language="python" lines="20">def val(X,t):              
+            <string_value type="code" language="python" lines="20">def val(X,t):
   import numpy
   import csv
   import interpolate

@@ -39,37 +39,37 @@ scalar_source_field_1 = source_field_1
 scalar_source_field_1 &=
    (
       attribute source_field_1_type { "scalar" }
-      
+
    )
 scalar_source_field_2 = source_field_2
 scalar_source_field_2 &=
    (
       attribute source_field_2_type { "scalar" }
-      
+
    )
 vector_source_field_1 = source_field_1
 vector_source_field_1 &=
    (
       attribute source_field_1_type { "vector" }
-      
+
    )
 vector_source_field_2 = source_field_2
 vector_source_field_2 &=
    (
       attribute source_field_2_type { "vector" }
-      
+
    )
 tensor_source_field_1 = source_field_1
 tensor_source_field_1 &=
    (
       attribute source_field_1_type { "tensor" }
-      
+
    )
 tensor_source_field_2 = source_field_2
 tensor_source_field_2 &=
    (
       attribute source_field_2_type { "tensor" }
-      
+
    )
 component_source_field_1 = source_field_1
 component_source_field_1 &=
@@ -79,7 +79,7 @@ component_source_field_1 &=
       ## Otherwise, uses a scalar field as a source field.
       element source_field_1_component {
          integer
-      }?      
+      }?
    )
 component_source_field_2 = source_field_2
 component_source_field_2 &=
@@ -89,7 +89,7 @@ component_source_field_2 &=
       ## Otherwise, uses a scalar field as a source field.
       element source_field_2_component {
          integer
-      }?      
+      }?
    )
 
 internal_algorithm =
@@ -181,7 +181,7 @@ internal_velocity_absorption_algorithm =
          attribute material_phase_support { "multiple" }
       }
    )
-   
+
 # Simple equality algorithms
 scalar_copy_algorithm =
    (
@@ -496,12 +496,12 @@ tensor_difference_algorithm =
             comment
          }?
       }
-   ) 
-   
+   )
+
 
 # Time aggregated diagnostics
 
-# Temporal maximum diagnostic algorithm for scalar fields. 
+# Temporal maximum diagnostic algorithm for scalar fields.
 scalar_temporalmax_algorithm =
    (
       ## temporalmax (scalar source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
@@ -514,7 +514,7 @@ scalar_temporalmax_algorithm =
         element spin_up_time {
                real
         }?,
-        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing.
         element initial_condition {
             attribute name { "WholeMesh" },
             input_choice_initial_condition_real
@@ -533,7 +533,7 @@ vector_temporalmax_algorithm =
         element spin_up_time {
                real
         }?,
-        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing.
         element initial_condition {
             attribute name { "WholeMesh" },
             input_choice_initial_condition_real
@@ -553,7 +553,7 @@ temporalmin_algorithm =
         element spin_up_time {
                real
         }?,
-        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing.
         element initial_condition {
             attribute name { "WholeMesh" },
             input_choice_initial_condition_real
@@ -766,7 +766,7 @@ hessian_algorithm =
          attribute material_phase_support { "single "},
          scalar_source_field
       }
-   ) 
+   )
 # Surface diagnostics
 grad_normal_algorithm =
    (
@@ -866,11 +866,11 @@ projection_scalar_potential_algorithm =
                }?
             },
             ## Use a continuous Galerkin discretisation
-            element continuous_galerkin {     
+            element continuous_galerkin {
                ## Integrate the divergence operator by parts
                element integrate_divergence_by_parts {
                   comment
-               }?,    
+               }?,
                ## Remove the stabilisation term from the projection operator.
                ##
                ## Automatic when not using P1P1.
@@ -897,7 +897,7 @@ geostrophic_velocity_algorithm =
          attribute name { "geostrophic_velocity" },
          attribute material_phase_support { "single" },
          attribute depends { "Velocity" },
-         scalar_source_field,         
+         scalar_source_field,
          ## Options relating to the mass matrix
          element mass {
            galerkin_projection_mass_options?
@@ -928,7 +928,7 @@ bulk_viscosity_algorithm =
             ## Use an arithmetic mean (default):
             ##
             ##   \bar\nu = \alpha^i\nu^i
-            ##  
+            ##
             ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
             ## for material i and \nu^i is the viscosity of material i.
             element mean {
@@ -938,7 +938,7 @@ bulk_viscosity_algorithm =
             ## Use a harmonic mean:
             ##
             ##   1./\bar\nu = \alpha^i/\nu^i
-            ##  
+            ##
             ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
             ## for material i and \nu^i is the viscosity of material i.
             element mean {
@@ -948,7 +948,7 @@ bulk_viscosity_algorithm =
             ## Use a geometric mean:
             ##
             ##   \bar\nu = (\nu^i)^(\alpha^i)
-            ##  
+            ##
             ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
             ## for material i and \nu^i is the viscosity of material i.
             element mean {
@@ -960,7 +960,7 @@ bulk_viscosity_algorithm =
    )
 sediment_concentration_dependent_viscosity_algorithm =
    (
-       ## Effective viscosity is affected by sediment concentration. This 
+       ## Effective viscosity is affected by sediment concentration. This
        ## algorithm computes the viscosity based upon the combined concentrations
        ## of the sediment fields and the zero concentration viscosity
        ##
@@ -1034,9 +1034,9 @@ element_universal_numbering_algorithm =
    )
 
 # Python diagnostics
-scalar_python_diagnostic_algorithm = 
+scalar_python_diagnostic_algorithm =
    (
-      ## Algorithm for the diagnostic value coded in Python. 
+      ## Algorithm for the diagnostic value coded in Python.
       ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
       ## and 'tensor_fields';
       ## 'field' is the diagnostic field to be set.
@@ -1059,9 +1059,9 @@ scalar_python_diagnostic_algorithm =
          }?
       }
    )
-vector_python_diagnostic_algorithm = 
+vector_python_diagnostic_algorithm =
    (
-      ## Algorithm for the diagnostic value coded in Python. 
+      ## Algorithm for the diagnostic value coded in Python.
       ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
       ## and 'tensor_fields';
       ## 'field' is the diagnostic field to be set.
@@ -1084,9 +1084,9 @@ vector_python_diagnostic_algorithm =
          }?
       }
    )
-tensor_python_diagnostic_algorithm = 
+tensor_python_diagnostic_algorithm =
    (
-      ## Algorithm for the diagnostic value coded in Python. 
+      ## Algorithm for the diagnostic value coded in Python.
       ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
       ## and 'tensor_fields';
       ## 'field' is the diagnostic field to be set.
@@ -1150,7 +1150,7 @@ eigenvalues_symmetric_algorithm =
    )
 
 # Tidal Harmonic Analysis algorithms
-free_surface_history_algorithm = 
+free_surface_history_algorithm =
    (
       ## Needed for the tidal harmonic algorithm.
       ## Implemented as a queue data structure.
@@ -1159,15 +1159,15 @@ free_surface_history_algorithm =
          attribute material_phase_support { "single" },
          attribute depends {"FreeSurface" },
          ## levels: Number of levels which should be saved in the history. Default value: 50
-         element levels { 
+         element levels {
                 integer
          }?,
          ## stride: number of timelvel skips before saving the next free surface field in the history. Default value: 5
-         element stride { 
-                integer 
+         element stride {
+                integer
          }?,
          ## spin_up time: Default value: 0
-         element spin_up_time { 
+         element spin_up_time {
                 real
          }?,
          ## How often to calculate the harmonics. Default is just before output dumps. You can set this
@@ -1190,7 +1190,7 @@ free_surface_history_algorithm =
 
 tidal_harmonic_algorithm =
    (
-      ## Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on in order to calculate the harmonics successfully. 
+      ## Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on in order to calculate the harmonics successfully.
       ##
       ## By setting averageFSLevel to ForceToZero, C0 is set to zero. Recommended is "Calculate"
       element algorithm {
@@ -1200,7 +1200,7 @@ tidal_harmonic_algorithm =
        attribute target { "Amplitude" | "Phase" },
        attribute averageFSLevel { "ForceToZero" | "Calculate" },
        (
-       ## Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. 
+       ## Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True.
        element constituent {
         attribute name { "C0" },
         element real_value {
@@ -1359,7 +1359,7 @@ tidal_harmonic_algorithm =
 
 # Multiphase diagnostic algorithms
 
-particle_reynolds_number_algorithm = 
+particle_reynolds_number_algorithm =
    (
       ## Diagnostic algorithm used in multiphase simulations.
       ## Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
@@ -1383,7 +1383,7 @@ particle_reynolds_number_algorithm =
       }
    )
 
-apparent_density_algorithm = 
+apparent_density_algorithm =
    (
       ## Diagnostic algorithm used in multiphase flow simulations.
       ## Calculates the apparent density of the material_phase,
@@ -1408,7 +1408,7 @@ l2norm_algorithm =
    )
 
 # Mesh
-   
+
 region_id_algorithm =
    (
       ## Convert the region_ids to a field. This field must be on a P0 mesh
@@ -1459,9 +1459,9 @@ mesh_quality_algorithm =
 	  element quality_function{ attribute name{"aspect_frobenius" } }|
 	  element quality_function{ attribute name{"edge_ratio" } }|
 	  element quality_function{ attribute name{"condition" } }|
-          element quality_function{ attribute name{"min_angle" } }|		
+          element quality_function{ attribute name{"min_angle" } }|
           element quality_function{ attribute name{"max_angle" } }|
-          element quality_function{ attribute name{"shape" } }|		
+          element quality_function{ attribute name{"shape" } }|
           element quality_function{ attribute name{"shape_and_size" } }|
 	  element quality_function{ attribute name{"area_or_volume"} }
 	)
@@ -1478,7 +1478,7 @@ viscous_dissipation_algorithm =
    )
 
 # Mass matrix
-   
+
 finite_element_lumped_mass_matrix =
    (
       ## The finite element lumped mass matrix.
@@ -1487,7 +1487,7 @@ finite_element_lumped_mass_matrix =
         attribute material_phase_support { "single" }
       }
    )
-   
+
 control_volume_mass_matrix =
    (
       ## The control volume mass matrix.
@@ -1519,9 +1519,9 @@ scalar_time_averaged_algorithm =
    )
 
 
-scalar_period_averaged_algorithm = 
+scalar_period_averaged_algorithm =
    (
-      ## Algorithm for calulating an average of a scalar field over 
+      ## Algorithm for calulating an average of a scalar field over
       ## a set period, e.g. daily
       ## Note that we assume the simulation starts at zero for the
       ## averaging period,
@@ -1589,7 +1589,7 @@ vector_scalar_time_averaged_algorithm =
 
 # surface algorithm
 
-surface_horizontal_divergence_algorithm = 
+surface_horizontal_divergence_algorithm =
    (
       ## Algorithm calculates the horizontally restricted divergence of
       ## a horizontal vector living on the specified surface.
@@ -1609,8 +1609,8 @@ subtract_average_algorithm =
       ## of the resulting diagnostic field is therefore zero.
       ##
       ## This is useful for fields that are only defined up to a constant. During
-      ## their solve it is typically best to remove this freedom by using the 
-      ## "remove_null_space" option (which effectively introduces a mesh dependent 
+      ## their solve it is typically best to remove this freedom by using the
+      ## "remove_null_space" option (which effectively introduces a mesh dependent
       ## constraint on the sum of the nodal values). For diagnostic purposes however,
       ## it may be useful to impose the more natural constraint that the integrated
       ## average is zero.
@@ -1623,12 +1623,12 @@ subtract_average_algorithm =
 
 subtract_point_value_algorithm =
    (
-      ## Algorithm that subtracts the scalar field value in a certain point 
+      ## Algorithm that subtracts the scalar field value in a certain point
       ## from that same field. The resulting diagnostic field will therefore be zero in that point.
       ##
       ## This is useful for fields that are only defined up to a constant. It is similar
       ## to pinning using a reference node during the solve, except it is only imposed afterwards.
-      ## This can be useful because during the solve it is typically better to pin the 
+      ## This can be useful because during the solve it is typically better to pin the
       ## arbitrary constant with the "remove_null_space" option instead.
       element algorithm {
          attribute name { "subtract_point_value" },
@@ -1643,14 +1643,14 @@ subtract_point_value_algorithm =
 
 subtract_surface_average_algorithm =
    (
-      ## Algorithm that subtracts the surface average from a scalar field. The 
+      ## Algorithm that subtracts the surface average from a scalar field. The
       ## surface integral of the resulting diagnostic field is therefore zero.
       ##
       ## This is useful for fields that are only defined up to a constant. During
-      ## their solve it is typically best to remove this freedom by using the 
-      ## "remove_null_space" option (which effectively introduces a mesh dependent 
+      ## their solve it is typically best to remove this freedom by using the
+      ## "remove_null_space" option (which effectively introduces a mesh dependent
       ## constraint on the sum of the nodal values). For diagnostic purposes however,
-      ## it may be useful to impose a more natural constraint such as the surface 
+      ## it may be useful to impose a more natural constraint such as the surface
       ## integral being zero.
       element algorithm {
          attribute name { "subtract_surface_average" },

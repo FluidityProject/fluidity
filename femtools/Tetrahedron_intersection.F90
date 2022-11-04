@@ -105,7 +105,7 @@ module tetrahedron_intersection_module
 #else
     tet_cnt = 1
     tet_array(1) = tetA
-    
+
     do i=1,size(planesB)
       ! Clip the tet_array against the i'th plane
       tet_cnt_tmp = 0
@@ -406,7 +406,7 @@ module tetrahedron_intersection_module
     edge30 = tet%V(:, 4) - tet%V(:, 1);
     edge21 = tet%V(:, 3) - tet%V(:, 2);
     edge31 = tet%V(:, 4) - tet%V(:, 2);
- 
+
     plane(1)%normal = unit_cross(edge20, edge10)
     plane(2)%normal = unit_cross(edge10, edge30)
     plane(3)%normal = unit_cross(edge30, edge20)

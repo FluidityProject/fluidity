@@ -57,4 +57,3 @@ void F77_FUNC_(ele_get_ele,ELE_GET_ELE)(int* i, int* ele)
     }
   }
 }
-

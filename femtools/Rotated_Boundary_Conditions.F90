@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ public :: have_rotated_bcs, create_rotation_matrix, rotate_momentum_equation,&
      rotate_ct_m, rotate_velocity, rotate_velocity_back
 
 contains
-  
+
   function have_rotated_bcs(u)
 
     type(vector_field), intent(in):: u
@@ -74,7 +74,7 @@ contains
     have_rotated_bcs=.false.
 
   end function have_rotated_bcs
-  
+
   subroutine create_rotation_matrix(rotation_m, u)
 
     type(petsc_csr_matrix), intent(out):: rotation_m
@@ -172,7 +172,7 @@ contains
     call assemble(rotation_m)
 
   end subroutine create_rotation_matrix
-    
+
   subroutine rotate_momentum_equation(big_m, rhs, u, state, dg)
 
     type(petsc_csr_matrix), intent(inout):: big_m
@@ -207,8 +207,8 @@ contains
     ! rotate rhs:
     ! need to have separate copy of the field, because of intent(out) and intent(in)
     ! of mult_T call, as result%val points at the same space as rhs%val, this directly
-    ! puts the result in rhs as well 
-    result=rhs 
+    ! puts the result in rhs as well
+    result=rhs
     call mult_T(result, rotation_m, rhs)
     if (dg) then
       ! We have just poluted the halo rows of the rhs. This is incorrect
@@ -232,7 +232,7 @@ contains
     end if
 
   end subroutine rotate_momentum_equation
-    
+
   subroutine rotate_ct_m(ct_m, u)
 
     type(block_csr_matrix), intent(inout):: ct_m
@@ -301,17 +301,17 @@ contains
     deallocate(node2rotated_node)
 
   end subroutine rotate_ct_m
-  
+
   subroutine rotate_velocity(vfield, state)
 
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
-    
+
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_m
     integer:: stat
-    
+
     rotation_m => extract_petsc_csr_matrix(state, "RotationMatrix", stat=stat)
     if (stat/=0) then
        allocate(rotation_m)
@@ -320,7 +320,7 @@ contains
        call create_rotation_matrix(rotation_m, u)
        call insert(state, rotation_m, "RotationMatrix")
     end if
-    
+
     result=vfield ! see note in rotate_momentum_equation
     call mult_T(result, rotation_m, vfield)
 
@@ -330,17 +330,17 @@ contains
     end if
 
   end subroutine rotate_velocity
-  
+
   subroutine rotate_velocity_back(vfield, state)
 
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
-    
+
     type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_m
     integer:: stat
-    
+
     rotation_m => extract_petsc_csr_matrix(state, "RotationMatrix", stat=stat)
     if (stat/=0) then
        allocate(rotation_m)
@@ -349,7 +349,7 @@ contains
        call create_rotation_matrix(rotation_m, u)
        call insert(state, rotation_m, "RotationMatrix")
     end if
-    
+
     result=vfield  ! see note in rotate_momentum_equation
     call mult(result, rotation_m, vfield)
 
@@ -359,5 +359,5 @@ contains
     end if
 
   end subroutine rotate_velocity_back
-  
+
 end module rotated_boundary_conditions

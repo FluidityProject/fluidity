@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -84,7 +84,7 @@ contains
 
   subroutine get_mesh_quality(positions, s_field, quality_measure)
     integer, intent(inout) :: quality_measure
-    type(vector_field), intent(in) :: positions 
+    type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: s_field
 
     assert(element_count(positions) == element_count(s_field))

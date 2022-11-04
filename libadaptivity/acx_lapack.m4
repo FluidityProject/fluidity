@@ -7,7 +7,7 @@ dnl hold the requisite library linkages.
 dnl
 dnl To link with LAPACK, you should link with:
 dnl
-dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS 
+dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS
 dnl
 dnl in that order.  BLAS_LIBS is the output variable of the ACX_BLAS
 dnl macro, called automatically.  FLIBS is the output variable of the
@@ -54,9 +54,9 @@ AC_ARG_WITH(lapack_dir,
 
 case $with_lapack_dir in
       yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir" 
+     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir"
 	      acx_lapack_dir="$with_lapack_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir" 
+      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir"
 	      acx_lapack_dir="-L$with_lapack_dir" ;;
 esac
 
@@ -96,7 +96,7 @@ if test $acx_lapack_ok = no; then
 if test "x$LAPACK_LIBS" != x; then
 	save_LIBS="$LIBS"; LIBS="$LAPACK_LIBS $LIBS"
 	AC_MSG_CHECKING([for $dsyev in $LAPACK_LIBS])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes; 
+	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes;
 	     acx_lapack_libs=$LAPACK_LIBS])
 	AC_MSG_RESULT($acx_lapack_ok)
 	LIBS="$save_LIBS"
@@ -105,7 +105,7 @@ fi
 
 # Intel MKL LAPACK?
 if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(mkl_lapack, $dsyev, 
+	AC_CHECK_LIB(mkl_lapack, $dsyev,
 	[acx_lapack_ok=yes; acx_lapack_libs="-lmkl_lapack"],
 	[],[])
 fi

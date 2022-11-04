@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -80,7 +80,7 @@ namespace Fluidity{
     * \return 0 on success, non-zero on failure
     */
   int WriteHalos(const std::string& filename, const unsigned int& process, const unsigned int& nprocs, const std::map<int, int>& npnodes, const std::map<int, std::vector<std::vector<int> > >& send, const std::map<int, std::vector<std::vector<int> > >& recv);
-  
+
   struct HaloData{
       int process, nprocs;
       std::map<int, int> npnodes;
@@ -94,7 +94,7 @@ extern Fluidity::HaloData* writeHaloData;
 extern "C"{
 #define cHaloReaderReset F77_FUNC(chalo_reader_reset, CHALO_READER_RESET)
   void cHaloReaderReset();
-  
+
 #define cHaloReaderSetInput F77_FUNC(chalo_reader_set_input, CHALO_READER_SET_INPUT)
   int cHaloReaderSetInput(char* filename, int* filename_len, int* process, int* nprocs);
 
@@ -104,17 +104,17 @@ extern "C"{
 #define cHaloReaderGetOutput F77_FUNC(chalo_reader_get_output, CHALO_READER_GET_OUTPUT)
   void cHaloReaderGetOutput(int* level, int* nprocs, int* nsends, int* nreceives,
     int* npnodes, int* send, int* recv);
-    
+
 #define cHaloWriterReset F77_FUNC(chalo_writer_reset, CHALO_WRITER_RESET)
   void cHaloWriterReset();
-  
+
 #define cHaloWriterInitialise F77_FUNC(chalo_writer_initialise, CHALO_WRITER_INITIALISE)
   void cHaloWriterInitialise(int* process, int* nprocs);
-  
+
 #define cHaloWriterSetInput F77_FUNC(chalo_writer_set_input, CHALO_WRITER_SET_INPUT)
   void cHaloWriterSetInput(int* level, int* nprocs, int* nsends, int* nreceives,
     int* npnodes, int* send, int* recv);
-  
+
 #define cHaloWriterWrite F77_FUNC(chalo_writer_write, CHALO_WRITER_WRITE)
   int cHaloWriterWrite(char* filename, int* filename_len);
 }

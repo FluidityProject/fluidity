@@ -1,5 +1,5 @@
 !    Copyright (C) 2006-2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -54,14 +54,14 @@ subroutine test_python_2d
 
   call set_from_python_function(T%val, &
        "def val(X,t): import math; return math.cos(X[0]*X[1])", X%val(1,:),&
-       & X%val(2,:), time=0.0) 
-  
+       & X%val(2,:), time=0.0)
+
   fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
   call report_test("[test_python 2D function values]", fail, .false., &
        "python and fortran should produce the same answer.")
 
 #ifdef HAVE_NUMPY
-  
+
   call allocate(Q, X%mesh, "Tensor")
 
   call set_from_python_function(Q, &
@@ -71,7 +71,7 @@ subroutine test_python_2d
 
   call report_test("[test_python 2D tensor field]", fail, .false., &
        "Tensor field value is set correctly.")
-  
+
 
 #endif
 #endif

@@ -7,7 +7,7 @@
   !  License: see file COPYING in top level of source distribution.
   !
   include 'H5hut.f90'
-  
+
   program query
     use H5hut
     implicit none
@@ -63,7 +63,7 @@
       write (*, '(T8, "Number of steps: ", I0)') n
 
       if (n > 0) then
-         ! go to first step 
+         ! go to first step
          i = 0;
          do
             if (h5_hasstep (file_id, i)) exit

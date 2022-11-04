@@ -77,13 +77,13 @@ subroutine test_conservative_interpolation
 
   do field=1,no_field
     call zero(fieldB(field))
-    
+
     call insert(stateA(1), fieldA(field), name=trim(fieldA(field)%name))
     call insert(stateB(1), fieldB(field), name=trim(fieldB(field)%name))
   end do
-  
+
   call interpolation_galerkin(stateA, positionsA, stateB, positionsB)
-  
+
   call deallocate(stateA(1))
   call deallocate(stateB(1))
 
@@ -103,16 +103,16 @@ subroutine test_conservative_interpolation
 
   do field=1,no_field
     call zero(fieldB(field))
-    
+
     call insert(stateA(1), fieldA(field), name=trim(fieldA(field)%name))
     call insert(stateB(1), fieldB(field), name=trim(fieldB(field)%name))
   end do
-  
+
   call interpolation_galerkin(stateA, positionsA, stateB, positionsB, force_bounded=.true.)
 
   call deallocate(stateA(1))
   call deallocate(stateB(1))
-  
+
   do field=1,no_field
     integralA = field_integral(fieldA(field), positionsA)
     integralB = field_integral(fieldB(field), positionsB)

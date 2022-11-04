@@ -40,11 +40,11 @@ using namespace std;
 // Invent a pressure mesh.
 void Mesh::invent_pressure_mesh(){
   ECHO("Inventing a pressure mesh.");
-  
+
   MFnode_list.clear();
-        
+
   // Generate a pressure mesh based on the velocity.
-  MFnode_list.expand( node_list.size() );      
+  MFnode_list.expand( node_list.size() );
   for(unsigned i=0; i<node_list.size(); i++){
     MFnode_list[i].set_unn( node_list[i].get_unn() );
     MFnode_list[i].set_gnn( node_list[i].get_gnn() );
@@ -52,16 +52,16 @@ void Mesh::invent_pressure_mesh(){
     MFnode_list[i].set_flags( node_list[i].get_flags() );
     MFnode_list[i].set_owner( node_list[i].get_current_owner() );
   }
-  
+
   for(ElementVector<Element>::iterator it = element_list.begin(); it != element_list.end(); ++it){
     if((*it).get_flags() & ELM_VOLUME)
       (*it).set_MFenlist( (*it).get_enlist() );
   }
-      
+
   shared_pnodes = shared_nodes;
   halo_pnodes   = halo_nodes;
-  
+
   assert( mesh_consistant() );
-  
+
   return;
 } // finished inventing pressure mesh

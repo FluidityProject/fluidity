@@ -21,7 +21,7 @@ program read_canonicalview
 
   ! H5hut verbosity level
   integer*8, parameter         :: h5_verbosity = H5_VERBOSE_DEFAULT
-  
+
   integer   :: comm_rank = 0
   integer*8 :: file, h5_ierror
   integer*8 :: num_particles

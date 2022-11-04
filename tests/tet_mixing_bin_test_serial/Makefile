@@ -4,7 +4,7 @@ MESH = cube
 default: input
 
 input: src/$(MESH).msh
-	cp src/$(MESH).msh . 
+	cp src/$(MESH).msh .
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

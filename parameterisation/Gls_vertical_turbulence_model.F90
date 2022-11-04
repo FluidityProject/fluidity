@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -51,7 +51,7 @@ module gls
 
   private
 
-  ! These variables are the parameters requried by GLS. 
+  ! These variables are the parameters requried by GLS.
   ! They are all private to prevent tampering
   ! and save'd so that we don't need to call init every time some GLS-y
   ! happens. These are *all* private
@@ -73,7 +73,7 @@ module gls
   real, save               :: ct1,ctt
   real, save               :: cc2,cc3,cc4,cc5,cc6
   real, save               :: ct2,ct3,ct4,ct5
-  real, save               :: cPsi1,cPsi2,cPsi3,cPsi3_plus,cPsi3_minus
+  real, save               :: cPsi1,cPsi2,cPsi3_plus,cPsi3_minus
   real, save               :: relaxation
 
 
@@ -89,7 +89,7 @@ module gls
 
   ! Switch for on sphere simulations to rotate the required tensors
   logical, save :: on_sphere
-  
+
   ! The following are the public subroutines
   public :: gls_init, gls_cleanup, gls_tke, gls_diffusivity, gls_psi, gls_adapt_mesh, gls_check_options
 
@@ -130,7 +130,7 @@ subroutine gls_init(state)
 
     ! Check if we're on the sphere
     on_sphere = have_option('/geometry/spherical_earth/')
-   
+
     ! populate some useful variables from options
     calculate_bcs = have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/")
     calc_fwall = .false.
@@ -140,7 +140,7 @@ subroutine gls_init(state)
     ! these lot are global
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity", relaxation, default=0.0)
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/stability_function", gls_stability_option)
-    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", gls_option)    
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", gls_option)
     ! there are lots of alternative formulae for this wall function, so let the
     ! user choose!
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/wall_function")) then
@@ -181,7 +181,7 @@ subroutine gls_init(state)
         sigma_psi = 1.0  ! turbulent Schmidt number
         cPsi1 = 1.44
         cPsi2 = 1.92
-        cPsi3_plus = 1.0 
+        cPsi3_plus = 1.0
         select case (trim(gls_stability_option))
         case ("KanthaClayson-94")
             cPsi3_minus = -0.41
@@ -201,14 +201,14 @@ subroutine gls_init(state)
         sigma_psi = 2.0  ! turbulent Schmidt number
         cPsi1 = 0.555
         cPsi2 = 0.833
-        cPsi3_plus = 1.0 
+        cPsi3_plus = 1.0
         select case (trim(gls_stability_option))
         case ("KanthaClayson-94")
             cPsi3_minus = -0.58
         case ("Canuto-01-A")
             cPsi3_minus = -0.64
         case ("Canuto-01-B")
-            cPsi3_minus = -0.61 
+            cPsi3_minus = -0.61
         case ("GibsonLaunder-78")
             cPsi3_minus = -0.4920
         end select
@@ -221,7 +221,7 @@ subroutine gls_init(state)
         sigma_psi = 1.07  ! turbulent Schmidt number
         cPsi1 = 1.0
         cPsi2 = 1.22
-        cPsi3_plus = 1.0 
+        cPsi3_plus = 1.0
         select case (trim(gls_stability_option))
         case ("KanthaClayson-94")
             cPsi3_minus = 0.1
@@ -234,7 +234,7 @@ subroutine gls_init(state)
         end select
         psi_min = 1.e-12
     case default
-        FLAbort("Unknown gls_option")           
+        FLAbort("Unknown gls_option")
     end select
 
     select case (trim(gls_stability_option))
@@ -277,7 +277,7 @@ subroutine gls_init(state)
          ct3 =  1.0000
          ct4 =  0.0000
          ct5 =  0.3333
-         ctt =  0.720     
+         ctt =  0.720
      case("GibsonLaunder-78")
          cc1 =  3.6000
          cc2 =  0.8000
@@ -292,7 +292,7 @@ subroutine gls_init(state)
          ct5 =  0.3333
          ctt =  0.8000
     case default
-        FLAbort("Unknown gls_stability_function") 
+        FLAbort("Unknown gls_stability_function")
     end select
 
     ! compute the a_i's for the Algebraic Stress Model
@@ -307,14 +307,14 @@ subroutine gls_init(state)
     at3 = 2. *   ( 1. - ct4)
     at4 = 2. *   ( 1. - ct5)
     at5 = 2.*ctt*( 1. - ct5)
-    
+
     ! compute cm0
     N   =  cc1/2.
     cm0 =  ( (a2**2. - 3.*a3**2. + 3.*a1*N)/(3.* N**2.) )**0.25
     cmsf  =   a1/N/cm0**3
     rad=sigma_psi*(cPsi2-cPsi1)/(gls_n**2.)
     kappa = 0.41
-    if (gls_option .ne. "k-kl") then    
+    if (gls_option .ne. "k-kl") then
         kappa=cm0*sqrt(rad)
     end if
     rcm  = cm0/cmsf
@@ -341,7 +341,7 @@ subroutine gls_init(state)
     end if
 
     call gls_init_diagnostics(state)
-    
+
     call gls_calc_wall_function(state)
 
     ! we're all done!
@@ -352,12 +352,11 @@ end subroutine gls_init
 !----------
 subroutine gls_tke(state)
 
-    type(state_type), intent(inout)  :: state 
-    
+    type(state_type), intent(inout)  :: state
+
     type(scalar_field), pointer      :: source, absorption, scalarField
     type(tensor_field), pointer      :: tke_diff, background_diff
     type(scalar_field), pointer      :: tke
-    real                             :: prod, buoyan, diss
     integer                          :: i, stat, ele
     character(len=FIELD_NAME_LEN)    :: bc_type
     type(scalar_field), pointer      :: scalar_surface
@@ -429,7 +428,7 @@ subroutine gls_tke(state)
     else
       call set(tke_diff,tke_diff%dim(1),tke_diff%dim(2),K_M,scale=1./sigma_k)
     end if
-    call addto(tke_diff,background_diff) 
+    call addto(tke_diff,background_diff)
 
     ! boundary conditions
     if (calculate_bcs) then
@@ -443,7 +442,7 @@ subroutine gls_tke(state)
         scalar_surface => extract_surface_field(tke, 'tke_top_boundary', "value")
         call remap_field(top_surface_values, scalar_surface)
     end if
-    
+
     ! finally, we need a copy of the old TKE for Psi, so grab it before we solve
     call set(tke_old,tke)
 
@@ -453,11 +452,11 @@ subroutine gls_tke(state)
     ! set source and absorption terms in optional output fields
     scalarField => extract_scalar_field(state, "GLSSource1", stat)
     if(stat == 0) then
-       call set(scalarField,source)  
+       call set(scalarField,source)
     end if
     scalarField => extract_scalar_field(state, "GLSAbsorption1", stat)
     if(stat == 0) then
-       call set(scalarField,absorption)  
+       call set(scalarField,absorption)
     end if
 
     contains
@@ -472,7 +471,7 @@ subroutine gls_tke(state)
         real, dimension(ele_loc(P,ele))                     :: rhs_addto_vel, rhs_addto_buoy
         type(element_type), pointer                         :: shape_p
         integer, pointer, dimension(:)                      :: nodes_p
-    
+
         nodes_p => ele_nodes(p, ele)
         shape_p => ele_shape(p, ele)
         call transform_to_physical( positions, ele, shape_p, dshape=dshape_p, detwei=detwei )
@@ -481,10 +480,10 @@ subroutine gls_tke(state)
         rhs_addto_vel = shape_rhs(shape_p, detwei*ele_val_at_quad(K_M,ele)*ele_val_at_quad(MM2,ele))
         ! Buoyancy production term:
         rhs_addto_buoy = shape_rhs(shape_p, -detwei*ele_val_at_quad(K_H,ele)*ele_val_at_quad(NN2,ele))
- 
+
         call addto(P, nodes_p, rhs_addto_vel)
         call addto(B, nodes_p, rhs_addto_buoy)
-    
+
     end subroutine assemble_tke_prodcution_terms
 
     subroutine assemble_kk_src_abs(ele, kk, dim)
@@ -497,7 +496,7 @@ subroutine gls_tke(state)
         real, dimension(ele_loc(kk,ele))                     :: rhs_addto_disip, rhs_addto_src
         type(element_type), pointer                          :: shape_kk
         integer, pointer, dimension(:)                       :: nodes_kk
-    
+
         nodes_kk => ele_nodes(kk, ele)
         shape_kk => ele_shape(kk, ele)
         call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
@@ -514,7 +513,7 @@ subroutine gls_tke(state)
                                  ele_val_at_quad(B,ele)) / &
                                  ele_val_at_quad(tke,ele)) &
                                  )
-           
+
         call addto(source, nodes_kk, rhs_addto_src)
         call addto(absorption, nodes_kk, rhs_addto_disip)
 
@@ -530,10 +529,9 @@ end subroutine gls_tke
 subroutine gls_psi(state)
 
     type(state_type), intent(inout)  :: state
-    
+
     type(scalar_field), pointer      :: source, absorption, tke,  psi, scalarField
     type(tensor_field), pointer      :: psi_diff, background_diff
-    real                             :: prod, buoyan,diss,PsiOverTke
     character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat, ele
     type(scalar_field), pointer      :: scalar_surface
@@ -551,7 +549,6 @@ subroutine gls_psi(state)
 
     ! Temporary tensor to hold  rotated values (note: must be a 3x3 mat)
     real, dimension(3,3)             :: psi_sphere_node
-    real                             :: src, absn
 
     ewrite(1,*) "In gls_psi"
 
@@ -635,7 +632,7 @@ subroutine gls_psi(state)
     call zero(vel_prod)
     call zero(buoy_prod)
     call zero(source)
-    call zero(absorption)    
+    call zero(absorption)
     do ele = 1, ele_count(psi)
         call assemble_production_terms_psi(ele, vel_prod, buoy_prod, psi, mesh_dim(psi))
     end do
@@ -648,7 +645,7 @@ subroutine gls_psi(state)
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
     call deallocate(inverse_lumped_mass)
-    
+
     ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
     call zero(psi_diff)
@@ -662,7 +659,7 @@ subroutine gls_psi(state)
     else
       call set(psi_diff,psi_diff%dim(1),psi_diff%dim(2),K_M,scale=1./sigma_psi)
     end if
-    call addto(psi_diff,background_diff) 
+    call addto(psi_diff,background_diff)
 
     ewrite(2,*) "In gls_psi: setting BCs"
     ! boundary conditions
@@ -685,19 +682,19 @@ subroutine gls_psi(state)
     ! set source and absorption terms in optional output fields
     scalarField => extract_scalar_field(state, "GLSSource2", stat)
     if(stat == 0) then
-       call set(scalarField,source)  
+       call set(scalarField,source)
     end if
     scalarField => extract_scalar_field(state, "GLSAbsorption2", stat)
     if(stat == 0) then
-       call set(scalarField,absorption)  
+       call set(scalarField,absorption)
     end if
 
     call deallocate(vel_prod)
     call deallocate(buoy_prod)
 
 
-    contains 
-    
+    contains
+
     subroutine ocean_tke(ele, tke, distanceToTop, lengthscale, percentage, tke_surface, nodes_done)
         type(scalar_field),pointer, intent(in)  :: distanceToTop
         type(scalar_field),pointer, intent(out) :: tke
@@ -722,7 +719,7 @@ subroutine gls_psi(state)
             end if
             current_TKE = current_TKE + &
                            & percentage*TKE_surface * EXP( -depth / lengthscale )
-            call set(tke,node,current_TKE)  
+            call set(tke,node,current_TKE)
 
             nodes_done(node) = .true.
         end do
@@ -739,7 +736,7 @@ subroutine gls_psi(state)
         real, dimension(ele_loc(psi,ele))                      :: rhs_addto
         type(element_type), pointer                            :: shape_psi
         integer, pointer, dimension(:)                         :: nodes_psi
-    
+
         nodes_psi => ele_nodes(psi, ele)
         shape_psi => ele_shape(psi, ele)
         call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
@@ -765,7 +762,7 @@ subroutine gls_psi(state)
         real, dimension(ele_ngi(psi,ele))                      :: cPsi3
         type(element_type), pointer                            :: shape_psi
         integer, pointer, dimension(:)                         :: nodes_psi
-        
+
         nodes_psi => ele_nodes(psi, ele)
         shape_psi => ele_shape(psi, ele)
         call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
@@ -784,7 +781,7 @@ subroutine gls_psi(state)
         ! shear production term:
         rhs_addto_vel = shape_rhs(shape_psi, detwei*(cPsi1*ele_val_at_quad(P,ele)*&
                                     (ele_val_at_quad(psi, ele)/ele_val_at_quad(local_tke,ele))))
- 
+
         call addto(vel_prod, nodes_psi, rhs_addto_vel)
         call addto(buoy_prod, nodes_psi, rhs_addto_buoy)
 
@@ -801,7 +798,7 @@ subroutine gls_psi(state)
         real, dimension(ele_loc(psi,ele))                      :: rhs_addto_src, rhs_addto_disip
         type(element_type), pointer                            :: shape_psi
         integer, pointer, dimension(:)                         :: nodes_psi
-    
+
         nodes_psi => ele_nodes(psi, ele)
         shape_psi => ele_shape(psi, ele)
         call transform_to_physical( positions, ele, shape_psi, dshape=dshape_psi, detwei=detwei )
@@ -828,7 +825,7 @@ subroutine gls_psi(state)
                                   (ele_val_at_quad(Fwall,ele)*ele_val_at_quad(psi, ele)/ele_val_at_quad(tke,ele))) - &! disipation term
                                   (ele_val_at_quad(buoy_prod,ele)))/ & ! buoyancy term
                                   ele_val_at_quad(psi,ele)&
-                                  ) & !detwei 
+                                  ) & !detwei
                                   ) !shape_rhs
         end where
         call addto(source, nodes_psi, rhs_addto_src)
@@ -841,7 +838,7 @@ end subroutine gls_psi
 
 !----------
 ! gls_diffusivity fixes the top/bottom boundaries of Psi
-! then calulates the lengthscale, and then uses those to calculate the 
+! then calulates the lengthscale, and then uses those to calculate the
 ! diffusivity and viscosity
 ! These are placed in the GLS fields ready for other tracer fields to use
 ! Viscosity is placed in the velocity viscosity
@@ -849,12 +846,12 @@ end subroutine gls_psi
 subroutine gls_diffusivity(state)
 
     type(state_type), intent(inout)  :: state
-    
+
     type(scalar_field), pointer      :: tke_state, psi
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
-    real                             :: psi_limit, tke_cur, limit, epslim
+    real                             :: psi_limit, tke_cur, epslim
     real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     type(vector_field), pointer      :: positions, velocity
     type(scalar_field)               :: remaped_K_M, tke
@@ -897,7 +894,7 @@ subroutine gls_diffusivity(state)
             call set(psi,i,max(psi_min,min(node_val(psi,i),psi_limit)))
         end do
     end if
-   
+
     do i=1,nNodes
 
         tke_cur = node_val(tke,i)
@@ -972,7 +969,7 @@ subroutine gls_diffusivity(state)
     ewrite_minmax(ll)
     ewrite_minmax(eps)
     ewrite_minmax(tke)
-    ewrite_minmax(psi) 
+    ewrite_minmax(psi)
 
     ! Set viscosity
     call allocate(remaped_K_M,velocity%mesh,name="remaped_Km")
@@ -996,14 +993,14 @@ subroutine gls_diffusivity(state)
       call set(viscosity,viscosity%dim(1),viscosity%dim(2),remaped_K_M)
     end if
     call addto(viscosity,remaped_background_visc)
-    
+
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
     ! allocated ourselves
     call gls_output_fields(state)
 
     call deallocate(remaped_background_visc)
-    call deallocate(remaped_K_M) 
+    call deallocate(remaped_K_M)
     call deallocate(tke)
 
 end subroutine gls_diffusivity
@@ -1018,22 +1015,22 @@ subroutine gls_cleanup()
     if (calculate_bcs) then
         ewrite(1,*) "Cleaning up GLS surface variables"
         call deallocate(bottom_surface_values)
-        call deallocate(bottom_surface_tke_values) 
+        call deallocate(bottom_surface_tke_values)
         call deallocate(bottom_surface_km_values)
         call deallocate(top_surface_values)
         call deallocate(top_surface_tke_values)
         call deallocate(top_surface_km_values)
     end if
     call deallocate(NN2)
-    call deallocate(MM2)  
+    call deallocate(MM2)
     call deallocate(B)
-    call deallocate(P)  
-    call deallocate(S_H)    
-    call deallocate(S_M)    
-    call deallocate(K_H)    
-    call deallocate(K_M)        
-    call deallocate(eps) 
-    call deallocate(Fwall) 
+    call deallocate(P)
+    call deallocate(S_H)
+    call deallocate(S_M)
+    call deallocate(K_H)
+    call deallocate(K_M)
+    call deallocate(eps)
+    call deallocate(Fwall)
     call deallocate(density)
     call deallocate(tke_old)
     call deallocate(local_tke)
@@ -1062,7 +1059,7 @@ end subroutine gls_adapt_mesh
 
 
 subroutine gls_check_options
-    
+
     character(len=FIELD_NAME_LEN) :: buffer
     integer                       :: stat
     real                          :: min_tke, relax, nbcs
@@ -1072,7 +1069,7 @@ subroutine gls_check_options
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
 
     ! one dimensional problems not supported
-    call get_option("/geometry/dimension/", dimension) 
+    call get_option("/geometry/dimension/", dimension)
     if (dimension .eq. 1 .and. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         FLExit("GLS modelling is only supported for dimension > 1")
     end if
@@ -1083,7 +1080,7 @@ subroutine gls_check_options
     end if
 
     if (.not.have_option("/physical_parameters/gravity")) then
-        ewrite(-1, *) "GLS modelling requires gravity" 
+        ewrite(-1, *) "GLS modelling requires gravity"
         FLExit("(otherwise buoyancy is a bit meaningless)")
     end if
 
@@ -1103,7 +1100,7 @@ subroutine gls_check_options
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &tensor_field::Diffusivity")) then
         FLExit("You need GLSTurbulentKineticEnergy Diffusivity field for GLS")
-    end if    
+    end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
@@ -1126,35 +1123,35 @@ subroutine gls_check_options
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Source")) then
         FLExit("You need GLSTurbulentKineticEnergy Source field for GLS")
-    end if 
+    end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Source/diagnostic/algorithm::Internal")) then
         FLExit("You need GLSTurbulentKineticEnergy Source field set to diagnostic/internal")
-    end if 
+    end if
 
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Source")) then
         FLExit("You need GLSGenericSecondQuantity Source field for GLS")
-    end if      
+    end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Source/diagnostic/algorithm::Internal")) then
         FLExit("You need GLSGenericSecondQuantity Source field set to diagnostic/internal")
-    end if   
+    end if
 
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Absorption")) then
         FLExit("You need GLSTurbulentKineticEnergy Absorption field for GLS")
-    end if    
+    end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need GLSTurbulentKineticEnergy Source field set to diagnostic/internal")
-    end if 
-    
+    end if
+
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Absorption")) then
@@ -1164,7 +1161,7 @@ subroutine gls_check_options
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need GLSGenericSecondQuantity Source field set to diagnostic/internal")
-    end if 
+    end if
 
 
     ! background diffusivities are also needed
@@ -1196,11 +1193,11 @@ subroutine gls_check_options
         FLExit("You need GLSEddyViscosityKM field for GLS")
     end if
 
-    
+
     ! check there's a viscosity somewhere
     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
                           &tensor_field::Viscosity/")) then
-        FLExit("Need viscosity switched on under the Velcotiy field for GLS.") 
+        FLExit("Need viscosity switched on under the Velcotiy field for GLS.")
     end if
     ! check that the user has switch Velocity/viscosity to diagnostic
     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
@@ -1208,7 +1205,7 @@ subroutine gls_check_options
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
 
-  
+
     ! check a minimum value of TKE has been set
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                     &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", min_tke, stat)
@@ -1240,7 +1237,7 @@ subroutine gls_check_options
             FLExit("You will need to switch on the GLSVerticalDiffusivity field when using relaxation")
         end if
     end if
-   
+
     ! Check that the we don't have auto boundaries and user-defined boundaries
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries")) then
         nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic/boundary_conditions"))
@@ -1257,7 +1254,7 @@ subroutine gls_check_options
     ! on in ocean_boundaries
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", buffer)
     if (trim(buffer) .eq. "k-kl") then
-        if (.not. have_option("/geometry/ocean_boundaries")) then 
+        if (.not. have_option("/geometry/ocean_boundaries")) then
             FLExit("If you use the k-kl option under GLS, you need to switch on ocean_boundaries under /geometry/ocean_boundaries")
        end if
     end if
@@ -1277,13 +1274,13 @@ subroutine gls_check_options
 ! Called at startup and after an adapt
 !----------
 subroutine gls_init_surfaces(state)
-    type(state_type), intent(in)     :: state  
+    type(state_type), intent(in)     :: state
 
     type(scalar_field), pointer      :: tke
     type(vector_field), pointer      :: position
     type(mesh_type), pointer         :: ocean_mesh
     type(mesh_type)                  :: meshy
-  
+
     ewrite(1,*) "Initialising the GLS surfaces required for BCs"
 
     ! grab hold of some essential field
@@ -1293,7 +1290,7 @@ subroutine gls_init_surfaces(state)
     ! create a surface mesh to place values onto. This is for the top surface
     call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=ocean_mesh, &
         surface_element_list=top_surface_element_list)
-    NNodes_sur = node_count(ocean_mesh) 
+    NNodes_sur = node_count(ocean_mesh)
     call allocate(top_surface_values, ocean_mesh, name="top_surface")
     call allocate(top_surface_tke_values,ocean_mesh, name="surface_tke")
     call allocate(top_surface_km_values,ocean_mesh, name="surface_km")
@@ -1305,7 +1302,7 @@ subroutine gls_init_surfaces(state)
     ! bottom
     call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=ocean_mesh, &
         surface_element_list=bottom_surface_element_list)
-    NNodes_bot = node_count(ocean_mesh) 
+    NNodes_bot = node_count(ocean_mesh)
     call allocate(bottom_surface_values, ocean_mesh, name="bottom_surface")
     call allocate(bottom_surface_tke_values,ocean_mesh, name="bottom_tke")
     call allocate(bottom_surface_km_values,ocean_mesh, name="bottom_km")
@@ -1375,7 +1372,7 @@ subroutine gls_buoyancy(state)
     gravity => extract_vector_field(state, "GravityDirection")
 
     ! now allocate our temp fields
-    call allocate(NU, velocity%mesh, "NU")    
+    call allocate(NU, velocity%mesh, "NU")
     call allocate(NV, velocity%mesh, "NV")
     call set(NU, extract_scalar_field(velocity, 1))
     call set(NV, extract_scalar_field(velocity, 2))
@@ -1385,13 +1382,13 @@ subroutine gls_buoyancy(state)
     smooth_buoyancy = have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_buoyancy/')
     smooth_shear = have_option('/material_phase[0]/subgridscale_parameterisations/GLS/smooth_shear/')
     dim = mesh_dim(NN2)
-    
+
     call zero(NN2)
     call zero(MM2)
     element_loop: do ele=1, element_count(velocity)
         call assemble_elements(ele,MM2,NN2,velocity,pert_rho,NU,NV,on_sphere,dim)
     end do element_loop
-  
+
     ! Solve
     lumpedmass => get_lumped_mass(state, NN2%mesh)
     NN2%val = NN2%val / lumpedmass%val
@@ -1404,7 +1401,7 @@ subroutine gls_buoyancy(state)
         mass => get_mass_matrix(state, MM2%mesh)
         lumpedmass => get_lumped_mass(state, MM2%mesh)
         call invert(lumpedmass, inverse_lumpedmass)
-        call mult( MM2_av, mass, MM2) 
+        call mult( MM2_av, mass, MM2)
         call scale(MM2_av, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
         call set(MM2, MM2_av)
         call deallocate(inverse_lumpedmass)
@@ -1417,7 +1414,7 @@ subroutine gls_buoyancy(state)
         mass => get_mass_matrix(state, NN2%mesh)
         lumpedmass => get_lumped_mass(state, NN2%mesh)
         call invert(lumpedmass, inverse_lumpedmass)
-        call mult( NN2_av, mass, NN2) 
+        call mult( NN2_av, mass, NN2)
         call scale(NN2_av, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
         call set(NN2, NN2_av)
         call deallocate(NN2_av)
@@ -1427,7 +1424,7 @@ subroutine gls_buoyancy(state)
     call deallocate(NU)
     call deallocate(NV)
 
-    contains 
+    contains
         subroutine assemble_elements(ele,MM2,NN2,velocity,rho,NU,NV,on_sphere,dim)
 
             type(vector_field), intent(in), pointer    :: velocity
@@ -1446,7 +1443,7 @@ subroutine gls_buoyancy(state)
             real, dimension(ele_loc(velocity,ele),ele_ngi(velocity,ele),dim)  :: dn_t
             real, dimension(ele_loc(rho,ele),ele_ngi(rho,ele),dim)            :: dtheta_t
             real, dimension(ele_loc(velocity, ele),ele_ngi(velocity, ele),dim):: du_t
-    
+
             NN2_shape => ele_shape(NN2, ele)
             MM2_shape => ele_shape(MM2, ele)
             velocity_shape => ele_shape(velocity, ele)
@@ -1464,7 +1461,7 @@ subroutine gls_buoyancy(state)
             else
               call transform_to_physical(positions, ele, theta_shape, dshape = dtheta_t)
             end if
-          
+
             if (on_sphere) then
                 grav_at_quads=radial_inward_normal_at_quad_ele(positions, ele)
             else
@@ -1477,7 +1474,7 @@ subroutine gls_buoyancy(state)
             grad_theta_gi=ele_grad_at_quad(NU, ele, dtheta_t)
             do i=1,ele_ngi(velocity,ele)
                 du_dz(1,i)=dot_product(grad_theta_gi(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
-            end do        
+            end do
             grad_theta_gi=ele_grad_at_quad(NV, ele, dtheta_t)
             do i=1,ele_ngi(velocity,ele)
                 du_dz(2,i)=dot_product(grad_theta_gi(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
@@ -1486,9 +1483,9 @@ subroutine gls_buoyancy(state)
             do i = 1, dim - 1
               shear = shear + du_dz(i,:) ** 2
             end do
-              
+
             element_nodes => ele_nodes(NN2, ele)
-            
+
             call addto(NN2, element_nodes, &
               ! already in the right direction due to multipling by grav_at_quads
               & shape_rhs(NN2_shape, detwei * g * drho_dz) &
@@ -1506,8 +1503,8 @@ end subroutine gls_buoyancy
 !----------
 subroutine gls_stability_function(state)
 
-    type(state_type), intent(in)     :: state   
- 
+    type(state_type), intent(in)     :: state
+
     integer                          :: i
     real                             :: N,Nt,an,anMin,anMinNum,anMinDen
     real, parameter                  :: anLimitFact = 0.5
@@ -1521,7 +1518,7 @@ subroutine gls_stability_function(state)
 
     ! grab stuff from state
     KK => extract_scalar_field(state, 'GLSTurbulentKineticEnergy')
-    
+
     ! This is written out verbatim as in GOTM v4.3.1 (also GNU GPL)
     N    =   0.5*cc1
     Nt   =   ct1
@@ -1603,17 +1600,17 @@ end subroutine gls_stability_function
 !----------
 subroutine gls_tke_bc(state, bc_type)
 
-    type(state_type), intent(in)     :: state  
+    type(state_type), intent(in)     :: state
     character(len=*), intent(in)     :: bc_type
 
-    type(vector_field), pointer      :: positions 
+    type(vector_field), pointer      :: positions
     real                             :: gravity_magnitude
     integer                          :: i
     real, allocatable, dimension(:)  :: z0s, z0b, u_taus_squared, u_taub_squared
- 
+
     ! grab hold of some essential field
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
-    positions => extract_vector_field(state, "Coordinate") 
+    positions => extract_vector_field(state, "Coordinate")
 
     ! Top boundary condition
     select case(bc_type)
@@ -1621,7 +1618,7 @@ subroutine gls_tke_bc(state, bc_type)
         ! Top TKE flux BC
         call set(top_surface_values,0.0)
         call set(bottom_surface_values,0.0)
-    case("dirichlet") 
+    case("dirichlet")
         allocate(z0s(NNodes_sur))
         allocate(z0b(NNodes_bot))
         allocate(u_taus_squared(NNodes_sur))
@@ -1631,17 +1628,17 @@ subroutine gls_tke_bc(state, bc_type)
         ! Top TKE value set
         do i=1,NNodes_sur
             call set(top_surface_values,i,max(u_taus_squared(i)/(cm0**2),k_min))
-        end do 
+        end do
         do i=1,NNodes_bot
             call set(bottom_surface_values,i,max(u_taub_squared(i)/(cm0**2),k_min))
-        end do   
+        end do
         deallocate(z0s)
         deallocate(z0b)
         deallocate(u_taus_squared)
         deallocate(u_taub_squared)
     case default
         FLAbort('Unknown BC for TKE')
-    end select 
+    end select
 
 end subroutine gls_tke_bc
 
@@ -1651,10 +1648,10 @@ end subroutine gls_tke_bc
 !----------
 subroutine gls_psi_bc(state, bc_type)
 
-    type(state_type), intent(in)     :: state  
+    type(state_type), intent(in)     :: state
     character(len=*), intent(in)     :: bc_type
 
-    type(vector_field), pointer      :: positions 
+    type(vector_field), pointer      :: positions
     real                             :: gravity_magnitude
     integer                          :: i
     real, allocatable, dimension(:)  :: z0s, z0b, u_taus_squared, u_taub_squared
@@ -1665,8 +1662,8 @@ subroutine gls_psi_bc(state, bc_type)
     ewrite(2,*) "In gls_psi_bc: setting up"
     ! grab hold of some essential fields
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
-    positions => extract_vector_field(state, "Coordinate") 
-    tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")    
+    positions => extract_vector_field(state, "Coordinate")
+    tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
 
     allocate(z0s(NNodes_sur))
@@ -1677,7 +1674,7 @@ subroutine gls_psi_bc(state, bc_type)
     ewrite(2,*) "In gls_psi_bc: friction"
     ! get friction
     call gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_squared)
-    
+
     ! put tke onto surface fields
     call remap_field_to_surface(tke, top_surface_tke_values, top_surface_element_list)
     call remap_field_to_surface(tke, bottom_surface_tke_values, bottom_surface_element_list)
@@ -1688,7 +1685,7 @@ subroutine gls_psi_bc(state, bc_type)
         do i=1,NNodes_sur
             ! GOTM Boundary
             value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
-                     *node_val(top_surface_tke_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
+                     *node_val(top_surface_tke_values,i)**(gls_m+0.5)*(z0s(i))**gls_n
             ! Warner 2005 - left here for posterity and debugging
             !value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
             !         (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
@@ -1717,12 +1714,12 @@ subroutine gls_psi_bc(state, bc_type)
             value = max(cm0**(gls_p-2.*gls_m)*kappa**gls_n*u_taub_squared(i)**gls_m * &
                     (z0b(i))**gls_n,psi_min)
             call set(bottom_surface_values,i,value)
-        end do    
+        end do
     case default
         FLAbort('Unknown boundary type for Psi')
     end select
-  
-    
+
+
     deallocate(z0s)
     deallocate(z0b)
     deallocate(u_taus_squared)
@@ -1755,18 +1752,17 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
     logical                              :: surface_allocated
-    integer                              :: stat
 
     MaxIter = 10
     z0s_min = 0.003
     surface_allocated = .false.
-  
+
     ! get meshes
     velocity => extract_vector_field(state, "Velocity")
     positions => extract_vector_field(state, "Coordinate")
     tke => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     wind_surface_field => null()
-   
+
     ! grab stresses from velocity field - Surface
     nobcs = get_boundary_condition_count(velocity)
     do i=1, nobcs
@@ -1776,7 +1772,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
             call create_surface_mesh(ocean_mesh, top_surface_nodes, tke%mesh, &
                                      top_surface_element_list, 'OceanTop')
             call allocate(surface_forcing, wind_surface_field%dim, ocean_mesh, name="surface_velocity")
-            surface_pos = get_coordinates_remapped_to_surface(positions, ocean_mesh, top_surface_element_list) 
+            surface_pos = get_coordinates_remapped_to_surface(positions, ocean_mesh, top_surface_element_list)
             call deallocate(ocean_mesh)
 
             if (tke%mesh%continuity == velocity%mesh%continuity) then
@@ -1802,7 +1798,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     ! Do we need to project or copy?
     if (velocity%mesh%continuity == tke%mesh%continuity) then
         call set(cont_vel,velocity)
-    else            
+    else
         ! remap onto same mesh as TKE
         call project_field(velocity, cont_vel, positions)
     end if
@@ -1814,7 +1810,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     ! with the wind stress on (note easier to to zero the output array
     ! below than set wind_forcing to zero and work through all the calcs
 
-            
+
     ! work out the friction in either 3 or 2 dimensions.
     if (positions%dim .eq. 3) then
 
@@ -1901,7 +1897,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     if (surface_allocated) then
         call deallocate(surface_forcing)
     end if
-        
+
     return
 
 end subroutine gls_friction
@@ -1920,69 +1916,69 @@ subroutine gls_output_fields(state)
 
     scalarField => extract_scalar_field(state, "GLSLengthScale", stat)
     if(stat == 0) then
-        call set(scalarField,ll) 
+        call set(scalarField,ll)
     end if
 
     scalarField => extract_scalar_field(state,"GLSTurbulentKineticEnergyOriginal", stat)
     if(stat == 0) then
-        call set(scalarField,local_tke) 
-    end if  
+        call set(scalarField,local_tke)
+    end if
 
     scalarField => extract_scalar_field(state, "GLSBuoyancyFrequency", stat)
     if(stat == 0) then
-        call set(scalarField,NN2) 
+        call set(scalarField,NN2)
     end if
-    
+
     scalarField => extract_scalar_field(state, "GLSVelocityShear", stat)
     if(stat == 0) then
-        call set(scalarField,MM2) 
+        call set(scalarField,MM2)
     end if
-    
+
     scalarField => extract_scalar_field(state, "GLSShearProduction", stat)
     if(stat == 0) then
-        call set(scalarField,P) 
+        call set(scalarField,P)
     end if
-    
+
     scalarField => extract_scalar_field(state, "GLSBuoyancyProduction", stat)
     if(stat == 0) then
-        call set(scalarField,B) 
+        call set(scalarField,B)
     end if
-    
+
     scalarField => extract_scalar_field(state, "GLSDissipationEpsilon", stat)
     if(stat == 0) then
-        call set(scalarField,eps) 
+        call set(scalarField,eps)
     end if
 
     scalarField => extract_scalar_field(state, "GLSStabilityFunctionSH", stat)
     if(stat == 0) then
-        call set(scalarField,S_H) 
-    end if    
+        call set(scalarField,S_H)
+    end if
 
     scalarField => extract_scalar_field(state, "GLSStabilityFunctionSM", stat)
     if(stat == 0) then
-        call set(scalarField,S_M) 
-    end if           
-    
+        call set(scalarField,S_M)
+    end if
+
     scalarField => extract_scalar_field(state, "GLSWallFunction", stat)
     if(stat == 0) then
-        call set(scalarField,Fwall) 
-    end if    
+        call set(scalarField,Fwall)
+    end if
 
     scalarField => extract_scalar_field(state, "GLSVerticalViscosity", stat)
     if(stat == 0) then
         ! add vertical background
         tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
-       call set(scalarField,K_M)  
+       call set(scalarField,K_M)
        call addto(scalarField, extract_scalar_field(tensorField, tensorField%dim(1), tensorField%dim(2)))
-    end if     
-      
+    end if
+
     scalarField => extract_scalar_field(state, "GLSVerticalDiffusivity", stat)
     if(stat == 0) then
         ! add vertical background
         tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
         call set(scalarField,K_H)
         call addto(scalarField, extract_scalar_field(tensorField,tensorField%dim(1), tensorField%dim(2)))
-    end if  
+    end if
 
 
 end subroutine gls_output_fields
@@ -1990,7 +1986,7 @@ end subroutine gls_output_fields
 
 !---------
 ! Calculate the wall function as set by the user
-! Each wall function has been designed with a 
+! Each wall function has been designed with a
 ! particular problem in mind, so best to have a choice here
 !---------
 subroutine gls_calc_wall_function(state)
@@ -2003,13 +1999,13 @@ subroutine gls_calc_wall_function(state)
     real, parameter                :: E2 = 1.33, E4 = 0.25
     integer                        :: i, stat
 
- 
+
     ! FWall is initialised in gls_init to 1, so no need to do anything
     if (gls_wall_option .eq. "none") return
 
     tke => extract_scalar_field(state,"GLSTurbulentKineticEnergy")
     distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    distanceToBottom => extract_scalar_field(state, "DistanceToBottom") 
+    distanceToBottom => extract_scalar_field(state, "DistanceToBottom")
     call allocate(top,tke%mesh,"TopOnTKEMesh")
     call allocate(bottom,tke%mesh,"BottomOnTKEMesh")
     call remap_field(distanceToTop,top,stat)
@@ -2020,32 +2016,32 @@ subroutine gls_calc_wall_function(state)
             distTop = max(1.0,node_val(top,i))
             distBot = max(1.0,node_val(bottom,i))
             LLL = (distBot +  distTop) / (distTop * distBot)
-            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))       
+            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))
         end do
     case ("Burchard98")
         do i=1,nNodes
             distTop = max(1.0,node_val(top,i))
             distBot = max(1.0,node_val(bottom,i))
             LLL = 1.0 / min(distTop,distBot)
-            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))       
+            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))
         end do
     case ("Burchard01")
         do i=1,nNodes
             distTop = max(1.0,node_val(top,i))
             distBot = max(1.0,node_val(bottom,i))
             LLL = 1.0 / distTop
-            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))       
+            call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))
         end do
-    case ("Blumberg")   
+    case ("Blumberg")
         do i=1,nNodes
             distTop = max(0.1,node_val(top,i))
             distBot = max(0.1,node_val(bottom,i))
             LLL = E2 * (node_val(ll,i) / (kappa *  distBot)) ** 2
             LLL = LLL + E4 * (node_val(ll,i) / (kappa *  distTop)) ** 2
-            call set( Fwall, i, 1.0 + LLL)      
+            call set( Fwall, i, 1.0 + LLL)
         end do
     case default
-        FLAbort("Unknown wall function") 
+        FLAbort("Unknown wall function")
     end select
     call deallocate(top)
     call deallocate(bottom)
@@ -2062,17 +2058,17 @@ subroutine gls_allocate_temps(state)
 
     ! allocate some space for the fields we need for calculations, but are optional in the model
     ! we're going to allocate these on the velocity mesh as we need one of these...
-    call allocate(ll,         tkeField%mesh, "LengthScale")    
+    call allocate(ll,         tkeField%mesh, "LengthScale")
     call allocate(NN2,        tkeField%mesh, "BuoyancyFrequency")
-    call allocate(MM2,        tkeField%mesh, "VelocityShear")  
+    call allocate(MM2,        tkeField%mesh, "VelocityShear")
     call allocate(B,          tkeField%mesh, "BuoyancyFrequency")
-    call allocate(P,          tkeField%mesh, "ShearProduction")  
-    call allocate(S_H,        tkeField%mesh, "StabilityH")    
-    call allocate(S_M,        tkeField%mesh, "StabilityM")    
-    call allocate(K_H,        tkeField%mesh, "EddyDiff")    
-    call allocate(K_M,        tkeField%mesh, "EddyVisc")        
-    call allocate(eps,        tkeField%mesh, "GLS_TKE_Dissipation") 
-    call allocate(Fwall,      tkeField%mesh, "GLS_WallFunction") 
+    call allocate(P,          tkeField%mesh, "ShearProduction")
+    call allocate(S_H,        tkeField%mesh, "StabilityH")
+    call allocate(S_M,        tkeField%mesh, "StabilityM")
+    call allocate(K_H,        tkeField%mesh, "EddyDiff")
+    call allocate(K_M,        tkeField%mesh, "EddyVisc")
+    call allocate(eps,        tkeField%mesh, "GLS_TKE_Dissipation")
+    call allocate(Fwall,      tkeField%mesh, "GLS_WallFunction")
     call allocate(density,    tkeField%mesh, "Density")
     call allocate(tke_old,    tkeField%mesh, "Old_TKE")
     call allocate(local_tke,  tkeField%mesh, "Local_TKE")
@@ -2125,4 +2121,3 @@ function align_with_radial(position, scalar) result(rotated_tensor)
 end function align_with_radial
 
 end module gls
-

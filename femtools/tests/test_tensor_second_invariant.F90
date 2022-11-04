@@ -84,4 +84,3 @@ function solution(pos)
   solution = sqrt(sum / 2.)
 
 end function solution
-

@@ -68,7 +68,7 @@
   depth = (outer_radius - r)
   # Radial increase in resolution:
   if(depth &lt; 1000e3):
-    s_fine = 100e3 
+    s_fine = 100e3
     s_coarse = 400e3
     weight  = (depth / 1000e3)
     spacing = weight*s_coarse + (1.-weight)*s_fine

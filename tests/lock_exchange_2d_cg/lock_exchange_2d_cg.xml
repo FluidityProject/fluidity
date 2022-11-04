@@ -5,32 +5,32 @@
   <tags>flml 2dadapt</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l  lock_exchange_2d_cg.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-     <variable name="temp_bin_lower_0" language="python"> 
+     <variable name="temp_bin_lower_0" language="python">
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange_2d.stat")
 temp_bin_lower_0 = stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0,0]
     </variable>
-     <variable name="temp_bin_upper_0" language="python"> 
+     <variable name="temp_bin_upper_0" language="python">
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange_2d.stat")
 temp_bin_upper_0 =  stat['fluid']['Temperature']['mixing_bins%cv_normalised'][1,0]
     </variable>
-     <variable name="temp_bin_total_0" language="python"> 
+     <variable name="temp_bin_total_0" language="python">
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange_2d.stat")
 temp_bin_total_0 = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,0])
     </variable>
-     <variable name="temp_bin_total_end" language="python"> 
+     <variable name="temp_bin_total_end" language="python">
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange_2d.stat")
-last_val = len(stat["ElapsedTime"]["value"])-1 
+last_val = len(stat["ElapsedTime"]["value"])-1
 temp_bin_total_end = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,last_val])
     </variable>
     <variable name="hartel_no_slip_head_speed" language="python">
@@ -106,8 +106,8 @@ results_head_speed = get_head_speed(filelist)
 print("Speed of free slip head, no slip head and errors from literature values")
 print(results_head_speed)
 </variable>
- </variables>    
- <pass_tests> 
+ </variables>
+ <pass_tests>
    <test name="Solvers converged" language="python">
      assert(solvers_converged)
    </test>

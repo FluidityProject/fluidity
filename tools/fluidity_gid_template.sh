@@ -27,7 +27,7 @@ CONDTYPE: over surfaces
 CONDMESHTYPE: over face elements
 CANREPEAT: YES
 QUESTION: SET?(No_value_required):
-VALUE:0 
+VALUE:0
 END CONDITION
 EOF
 done
@@ -43,7 +43,7 @@ do
 upper=`echo $i | tr [a-z] [A-Z]`
 cat >> $bas <<EOF
 *Set Cond $i *elems *Canrepeat
-*set var $upper(int)=CondNumEntities(int) 
+*set var $upper(int)=CondNumEntities(int)
 EOF
 done
 

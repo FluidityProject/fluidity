@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -57,7 +57,7 @@ get_boundary_condition_nodes
   interface find_upwind_values
     module procedure find_upwind_values_single_state, find_upwind_values_multiple_states
   end interface
-  
+
   interface need_upwind_values
     module procedure need_upwind_values_option_path, need_upwind_values_cv_options_type
   end interface
@@ -87,7 +87,7 @@ contains
                           "/face_value::PotentialUltraC")))
 
   end function need_upwind_values_option_path
-  
+
   logical function need_upwind_values_cv_options_type(options) result (need_upwind_values)
     ! This function checks whether a field with option_path requires the calculation of
     ! upwind values its control volume spatial discretisation.
@@ -100,7 +100,7 @@ contains
                          (options%facevalue==CV_FACEVALUE_POTENTIALULTRAC))
 
   end function need_upwind_values_cv_options_type
-  
+
   subroutine find_upwind_values_single_state(state, x_field, field, upwind_values, &
                                 old_field, old_upwind_values, &
                                 defer_deletion, option_path)
@@ -122,17 +122,17 @@ contains
     ! for back compatibility pass in an option_path in case field is
     ! locally wrapped or allocated
     character(len=*), optional :: option_path
-  
+
     type(state_type), dimension(1) :: states
-  
+
     states = (/state/)
     call find_upwind_values(states, x_field, field, upwind_values, &
                                 old_field, old_upwind_values, &
                                 defer_deletion=defer_deletion, option_path=option_path)
     state = states(1)
-    
+
   end subroutine find_upwind_values_single_state
-  
+
   subroutine find_upwind_values_multiple_states(state, x_field, field, upwind_values, &
                                 old_field, old_upwind_values, &
                                 defer_deletion, option_path)
@@ -157,7 +157,7 @@ contains
 
     ! a matrix containing the elements where the upwind values are projected from
     type(csr_matrix), pointer :: upwind_elements
-    ! a matrix containing the quadrature within the elements where the 
+    ! a matrix containing the quadrature within the elements where the
     ! upwind values are projected from
     type(block_csr_matrix), pointer :: upwind_quadrature
     ! we will need the coordinates if we have to calculate upwind_elements
@@ -173,7 +173,7 @@ contains
     character(len=FIELD_NAME_LEN) :: matrix_prefix
     ! which node are we projecting from?
     integer :: projection_node
-    
+
     ewrite(1, *) "In find_upwind_values"
     ewrite(2, *) "For field ", trim(field%name), " on sparsity from mesh ", trim(x_field%mesh%name)
 
@@ -495,7 +495,7 @@ contains
                                   reflect, bound)
 
     ! project from a node pair to an upwind value when we have no information available at
-    ! all... i.e. we need to calculate which element the upwind value is in, then we need to 
+    ! all... i.e. we need to calculate which element the upwind value is in, then we need to
     ! work out its quadrature, then we need to actually find the value and possibly bound it.
 
     ! coordinates
@@ -545,7 +545,7 @@ contains
     logical :: upwind_elements_present, upwind_quadrature_present
 
     integer :: save_pos=0 ! saves the position in the matrix for optimisation
-    
+
     ewrite(1, *) "In calculate_all_upwind_project"
     ! the projected point values upwind value matrix is on the x_field mesh
     ! which cannot be periodic
@@ -592,7 +592,7 @@ contains
     ! loop over the nodes
     do i = 1, size(upwind_values,1)
       ! find the neighbouring nodes using the matrix sparsity (of the unperiodic coordinate mesh!)
-      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
       !        cube meshes!
       !        (not very important for projection as it only works on simplex meshes)
       nodes => row_m_ptr(upwind_values, i)
@@ -616,7 +616,7 @@ contains
         ! (also deals with reflection)
         xc_vector=project_upwind(i, nodes(j), x_field, &
                           on_boundary, normals)
-                          
+
         if(field_bc_type(i_field)==0) then
           xc = node_val(x_field, i) + xc_vector
         end if
@@ -636,7 +636,7 @@ contains
             vertices = local_vertices(x%mesh%shape%numbering)
             x_ele = node_val(x, x_nodes(vertices))
           end if
-          
+
           if(field_bc_type(i_field)==1) then
             ! find the local node number so we can add the vector
             ! pointing at the upwind point to the coordinates at
@@ -661,7 +661,7 @@ contains
           end if
 
         end do
-        
+
         ! just in case (for instance when we haven't reflected off a domain boundary)
         ! make sure all our quadratures are positive
         do k = 1, size(l_coords)
@@ -716,8 +716,8 @@ contains
   subroutine calculate_upwind_quadrature_project(x,x_field,upwind_elements, upwind_quadrature, &
                   field, upwind_values, old_field, old_upwind_values, &
                   reflect, bound)
-    ! project from a node pair to an upwind value when we have the upwind_elements available 
-    ! ... i.e. we need to work out each elements its quadrature, then we need to actually 
+    ! project from a node pair to an upwind value when we have the upwind_elements available
+    ! ... i.e. we need to work out each elements its quadrature, then we need to actually
     ! find the value and possibly bound it.
 
     ! coordinates
@@ -759,7 +759,7 @@ contains
     logical :: upwind_quadrature_present
 
     integer :: save_pos=0 ! saves the position in the matrix for optimisation
-    
+
     ewrite(2,*) 'in calculate_upwind_quadrature_project'
     ! the projected point values upwind value matrix is on the x_field mesh
     ! which cannot be periodic
@@ -787,7 +787,7 @@ contains
       call calculate_boundary_normals(field%mesh, x, &
                                       normals, on_boundary)
     end if
-    
+
     allocate(field_bc_type(node_count(field)))
     field_bc_type = 0
     if(mesh_periodic(field)) then
@@ -797,11 +797,11 @@ contains
 
     do i = 1, size(upwind_values, 1)
       ! find the neighbouring nodes using the matrix sparsity of the unperiodic mesh
-      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
       !        cube meshes!
       !        (not very important for projection as it only works on simplex meshes)
         nodes => row_m_ptr(upwind_values, i)
-        
+
         if(mesh_periodic(field)) then
           x_eles=>node_neigh(x_field, i)
           local_coord = local_coords(x_field, x_eles(1), i)
@@ -812,7 +812,7 @@ contains
         end if
         do j = 1, size(nodes)
           if(nodes(j)==i) cycle
-          
+
           ! find the vector connecting to the point just upwind of the node pair
           ! (also deals with reflection)
           xc_vector=project_upwind(i, nodes(j), x_field, &
@@ -827,7 +827,7 @@ contains
             vertices = local_vertices(x%mesh%shape%numbering)
             x_ele = node_val(x, x_nodes(vertices))
           end if
-          
+
           if(field_bc_type(i_field)==1) then
             ! find the local node number so we can add the vector
             ! pointing at the upwind point to the coordinates at
@@ -840,7 +840,7 @@ contains
           else
             xc = node_val(x_field, i) + xc_vector
           end if
-          
+
           select case(dim)
           case(2)
               l_coords=calculate_area_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
@@ -895,7 +895,7 @@ contains
 
       type(csr_matrix), intent(in) :: upwind_elements
       type(block_csr_matrix), intent(in) :: upwind_quadrature
-      
+
       type(vector_field), intent(inout) :: x_field
 
       type(scalar_field), intent(in) :: field
@@ -929,11 +929,11 @@ contains
 
       do i = 1, size(upwind_values, 1)
         ! find the neighbouring nodes using the matrix sparsity
-        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
         !        cube meshes!
         !        (not very important for projection as it only works on simplex meshes)
          nodes => row_m_ptr(upwind_values, i)
-       
+
          if (size(nodes) == 0) cycle
 
          if(mesh_periodic(field)) then
@@ -952,7 +952,7 @@ contains
             end do
 
             l_ele = ival(upwind_elements, i, nodes(j))
-          
+
             field_ele=ele_val(field, l_ele)
             upwind_value=dot_product(l_shape,field_ele)
             upwind_value=node_val(field, i_field) + (1./c_distance)*(upwind_value-node_val(field, i_field))
@@ -1033,7 +1033,7 @@ contains
     ewrite(2,*) 'in calculate_all_upwind_project_grad'
     ! the projected gradient values upwind value matrix is on the x_field mesh
     ! which cannot be periodic
-    
+
     upwind_elements_present=.false.
 
     ! zero everything we have
@@ -1080,11 +1080,11 @@ contains
     eles => null()
     xc = 0.0
     xc_vector = 0.0
-    
+
     ! loop over the nodes
     do i = 1, size(upwind_values,1)
       ! find the neighbouring nodes using the matrix sparsity
-      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
       !        cube meshes!
       nodes => row_m_ptr(upwind_values, i)
       if(bound.or.mesh_periodic(field)) then
@@ -1144,7 +1144,7 @@ contains
                  vertices = local_vertices(x%mesh%shape%numbering)
                  x_ele = node_val(x, x_nodes(vertices))
                end if
-          
+
                if(field_bc_type(i_field)==1) then
                  ! find the local node number so we can add the vector
                  ! pointing at the upwind point to the coordinates at
@@ -1300,7 +1300,7 @@ contains
     ! loop over the nodes
     do i = 1, size(upwind_values,1)
       ! find the neighbouring nodes using the matrix sparsity
-      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+      ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
       !        cube meshes!
       !        (not very important for projection as it only works on simplex meshes)
       nodes => row_m_ptr(upwind_values, i)
@@ -1369,7 +1369,7 @@ contains
     call deallocate(normals)
     call deallocate(grad_field)
     call deallocate(grad_old_field)
-    
+
   end subroutine calculate_upwind_values_project_grad
 
   subroutine calculate_upwind_values_local(field, upwind_values, &
@@ -1397,11 +1397,11 @@ contains
       ! zero everything we have
       call zero(upwind_values)
       call zero(old_upwind_values)
-      
+
       ! loop over nodes
       do i = 1, size(upwind_values, 1)
         ! find the neighbouring nodes using the matrix sparsity
-        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
         !        cube meshes!
         !        (this could potentially be very important for local upwind values
         !         as unnconected values may be used)
@@ -1430,7 +1430,7 @@ contains
             end if
          end do
       end do
-      
+
    end subroutine calculate_upwind_values_local
 
   subroutine calculate_upwind_values_structured(x_field, field, upwind_values, &
@@ -1451,7 +1451,7 @@ contains
       integer :: l_upwind_node
 
       integer :: save_pos=0 ! save the position in the matrix to optimise
-      
+
       ewrite(2,*) 'in calculate_upwind_values_structured'
       ! the structured upwind value matrix is on the x_field mesh
       ! which cannot be periodic
@@ -1459,7 +1459,7 @@ contains
       ! zero everything we have
       call zero(upwind_values)
       call zero(old_upwind_values)
-      
+
       if(mesh_periodic(field)) then
         FLExit("pseudo_structured_upwind_values don't work for periodic meshes")
       end if
@@ -1467,7 +1467,7 @@ contains
       ! loop over nodes
       do i = 1, size(upwind_values, 1)
         ! find the neighbouring nodes using the matrix sparsity
-        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for 
+        ! FIXME: the matrix sparsity is not the same as the mesh connectivity for
         !        cube meshes!
         !        (this could potentially be very important for pseudo-structured upwind values
         !         as unnconected values may be used)
@@ -1505,7 +1505,7 @@ contains
               end if
 
             end do
-            
+
             ! set the upwind value in the matrix
             call set(upwind_values, i, nodes(j), node_val(field, l_upwind_node), save_pos=save_pos)
             ! same for old field values
@@ -1513,7 +1513,7 @@ contains
 
          end do
       end do
-      
+
    end subroutine calculate_upwind_values_structured
 
   subroutine calculate_boundary_normals(mesh, x, &
@@ -1544,9 +1544,9 @@ contains
 
     ! calculate the normals at the nodes
     do sele = 1, surface_element_count(mesh)
-    
+
       if(field_bc_type(sele)) cycle
-      
+
       if(present(surface_ids)) then
         if(.not.any(surface_ids==surface_element_id(mesh, sele))) cycle
       end if
@@ -1554,10 +1554,10 @@ contains
       nodes_bdy=face_global_nodes(normals, sele)
 
       on_boundary(nodes_bdy) = .true.
-      
+
       call transform_facet_to_physical(x, sele, &
             detwei_f=detwei_bdy, normal=normal_bdy)
-      
+
       call addto(normals, nodes_bdy, &
                 shape_vector_rhs(face_shape(normals, sele), normal_bdy, detwei_bdy))
 
@@ -1565,9 +1565,9 @@ contains
 
     ! normalise the normals
     do iloc = 1, node_count(normals)
-    
+
       if(.not.on_boundary(iloc)) cycle
-      
+
       normnormal = 0.0
       do k = 1, mesh_dim(normals)
         normnormal = normnormal + node_val(normals, k, iloc)**2
@@ -1834,30 +1834,30 @@ contains
   end function calculate_area_coordinates
 
   subroutine couple_upwind_values(upwind_values, old_upwind_values, cv_options)
-  
+
     type(csr_matrix), intent(inout), dimension(:) :: upwind_values
     type(csr_matrix), intent(inout), dimension(:) :: old_upwind_values
     type(cv_options_type), dimension(:), intent(in) :: cv_options ! a wrapper type to pass in all the options for control volumes
-    
+
     integer :: i, j, f, nfields, save_pos
     integer, dimension(:), pointer :: nodes
     real, dimension(size(upwind_values)) :: vals, old_vals
-    
+
     nfields = size(upwind_values)
     save_pos = 0
-    
+
     if(nfields>1) then
       do i = 1, size(upwind_values(1), 1)
         nodes => row_m_ptr(upwind_values(1), i)
         do j = 1, size(nodes)
-          
+
           do f = 1, nfields
             vals(f) = val(upwind_values(f), i, nodes(j), save_pos=save_pos)
             old_vals(f) = val(old_upwind_values(f), i, nodes(j), save_pos=save_pos)
           end do
-          
+
           do f = 2, nfields
-            
+
             if (sum(vals(1:f))>cv_options(f)%sum_target_max) then
               vals(f) = cv_options(f)%sum_target_max-sum(vals(1:f-1))
               call set(upwind_values(f), i, nodes(j), vals(f), save_pos=save_pos)
@@ -1865,7 +1865,7 @@ contains
               vals(f) = cv_options(f)%sum_target_min-sum(vals(1:f-1))
               call set(upwind_values(f), i, nodes(j), vals(f), save_pos=save_pos)
             end if
-            
+
             if (sum(old_vals(1:f))>cv_options(f)%sum_target_max) then
               old_vals(f) = cv_options(f)%sum_target_max-sum(old_vals(1:f-1))
               call set(old_upwind_values(f), i, nodes(j), old_vals(f), save_pos=save_pos)
@@ -1873,12 +1873,12 @@ contains
               old_vals(f) = cv_options(f)%sum_target_min-sum(old_vals(1:f-1))
               call set(old_upwind_values(f), i, nodes(j), old_vals(f), save_pos=save_pos)
             end if
-          
+
           end do
         end do
       end do
     end if
-  
+
   end subroutine couple_upwind_values
 
 end module cv_upwind_values

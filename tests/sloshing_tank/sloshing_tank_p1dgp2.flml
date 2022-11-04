@@ -239,7 +239,7 @@ def val(X, t):
     g = settings.g # gravity
     eta= settings.eta # viscosity
     L= settings.L # wavelength
-    timestep= settings.timestep # timestep    
+    timestep= settings.timestep # timestep
     # Check if analytical_solution computes the correct initial condition
     init_ana=ana_sol.analytic_solution(t, X[0], a_0, L, g, eta)
     return init_ana</string_value>
@@ -434,7 +434,7 @@ def val(X, t):
     g = settings.g # gravity
     eta= settings.eta # viscosity
     L= settings.L # wavelength
-    timestep= settings.timestep # timestep    
+    timestep= settings.timestep # timestep
     return ana_sol.analytic_solution(t, X[0], a_0, L, g, eta)</string_value>
             <comment>def val(X, t):
     #import settings
@@ -446,7 +446,7 @@ def val(X, t):
     #g = settings.g # gravity
     #eta= settings.eta # viscosity
     #L= settings.L # wavelength
-    #timestep= settings.timestep # timestep    
+    #timestep= settings.timestep # timestep
     return 0.0 #ana_sol.analytic_solution(t, X[0], a_0, L, g, eta)# Return value</comment>
           </python>
         </value>

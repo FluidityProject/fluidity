@@ -30,7 +30,7 @@ subroutine test_project_metric_to_surface
   call add_nelist(h_mesh%mesh)
 
   call extrude(h_mesh, "/geometry/mesh", out_mesh)
-  
+
   call allocate(volume_metric, out_mesh%mesh, "VolumeMetric")
   do node=1,node_count(volume_metric)
     call set(volume_metric, node, reshape( (/2.0, 0.0, 0.0, 1.0 /), (/2, 2/)))

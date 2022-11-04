@@ -34,7 +34,7 @@
 #include <deque>
 #include <string>
 #include <set>
- 
+
 using namespace std;
 
 MI5::MI5(int nnodes, int nelems){
@@ -43,15 +43,15 @@ MI5::MI5(int nnodes, int nelems){
 
   MPI_Comm_rank(MPI_COMM_WORLD, &MyRank);
   MPI_Comm_size(MPI_COMM_WORLD, &NProcs);
-  
+
   nodeKnowers.resize( __nnodes );
   nodeKnowers_next.resize( __nnodes );
   elementKnowers.resize( __nelems );
   elementKnowers_next.resize( __nelems );
-   
+
   nodes2send.resize( NProcs );
   elems2send.resize( NProcs );
-   
+
   new_halo_nodes.resize( NProcs );
 }
 
@@ -72,42 +72,42 @@ void MI5::element2bKnownBy_insert(unsigned elem, unsigned short knower){
   elementKnowers_next[elem].insert( knower );
 }
 
-// The next 4 functions return 1 if there is a matching 
+// The next 4 functions return 1 if there is a matching
 // entry and 0 otherwise.
 bool MI5::nodeKnownBy(unsigned node, unsigned short wiseguy){
   return( nodeKnowers[node].find(wiseguy) != nodeKnowers[node].end() );
 }
-bool MI5::rankNeedsNode(unsigned node, unsigned short wiseguy){ 
+bool MI5::rankNeedsNode(unsigned node, unsigned short wiseguy){
   return( nodeKnowers_next[node].find(wiseguy) != nodeKnowers_next[node].end() );
 }
-bool MI5::elementKnownBy(unsigned elem, unsigned short wiseguy){  
+bool MI5::elementKnownBy(unsigned elem, unsigned short wiseguy){
   return( elementKnowers[elem].find(wiseguy) != elementKnowers[elem].end() );
 }
-bool MI5::rankNeedsElement(unsigned elem, unsigned short wiseguy){ 
+bool MI5::rankNeedsElement(unsigned elem, unsigned short wiseguy){
   return( elementKnowers_next[elem].find(wiseguy) != elementKnowers_next[elem].end() );
 }
 
 void MI5::spy(Mesh& mesh){
   ECHO(";-)");
   ECHO("inside the mind of 007 (MyRank = "<< MyRank <<", NProcs = "<<NProcs<<")");
-  
+
   // Consider each element.
   unsigned num_managed_elements = 0;
   unsigned eid = 0;
   for(deque<Element>::iterator ie = mesh.element_list.begin(); ie != mesh.element_list.end(); ++ie){
     vector<bool> PPresent(NProcs, false);
     vector<bool> PFuture(NProcs, false);
-    
+
     // Consider all the nodes that are in this element, and note the
     //  current and future owners of these nodes.
-    vector<unn_t> nodes = (*ie).get_enlist();      
+    vector<unn_t> nodes = (*ie).get_enlist();
     set< unsigned > doms;
-    
+
     // What domains know this element
     for(vector<unn_t>::iterator in = nodes.begin(); in != nodes.end(); ++in)
       doms.insert( mesh.node_list[ mesh.unn2gnn(*in) ].get_current_owner() );
-    unsigned min_node_owner = *(doms.begin()); 
-    
+    unsigned min_node_owner = *(doms.begin());
+
     for(set<unsigned>::iterator it = doms.begin(); it != doms.end(); ++it){
       elementKnownBy_insert(eid, *it);
       PPresent[ *it ] = true;
@@ -133,10 +133,10 @@ void MI5::spy(Mesh& mesh){
     // which will be used in the next round.
     if( PFuture[MyRank] )
       new_elements.push_back( eid );
-    
+
     if( min_node_owner == MyRank){ // ie. The element is our responcibility.
       num_managed_elements++;
-      
+
       // Another list containing elements that we have to send.
       for(unsigned p = 0; p<NProcs; p++){
         if( (PPresent[p] == false) && (PFuture[p]==true) ){
@@ -150,7 +150,7 @@ void MI5::spy(Mesh& mesh){
     vector<unn_t> enl = mesh.get_enlist(eid);
     for(vector<unn_t>::iterator it = enl.begin(); it != enl.end(); ++it){
       gnn_t node = mesh.unn2gnn( *it );
-      
+
       for(unsigned p=0; p<NProcs; p++){
 	if( PPresent[ p ] )
 	  nodeKnownBy_insert(node,   p);
@@ -161,31 +161,31 @@ void MI5::spy(Mesh& mesh){
 
     eid++;
   }
-  
+
   ECHO("1/4 way there ;-)");
 
   // Determine the ranks that need to know a node
-  // but don't already know it. Also, make a count of the 
+  // but don't already know it. Also, make a count of the
   // number of nodes to be sent to each rank.
   vector< set<unsigned> > halo(NProcs);
 
   for(unsigned n=0; n<__nnodes; n++){
-    
+
     vector<bool> PPresent(NProcs, false);
     vector<bool> PFuture( NProcs, false);
-    
+
     // Build the two bit maps.
     for( set<unsigned short>::iterator it = nodeKnowers[n].begin();      it != nodeKnowers[n].end();      ++it)
       PPresent[ *it ] = true;
     for( set<unsigned short>::iterator it = nodeKnowers_next[n].begin(); it != nodeKnowers_next[n].end(); ++it)
       PFuture[ *it ] = true;
-    
+
     unsigned owner = mesh.get_node_current_owner(n);
-    if( owner == MyRank )     // MyRank is responcible for sending 
+    if( owner == MyRank )     // MyRank is responcible for sending
       for(unsigned p=0; p<NProcs; p++)
 	if( (PPresent[p]==false) && (PFuture[p]==true) )
 	  nodes2send[ p ].push_back( n );
-    
+
     // Storing node for future?
     if( PFuture[ MyRank ]==true ){
       unsigned future_owner = mesh.get_node_future_owner(n);
@@ -200,17 +200,17 @@ void MI5::spy(Mesh& mesh){
 	new_halo_nodes[ future_owner ][u] = mesh.get_node(n);
       }
     }else{
-     
-      // There is the possibility that some halo nodes will be appear 
-      // to be unnecessary in the future when infact they will be again 
-      // required as halo nodes, being part of previously unknown elements. 
+
+      // There is the possibility that some halo nodes will be appear
+      // to be unnecessary in the future when infact they will be again
+      // required as halo nodes, being part of previously unknown elements.
       // For this reason, these nodes are backed up so that they won't get
       // deleted in the clean-up phase.
 
       if( owner != MyRank ){ // a halo
 	node_cache[ mesh.get_node_unn(n) ] = mesh.get_node(n);
       }
-      
+
     }
 
   }
@@ -232,15 +232,15 @@ void MI5::spy(Mesh& mesh){
 	for(vector<unn_t>::const_iterator p = pns.begin(); p != pns.end(); ++p)
 	  pnodes.insert( *p );
       }
-      
+
       // Put set into store.
       for(set<unsigned>::const_iterator pn = pnodes.begin(); pn != pnodes.end(); pn++){
 	pnodes2send[d].push_back( *pn );
       }
-      
+
     }
   }
-  
+
   ECHO("All data necessary for migration has been collected.");
 }
 
@@ -257,17 +257,3 @@ void MI5::clear(){
   new_elements.clear();
   node_cache.clear();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

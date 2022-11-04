@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ extern "C" {
 
 int vtk_get_sizes_fc(char *fortname, int *namelen,
   // number of nodes, elements and entries in the returned enls (ndglno):
-                  int *NNOD, int *NELM, int *SZENLS, 
+                  int *NNOD, int *NELM, int *SZENLS,
   // total number of components over pointwise and cell-wise fields
   // i.e. no_scalar_field+ndim*no_vector_fields+ndim**2*no_tensor_fields
   // NOTE that the vtus usually contain 3 and 9 dimensional vector and tensor fields
@@ -58,9 +58,9 @@ int vtk_get_sizes_fc(char *fortname, int *namelen,
                   int *nfield_components, int *nprop_components,
   // number of point-wise (nfields) and cell-wise fields (nprops):
                   int *nfields, int *nprops,
-  // dimension of the vtu mesh and maximum length of 
+  // dimension of the vtu mesh and maximum length of
                   int *NDIM, int *maxlen );
-  
+
 int vtk_read_file_fc(char *fortname, int *namelen,
   // number of nodes, elements and entries in the returned enlist:
                   int *NNOD, int *NELM, int *SZENLS,
@@ -94,7 +94,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
 
 int vtk_get_sizes_fc(char *fortname, int *namelen,
   // number of nodes, elements and entries in the returned enls (ndglno):
-                  int *NNOD, int *NELM, int *SZENLS, 
+                  int *NNOD, int *NELM, int *SZENLS,
   // total number of components over pointwise and cell-wise fields
   // i.e. no_scalar_field+ndim*no_vector_fields+ndim**2*no_tensor_fields
   // NOTE that the vtus usually contain 3 and 9 dimensional vector and tensor fields
@@ -103,14 +103,14 @@ int vtk_get_sizes_fc(char *fortname, int *namelen,
                   int *nfield_components, int *nprop_components,
   // number of point-wise (nfields) and cell-wise fields (nprops):
                   int *nfields, int *nprops,
-  // dimension of the vtu mesh and maximum length of 
-                  int *NDIM, int *maxlen ) 
+  // dimension of the vtu mesh and maximum length of
+                  int *NDIM, int *maxlen )
 {
 #ifdef HAVE_VTK
   int status=0;
   int *ENLBAS=NULL, *ENLIST=NULL;
   flfloat_t *X=NULL, *Y=NULL, *Z=NULL, *F=NULL, *P=NULL;
-  
+
   // the filename string passed down from Fortran needs terminating,
   // so make a copy and fiddle with it (remember to free it)
   char *filename = (char *)malloc(*namelen+3);
@@ -201,7 +201,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
 {
 #ifdef HAVE_VTK
   int status=0;
-  
+
   // the filename string passed down from Fortan needs terminating
   // so make a copy and fiddle with it (remember to free it)
   char *filename = (char *)malloc(*namelen+3);
@@ -282,7 +282,7 @@ int vtk_read_file_fc(char *fortname, int *namelen,
     free(newfld->name);
     free(newfld);
   }
-  
+
   return status;
 #else
   cerr<<"ERROR: No VTK support compiled\n";

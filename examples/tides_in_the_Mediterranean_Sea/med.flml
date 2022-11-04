@@ -199,11 +199,11 @@
   a = X[0]
   b = X[1]
   c = X[2]
-  
-  x_component = -(a/((a**2+b**2+c**2)**0.5)) 
+
+  x_component = -(a/((a**2+b**2+c**2)**0.5))
   y_component = -(b/((a**2+b**2+c**2)**0.5))
   z_component = -(c/((a**2+b**2+c**2)**0.5))
-  
+
   return [x_component, y_component, z_component]</string_value>
             </python>
           </value>
@@ -444,7 +444,7 @@
     T31=T13
     T32=T23
     T33=A2*sin(theta)**2+A3*cos(theta)**2
- 
+
     return [[T11, T12, T13],
            [T21, T22, T23],
            [T31, T32, T33]]</string_value>

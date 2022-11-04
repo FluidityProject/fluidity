@@ -23,10 +23,10 @@ using namespace std;
 NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
 #ifdef HAVE_LIBNETCDF
   verbose = _verbose;
- 
+
   if(verbose)
     cout<<"NetCDF_reader::NetCDF_reader()\n";
-  
+
   NetCDFErrorCheckingOn();
 
   // Check that the file exists.
@@ -37,7 +37,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     exit(-1);
   }
   ncfile.close();
-  
+
   // Open the netCDF file.
   nc_open(filename, NC_NOWRITE, &ncid);
   if(ncerr!=NC_NOERR){
@@ -63,7 +63,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       }
       delete [] title;
     }
-    
+
     if(data_source==unknown){
       if(nc_inq_attlen(ncid, NC_GLOBAL, "Conventions", &lenp)==NC_NOERR){
         char *Conventions = new char[lenp+1];
@@ -78,7 +78,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       }
     }
   }
-  
+
   if(verbose){
     cout<<"NetCDF dataset - ";
     if(data_source==gebco) cout<<"GEBCO"<<endl;
@@ -86,8 +86,8 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     if(data_source==coards_cf10) cout<<"COARDS/CF-1.0"<<endl;
     if(data_source==unknown) cout<<"unknown"<<endl;
   }
-  
-  // 
+
+  //
   long start=0;
   nc_type xtypep;                 /* variable type */
   int ndims;                      /* number of dims */
@@ -102,7 +102,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long x;
     ncdiminq(ncid, id, (char *)0, &x);
-    
+
     id = ncdimid(ncid, "y");
     if(ncerr!=NC_NOERR){
       cout.flush();
@@ -111,13 +111,13 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long y;
     ncdiminq(ncid, id, (char *)0, &y);
-    
+
     dimension[0] = x;
     dimension[1] = y;
     xysize = x*y;
   }else if(data_source==coards_cf10){
     NetCDFErrorCheckingOff();
-    
+
     int id = ncdimid(ncid, "lon");
     if(ncerr!=NC_NOERR){
       ncerr=NC_NOERR;
@@ -130,7 +130,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long x;
     ncdiminq(ncid, id, (char *)0, &x);
-    
+
     id = ncdimid(ncid, "lat");
     if(ncerr!=NC_NOERR){
       ncerr=NC_NOERR;
@@ -143,7 +143,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long y;
     ncdiminq(ncid, id, (char *)0, &y);
-    
+
     dimension[0] = x;
     dimension[1] = y;
     xysize = x*y;
@@ -157,7 +157,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       exit(-1);
     }
     ncdiminq(ncid, varid, (char *)0, &xysize);
-    
+
     long side;
     varid = ncdimid(ncid, "side");
     if(ncerr!=NC_NOERR){
@@ -166,11 +166,11 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       exit(-1);
     }
     ncdiminq(ncid, varid, (char *)0, &side);
-    
+
     varid = ncvarid(ncid, "dimension");
     ncvarinq(ncid, varid, 0, &xtypep, &ndims, NULL, NULL);
     assert(ndims==1);
-    
+
     if(xtypep==NC_SHORT){
       short var[2];
       ncvarget(ncid, varid, &start, &side, var);
@@ -183,10 +183,10 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       cerr<<__FILE__<<", "<<__LINE__<<" - ERROR: unexpected data type for dimension\n";
       exit(-1);
     }
-    if(verbose) 
-      cout<<"dimension = "<<dimension[0]<<", "<<dimension[1]<<endl;    
+    if(verbose)
+      cout<<"dimension = "<<dimension[0]<<", "<<dimension[1]<<endl;
   }else{
-    // This bit could, at the moment, be lumped in the coards stuff, but we may want 
+    // This bit could, at the moment, be lumped in the coards stuff, but we may want
     // to create a 'fluidity reader' format so I'll keep it separate for now.
     cout << "Warning: File convention is unknown, trying 'x,y,z(y,x)' format." << endl;
     int id = ncdimid(ncid, "x");
@@ -197,7 +197,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long x;
     ncdiminq(ncid, id, (char *)0, &x);
-    
+
     id = ncdimid(ncid, "y");
     if(ncerr!=NC_NOERR){
       cout.flush();
@@ -206,17 +206,17 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     long y;
     ncdiminq(ncid, id, (char *)0, &y);
-    
+
     dimension[0] = x;
     dimension[1] = y;
     xysize = x*y;
-    if(verbose) 
+    if(verbose)
       cout<<"dimension = "<<dimension[0]<<", "<<dimension[1]<<endl;
   }
-  
+
   if(verbose)
     cout<<"xysize = "<<xysize<<endl;
-  
+
   if(data_source==coards){
     // x variable
     int varid = ncvarid(ncid, "x");
@@ -225,7 +225,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable x does not exist.\n";
       exit(-1);
     }
-    
+
     int len;
     ncattinq(ncid, varid, "actual_range", &xtypep, &len);
     assert(len==2);
@@ -248,7 +248,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable y does not exist.\n";
       exit(-1);
     }
-    
+
     ncattinq(ncid, varid, "actual_range", &xtypep, &len);
     assert(len==2);
     if(xtypep==NC_FLOAT){ // single precision floating point number
@@ -314,7 +314,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       exit(-1);
     }
     NetCDFErrorCheckingOn();
-  }else if(data_source==gebco){    
+  }else if(data_source==gebco){
     // -
         long side;
         int varid = ncdimid(ncid, "side");
@@ -324,7 +324,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       exit(-1);
     }
     ncdiminq(ncid, varid, (char *)0, &side);
-    
+
     varid = ncvarid(ncid, "x_range");
     ncvarinq(ncid, varid, 0, &xtypep, &ndims, NULL, NULL);
     assert(ndims==1);
@@ -343,12 +343,12 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     if(verbose)
       cout<<"x_range = "<<x_range[0]<<", "<<x_range[1]<<endl;
-    
+
     // -
     varid = ncvarid(ncid, "y_range");
     ncvarinq(ncid, varid, 0, &xtypep, &ndims, NULL, NULL);
     assert(ndims==1);
-    
+
     if(xtypep==NC_FLOAT){ // single precision floating point number
       float var[2];
       ncvarget(ncid, varid, &start, &side, var);
@@ -364,13 +364,13 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     if(verbose)
       cout<<"y_range = "<<y_range[0]<<", "<<y_range[1]<<endl;
   }else{
-    std::vector<double> x, y;    
+    std::vector<double> x, y;
     {
       // x variable
       nc_type xtypep;                 /* variable type */
       int ndims;                      /* number of dims */
       int dims[MAX_VAR_DIMS];         /* variable shape */
-      
+
       int varid = ncvarid(ncid, "x");
       if(ncerr!=NC_NOERR){
         cout.flush();
@@ -378,7 +378,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
         exit(-1);
       }
       ncvarinq(ncid, varid, 0, &xtypep, &ndims, dims, NULL);
-    
+
       long start[]={0}, count[1];
       count[0] = dimension[0];
 
@@ -402,8 +402,8 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
       // y variable
       nc_type ytypep;                 /* variable type */
       int ndims;                      /* number of dims */
-      int dims[MAX_VAR_DIMS];         /* variable shape */      
-      
+      int dims[MAX_VAR_DIMS];         /* variable shape */
+
       int varid = ncvarid(ncid, "y");
       if(ncerr!=NC_NOERR){
         cout.flush();
@@ -411,7 +411,7 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
         exit(-1);
       }
       ncvarinq(ncid, varid, 0, &ytypep, &ndims, dims, NULL);
-    
+
       long start[]={0}, count[1];
       count[0] = dimension[1];
 
@@ -432,10 +432,10 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
     }
     x_range[0] = x[0];
     x_range[1] = x[dimension[0]-1];
-    
+
     y_range[0] = y[0];
     y_range[1] = y[dimension[1]-1];
-    
+
     // If we've got to here, the data should hopefully be in CF-1.0 format but is missing
     // some descriptors.
     data_source=coards_cf10;
@@ -444,9 +444,9 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
 
   spacing[0] = (x_range[1] - x_range[0])/(dimension[0]-1);
   spacing[1] = (y_range[1] - y_range[0])/(dimension[1]-1);
-  
+
   cout << "spacing" << '\t' << spacing[0] << '\t' << spacing[1] << endl;
-  
+
   return;
 #else
   cerr << "No NetCDF support" << endl;
@@ -514,7 +514,7 @@ int NetCDF_reader::Read(vector<double> &z) const{
   nc_type xtypep;                 /* variable type */
   int ndims;                      /* number of dims */
   int dims[MAX_VAR_DIMS];         /* variable shape */
-  
+
   int varid = ncvarid(ncid, "z");
   ncvarinq(ncid, varid, 0, &xtypep, &ndims, dims, NULL);
 

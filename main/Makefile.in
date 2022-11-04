@@ -51,13 +51,13 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Fluids.o Usage.o mainfl.o 
+OBJS = Fluids.o Usage.o mainfl.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<

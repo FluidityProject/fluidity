@@ -199,7 +199,7 @@ assert(e_finish_time-1.0 &lt; 1.E-10)
 assert(f_finish_time-1.0 &lt; 1.E-10)
     </test>-->
     <test name="checking A performed less than 20 advection iterations per timestep" language="python">
-assert(a_max_adv_it &lt; 20) 
+assert(a_max_adv_it &lt; 20)
     </test>
     <test name="checking B performed less than 20 advection iterations per timestep" language="python">
 assert(b_max_adv_it &lt; 20)

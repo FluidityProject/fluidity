@@ -13,7 +13,7 @@ subroutine test_project_to_subspace
   a = (/1.0, 1.0, 1.0/) ! the vector to project
   b = (/1.0, 0.0, 0.0/) ! basis vectors
   c = (/0.0, 1.0, 0.0/)
-  e = (/1.0, 1.0, 0.0/) ! the correct answer 
+  e = (/1.0, 1.0, 0.0/) ! the correct answer
 
   basis(:, 1) = b; basis(:, 2) = c
 

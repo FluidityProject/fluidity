@@ -579,22 +579,22 @@ for i in range(field.node_count):
 
   # Reynolds number
   Re = (vfrac_water.node_val(i)*density_water.node_val(i)*sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)*d)/viscosity_water.node_val(0)[0][0]
-  
+
   # Drag coefficient
   if(Re &lt; 1000):
     C = (24.0/Re)
   else:
     C = 0.44
-    
+
   # Don't let C be NaN
   if(Re == 0):
     C = 1e16
 
   magnitude = sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)
-  
+
   K = (3.0/4.0)*C*(vfrac_tephra.node_val(i)*vfrac_water.node_val(i)*density_water.node_val(i)*magnitude)/(d)
 
-    
+
   Force = K*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
 
   #Force = 6.0*pi*density_water.node_val(i)*viscosity_water.node_val(0)[0][0]*(d/2.0)*vfrac_water.node_val(i)*magnitude*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
@@ -644,7 +644,7 @@ viscosity_water = states["Water"].tensor_fields["Viscosity"]
 d = 48e-6
 
 for i in range(field.node_count):
-  
+
   Force = vfrac_tephra.node_val(i)*9.8*vfrac_water.node_val(i)*(density_tephra.node_val(i) - density_water.node_val(i))
 
   field.set(i, [0.0, -Force])</string_value>
@@ -693,7 +693,7 @@ d = 48e-6
 
 for i in range(field.node_count):
   relative_terminal_velocity = vfrac_water.node_val(i)*9.8*(density_tephra.node_val(i) - density_water.node_val(i))*d*d/(18.0*viscosity_water.node_val(0)[0][0])
-  
+
   field.set(i, [0.0, -relative_terminal_velocity])</string_value>
           <depends>
             <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::PhaseVolumeFraction,Tephra::PhaseVolumeFraction,Water::Density,Tephra::Density</string_value>

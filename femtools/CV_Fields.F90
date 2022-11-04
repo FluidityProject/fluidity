@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -43,7 +43,7 @@ module cv_fields
 contains
 
   subroutine cv_disc_get_cfl_no(field_option_path, state, mesh, cfl_no, density_option_path)
-    !!< This subroutine returns the cfl number (if needed) 
+    !!< This subroutine returns the cfl number (if needed)
     !!< based on the option paths provided.
     !!< If it is not required it returns a constant field.
     !!< this subroutine allocates a field... please deallocate after!
@@ -67,7 +67,7 @@ contains
 
     nfields = size(field_option_path)
     if(present(density_option_path)) then
-      ! this allows multiple grouped fields to be evaluated at once 
+      ! this allows multiple grouped fields to be evaluated at once
       ! (mostly used for coupled_cv)
       assert(nfields==size(density_option_path))
     end if
@@ -80,7 +80,7 @@ contains
     ! of the courant number
     cfl_type="start"
     cfl_stat=1
-    
+
     do f = 1, nfields
       ! check to see if the field discretisation requires a courant number
       call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
@@ -148,7 +148,7 @@ contains
           FLExit("This is not currently supported.")
         end if
       end if
-      
+
     end do
 
     if (cfl_stat==0) then

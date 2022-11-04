@@ -12,8 +12,8 @@
 
       integer :: ielm, nod1, nod2, nod3, nod4
       real :: undlen
-      integer :: cache 
-      integer :: ielm2 
+      integer :: cache
+      integer :: ielm2
       real :: functional
       real, parameter :: m=2.0*huge(0)-3.0, c= -1.0*huge(0)+2.0 ! mapping between reals and ints for the cache
       real, dimension(9) :: metric
@@ -106,12 +106,12 @@ C
 
         metric = metric / 4.0
 
-        metric_determinant = 
+        metric_determinant =
      &  metric(1) * (metric(5) * metric(9) - metric(6) * metric(8))
      &- metric(2) * (metric(4) * metric(9) - metric(6) * metric(7))
      &+ metric(3) * (metric(4) * metric(8) - metric(5) * metric(7))
 
-        tetvol = 
+        tetvol =
      &  positions(1,1) * (positions(2,2) * positions(3,3) - positions(2,3) * positions(3,2))
      &- positions(1,2) * (positions(2,1) * positions(3,3) - positions(2,3) * positions(3,1))
      &+ positions(1,3) * (positions(2,1) * positions(3,2) - positions(2,2) * positions(3,1))
@@ -188,27 +188,27 @@ C
       end function elmfnc
 #else
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -379,7 +379,7 @@ C
               ELSE IF( D .LT. 0.0 ) THEN
                 INTVAL = -1
               ELSE
-                write(0,*) 
+                write(0,*)
      :                '*** ELMFNC: GOT ZERO IN-SPHERE!',IELM
                 IF( IELM .LE. 0 ) write(0,*)
      :                '  Nodes: ',NOD1,NOD2,NOD3,NOD4

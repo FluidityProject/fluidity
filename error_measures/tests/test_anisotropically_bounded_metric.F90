@@ -22,7 +22,7 @@ subroutine test_anisotropically_bounded_metric
   real, dimension(4), target :: hmaxxx, hmaxxy, hmaxxz, hmaxyy, hmaxyz, hmaxzz
   logical :: fail = .false., warn = .false.
   integer :: i, nhsamp
-  real :: x, y, z 
+  real :: x, y, z
   real :: max_eigenbound, min_eigenbound
   integer :: ierr
 

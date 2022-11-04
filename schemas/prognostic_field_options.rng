@@ -66,7 +66,7 @@ onto the same surface, or you will get an error.</a:documentation>
         <element name="type">
           <a:documentation>Sediment reentrainment boundary. Any sediment in the correct
 sediment class will be rentrained back into the flow
-depending on the bed shear stress and the parameters of the 
+depending on the bed shear stress and the parameters of the
 sediment grain</a:documentation>
           <attribute name="name">
             <value>sediment_reentrainment</value>
@@ -80,9 +80,9 @@ sediment grain</a:documentation>
           </element>
           <optional>
             <element name="viscosity">
-              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override 
-use of the material viscosity used for the rest of the simulation for calculating 
-sediment reentrainment. </a:documentation>
+              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override
+use of the material viscosity used for the rest of the simulation for calculating
+sediment reentrainment.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -110,10 +110,10 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
           </element>
         </element>
         <element name="type">
-          <a:documentation>Flux boundary condition. Currently only works with a control_volume 
+          <a:documentation>Flux boundary condition. Currently only works with a control_volume
 discretisation.
 
-This weakly enforces the total (advective plus diffusive) flux across 
+This weakly enforces the total (advective plus diffusive) flux across
 a boundary when solving the advection-diffusion equation.</a:documentation>
           <attribute name="name">
             <value>flux</value>
@@ -132,7 +132,7 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
  T the scalar field value on the surface,
  C0 is the input order zero coefficient and
  C1 is the input order one coefficient.
- THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME
  (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.</a:documentation>
       <attribute name="name">
         <value>robin</value>
@@ -203,8 +203,8 @@ requires a distinct name for the options dictionary.</a:documentation>
     </zeroOrMore>
     <optional>
       <choice>
-        <a:documentation>Choice of subgridscale model to apply to this field. 
-Note that the selected parameterisation must be switched 
+        <a:documentation>Choice of subgridscale model to apply to this field.
+Note that the selected parameterisation must be switched
 on for this material phase.
 
 At this time, do not switch on this option if you are using Mellor-Yamada.</a:documentation>
@@ -219,14 +219,14 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">
-          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy
 source terms for this field in the k_eps code.
 
 TURBULENT DIFFUSIVITY
 
-To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon).
 
-The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated
 by the k-epsilon turbulence model.
 
 D = D_bg  nu_t / Pr
@@ -234,7 +234,7 @@ D = D_bg  nu_t / Pr
 where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
 
 A background diffusivity can either be set globally
-under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is
 applied upon. If it is set globally and locally, the local background diffusivity is used.
 
 BUOYANCY EFFECTS
@@ -257,27 +257,27 @@ and epsilon equations. See the manual for more information.
 This is only implemented for cases where velocity is discontinuous and this scalar field is discontiuous.
 
 The turbulent diffusion term is identical to the molecular diffusion term but takes its value of diffusivity
-from the LES eddy viscosity, scaled by a Prandtl number. 
+from the LES eddy viscosity, scaled by a Prandtl number.
 
 k_T = nu_T / Pr
 
 where k_T = turbulent diffusivity, nu_T = eddy viscosity and Pr = prandtl number
 
-See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an 
+See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an
 overflow of fresh water", Kirkpatrick 2005</a:documentation>
           <attribute name="name">
             <value>LES</value>
           </attribute>
           <optional>
             <element name="PrandtlNumber">
-              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity.
 Default = 1.0, i.e. SGS viscosity = SGS diffusivity</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
           <optional>
             <element name="Ri_c">
-              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number.
 
 See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
               <ref name="real"/>
@@ -302,7 +302,7 @@ Stabilises unstable stratifications through mixing by diffusion.
 Note this scheme currently only applies to tracer fields represented in discontinuous spaces.</a:documentation>
             <optional>
               <element name="amplitude">
-                <a:documentation>Scaling amplitude of the applied diffusion. 
+                <a:documentation>Scaling amplitude of the applied diffusion.
 If left unspecified, the default value of 1.0 is applied.</a:documentation>
                 <ref name="real"/>
               </element>
@@ -356,9 +356,9 @@ elements when buoyancy is a discontinuous field.</a:documentation>
     </optional>
     <optional>
       <element name="scalar_field">
-        <a:documentation>Source term. If the scalar field to be 
-solved for is subcycled then variations 
-in this source field across the subcycled 
+        <a:documentation>Source term. If the scalar field to be
+solved for is subcycled then variations
+in this source field across the subcycled
 time steps are not considered.</a:documentation>
         <attribute name="name">
           <value>Source</value>
@@ -377,10 +377,10 @@ time steps are not considered.</a:documentation>
             </choice>
             <optional>
               <element name="add_directly_to_rhs">
-                <a:documentation>Add the source field directly to the 
-matrix system right hand side. To be 
-consistent this term should be tested 
-using the function space that 
+                <a:documentation>Add the source field directly to the
+matrix system right hand side. To be
+consistent this term should be tested
+using the function space that
 is used for the spatial discretisation.</a:documentation>
                 <ref name="comment"/>
               </element>
@@ -420,8 +420,8 @@ is used for the spatial discretisation.</a:documentation>
 This velocity is in the direction of gravity so if the substance
 floats or swims upwards, this field should be negative.
 
-This should be on the same mesh as the velocity field unless you are 
-using a DG discretisation and projecting the velocity to contiuous, in 
+This should be on the same mesh as the velocity field unless you are
+using a DG discretisation and projecting the velocity to contiuous, in
 which case it should be on a continuous mesh.</a:documentation>
         <attribute name="name">
           <value>SinkingVelocity</value>
@@ -597,11 +597,11 @@ If activated, the dim x dim (in this example
 
  /   2*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz
  |   N_a,x*N_b,y*mu_xy                                             ...
- \   N_a,x*N_b,z*mu_xz 
+ \   N_a,x*N_b,z*mu_xz
 
-     N_a,y*N_b,x*mu_xy 
+     N_a,y*N_b,x*mu_xy
  ... N_a,x*N_b,x*mu_xy + 2*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz   ...
-     N_a,y*N_b,z*mu_yz 
+     N_a,y*N_b,z*mu_yz
 
      N_a,z*N_b,x*mu_xz                                             \
  ... N_a,z*N_b,y*mu_yz                                             |
@@ -917,7 +917,7 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
                 <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
 and evaluate it at the gauss points.
 
-NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection
 for the buoyancy terms.</a:documentation>
                 <ref name="comment"/>
               </element>
@@ -959,7 +959,7 @@ scaled by C_0</a:documentation>
                 </optional>
               </element>
               <element name="bassi_rebay">
-                <a:documentation>Classical scheme from Bassi and Rebay 
+                <a:documentation>Classical scheme from Bassi and Rebay
 (JCP 131 267-179 1997)
 Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <empty/>
@@ -972,13 +972,13 @@ alternating directions. Devised by C.Pain.</a:documentation>
               <element name="interior_penalty">
                 <a:documentation>Classical interior penalty scheme
 see, e.g., SIAM Journal on Numerical Analysis
-Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+Vol. 39, No. 5 (2002), pp. 1749-1779</a:documentation>
                 <element name="penalty_parameter">
                   <a:documentation>Penalty_parameter
 The penalty term Int [u][v] dS on element boundaries
 is scaled by C = C_0 h**p
 This option specifies the C_0
-There is a theoretical lower bound for 
+There is a theoretical lower bound for
 stability and hence convergence</a:documentation>
                   <ref name="real"/>
                 </element>
@@ -998,7 +998,7 @@ Theoretically p=-1 is required for linear elements</a:documentation>
                       <empty/>
                     </element>
                     <element name="use_element_centres">
-                      <a:documentation>Use difference between element centre 
+                      <a:documentation>Use difference between element centre
 and neighbour centre
 Use 2x distance to face centre on boundaries</a:documentation>
                       <empty/>
@@ -1139,7 +1139,7 @@ advection matrix becomes:
         /                                        /
      /                                                /
  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-     /                                                /                  
+     /                                                /
 where beta is set in conservative_advection, N is
 a shape function (uppercase
 subscripts indicate nodes A or B while lowercase
@@ -1245,7 +1245,7 @@ Requires an LES model to be applied to the velocity field.</a:documentation>
                 <a:documentation>Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
 and evaluate it at the gauss points.
 
-NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection
 for the buoyancy terms.</a:documentation>
                 <ref name="comment"/>
               </element>
@@ -1289,8 +1289,8 @@ for the buoyancy terms.</a:documentation>
  =1.  -- implicit
 
  Specification of this parameter will only affect
- solution procedure when a free-surface is present or 
- compressible projection or equation type Shallow Water is used. 
+ solution procedure when a free-surface is present or
+ compressible projection or equation type Shallow Water is used.
  If left unspecified
  the code defaults to theta_pg = theta.</a:documentation>
           <ref name="real"/>
@@ -1308,8 +1308,8 @@ for the buoyancy terms.</a:documentation>
  =1.  -- implicit
 
  Specification of this parameter will only affect
- solution procedure when a free-surface is present or 
- compressible projection or equation type Shallow Water is used. 
+ solution procedure when a free-surface is present or
+ compressible projection or equation type Shallow Water is used.
  If left unspecified
  the code defaults to theta_divergence = theta.</a:documentation>
           <ref name="real"/>
@@ -1335,13 +1335,13 @@ Must be less than the total number of nodes.
 If parallel must be less than the total number of nodes of the first processor.
 
 WARNING: This only makes sense if you are solving a Stokes
-equation (i.e. excluding mass and advection terms in the 
+equation (i.e. excluding mass and advection terms in the
 spatial_discretisation above) with all Neumann or periodic boundaries.
 
 
 Note: it is also an option to remove the null-space of the residual vector. This
 option is available under solvers but only removes a single null space so will
-only work if your Stokes velocities are coupled in some way (not generally the 
+only work if your Stokes velocities are coupled in some way (not generally the
 case unless using stress form viscosity and/or coriolis).</a:documentation>
         <element name="reference_node">
           <ref name="integer"/>
@@ -1530,7 +1530,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
 
 Note: When in spherical geometry the absorption is now automatically rotated.
 The input values below correspond to setting the diagonal of the absorption matrix
-in the rotated frame of reference. The columns correspond to phi, theta and r 
+in the rotated frame of reference. The columns correspond to phi, theta and r
 respectively.</a:documentation>
         <attribute name="name">
           <value>Absorption</value>
@@ -1594,7 +1594,7 @@ if running a planar simulation.</a:documentation>
         <optional>
           <element name="vertical_velocity_relaxation">
             <a:documentation>A depth dependent absorption term to
-increase stability in shallow regions 
+increase stability in shallow regions
 given by n_grav*g*dt*rho/d</a:documentation>
             <element name="scale_factor">
               <a:documentation>This option scales the vertical velocity
@@ -1613,7 +1613,7 @@ theta*g*dt*drho/dr_grav</a:documentation>
               <element name="min_gradient">
                 <a:documentation>Use this option to set a 'minimum' drho/dr_grav
 to be used in the implicit buoyancy calculation.
-Note that the default value is zero. </a:documentation>
+Note that the default value is zero.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
@@ -1742,10 +1742,10 @@ If activated this means that the pressure gradient operator is not integrated by
           <optional>
             <element name="test_continuity_with_cv_dual">
               <a:documentation>Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
-Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
-considered when selecting the pressure solver options. This cannot be used with the standard p=0 
-free surface model (but can be used with the zero normal stress free surface). It will not work with 
-wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+Only works for incompressible flow. This will make the pressure matrix non symmetric which must be
+considered when selecting the pressure solver options. This cannot be used with the standard p=0
+free surface model (but can be used with the zero normal stress free surface). It will not work with
+wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian
 element type (the default).</a:documentation>
               <ref name="comment"/>
             </element>
@@ -1800,7 +1800,7 @@ Manual suggests 1.01325e+5 Pa</a:documentation>
       <a:documentation>scheme</a:documentation>
       <element name="poisson_pressure_solution">
         <a:documentation>Use a poisson pressure equation to calculate a first guess at pressure
-before the first momentum solve (in addition to the usual 
+before the first momentum solve (in addition to the usual
 pressure correction after the momentum solve). Recommended in most
 runs to ensure correct results.</a:documentation>
         <element name="string_value">
@@ -1829,7 +1829,7 @@ cg and to use the full momentum matrix in the projection if
 you so desire.</a:documentation>
             <choice>
               <element name="inner_matrix">
-                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
 Use the full mass matrix.
 
 Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
@@ -1843,7 +1843,7 @@ to solve the correction solve afterwards.</a:documentation>
                 </element>
               </element>
               <element name="inner_matrix">
-                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
 Use the full momentum matrix.
 
 Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
@@ -2179,7 +2179,7 @@ Requires a continuous mesh and solver options below.</a:documentation>
           <optional>
             <element name="do_not_integrate_gradient_by_parts">
               <a:documentation>By default when the gradient of the HydrostaticPressure is
-subtracted from the rhs of the momentum equation, it is 
+subtracted from the rhs of the momentum equation, it is
 integrated by parts.  This is the most general case as the
 HydrostaticPressure can be discontinuous.
 Use this option to turn off this behaviour, which will
@@ -2414,14 +2414,14 @@ Only applicable to control volume spatial discretisations.</a:documentation>
           <ref name="integer_vector"/>
         </element>
         <element name="secondary_boundary">
-          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  </a:documentation>
+          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.</a:documentation>
           <element name="primary_point">
-            <a:documentation>A point on or behind the primary boundary *from* which the flux line should extend. 
+            <a:documentation>A point on or behind the primary boundary *from* which the flux line should extend.
 Note: Path should not go through periodic boundary</a:documentation>
             <ref name="real_dim_vector"/>
           </element>
           <element name="secondary_point">
-            <a:documentation>A point on or behind the secondary boundary *to* which the flux line should extend. 
+            <a:documentation>A point on or behind the secondary boundary *to* which the flux line should extend.
 Note: Path should not go through periodic boundary</a:documentation>
             <ref name="real_dim_vector"/>
           </element>

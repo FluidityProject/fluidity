@@ -460,12 +460,12 @@
           <string_value type="code" language="python" lines="20">from slide_movement import *
 
 X=state.vector_fields["PositionsDG"]
-for i in range(field.node_count): 
+for i in range(field.node_count):
   X_n=X.node_val(i)
   slide_front = set_slide_front(time+dt)
   slide_front_old = set_slide_front(time)
   h_current = set_slide_height(X_n,time+dt,slide_front)
-  h_past = set_slide_height(X_n,time,slide_front_old) 
+  h_past = set_slide_height(X_n,time,slide_front_old)
   dh = h_current - h_past
   field.set(i, dh/dt)</string_value>
         </algorithm>

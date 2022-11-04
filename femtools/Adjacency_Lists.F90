@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -51,12 +51,12 @@ contains
 SUBROUTINE NODELE(NONODS,FINDELE,COLELE, &
      NCOLEL,MXNCOLEL, &
      TOTELE,NLOC,NDGLNO)
-  
+
   Implicit None
 
   ! This sub calculates the node to element list FINDELE,COLELE
   INTEGER, Intent(In)::NONODS, MXNCOLEL
-  INTEGER, Intent(Out)::NCOLEL,COLELE(MXNCOLEL),FINDELE(NONODS+1) 
+  INTEGER, Intent(Out)::NCOLEL,COLELE(MXNCOLEL),FINDELE(NONODS+1)
   INTEGER, intent(in)::TOTELE,NLOC,NDGLNO(TOTELE*NLOC)
 
   ! Local variables...
@@ -95,7 +95,7 @@ SUBROUTINE NODELE(NONODS,FINDELE,COLELE, &
   END DO
 
   Deallocate(NList, InList)
-  
+
   RETURN
 END SUBROUTINE NODELE
 
@@ -108,7 +108,7 @@ END SUBROUTINE NODELE
 
 
   ! **************************************************************************
-  
+
   Subroutine MakeEEList_old(Nonods,Totele,NLoc,&
        D3, &
        ENList, &
@@ -131,7 +131,7 @@ END SUBROUTINE NODELE
     ! Local...
     Integer Ele, ILoc, EEmark, ErrMark
     Integer ComEle, OppNode, i, p, OtherNode
-    
+
     ewrite(3, *) "Inside Subroutine MakeEEList_old"
 
     Allocate(LocalElements(10000))
@@ -181,7 +181,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -200,7 +200,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -219,7 +219,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -238,7 +238,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -255,7 +255,7 @@ END SUBROUTINE NODELE
                ENList, &
                NEList, lgthNEList, NEListBasePtr,  &
                EEList)
-  
+
        else
           ! now 2d
 
@@ -273,7 +273,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -291,7 +291,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -309,7 +309,7 @@ END SUBROUTINE NODELE
           EEList(EEmark) = ComEle
           EEmark = EEmark + 1
 
-          if(ComEle.eq.0) then 
+          if(ComEle.eq.0) then
              ErrMark = ErrMark+1
           end if
 
@@ -354,7 +354,7 @@ END SUBROUTINE NODELE
 
     do ele=1,totele
        ele_nodes=ENList((ele-1)*nloc+1:ele*nloc)
-       
+
        do i=1,size(ele_nodes)
           node=ele_nodes(i)
           allocate(node_eles(NEListBasePtr(node+1)-NEListBasePtr(node)))
@@ -363,8 +363,8 @@ END SUBROUTINE NODELE
           do j=1, size(node_eles)
              ele2=node_eles(j)
              ele2_nodes=ENList((ele2-1)*nloc+1:ele2*nloc)
-       
-             if (ele/=ele2) then 
+
+             if (ele/=ele2) then
                 if (any(ele_nodes(1)==ele2_nodes)) then
                    EEMark=1
                 else
@@ -381,7 +381,7 @@ END SUBROUTINE NODELE
 
   end Subroutine MakeEEList1D
 
-  ! **************************************************************** 
+  ! ****************************************************************
 
   Subroutine LocalElementsNods(Nonods, NLoc, &
        NEList, NEListBasePtr, lgthNEList, &
@@ -452,7 +452,7 @@ END SUBROUTINE NODELE
     Return
   end Subroutine LocalElementsNods
 
-  ! *********************************************************  
+  ! *********************************************************
 
   Subroutine match_list(Totele, Nloc, &
        D3, &
@@ -642,7 +642,7 @@ END SUBROUTINE NODELE
     if (present(NEList).or.present(EEList)) then
 
        ! Form node to element list +++++++++++++++++++++
-       
+
        ! Allocate provably enough space.
        call allocate(lNEList, rows=nonods, columns=totele, &
             entries=totele*nloc, diag=.false., name='NEListSparsity')
@@ -655,10 +655,10 @@ END SUBROUTINE NODELE
     end if
 
     if (present(EEList)) then
-       
+
        ! ++++++++++++++++++++++++++++++++++++++++++++
        ! Form E-E List
-       call allocate(EEList, rows=totele, columns=totele, & 
+       call allocate(EEList, rows=totele, columns=totele, &
             entries=totele*nloc, diag=.false., name='EEListSparsity')
 
 
@@ -666,7 +666,7 @@ END SUBROUTINE NODELE
             D3, ndglno,&
             lNEList%colm, lgthNEList, lNEList%findrm, &
             EEList%colm)
-       
+
        forall (i=1:totele+1)
           EEList%findrm(i)=nloc*(i-1)+1
        end forall
@@ -685,7 +685,7 @@ END SUBROUTINE NODELE
 
        ! +++++++++++++++++++++++++++++++++++++++++
        !Form NN List
-       
+
        ! This uses the dynamically allocated version from the sparse_tools
        ! module instead if the partially static MakeNNList.
        call POSINM(NNList, TOTELE, nonods, nloc, ndglno,&
@@ -795,11 +795,11 @@ END SUBROUTINE NODELE
     end if
 
   end subroutine MakeLists_Mesh
-  
+
   subroutine MakeEEList(EEList, mesh, NEList)
-  !!< For a given mesh and Node-Element list calculate the 
-  !!< Element-Element list. 
-  
+  !!< For a given mesh and Node-Element list calculate the
+  !!< Element-Element list.
+
     type(csr_sparsity), intent(out):: EEList
     type(mesh_type), intent(in):: mesh
     type(csr_sparsity), intent(in):: NEList
@@ -810,10 +810,10 @@ END SUBROUTINE NODELE
     integer, dimension(:), allocatable :: debug_common_elements
     integer :: no_found
 #endif
-    
+
     ! Number of element boundaries.
     noboundaries=mesh%shape%numbering%boundaries
-    if (mesh%elements<=0) then 
+    if (mesh%elements<=0) then
       call allocate(EEList, rows=0, columns=0, entries=0, name='EEListSparsity')
       return
     end if
@@ -821,7 +821,7 @@ END SUBROUTINE NODELE
 
     call allocate(EEList, rows=mesh%elements, columns=mesh%elements, &
          entries=mesh%elements*noboundaries, name='EEListSparsity')
-    
+
     EEList%findrm=(/  (1+ele*noboundaries, ele=0,  mesh%elements) /)
 
     do ele=1, mesh%elements
@@ -870,7 +870,7 @@ END SUBROUTINE NODELE
       !!< Using nelist find an element adjacent to ele with boundary nodes
       !!< nodes. Returns negative adj_ele on error. Error checking requires a
       !!< debugging build.
-      
+
       !! The element for which we are seeking a neighbour
       integer, intent(in) :: ele
       !! The neighbour found
@@ -882,10 +882,10 @@ END SUBROUTINE NODELE
 
       integer, dimension(:), pointer :: elements1
       integer :: i, j, candidate_ele
-      
+
       ! Use an uninitialised integer_vector type, as the null initialisations
       ! have a cost and are not required here
-      type uninit_integer_vector  
+      type uninit_integer_vector
         integer, dimension(:), pointer :: ptr
       end type uninit_integer_vector
       type(uninit_integer_vector), dimension(size(nodes) - 1) :: row_idx
@@ -911,7 +911,7 @@ END SUBROUTINE NODELE
            ! nodes for candidate_ele, and it isn't the adjacent element.
            if(.not. any(row_idx(j - 1)%ptr == candidate_ele)) cycle ele_loop
          end do
-         
+
 #ifdef DDEBUG
          if(adj_ele > 0) then
            ! We've found more than one adjacent element. We're in trouble.
@@ -973,9 +973,3 @@ END SUBROUTINE NODELE
   end subroutine FindCommonElements
 
 end module adjacency_lists
-
-
-
-
-
-

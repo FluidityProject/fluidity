@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -66,7 +66,7 @@ module fields_manipulation
   public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
   public :: power
   public :: zero_bubble_vals, ele_zero_bubble_val
-  
+
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
                                 REMAP_ERR_UNPERIODIC_PERIODIC      = 3, &
@@ -85,7 +85,7 @@ module fields_manipulation
 
   interface set_from_function
      module procedure set_from_function_scalar, set_from_function_vector,&
-          & set_from_function_tensor 
+          & set_from_function_tensor
   end interface
 
   interface set
@@ -109,7 +109,7 @@ module fields_manipulation
                    & set_vector_field_vfield_dim, &
                    & set_tensor_field_theta
   end interface
-  
+
   interface set_all
      module procedure set_vector_field_arr, set_vector_field_arr_dim, &
           & set_scalar_field_arr, set_tensor_field_arr, &
@@ -152,32 +152,32 @@ module fields_manipulation
           vector_scale_vector_field, &
           tensor_scale_tensor_field
   end interface
-  
+
   interface power
      module procedure scalar_power, vector_power, tensor_power, &
           scalar_power_scalar_field, &
           vector_power_scalar_field, &
           tensor_power_scalar_field
   end interface
-  
+
   interface bound
     module procedure bound_scalar_field, bound_scalar_field_field, bound_vector_field, bound_tensor_field
   end interface
-    
+
   interface invert
      module procedure invert_scalar_field, invert_vector_field, invert_tensor_field, &
       invert_scalar_field_inplace, invert_vector_field_inplace, invert_tensor_field_inplace
   end interface
-  
+
   interface absolute_value
      module procedure absolute_value_scalar_field
   end interface
-    
+
   interface inner_product
      module procedure inner_product_array_field, inner_product_field_array, &
         inner_product_field_field
   end interface inner_product
-  
+
   !  This is named cross_prod rather than cross_product to avoid a name
   !  clash with various cross_product functions (this one is a subroutine).
   interface cross_prod
@@ -187,7 +187,7 @@ module fields_manipulation
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
   end interface clone_header
-  
+
   interface normalise
     module procedure normalise_scalar, normalise_vector
   end interface
@@ -220,7 +220,7 @@ module fields_manipulation
     integer, dimension(:), pointer :: elements
   end type patch_type
 
-    
+
   contains
 
   subroutine tensor_second_invariant(t_field,second_invariant)
@@ -235,13 +235,13 @@ module fields_manipulation
       real :: val
 
       ! Remap t_field to second invariant mesh if required:
-      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")  
+      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")
       call remap_field(t_field, t_field_local)
 
       do node = 1, node_count(second_invariant)
          val = 0.
          do dim1 = 1, t_field_local%dim(1)
-            do dim2 = 1, t_field_local%dim(2) 
+            do dim2 = 1, t_field_local%dim(2)
                val = val + node_val(t_field_local,dim1,dim2,node)**2
             end do
          end do
@@ -249,9 +249,9 @@ module fields_manipulation
       end do
 
       call deallocate(t_field_local)
-               
+
   end subroutine tensor_second_invariant
-  
+
   subroutine scalar_field_vaddto(field, node_numbers, val)
     !!< Add val to the field%val(node_numbers) for a vector of
     !!< node_numbers.
@@ -260,7 +260,7 @@ module fields_manipulation
     type(scalar_field), intent(inout) :: field
     integer, dimension(:), intent(in) :: node_numbers
     real, dimension(size(node_numbers)), intent(in) :: val
-    
+
     integer :: j
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
@@ -278,7 +278,7 @@ module fields_manipulation
     type(scalar_field), intent(inout) :: field
     integer, intent(in) :: node_number
     real, intent(in) :: val
-    
+
     assert(field%field_type==FIELD_TYPE_NORMAL)
     field%val(node_number)=field%val(node_number)+val
 
@@ -289,7 +289,7 @@ module fields_manipulation
     !!< Works for both constant and space varying fields
     type(scalar_field), intent(inout) :: field
     real, intent(in) :: val
-    
+
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     field%val=field%val+val
 
@@ -300,9 +300,9 @@ module fields_manipulation
     !!< Works for both constant and space varying fields
     type(vector_field), intent(inout) :: field
     real, dimension(field%dim), intent(in) :: val
-    
+
     integer :: i
-    
+
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     do i = 1, field%dim
       field%val(i,:)=field%val(i,:)+val(i)
@@ -320,13 +320,13 @@ module fields_manipulation
     integer :: j
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     do j=1,field%dim
        field%val(j,node_number)=field%val(j,node_number)+val(j)
     end do
 
   end subroutine vector_field_addto
-  
+
   subroutine vector_field_addto_dim(field, dim, node_number, val)
     !!< Add val to the field%val(node_number) only for the specified dim
     !!< Does not work for constant fields
@@ -335,11 +335,11 @@ module fields_manipulation
     real, intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     field%val(dim,node_number)=field%val(dim,node_number)+val
 
   end subroutine vector_field_addto_dim
-  
+
   subroutine vector_field_vaddto_dim(field, dim, node_numbers, val)
     !!< Add val to dimension dim of the field%val(node_numbers) for a
     !!< vector of node_numbers.
@@ -349,9 +349,9 @@ module fields_manipulation
     integer, dimension(:), intent(in) :: node_numbers
     integer, intent(in) :: dim
     real, dimension(size(node_numbers)), intent(in) :: val
-    
+
     integer :: j
-    
+
     assert(field%field_type==FIELD_TYPE_NORMAL)
     do j=1,size(node_numbers)
        field%val(dim,node_numbers(j))&
@@ -370,12 +370,12 @@ module fields_manipulation
     integer :: i
     assert(size(val, 1) == field%dim)
     assert(size(val, 2) == size(node_numbers))
-    
+
     assert(field%field_type==FIELD_TYPE_NORMAL)
     do i=1,size(node_numbers)
       call addto(field, node_numbers(i), val(:, i))
     end do
-    
+
   end subroutine vector_field_vaddto_vec
 
   subroutine tensor_field_addto(field, node_number, val)
@@ -384,7 +384,7 @@ module fields_manipulation
     type(tensor_field), intent(inout) :: field
     integer, intent(in) :: node_number
     real, dimension(:,:), intent(in) :: val
-    
+
     assert(field%field_type==FIELD_TYPE_NORMAL)
     field%val(:,:,node_number)=field%val(:,:,node_number)+val
 
@@ -457,18 +457,18 @@ module fields_manipulation
     type(scalar_field), intent(inout) :: field1
     type(scalar_field), intent(in) :: field2
     real, intent(in), optional :: scale
-    
+
     type(scalar_field) lfield2
-    
+
     assert(field1%field_type/=FIELD_TYPE_PYTHON .and. field2%field_type/=FIELD_TYPE_PYTHON)
-    
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call allocate(lfield2, field1%mesh)
        call remap_field(field2, lfield2)
     else
        lfield2=field2
     end if
-    
+
     if (field1%field_type==field2%field_type) then
        if (present(scale)) then
           field1%val=field1%val+scale*lfield2%val
@@ -476,20 +476,20 @@ module fields_manipulation
           field1%val=field1%val+lfield2%val
        end if
     else if (field1%field_type==FIELD_TYPE_NORMAL) then
-       
+
        assert(field2%field_type==FIELD_TYPE_CONSTANT)
        if (present(scale)) then
           field1%val=field1%val+scale*field2%val(1)
        else
           field1%val=field1%val+field2%val(1)
        end if
-       
+
     else
-      
+
        FLAbort("Illegal addition for given field types.")
-       
+
     end if
-    
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call deallocate(lfield2)
     end if
@@ -504,11 +504,11 @@ module fields_manipulation
     type(vector_field), intent(inout) :: field1
     type(vector_field), intent(in) :: field2
     real, intent(in), optional :: scale
-    
+
     integer :: i
 
     type(vector_field) lfield2
-    
+
     assert(field1%field_type/=FIELD_TYPE_PYTHON .and. field2%field_type/=FIELD_TYPE_PYTHON)
     assert(field1%dim==field2%dim)
 
@@ -518,7 +518,7 @@ module fields_manipulation
     else
        lfield2=field2
     end if
-    
+
     if (field1%field_type==field2%field_type) then
        if (present(scale)) then
           do i=1,field1%dim
@@ -542,11 +542,11 @@ module fields_manipulation
           end do
        end if
     else
-      
+
        FLAbort("Illegal addition for given field types.")
-       
-    end if       
-    
+
+    end if
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
       call deallocate(lfield2)
     end if
@@ -562,7 +562,7 @@ module fields_manipulation
     type(vector_field), intent(inout) :: field1
     type(vector_field), intent(in) :: field2
     type(scalar_field), intent(in) :: scale
-    
+
     integer :: i
 
     type(vector_field) :: lfield2
@@ -589,26 +589,26 @@ module fields_manipulation
     end if
 
     if (field1%field_type==FIELD_TYPE_CONSTANT) then
-       
+
        if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
-       
+
           do i=1,field1%dim
              field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
- 
+
           FLAbort("Illegal addition for given field types.")
- 
+
        end if
-          
+
     else
        ! field1 is not constant.
-       
+
        if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
-       
+
           do i=1,field1%dim
              field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,1)
           end do
@@ -635,13 +635,13 @@ module fields_manipulation
           end do
 
        else
- 
+
           FLAbort("Illegal addition for given field types.")
- 
+
        end if
 
     end if
-    
+
     call deallocate(lfield2)
     call deallocate(lscale)
 
@@ -654,9 +654,9 @@ module fields_manipulation
     integer, intent(in) :: dim
     type(scalar_field), intent(in) :: field2
     real, intent(in), optional :: scale
-    
+
     type(scalar_field) lfield2
-    
+
     assert(field1%field_type/=FIELD_TYPE_PYTHON .and. field2%field_type/=FIELD_TYPE_PYTHON)
     ! only allow addition to non-constant field1 or
     ! addition of constant field1 and constant field2
@@ -668,7 +668,7 @@ module fields_manipulation
     else
        lfield2=field2
     end if
-    
+
     if (field1%field_type==field2%field_type) then
        if (present(scale)) then
           field1%val(dim,:)=field1%val(dim,:)+scale*lfield2%val
@@ -684,11 +684,11 @@ module fields_manipulation
           field1%val(dim,:)=field1%val(dim,:)+field2%val(1)
        end if
     else
-      
+
        FLAbort("Illegal addition for given field types.")
-       
+
     end if
-    
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call deallocate(lfield2)
     end if
@@ -702,14 +702,14 @@ module fields_manipulation
     integer, intent(in) :: dim1, dim2
     type(scalar_field), intent(in) :: field2
     real, intent(in), optional :: scale
-    
+
     type(scalar_field) lfield2
-      
+
     assert(field1%field_type/=FIELD_TYPE_PYTHON .and. field2%field_type/=FIELD_TYPE_PYTHON)
     ! only allow addition to non-constant field1 or
     ! addition of constant field1 and constant field2
     assert(field1%field_type==FIELD_TYPE_NORMAL .or. field2%field_type==FIELD_TYPE_CONSTANT)
-    
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call allocate(lfield2, field1%mesh)
        call remap_field(field2, lfield2)
@@ -732,15 +732,15 @@ module fields_manipulation
           field1%val(dim1,dim2,:)=field1%val(dim1,dim2,:)+field2%val(1)
        end if
     else
-      
+
        FLAbort("Illegal addition for given field types.")
-       
+
     end if
 
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call deallocate(lfield2)
     end if
-    
+
   end subroutine tensor_field_addto_field_dim_dim
 
   subroutine tensor_field_addto_tensor_field(field1, field2, scale)
@@ -750,14 +750,14 @@ module fields_manipulation
     type(tensor_field), intent(in) :: field2
     real, intent(in), optional :: scale
     integer :: i
-    
+
     type(tensor_field) lfield2
-    
+
     assert(field1%field_type/=FIELD_TYPE_PYTHON .and. field2%field_type/=FIELD_TYPE_PYTHON)
     ! only allow addition to non-constant field1 or
     ! addition of constant field1 and constant field2
     assert(field1%field_type==FIELD_TYPE_NORMAL .or. field2%field_type==FIELD_TYPE_CONSTANT)
-    
+
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
        call allocate(lfield2, field1%mesh)
        call remap_field(field2, lfield2)
@@ -784,9 +784,9 @@ module fields_manipulation
           end forall
        end if
     else
-      
+
        FLAbort("Illegal addition for given field types.")
-       
+
     end if
 
     if (.not. field1%mesh==field2%mesh .and. .not. field2%field_type==FIELD_TYPE_CONSTANT) then
@@ -801,7 +801,7 @@ module fields_manipulation
     real, dimension(:), intent(inout) :: arr
     integer, dimension(:), intent(in) :: idx
     real, dimension(size(idx)), intent(in) :: val
-    
+
     arr(idx) = arr(idx) + val
   end subroutine real_addto_real
 
@@ -810,11 +810,11 @@ module fields_manipulation
     !!< the same mesh.
     type(scalar_field), intent(inout) :: out_field
     type(scalar_field), intent(in) :: in_field
-    
+
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
     assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
        out_field%val=in_field%val
@@ -833,12 +833,12 @@ module fields_manipulation
     type(scalar_field), intent(inout) :: out_field
     type(vector_field), intent(in) :: in_field
     integer, intent(in) :: dim
-    
+
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
     assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
     assert(dim>=1 .and. dim<=in_field%dim)
-    
+
     select case (in_field%field_type)
     case (FIELD_TYPE_NORMAL)
        out_field%val=in_field%val(dim,:)
@@ -850,7 +850,7 @@ module fields_manipulation
     end select
 
   end subroutine set_scalar_field_from_vector_field
-    
+
   subroutine set_scalar_field_node(field, node_number, val)
     !!< Set the scalar field at the specified node
     !!< Does not work for constant fields
@@ -859,9 +859,9 @@ module fields_manipulation
     real, intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     field%val(node_number) = val
-    
+
   end subroutine set_scalar_field_node
 
   subroutine set_scalar_field_nodes(field, node_numbers, val)
@@ -875,9 +875,9 @@ module fields_manipulation
     assert(size(node_numbers)==size(val))
 
     field%val(node_numbers) = val
-    
+
   end subroutine set_scalar_field_nodes
-  
+
   subroutine set_scalar_field_constant_nodes(field, node_numbers, val)
     !!< Set the scalar field at the specified node_numbers
     !!< to a constant value
@@ -889,9 +889,9 @@ module fields_manipulation
     assert(field%field_type==FIELD_TYPE_NORMAL)
 
     field%val(node_numbers) = val
-    
+
   end subroutine set_scalar_field_constant_nodes
-  
+
   subroutine set_scalar_field(field, val)
     !!< Set the scalar field with a constant value
     !!< Works for constant and space varying fields.
@@ -899,11 +899,11 @@ module fields_manipulation
     real, intent(in) :: val
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     field%val = val
-    
+
   end subroutine set_scalar_field
-  
+
   subroutine set_scalar_field_arr(field, val)
     !!< Set the scalar field at all nodes at once
     !!< Does not work for constant fields
@@ -911,11 +911,11 @@ module fields_manipulation
     real, dimension(:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     field%val = val
-    
+
   end subroutine set_scalar_field_arr
-    
+
   subroutine set_vector_field_node(field, node, val)
     !!< Set the vector field at the specified node
     !!< Does not work for constant fields
@@ -925,11 +925,11 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     do i=1,field%dim
       field%val(i,node) = val(i)
     end do
-    
+
   end subroutine set_vector_field_node
 
   subroutine set_scalar_field_theta(out_field, in_field_new, in_field_old, theta)
@@ -938,7 +938,7 @@ module fields_manipulation
     type(scalar_field), intent(inout) :: out_field
     type(scalar_field), intent(in) :: in_field_new, in_field_old
     real, intent(in) :: theta
-    
+
     assert(mesh_compatible(out_field%mesh, in_field_new%mesh))
     assert(mesh_compatible(out_field%mesh, in_field_old%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
@@ -950,7 +950,7 @@ module fields_manipulation
        FLAbort("evilness unleashed")
     end if
 #endif
-    
+
     select case (in_field_new%field_type)
     case (FIELD_TYPE_NORMAL)
        out_field%val=theta*in_field_new%val + (1.-theta)*in_field_old%val
@@ -973,11 +973,11 @@ module fields_manipulation
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
-    
+
     field%val(dim,node) = val
-    
+
   end subroutine set_vector_field_node_dim
-    
+
   subroutine set_vector_field_nodes(field, node_numbers, val)
     !!< Set the vector field at the specified nodes
     !!< Does not work for constant fields
@@ -988,13 +988,13 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     do i=1,field%dim
       field%val(i,node_numbers) = val(i, :)
     end do
-    
+
   end subroutine set_vector_field_nodes
-    
+
   subroutine set_vector_field_nodes_dim(field, dim, node_numbers, val)
     !!< Set the vector field at the specified nodes
     !!< Does not work for constant fields
@@ -1006,11 +1006,11 @@ module fields_manipulation
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
-    
+
     field%val(dim,node_numbers) = val
-    
+
   end subroutine set_vector_field_nodes_dim
-    
+
   subroutine set_vector_field(field, val)
     !!< Set the vector field with a constant value
     !!< Works for constant and space varying fields.
@@ -1019,7 +1019,7 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     do i=1,field%dim
       field%val(i,:) = val(i)
     end do
@@ -1035,7 +1035,7 @@ module fields_manipulation
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(dim>=1 .and. dim<=field%dim)
-    
+
     field%val(dim,:) = val
 
   end subroutine set_vector_field_dim
@@ -1047,7 +1047,7 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     do i=1,field%dim
       field%val(i,:) = val(i, :)
     end do
@@ -1059,10 +1059,10 @@ module fields_manipulation
     type(vector_field), intent(inout) :: field
     real, intent(in), dimension(:) :: val
     integer, intent(in):: dim
-    
+
     assert(field%field_type==FIELD_TYPE_NORMAL)
     assert(dim>=1 .and. dim<=field%dim)
-    
+
     field%val(dim,:) = val
 
   end subroutine set_vector_field_arr_dim
@@ -1072,7 +1072,7 @@ module fields_manipulation
     !!< the same mesh.
     type(vector_field), intent(inout) :: out_field
     type(vector_field), intent(in) :: in_field
-    
+
     integer :: dim
 
 #ifndef NDEBUG
@@ -1107,9 +1107,9 @@ module fields_manipulation
     type(vector_field), intent(inout) :: out_field
     type(vector_field), intent(in) :: in_field_new, in_field_old
     real, intent(in) :: theta
-    
+
     integer :: dim
-    
+
     assert(mesh_compatible(out_field%mesh, in_field_new%mesh))
     assert(mesh_compatible(out_field%mesh, in_field_old%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
@@ -1123,7 +1123,7 @@ module fields_manipulation
 #endif
     assert(in_field_new%dim==out_field%dim)
     assert(in_field_old%dim==out_field%dim)
-    
+
     select case (in_field_new%field_type)
     case (FIELD_TYPE_NORMAL)
       do dim = 1, out_field%dim
@@ -1203,9 +1203,9 @@ module fields_manipulation
     !!< the same mesh.
     type(tensor_field), intent(inout) :: out_field
     type(Tensor_field), intent(in) :: in_field
-      
-    integer i    
-    
+
+    integer i
+
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
     assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
@@ -1222,7 +1222,7 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in set()")
     end select
-    
+
   end subroutine set_tensor_field_field
 
   subroutine set_tensor_field_theta(out_field, in_field_new, in_field_old, theta)
@@ -1231,9 +1231,9 @@ module fields_manipulation
     type(tensor_field), intent(inout) :: out_field
     type(tensor_field), intent(in) :: in_field_new, in_field_old
     real, intent(in) :: theta
-    
+
     integer i
-    
+
     assert(mesh_compatible(out_field%mesh, in_field_new%mesh))
     assert(mesh_compatible(out_field%mesh, in_field_old%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
@@ -1247,7 +1247,7 @@ module fields_manipulation
 #endif
     assert(all(in_field_new%dim==out_field%dim))
     assert(all(in_field_old%dim==out_field%dim))
-    
+
     select case (in_field_new%field_type)
     case (FIELD_TYPE_NORMAL)
        out_field%val=theta*in_field_new%val + (1.-theta)*in_field_old%val
@@ -1298,7 +1298,7 @@ module fields_manipulation
        ! someone could implement scalar field type python
        FLAbort("Illegal in_field field type in set()")
     end select
-    
+
   end subroutine set_tensor_field_scalar_field
 
   subroutine set_tensor_field_diag_vector_field(tensor, vector, scale)
@@ -1334,7 +1334,7 @@ module fields_manipulation
        ! someone could implement scalar field type python
        FLAbort("Illegal in_field field type in set()")
     end select
-    
+
   end subroutine set_tensor_field_diag_vector_field
 
   subroutine set_tensor_field_node(field, node, val)
@@ -1347,7 +1347,7 @@ module fields_manipulation
     assert(field%field_type==FIELD_TYPE_NORMAL)
 
     field%val(:, :, node) = val
-    
+
   end subroutine set_tensor_field_node
 
   subroutine set_tensor_field_node_dim(field, dim1, dim2, node, val)
@@ -1362,7 +1362,7 @@ module fields_manipulation
     assert(dim2>=1 .and. dim2<=field%dim(2))
 
     field%val(dim1, dim2, node) = val
-    
+
   end subroutine set_tensor_field_node_dim
 
   subroutine set_tensor_field_nodes(field, node_numbers, val)
@@ -1375,9 +1375,9 @@ module fields_manipulation
     assert(field%field_type==FIELD_TYPE_NORMAL)
 
     field%val(:, :, node_numbers) = val
-    
+
   end subroutine set_tensor_field_nodes
-    
+
   subroutine set_tensor_field(field, val)
     !!< Sets tensor with constant value
     !!< Works for constant and space varying fields.
@@ -1386,13 +1386,13 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     do i=1,size(field%val, 3)
       field%val(:, :, i) = val
     end do
-    
+
   end subroutine set_tensor_field
-    
+
   subroutine set_tensor_field_dim(field, dim1, dim2, val)
     !!< Sets one component of a tensor with constant value
     !!< Works for constant and space varying fields.
@@ -1402,11 +1402,11 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     do i=1,size(field%val, 3)
       field%val(dim1, dim2, i) = val
     end do
-    
+
   end subroutine set_tensor_field_dim
 
   subroutine set_tensor_field_arr(field, val)
@@ -1416,11 +1416,11 @@ module fields_manipulation
     real, dimension(:,:,:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     field%val = val
-    
+
   end subroutine set_tensor_field_arr
-  
+
   subroutine set_tensor_field_arr_dim(field, dim1, dim2, val)
     !!< Set the tensor field at all nodes at once
     !!< Does not work for constant fields
@@ -1429,11 +1429,11 @@ module fields_manipulation
     integer, intent(in):: dim1, dim2
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+
     field%val(dim1, dim2, :) = val
-    
+
   end subroutine set_tensor_field_arr_dim
-    
+
   subroutine set_from_python_function_scalar(field, func, position, time)
     !!< Set the values at the nodes of field using the python function
     !!< specified in the string func. The position field is used to
@@ -1443,7 +1443,7 @@ module fields_manipulation
     !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
-    !! time. The result must be a float. 
+    !! time. The result must be a float.
     character(len=*), intent(in) :: func
     type(vector_field), intent(in), target :: position
     real, intent(in) :: time
@@ -1460,7 +1460,7 @@ module fields_manipulation
     z=>zero
     if (field%mesh==position%mesh) then
        x=>position%val(1,:)
-       
+
        if (dim>1) then
           y=>position%val(2,:)
 
@@ -1476,7 +1476,7 @@ module fields_manipulation
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
        x=>lposition%val(1,:)
-       
+
        if (dim>1) then
           y=>lposition%val(2,:)
 
@@ -1511,7 +1511,7 @@ module fields_manipulation
     !! be defiled:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
-    !! time. The result must be a float. 
+    !! time. The result must be a float.
     character(len=*), intent(in) :: func
     type(vector_field), intent(in), target :: position
     real, intent(in) :: time
@@ -1534,7 +1534,7 @@ module fields_manipulation
     z=>zero
     if (field%mesh==position%mesh) then
        x=>position%val(1,:)
-       
+
        if (dim>1) then
           y=>position%val(2,:)
 
@@ -1550,7 +1550,7 @@ module fields_manipulation
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
        x=>lposition%val(1,:)
-       
+
        if (dim>1) then
           y=>lposition%val(2,:)
 
@@ -1567,12 +1567,12 @@ module fields_manipulation
     fx=>field%val(1,:)
     if (field%dim>1) then
        fy=>field%val(2,:)
-       
+
        if (field%dim>2) then
           fz=>field%val(3,:)
        end if
     end if
-    
+
 
     call set_vector_field_from_python(func, len_trim(func), dim,&
             & node_count(field), x, y, z, time, field%dim, &
@@ -1590,7 +1590,7 @@ module fields_manipulation
     end if
 
   end subroutine set_from_python_function_vector
-  
+
   subroutine set_from_python_function_tensor(field, func, position, time)
     !!< Set the values at the nodes of field using the python function
     !!< specified in the string func. The position field is used to
@@ -1600,7 +1600,7 @@ module fields_manipulation
     !! be defined:
     !!  def val(X, t)
     !! where X is a tuple containing the position of a point and t is the
-    !! time. The result must be a float. 
+    !! time. The result must be a float.
     character(len=*), intent(in) :: func
     type(vector_field), intent(in), target :: position
     real, intent(in) :: time
@@ -1617,7 +1617,7 @@ module fields_manipulation
     z=>zero
     if (field%mesh==position%mesh) then
        x=>position%val(1,:)
-       
+
        if (dim>1) then
           y=>position%val(2,:)
 
@@ -1633,7 +1633,7 @@ module fields_manipulation
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
 
        x=>lposition%val(1,:)
-       
+
        if (dim>1) then
           y=>lposition%val(2,:)
 
@@ -1661,7 +1661,7 @@ module fields_manipulation
   end subroutine set_from_python_function_tensor
 
   subroutine set_from_function_scalar(field, func, position)
-    !!< Set the values in field using func applied to the position field. 
+    !!< Set the values in field using func applied to the position field.
     !!< Func should be a function which takes a real position vector and
     !!< returns a scalar real value.
     type(scalar_field), intent(inout) :: field
@@ -1681,7 +1681,7 @@ module fields_manipulation
     end if
 
     call allocate(lpos, position%dim, field%mesh, "Local Position")
-    
+
     call remap_field(position, lpos)
 
     do i=1,node_count(field)
@@ -1693,10 +1693,10 @@ module fields_manipulation
   end subroutine set_from_function_scalar
 
   subroutine set_from_function_vector(field, func, position)
-    !!< Set the values in field using func applied to the position field. 
+    !!< Set the values in field using func applied to the position field.
     !!< Func should be a function which takes a real position vector and
     !!< returns a vector real value of the same dimension as the position
-    !!< field. 
+    !!< field.
     type(vector_field), intent(inout) :: field
     type(vector_field), intent(in) :: position
     interface
@@ -1714,7 +1714,7 @@ module fields_manipulation
     end if
 
     call allocate(lpos, position%dim, field%mesh, "Local Position")
-    
+
     call remap_field(position, lpos)
 
     call zero(field)
@@ -1728,10 +1728,10 @@ module fields_manipulation
   end subroutine set_from_function_vector
 
   subroutine set_from_function_tensor(field, func, position)
-    !!< Set the values in field using func applied to the position field. 
+    !!< Set the values in field using func applied to the position field.
     !!< Func should be a function which takes a real position vector and
     !!< returns a tensor real value of the same dimension as the position
-    !!< field. 
+    !!< field.
     type(tensor_field), intent(inout) :: field
     type(vector_field), intent(in) :: position
     interface
@@ -1749,7 +1749,7 @@ module fields_manipulation
     end if
 
     call allocate(lpos, position%dim, field%mesh, "Local Position")
-    
+
     call remap_field(position, lpos)
 
     call zero(field)
@@ -1765,7 +1765,7 @@ module fields_manipulation
   ! ------------------------------------------------------------------------
   ! Mapping of fields between different meshes
   ! ------------------------------------------------------------------------
-  
+
   subroutine test_remap_validity_scalar(from_field, to_field, stat)
     type(scalar_field), intent(in):: from_field, to_field
     integer, intent(out), optional:: stat
@@ -1845,7 +1845,7 @@ module fields_manipulation
         FLAbort("Trying to remap from higher order to lower order continuous field")
       end if
     end if
-    
+
     if((.not.(from_continuity<0)).and.(.not.(to_continuity<0))&
         .and.(.not.from_periodic).and.(to_periodic)) then
       if(present(stat)) then
@@ -1855,7 +1855,7 @@ module fields_manipulation
         FLAbort("Trying to remap from an unperiodic to a periodic continuous field")
       end if
     end if
-    
+
     if((from_type==ELEMENT_BUBBLE).and.&
        (to_type==ELEMENT_LAGRANGIAN)) then
       if(present(stat)) then
@@ -1873,7 +1873,7 @@ module fields_manipulation
     !!< This is used to change the element type of a field.
     !!<
     !!< This will not validly map a discontinuous field to a continuous
-    !!< field. 
+    !!< field.
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
     integer, intent(out), optional :: stat
@@ -1882,15 +1882,15 @@ module fields_manipulation
 
     integer :: toloc, ele
     integer, dimension(:), pointer :: from_ele, to_ele
-    
+
     if(present(stat)) stat = 0
 
     if(from_field%mesh==to_field%mesh) then
-    
+
       call set(to_field, from_field)
-      
+
     else
-    
+
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
@@ -1901,20 +1901,20 @@ module fields_manipulation
           locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
             local_coords(toloc, to_field%mesh%shape))
         end do
-        
+
         ! Now loop over the elements.
         do ele=1,element_count(from_field)
           from_ele=>ele_nodes(from_field, ele)
           to_ele=>ele_nodes(to_field, ele)
-  
+
           to_field%val(to_ele)=matmul(locweight,from_field%val(from_ele))
-          
+
         end do
-        
+
       case(FIELD_TYPE_CONSTANT)
         to_field%val = from_field%val(1)
       end select
-      
+
     end if
 
   end subroutine remap_scalar_field
@@ -1924,7 +1924,7 @@ module fields_manipulation
     !!< This is used to change the element type of a field.
     !!<
     !!< This will not validly map a discontinuous field to a continuous
-    !!< field. 
+    !!< field.
     !!< This only does certain elements, and can optionally take in a precomputed locweight.
 
     type(scalar_field), intent(in) :: from_field
@@ -1956,7 +1956,7 @@ module fields_manipulation
     else
       llocweight = locweight
     end if
-      
+
       ! Now loop over the elements.
     do i=1,size(elements)
       ele = elements(i)
@@ -1977,11 +1977,11 @@ module fields_manipulation
 
     integer :: toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
-    
+
     if(present(stat)) stat = 0
 
     assert(to_field%dim>=from_field%dim)
-    
+
     if (mesh_dim(from_field)/=mesh_dim(to_field)) then
        ewrite (0,*)"Remapping "//trim(from_field%name)//" to "&
             &//trim(to_field%name)
@@ -1993,11 +1993,11 @@ module fields_manipulation
     end if
 
     if(from_field%mesh==to_field%mesh) then
-    
+
       call set(to_field, from_field)
-      
+
     else
-    
+
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
@@ -2008,19 +2008,19 @@ module fields_manipulation
           locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
             local_coords(toloc, to_field%mesh%shape))
         end do
-        
+
         ! Now loop over the elements.
         do ele=1,element_count(from_field)
           from_ele=>ele_nodes(from_field, ele)
           to_ele=>ele_nodes(to_field, ele)
-          
+
           do i=1,from_field%dim
               to_field%val(i,to_ele)= &
-                  matmul(locweight,from_field%val(i,from_ele))          
+                  matmul(locweight,from_field%val(i,from_ele))
           end do
-          
+
         end do
-        
+
       case(FIELD_TYPE_CONSTANT)
         do i=1,from_field%dim
           to_field%val(i,:) = from_field%val(i,1)
@@ -2028,14 +2028,14 @@ module fields_manipulation
       case default
         FLAbort("Wrong field_type for remap_field")
       end select
-  
+
     end if
-    
+
     ! Zero any left-over dimensions
     do i=from_field%dim+1,to_field%dim
       to_field%val(i,:)=0.0
     end do
-    
+
   end subroutine remap_vector_field
 
   subroutine remap_vector_field_specific(from_field, to_field, elements, output, locweight, stat)
@@ -2081,16 +2081,16 @@ module fields_manipulation
     else
       llocweight = locweight
     end if
-      
+
     ! Now loop over the elements.
     do j=1,size(elements)
       ele = elements(j)
       do i=1,from_field%dim
-        output(j, i, :) = matmul(llocweight,ele_val(from_field, i, ele))          
+        output(j, i, :) = matmul(llocweight,ele_val(from_field, i, ele))
       end do
     end do
   end subroutine remap_vector_field_specific
-  
+
   subroutine remap_tensor_field(from_field, to_field, stat)
     !!< Remap the components of from_field onto the locations of to_field.
     !!< This is used to change the element type of a field.
@@ -2106,15 +2106,15 @@ module fields_manipulation
     integer, dimension(:), pointer :: from_ele, to_ele
 
     if(present(stat)) stat = 0
-    
+
     assert(all(to_field%dim>=from_field%dim))
-    
+
     if(from_field%mesh==to_field%mesh) then
-    
+
       call set(to_field, from_field)
-      
+
     else
-      
+
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
@@ -2125,29 +2125,29 @@ module fields_manipulation
           locweight(toloc,:)=eval_shape(from_field%mesh%shape, &
             local_coords(toloc, to_field%mesh%shape))
         end do
-        
+
         ! Now loop over the elements.
         do ele=1,element_count(from_field)
           from_ele=>ele_nodes(from_field, ele)
           to_ele=>ele_nodes(to_field, ele)
-          
+
           do i=1,from_field%dim(1)
             do j=1,from_field%dim(2)
               to_field%val(i, j, to_ele) = matmul(locweight, from_field%val(i, j, from_ele))
             end do
           end do
-          
+
         end do
       case(FIELD_TYPE_CONSTANT)
         do i=1,size(to_field%val, 3)
           to_field%val(:, :, i) = from_field%val(:, :, 1)
         end do
       end select
-      
+
     end if
 
   end subroutine remap_tensor_field
-    
+
   subroutine remap_scalar_field_to_surface(from_field, to_field, surface_element_list, stat)
     !!< Remap the values of from_field onto the surface_field to_field, which is defined
     !!< on the faces given by surface_element_list.
@@ -2156,7 +2156,7 @@ module fields_manipulation
     type(scalar_field), intent(inout):: to_field
     integer, dimension(:), intent(in):: surface_element_list
     integer, intent(out), optional:: stat
-    
+
     real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(face_loc(from_field,1)) :: from_val
@@ -2169,7 +2169,7 @@ module fields_manipulation
     case(FIELD_TYPE_NORMAL)
 
       call test_remap_validity(from_field, to_field, stat=stat)
-    
+
       ! the remapping happens from a face of from_field which is at the same
       ! time an element of to_field
       from_shape => face_shape(from_field, 1)
@@ -2179,22 +2179,22 @@ module fields_manipulation
         locweight(toloc,:)=eval_shape(from_shape, &
           local_coords(toloc, to_shape))
       end do
-    
+
       ! Now loop over the surface elements.
       do ele=1, size(surface_element_list)
          ! element ele is a face in the mesh of from_field:
          face=surface_element_list(ele)
-         
+
          to_nodes => ele_nodes(to_field, ele)
 
          from_val = face_val(from_field, face)
 
          to_field%val(to_nodes)=matmul(locweight,from_val)
-         
+
       end do
-      
+
     case(FIELD_TYPE_CONSTANT)
-      
+
       to_field%val = from_field%val(1)
 
     end select
@@ -2209,7 +2209,7 @@ module fields_manipulation
     type(vector_field), intent(inout):: to_field
     integer, dimension(:), intent(in):: surface_element_list
     integer, intent(out), optional:: stat
-    
+
     real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(from_field%dim, face_loc(from_field,1)) :: from_val
@@ -2222,7 +2222,7 @@ module fields_manipulation
 
     select case(from_field%field_type)
     case(FIELD_TYPE_NORMAL)
-    
+
       call test_remap_validity(from_field, to_field, stat=stat)
 
       ! the remapping happens from a face of from_field which is at the same
@@ -2234,12 +2234,12 @@ module fields_manipulation
         locweight(toloc,:)=eval_shape(from_shape, &
           local_coords(toloc, to_shape))
       end do
-    
+
       ! Now loop over the surface elements.
       do ele=1, size(surface_element_list)
          ! element ele is a face in the mesh of from_field:
          face=surface_element_list(ele)
-         
+
          to_nodes => ele_nodes(to_field, ele)
 
          from_val = face_val(from_field, face)
@@ -2247,9 +2247,9 @@ module fields_manipulation
          do i=1, to_field%dim
            to_field%val(i,to_nodes)=matmul(locweight,from_val(i, :))
          end do
-         
+
       end do
-      
+
     case(FIELD_TYPE_CONSTANT)
       do i=1, from_field%dim
         to_field%val(i,:) = from_field%val(i,1)
@@ -2273,7 +2273,7 @@ module fields_manipulation
     type(tensor_field), intent(inout):: to_field
     integer, dimension(:), intent(in):: surface_element_list
     integer, intent(out), optional:: stat
-    
+
     real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
     type(element_type), pointer:: from_shape, to_shape
     real, dimension(from_field%dim(1), from_field%dim(2), face_loc(from_field,1)) :: from_val
@@ -2287,7 +2287,7 @@ module fields_manipulation
 
     select case(from_field%field_type)
     case(FIELD_TYPE_NORMAL)
-    
+
       call test_remap_validity(from_field, to_field, stat=stat)
 
       ! the remapping happens from a face of from_field which is at the same
@@ -2299,12 +2299,12 @@ module fields_manipulation
         locweight(toloc,:)=eval_shape(from_shape, &
           local_coords(toloc, to_shape))
       end do
-    
+
       ! Now loop over the surface elements.
       do ele=1, size(surface_element_list)
          ! element ele is a face in the mesh of from_field:
          face=surface_element_list(ele)
-         
+
          to_nodes => ele_nodes(to_field, ele)
 
          from_val = face_val(from_field, face)
@@ -2314,9 +2314,9 @@ module fields_manipulation
                to_field%val(i,j,to_nodes)=matmul(locweight,from_val(i,j,:))
             end do
          end do
-         
+
       end do
-      
+
     case(FIELD_TYPE_CONSTANT)
       do i=1, from_field%dim(1)
          do j=1, from_field%dim(2)
@@ -2355,7 +2355,7 @@ module fields_manipulation
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     new_mesh%name=name
     call deallocate(shape)
-    
+
   end function piecewise_constant_mesh
 
   function piecewise_constant_field(in_mesh, name) result(field)
@@ -2377,7 +2377,7 @@ module fields_manipulation
     call zero(field)
     call deallocate(shape)
     call deallocate(new_mesh)
-    
+
   end function piecewise_constant_field
 
   subroutine scalar_scale(field, factor)
@@ -2386,7 +2386,7 @@ module fields_manipulation
     real, intent(in) :: factor
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-      
+
     field%val = field%val * factor
 
   end subroutine scalar_scale
@@ -2400,7 +2400,7 @@ module fields_manipulation
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     if (present(dim)) then
       field%val(dim,:) = field%val(dim,:) * factor
     else
@@ -2408,7 +2408,7 @@ module fields_manipulation
         field%val(i,:) = field%val(i,:) * factor
       end do
     end if
-      
+
   end subroutine vector_scale
 
   subroutine tensor_scale(field, factor)
@@ -2417,16 +2417,16 @@ module fields_manipulation
     real, intent(in) :: factor
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     field%val = field%val * factor
-      
+
   end subroutine tensor_scale
-    
+
   subroutine scalar_scale_scalar_field(field, sfield)
-    !!< Multiply scalar field with sfield. This will only work if the 
+    !!< Multiply scalar field with sfield. This will only work if the
     !!< fields have the same mesh.
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(scalar_field), intent(inout) :: field
     type(scalar_field), intent(in) :: sfield
@@ -2434,7 +2434,7 @@ module fields_manipulation
     assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        field%val = field%val * sfield%val
@@ -2444,14 +2444,14 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
     end select
-    
+
   end subroutine scalar_scale_scalar_field
 
   subroutine vector_scale_scalar_field(field, sfield)
-    !!< Multiply vector field with scalar field. This will only work if the 
+    !!< Multiply vector field with scalar field. This will only work if the
     !!< fields have the same mesh.
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(vector_field), intent(inout) :: field
     type(scalar_field), intent(in) :: sfield
@@ -2461,7 +2461,7 @@ module fields_manipulation
     assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
@@ -2475,14 +2475,14 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
     end select
-    
+
   end subroutine vector_scale_scalar_field
 
   subroutine tensor_scale_scalar_field(field, sfield)
-    !!< Multiply tensor field with scalar field. This will only work if the 
+    !!< Multiply tensor field with scalar field. This will only work if the
     !!< fields have the same mesh.
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(tensor_field), intent(inout) :: field
     type(scalar_field), intent(in) :: sfield
@@ -2492,7 +2492,7 @@ module fields_manipulation
     assert(field%mesh%refcount%id==sfield%mesh%refcount%id)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim(1)
@@ -2506,14 +2506,14 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
     end select
-    
+
   end subroutine tensor_scale_scalar_field
-    
+
   subroutine vector_scale_vector_field(field, vfield)
-    !!< Multiply vector field with vector field. This will only work if the 
+    !!< Multiply vector field with vector field. This will only work if the
     !!< fields have the same mesh.
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(vector_field), intent(inout) :: field
     type(vector_field), intent(in) :: vfield
@@ -2523,7 +2523,7 @@ module fields_manipulation
     assert(field%mesh%refcount%id==vfield%mesh%refcount%id)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. vfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (vfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
@@ -2537,14 +2537,14 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
     end select
-    
+
   end subroutine vector_scale_vector_field
-    
+
   subroutine tensor_scale_tensor_field(field, tfield)
-    !!< Multiply tensor field with tensor field. This will only work if the 
+    !!< Multiply tensor field with tensor field. This will only work if the
     !!< fields have the same mesh.
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(tensor_field), intent(inout) :: field
     type(tensor_field), intent(in) :: tfield
@@ -2554,7 +2554,7 @@ module fields_manipulation
     assert(field%mesh%refcount%id==tfield%mesh%refcount%id)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. tfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (tfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim(1)
@@ -2572,16 +2572,16 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in scale()")
     end select
-    
+
   end subroutine tensor_scale_tensor_field
-    
+
   subroutine scalar_power(field, power)
     !!< Raise scalar field to power
     type(scalar_field), intent(inout) :: field
     real, intent(in) :: power
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-      
+
     field%val = field%val ** power
 
   end subroutine scalar_power
@@ -2593,13 +2593,13 @@ module fields_manipulation
     integer, intent(in), optional :: dim
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     if (present(dim)) then
       field%val(dim,:) = field%val(dim,:) ** power
     else
       field%val = field%val ** power
     end if
-      
+
   end subroutine vector_power
 
   subroutine tensor_power(field, power)
@@ -2608,11 +2608,11 @@ module fields_manipulation
     real, intent(in) :: power
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
-    
+
     field%val = field%val ** power
-      
+
   end subroutine tensor_power
-    
+
   subroutine scalar_power_scalar_field(field, sfield)
     !!< Raise scalar field to power based on sfield
     type(scalar_field), intent(inout) :: field
@@ -2621,7 +2621,7 @@ module fields_manipulation
     assert(field%mesh==sfield%mesh)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        field%val = field%val ** sfield%val
@@ -2631,7 +2631,7 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in power()")
     end select
-    
+
   end subroutine scalar_power_scalar_field
 
   subroutine vector_power_scalar_field(field, sfield)
@@ -2644,7 +2644,7 @@ module fields_manipulation
     assert(field%mesh==sfield%mesh)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim
@@ -2658,7 +2658,7 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in power()")
     end select
-    
+
   end subroutine vector_power_scalar_field
 
   subroutine tensor_power_scalar_field(field, sfield)
@@ -2671,7 +2671,7 @@ module fields_manipulation
     assert(field%mesh==sfield%mesh)
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     assert(field%field_type==FIELD_TYPE_NORMAL .or. sfield%field_type==FIELD_TYPE_CONSTANT)
-    
+
     select case (sfield%field_type)
     case (FIELD_TYPE_NORMAL)
        do i=1,field%dim(1)
@@ -2685,16 +2685,16 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in power()")
     end select
-    
+
   end subroutine tensor_power_scalar_field
 
   subroutine bound_scalar_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(scalar_field), intent(inout) :: field
     real, intent(in) :: lower_bound, upper_bound
-    
+
     integer :: i
-    
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i = 1, node_count(field)
@@ -2705,9 +2705,9 @@ module fields_manipulation
     case default
       FLAbort("Illegal field type in bound()")
     end select
-  
+
   end subroutine bound_scalar_field
-  
+
   subroutine bound_scalar_field_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(scalar_field), intent(inout) :: field
@@ -2740,15 +2740,15 @@ module fields_manipulation
     end select
 
   end subroutine bound_scalar_field_field
-  
+
 
   subroutine bound_vector_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(vector_field), intent(inout) :: field
     real, intent(in) :: lower_bound, upper_bound
-    
+
     integer :: i, j
-    
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i = 1, field%dim
@@ -2763,16 +2763,16 @@ module fields_manipulation
     case default
       FLAbort("Illegal field type in bound()")
     end select
-  
+
   end subroutine bound_vector_field
-  
+
   subroutine bound_tensor_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(tensor_field), intent(inout) :: field
     real, intent(in) :: lower_bound, upper_bound
-    
+
     integer :: i, j, k
-    
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i = 1, field%dim(1)
@@ -2791,17 +2791,17 @@ module fields_manipulation
     case default
       FLAbort("Illegal field type in bound()")
     end select
-  
+
   end subroutine bound_tensor_field
-  
+
   subroutine normalise_scalar(field)
     type(scalar_field), intent(inout) :: field
-    
+
     integer :: i
     real :: tolerance
-    
+
     tolerance = tiny(0.0)
-    
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i = 1, node_count(field)
@@ -2812,17 +2812,17 @@ module fields_manipulation
     case default
       FLAbort("Illegal field type in normalise()")
     end select
-        
+
   end subroutine normalise_scalar
 
   subroutine normalise_vector(field)
     type(vector_field), intent(inout) :: field
-    
+
     integer :: i
     real :: tolerance
-    
+
     tolerance = tiny(0.0)
-    
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       do i = 1, node_count(field)
@@ -2833,26 +2833,26 @@ module fields_manipulation
     case default
       FLAbort("Illegal field type in normalise()")
     end select
-        
+
   end subroutine normalise_vector
 
   subroutine invert_scalar_field_inplace(field, tolerance)
   !!< Computes 1/field for a scalar field
     type(scalar_field), intent(inout):: field
     real, intent(in), optional :: tolerance
-    
+
     call invert_scalar_field(field, field, tolerance)
-    
+
   end subroutine invert_scalar_field_inplace
-  
+
   subroutine invert_scalar_field(in_field, out_field, tolerance)
   !!< Computes 1/field for a scalar field
     type(scalar_field), intent(in):: in_field
     type(scalar_field), intent(inout):: out_field
     real, intent(in), optional :: tolerance
-  
+
     integer :: i
-  
+
     assert(out_field%field_type==FIELD_TYPE_NORMAL .or. out_field%field_type==FIELD_TYPE_CONSTANT)
     assert(out_field%mesh==in_field%mesh)
     if (in_field%field_type==out_field%field_type) then
@@ -2871,17 +2871,17 @@ module fields_manipulation
       end if
     else
       FLAbort("Calling invert_scalar_field with wrong field type")
-    end if    
-    
+    end if
+
   end subroutine invert_scalar_field
 
   subroutine invert_vector_field_inplace(field, tolerance)
   !!< Computes 1/field for a vector field
     type(vector_field), intent(inout):: field
     real, intent(in), optional :: tolerance
-    
+
     call invert_vector_field(field, field, tolerance)
-    
+
   end subroutine invert_vector_field_inplace
 
   subroutine invert_vector_field(in_field, out_field, tolerance)
@@ -2889,9 +2889,9 @@ module fields_manipulation
     type(vector_field), intent(in):: in_field
     type(vector_field), intent(inout):: out_field
     real, intent(in), optional :: tolerance
-    
+
     integer :: i, j
-  
+
     assert(out_field%field_type==FIELD_TYPE_NORMAL .or. out_field%field_type==FIELD_TYPE_CONSTANT)
     assert(in_field%dim==in_field%dim)
     do i = 1, out_field%dim
@@ -2913,16 +2913,16 @@ module fields_manipulation
         FLAbort("Calling invert_vector_field with wrong field type")
       end if
     end do
-    
+
   end subroutine invert_vector_field
 
   subroutine invert_tensor_field_inplace(field, tolerance)
   !!< Computes 1/field for a tensor field
     type(tensor_field), intent(inout):: field
     real, intent(in), optional :: tolerance
-    
+
     call invert_tensor_field(field, field, tolerance)
-    
+
   end subroutine invert_tensor_field_inplace
 
   subroutine invert_tensor_field(in_field, out_field, tolerance)
@@ -2930,9 +2930,9 @@ module fields_manipulation
     type(tensor_field), intent(in):: in_field
     type(tensor_field), intent(inout):: out_field
     real, intent(in), optional :: tolerance
-    
+
     integer :: i, j, k
-  
+
     assert(out_field%field_type==FIELD_TYPE_NORMAL .or. out_field%field_type==FIELD_TYPE_CONSTANT)
     assert(in_field%dim(1)==in_field%dim(1))
     assert(in_field%dim(2)==in_field%dim(2))
@@ -2957,21 +2957,21 @@ module fields_manipulation
         end if
       end do
     end do
-    
+
   end subroutine invert_tensor_field
 
   subroutine absolute_value_scalar_field(field)
   !!< Computes abs(field) for a scalar field
     type(scalar_field), intent(inout) :: field
-    
+
     field%val = abs(field%val)
-    
+
   end subroutine absolute_value_scalar_field
 
   subroutine cross_product_vector(a, b, c)
     !!< Computes the node-wise outer product a=b x c
     !!< NOTE that the integral of the resulting field by a weighted sum over its values in gauss points
-    !!< will not be as accurate as multiplying the fields at each gauss point seperately 
+    !!< will not be as accurate as multiplying the fields at each gauss point seperately
     !!< and then summing over these.
     type(vector_field), intent(inout) :: a
     type(vector_field), intent(in) :: b, c
@@ -2985,24 +2985,24 @@ module fields_manipulation
     assert(a%field_type==FIELD_TYPE_NORMAL .or. c%field_type==FIELD_TYPE_CONSTANT)
     assert(a%dim==b%dim)
     assert(a%dim==c%dim)
-    
+
     if (a%mesh==c%mesh .and. c%field_type/=FIELD_TYPE_CONSTANT) then
        tmp_c=c
     else
        call allocate(tmp_c, c%dim, a%mesh, name='cross_product_vector_tmp_c')
        call remap_field(c, tmp_c)
-    end if    
-    
+    end if
+
     select case (b%field_type)
     case (FIELD_TYPE_NORMAL)
-      
+
        if (a%mesh==b%mesh) then
           tmp_b=b
        else
           call allocate(tmp_b, b%dim, a%mesh, name='cross_product_vector_tmp_b')
           call remap_field(b, tmp_b)
        end if
-       
+
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           do i=1, a%dim
@@ -3018,13 +3018,13 @@ module fields_manipulation
           ! someone could implement in_field type python
           FLAbort("Illegal in_field field type in cross_product()")
        end select
-       
+
        if (.not. a%mesh==b%mesh) then
           call deallocate(tmp_b)
        end if
-       
+
     case (FIELD_TYPE_CONSTANT)
-      
+
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           do i=1, a%dim
@@ -3040,20 +3040,20 @@ module fields_manipulation
           ! someone could implement b type python
           FLAbort("Illegal in_field field type in cross_product()")
        end select
-       
+
     case default
-      
+
        ! someone could implement c field type python
        FLAbort("Illegal in_field field type in cross_product()")
-       
+
     end select
-       
+
     if (.not. a%mesh==c%mesh .or. c%field_type==FIELD_TYPE_CONSTANT) then
        call deallocate(tmp_c)
     end if
-    
+
   end subroutine cross_product_vector
-  
+
   subroutine inner_product_field_field(a, b, c)
     !!< Computes the node-wise inner/dot product a=b . c
     !!< This version takes two scalar fields. NOTE that if a and b and c
@@ -3069,24 +3069,24 @@ module fields_manipulation
     assert(a%field_type==FIELD_TYPE_NORMAL .or. b%field_type==FIELD_TYPE_CONSTANT)
     assert(a%field_type==FIELD_TYPE_NORMAL .or. c%field_type==FIELD_TYPE_CONSTANT)
     assert(b%dim==c%dim)
-    
+
     if (a%mesh==c%mesh .and. c%field_type/=FIELD_TYPE_CONSTANT) then
        tmp_c=c
     else
        call allocate(tmp_c, c%dim, a%mesh, name='inner_product_vector_tmp_c')
        call remap_field(c, tmp_c)
     end if
-    
+
     select case (b%field_type)
     case (FIELD_TYPE_NORMAL)
-      
+
        if (a%mesh==b%mesh) then
           tmp_b=b
        else
           call allocate(tmp_b, b%dim, a%mesh, name='cross_product_vector_tmp_b')
           call remap_field(b, tmp_b)
        end if
-       
+
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           a%val=tmp_b%val(1,:)*tmp_c%val(1,:)
@@ -3102,9 +3102,9 @@ module fields_manipulation
           ! someone could implement in_field type python
           FLAbort("Illegal in_field field type in inner_product()")
        end select
-       
+
     case (FIELD_TYPE_CONSTANT)
-      
+
        select case (c%field_type)
        case (FIELD_TYPE_NORMAL)
           a%val=b%val(1,1)*tmp_c%val(1,:)
@@ -3120,20 +3120,20 @@ module fields_manipulation
           ! someone could implement in_field type python
           FLAbort("Illegal in_field field type in inner_product()")
        end select
-       
+
     case default
-      
+
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in inner_product()")
-       
+
     end select
-       
+
     if (.not. c%mesh==tmp_c%mesh) then
        call deallocate(tmp_c)
     end if
-    
+
   end subroutine inner_product_field_field
-  
+
   subroutine inner_product_array_field(a, b, c)
     !!< Computes the node-wise inner/dot product a=b . c
     type(scalar_field), intent(inout) :: a
@@ -3146,7 +3146,7 @@ module fields_manipulation
     assert(a%field_type/=FIELD_TYPE_PYTHON)
     assert(a%field_type==FIELD_TYPE_NORMAL .or. c%field_type==FIELD_TYPE_CONSTANT)
     assert(size(b)==c%dim)
-    
+
     select case (c%field_type)
     case (FIELD_TYPE_NORMAL)
        a%val=b(1)*c%val(1,:)
@@ -3162,7 +3162,7 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in inner_product()")
     end select
-       
+
   end subroutine inner_product_array_field
 
   subroutine inner_product_field_array(a, b, c)
@@ -3177,7 +3177,7 @@ module fields_manipulation
     assert(a%field_type/=FIELD_TYPE_PYTHON)
     assert(a%field_type==FIELD_TYPE_NORMAL .or. b%field_type==FIELD_TYPE_CONSTANT)
     assert(size(c)==b%dim)
-    
+
     select case (b%field_type)
     case (FIELD_TYPE_NORMAL)
        a%val=c(1)*b%val(1,:)
@@ -3193,7 +3193,7 @@ module fields_manipulation
        ! someone could implement in_field type python
        FLAbort("Illegal in_field field type in inner_product()")
     end select
-       
+
   end subroutine inner_product_field_array
 
   function get_patch_ele(mesh, node, level) result(patch)
@@ -3322,14 +3322,14 @@ module fields_manipulation
     out_field = field
     nullify(out_field%val)
   end function clone_header_scalar
-  
+
   function clone_header_vector(field) result(out_field)
     type(vector_field), intent(in) :: field
     type(vector_field) :: out_field
 
     out_field = field
     nullify(out_field%val)
-    
+
   end function clone_header_vector
 
   function clone_header_tensor(field) result(out_field)
@@ -3344,7 +3344,7 @@ module fields_manipulation
     !!< Set the nodal values of a field on a higher order mesh to a field on its submesh.
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
-    
+
     integer :: vertices, from_ele, to_ele, l_ele
     integer, dimension(:,:), allocatable :: permutation
     real, dimension(:), allocatable :: from_vals
@@ -3430,7 +3430,7 @@ module fields_manipulation
     !!< Set the nodal values of a field on a higher order mesh to a field on its submesh.
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field
-    
+
     integer :: vertices, from_ele, to_ele, l_ele
     integer, dimension(:,:), allocatable :: permutation
     real, dimension(:,:), allocatable :: from_vals
@@ -3516,7 +3516,7 @@ module fields_manipulation
     !!< Set the nodal values of a field on a lower order submesh to a field on its parent mesh.
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
-    
+
     integer :: vertices, from_ele, to_ele, l_ele
     integer, dimension(:,:), allocatable :: permutation
     real, dimension(:), allocatable :: from_vals
@@ -3605,7 +3605,7 @@ module fields_manipulation
     !!< Set the nodal values of a field on a lower order submesh to a field on its parent mesh.
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field
-    
+
     integer :: vertices, from_ele, to_ele, l_ele
     integer, dimension(:,:), allocatable :: permutation
     real, dimension(:,:), allocatable :: from_vals
@@ -3787,7 +3787,7 @@ module fields_manipulation
     do ele=1,ele_count(input_positions)
       call set_ele_nodes(output_mesh, ele, permutation(ele_nodes(input_positions, ele)))
     end do
-    
+
     if(associated(input_positions%mesh%columns)) then
       allocate(output_mesh%columns(node_count(input_positions)))
       do node=1,node_count(input_positions)
@@ -3861,7 +3861,7 @@ module fields_manipulation
       call set(output_positions, permutation(node), node_val(input_positions, node))
     end do
     call deallocate(output_mesh)
-    
+
     ! Node halos
     allocate(output_positions%mesh%halos(halo_count(input_positions)))
     do halo_num = 1, halo_count(input_positions)
@@ -3874,7 +3874,7 @@ module fields_manipulation
         call set_halo_sends(output_halo, proc, permutation(halo_sends(input_halo, proc)))
         call set_halo_receives(output_halo, proc, permutation(halo_receives(input_halo, proc)))
       end do
-      
+
       ! Create caches
       call create_ownership(output_halo)
       call create_global_to_universal_numbering(output_halo)
@@ -3966,7 +3966,7 @@ module fields_manipulation
       call set(output_positions, node, node_val(input_positions, node))
     end do
     call deallocate(output_mesh)
-    
+
     ! Node halos
     allocate(output_positions%mesh%halos(halo_count(input_positions)))
     do halo_num = 1, halo_count(input_positions)
@@ -3987,7 +3987,7 @@ module fields_manipulation
         call set_halo_sends(output_halo, proc, permutation(halo_sends(input_halo, proc)))
         call set_halo_receives(output_halo, proc, permutation(halo_receives(input_halo, proc)))
       end do
-      
+
       ! Create caches
       call create_ownership(output_halo)
       call create_global_to_universal_numbering(output_halo)
@@ -4012,7 +4012,7 @@ module fields_manipulation
     ewrite(1, *) "In renumber_positions_elements_trailing_receives"
 
     assert(positions%refcount%count == 1)
-   
+
     nhalos = element_halo_count(positions)
     if(nhalos == 0) return
 
@@ -4056,12 +4056,12 @@ module fields_manipulation
     ewrite(1, *) "Exiting renumber_positions_elements_trailing_receives"
 
   end subroutine renumber_positions_elements_trailing_receives
-  
+
   subroutine reorder_element_numbering(positions, use_unns)
     !!< On return from adaptivity, the element node list for halo elements
     !!< contains arbitrary reorderings. This routine reorders the element
     !!< node lists so that they are consistent accross all processes.
-    
+
     type(vector_field), target, intent(inout) :: positions
     !! Supply this to override unn caches on the positions field. Useful for
     !! reordering before caches have been generated.
@@ -4080,7 +4080,7 @@ module fields_manipulation
       allocate(sndgln(face_loc(mesh, 1) * unique_surface_element_count(mesh)))
       call getsndgln(mesh, sndgln)
     end if
-    
+
     nhalos = halo_count(mesh)
     if((nhalos == 0).and.(.not.present(use_unns))) then
       FLAbort("Need halos or unns to reorder the mesh.")
@@ -4088,21 +4088,21 @@ module fields_manipulation
 
     do ele = 1, element_count(mesh)
       nodes => ele_nodes(mesh, ele)
-      
+
       if(present(use_unns)) then
         unns = set2vector(use_unns(ele))
       else
         ! Get the universal numbers from the largest available halo
         unns = halo_universal_numbers(mesh%halos(nhalos), nodes)
       end if
-       
+
       call qsort(unns, unns_order)
       call apply_permutation(nodes, unns_order)
-    
+
     end do
-    
+
     ! Now we have the nodes in a known order. However, some elements may
-    ! be inverted. This is only an issue in 3D.       
+    ! be inverted. This is only an issue in 3D.
 
     if(mesh_dim(mesh) == 3) then
       do ele = 1, element_count(mesh)
@@ -4177,7 +4177,7 @@ module fields_manipulation
     else
        call set_all(sub_field, node_val(parent_field,node_map))
     end if
-    
+
   end subroutine remap_to_subdomain_scalar
 
   subroutine remap_to_subdomain_vector(parent_field,sub_field)
@@ -4194,7 +4194,7 @@ module fields_manipulation
     else
        call set_all(sub_field, node_val(parent_field,node_map))
     end if
-    
+
   end subroutine remap_to_subdomain_vector
 
   subroutine remap_to_subdomain_tensor(parent_field,sub_field)
@@ -4211,7 +4211,7 @@ module fields_manipulation
     else
        call set_all(sub_field, node_val(parent_field,node_map))
     end if
-    
+
   end subroutine remap_to_subdomain_tensor
 
   subroutine remap_to_full_domain_scalar(sub_field,parent_field)
@@ -4231,7 +4231,7 @@ module fields_manipulation
           call set(parent_field, node_map(inode), node_val(sub_field,inode))
        end do
     end if
-    
+
   end subroutine remap_to_full_domain_scalar
 
   subroutine remap_to_full_domain_vector(sub_field,parent_field)
@@ -4250,7 +4250,7 @@ module fields_manipulation
           call set(parent_field, node_map(inode), node_val(sub_field,inode))
        end do
     end if
-    
+
   end subroutine remap_to_full_domain_vector
 
   subroutine remap_to_full_domain_tensor(sub_field,parent_field)
@@ -4269,7 +4269,7 @@ module fields_manipulation
           call set(parent_field, node_map(inode), node_val(sub_field,inode))
        end do
     end if
-    
+
   end subroutine remap_to_full_domain_tensor
 
   function get_remapped_coordinates(positions, mesh) result(remapped_positions)
@@ -4281,7 +4281,7 @@ module fields_manipulation
 
     call allocate(remapped_positions, positions%dim, mesh, "RemappedCoordinates")
     call remap_field(positions, remapped_positions, stat=stat)
-    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates
     ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
     if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
       ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
@@ -4296,7 +4296,7 @@ module fields_manipulation
     end if
 
   end function get_remapped_coordinates
-  
+
   function get_coordinates_remapped_to_surface(positions, surface_mesh, surface_element_list) result(surface_positions)
     type(vector_field), intent(in):: positions
     type(mesh_type), intent(inout):: surface_mesh
@@ -4307,7 +4307,7 @@ module fields_manipulation
 
     call allocate(surface_positions, positions%dim, surface_mesh, "RemappedSurfaceCoordinates")
     call remap_field_to_surface(positions, surface_positions, surface_element_list, stat=stat)
-    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates
     ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
     if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
       ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
@@ -4399,4 +4399,3 @@ module fields_manipulation
   end subroutine ele_zero_bubble_val_tensor
 
 end module fields_manipulation
-

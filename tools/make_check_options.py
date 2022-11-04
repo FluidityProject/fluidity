@@ -1,83 +1,93 @@
 #!/usr/bin/env python3
-import re
 import glob
 import hashlib
+import re
 from io import StringIO
 
-def safe_decode(x): 
-    return  x.decode('utf8') if type(x) is bytes else x
+
+def safe_decode(x):
+    return x.decode("utf8") if type(x) is bytes else x
+
 
 # File header
-header="""
+header = """
 subroutine check_options
 
 """
-footer="""
+footer = """
 end subroutine check_options
 """
 
-outfile='preprocessor/check_options.F90'
+outfile = "preprocessor/check_options.F90"
 
 # get sha1 digest of existing generated file.  Can't use 'rw' here
 # because it updates the modtime of the file, which we're trying to
 # avoid doing.
-orig=hashlib.sha1()
+orig = hashlib.sha1()
 try:
-    f=open(outfile, 'r')
+    f = open(outfile)
     orig.update(f.read().encode("utf8"))
-except IOError:
+except OSError:
     pass
 else:
     f.close()
 
 # Now read module files to generate potential new data
-output=StringIO()
+output = StringIO()
 output.write(safe_decode(header))
 
 # List of fortran source files.
-fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
+fortran_files = glob.glob("*/*.F") + glob.glob("*/*.F90")
 
-module_re=re.compile(r"^\s*module\s+(\w+)\s*$",re.IGNORECASE|re.MULTILINE)
+module_re = re.compile(r"^\s*module\s+(\w+)\s*$", re.IGNORECASE | re.MULTILINE)
 
-module_list=[]
+module_list = []
 
 for filename in fortran_files:
 
-    fortran=open(filename,"rb").read().decode("utf-8")
+    fortran = open(filename, "rb").read().decode("utf-8")
 
-    modules=module_re.findall(fortran)
+    modules = module_re.findall(fortran)
 
     for module in modules:
 
-        if re.search(r"^\s*subroutine\s+"+module+"_check_options\S*\s*$",\
-                         fortran,\
-                         re.IGNORECASE|re.MULTILINE):
+        if re.search(
+            r"^\s*subroutine\s+" + module + r"_check_options\S*\s*$",
+            fortran,
+            re.IGNORECASE | re.MULTILINE,
+        ):
             module_list.append(module)
 
 for module in module_list:
 
-    output.write(safe_decode("  use "+module+", only: "+module+"_check_options\n"))
+    output.write(
+        safe_decode("  use " + module + ", only: " + module + "_check_options\n")
+    )
 
 # Ensure that the subroutine is legal in the trivial case.
-output.write(safe_decode("""
+output.write(
+    safe_decode(
+        """
    continue
-   """))
+   """
+    )
+)
 
 for module in module_list:
 
-    output.write(safe_decode("  call "+module+"_check_options\n"))
+    output.write(safe_decode("  call " + module + "_check_options\n"))
 
 output.write(safe_decode(footer))
 
-new=hashlib.sha1()
+new = hashlib.sha1()
 new.update(output.getvalue().encode("utf8"))
 
 # Only write file if sha1sums differ
 if new.digest() != orig.digest():
     try:
-        f=open(outfile, 'w')
+        f = open(outfile, "w")
         f.write(output.getvalue())
-    except IOError:
+    except OSError:
         # Fixme, this should fail better
         pass
     else:

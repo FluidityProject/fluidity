@@ -5,7 +5,7 @@
   <owner userid="drhodrid"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>        
+    <command_line>
 ../../bin/fluidity -v3 -l particle-spawning.flml
     </command_line>
   </problem_definition>

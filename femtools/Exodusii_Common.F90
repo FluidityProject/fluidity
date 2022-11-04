@@ -49,7 +49,7 @@ module exodusii_common
     character(len=*), intent(inout) :: lfilename
     logical, intent(inout) :: fileExists
     ! An ExodusII file can have the following file extensions:
-    ! e, exo, E, EXO, our first guess shall be exo    
+    ! e, exo, E, EXO, our first guess shall be exo
     lfilename = trim(filename)//".exo"
     inquire(file = trim(lfilename), exist = fileExists)
     if(.not. fileExists) then
@@ -67,8 +67,8 @@ module exodusii_common
     lfilename = trim(lfilename)
   end subroutine get_exodusii_filename
 
-    
-  
+
+
   ! -----------------------------------------------------------------
   ! Reorder to Fluidity node ordering
   subroutine toFluidityElementNodeOrdering( ele_nodes, elemType )

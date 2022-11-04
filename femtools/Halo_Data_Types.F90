@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -35,9 +35,9 @@ module halo_data_types
   use reference_counting
 
   implicit none
-  
+
   private
- 
+
   public :: halo_type, halo_pointer
 
   !! Halo data types
@@ -48,7 +48,7 @@ module halo_data_types
   !! Halo ordering schemes
   integer, parameter, public :: HALO_ORDER_GENERAL = 1, &
     & HALO_ORDER_TRAILING_RECEIVES = 2
-    
+
   !! Halo information type
   type halo_type
     !! Name of this halo
@@ -66,37 +66,37 @@ module halo_data_types
     integer :: communicator
 #else
     integer :: communicator = -1
-#endif 
+#endif
     !! The number of processes
     integer :: nprocs = 0
-    !! The sends 
+    !! The sends
     type(integer_vector), dimension(:), pointer :: sends => null()
     !! The receives
     type(integer_vector), dimension(:), pointer :: receives => null()
-    
+
     !! The number of owned nodes
     integer :: nowned_nodes = -1
-    
+
     !! Ownership cache
     integer, dimension(:), pointer :: owners => null()
-    
+
     ! Global to universal numbering mapping cache
     !! Universal number of nodes
     integer :: unn_count = -1
     !! Base for owned nodes universal node numbering of each process:
     integer, dimension(:), pointer :: owned_nodes_unn_base => null()
-    !! Base for owned nodes universal node numbering for this process 
+    !! Base for owned nodes universal node numbering for this process
     !! should be the same as owned_nodes_unn_base(rank+1):
     integer :: my_owned_nodes_unn_base = -1
-    
+
     !! Map from global to universal numbers for receives
     integer, dimension(:), pointer :: receives_gnn_to_unn => null()
 
-    !! Map from global to universal node numbers for all items. 
+    !! Map from global to universal node numbers for all items.
     !! This is required for halos which are not ordered by ownership.
     integer, dimension(:), pointer :: gnn_to_unn => null()
   end type halo_type
-  
+
   type halo_pointer
     !!< Dummy type to allow for arrays of pointers to halos
     type(halo_type), pointer :: ptr => null()

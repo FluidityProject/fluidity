@@ -288,7 +288,6 @@ contains
 
     type(state_type), intent(inout) :: state
     type(vector_field), pointer, intent(out) :: foamvel
-    type(vector_field), pointer :: liquidvelocity
     type(scalar_field), pointer :: field
     type(csr_sparsity) :: gradient_sparsity
     type(block_csr_matrix) :: C_m
@@ -296,8 +295,8 @@ contains
     type(csr_matrix) :: mass
     type(vector_field) :: cfield
 
-    integer :: i, stat
-    
+    integer :: i
+
     foamvel => extract_vector_field(state, foamvel_name)
     if (have_option(trim(foamvel%option_path)//'/diagnostic')) then
       field=>extract_scalar_field(state, "FoamVelocityPotential")
@@ -344,5 +343,3 @@ contains
 
 
 end module foam_flow_module
-
-

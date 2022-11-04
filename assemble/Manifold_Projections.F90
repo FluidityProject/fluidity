@@ -34,18 +34,18 @@ module manifold_projections
   use state_module
 
   implicit none
-  
+
   interface project_cartesian_to_local
     module procedure project_cartesian_to_local_generic, project_cartesian_to_local_state
   end interface
-                     
+
   interface project_local_to_cartesian
     module procedure project_local_to_cartesian_generic, project_local_to_cartesian_state
   end interface
-  private 
+  private
   public :: project_cartesian_to_local, project_local_to_cartesian
 
-  contains 
+  contains
 
   subroutine project_cartesian_to_local_state(state, field, transpose)
     !!< Project the cartesian velocity to local coordinates
@@ -72,9 +72,9 @@ module manifold_projections
       end do
     end if
   end subroutine project_cartesian_to_local_state
- 
-  ! In the case tranpose=.false., the third argument is the output 
-  ! In the case tranpose=.true., the second argument is the output 
+
+  ! In the case tranpose=.false., the third argument is the output
+  ! In the case tranpose=.true., the second argument is the output
   subroutine project_cartesian_to_local_generic(X, in_field_cartesian, out_field_local, transpose)
     !!< Project the cartesian velocity to local coordinates
     type(vector_field), intent(in) :: X
@@ -95,7 +95,7 @@ module manifold_projections
       end do
     end if
   end subroutine project_cartesian_to_local_generic
-  
+
   subroutine project_cartesian_to_local_ele(ele, X, U_local, U_cartesian)
     !!< Project the cartesian velocity to local coordinates
     integer, intent(in) :: ele
@@ -149,7 +149,7 @@ module manifold_projections
           call set(U_local, dim1, U_ele(loc), l_rhs((dim1-1)*nloc+loc))
        end do
     end do
-    
+
   end subroutine project_cartesian_to_local_ele
 
   subroutine project_cartesian_to_local_transpose_ele(ele, X, U_cartesian, U_local)
@@ -162,7 +162,6 @@ module manifold_projections
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(U_cartesian%dim, ele_ngi(X,ele)) :: U_quad
-    real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_rhs
     real, dimension(mesh_dim(U_local), mesh_dim(U_local), ele_loc(U_local,ele), ele_loc(U_local,ele)) :: l_mass
     real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele), mesh_dim(U_local)*ele_loc(U_local,ele)) :: l_big_mat
     real, dimension(mesh_dim(U_local)*ele_loc(U_local,ele)) :: tmp
@@ -172,7 +171,7 @@ module manifold_projections
     real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
     type(element_type), pointer :: U_shape
     integer, dimension(:), pointer :: U_ele
-    integer :: dim, dim1, dim2, gi, loc, nloc
+    integer :: dim, dim1, dim2, gi, nloc
 
     dim=U_local%dim
 
@@ -272,7 +271,7 @@ module manifold_projections
       end do
     end if
   end subroutine project_local_to_cartesian_generic
-  
+
   subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
     !!< Project the local velocity to cartesian
     integer, intent(in) :: ele
@@ -308,7 +307,7 @@ module manifold_projections
     end do
 
   end subroutine project_local_to_cartesian_ele
-  
+
   subroutine project_local_to_cartesian_transpose_ele(ele, X, U_local, U_cartesian)
     !!< Transpose of project the local velocity to cartesian
     integer, intent(in) :: ele
@@ -318,12 +317,9 @@ module manifold_projections
     real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(U_local,ele)) :: detwei
-    real, dimension(U_local%dim, ele_ngi(X,ele)) :: U_quad
-    real, dimension(X%dim, ele_ngi(X,ele)) :: U_cartesian_gi
-    real, dimension(X%dim, ele_loc(U_cartesian,ele)) :: rhs
     real, dimension(U_cartesian%dim, ele_loc(U_cartesian, ele)) :: tmp, U_cartesian_ele
     type(element_type), pointer :: U_shape
-    integer :: d, gi
+    integer :: d
 
     call compute_jacobian(X, ele, J=J, detwei=detwei)
 

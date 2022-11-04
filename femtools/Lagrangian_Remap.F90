@@ -45,7 +45,7 @@ contains
     integer :: field_count, field, ele
     real, dimension(ele_ngi(old_fields(1), 1)) :: detwei
     real, dimension(ele_loc(old_fields(1), 1), ele_loc(old_fields(1), 1)) :: little_mass_matrix
-    
+
     type(state_type), dimension(1) :: old_interpolation_state, new_interpolation_state
 
     call insert(old_state, old_position, "Coordinate")
@@ -117,7 +117,7 @@ contains
     call interpolation_galerkin(old_interpolation_state, new_position, &
                                 new_interpolation_state, old_position, &
                                 force_bounded=.true.)
-    
+
     call deallocate(old_interpolation_state(1))
     call deallocate(new_interpolation_state(1))
 

@@ -1,5 +1,5 @@
 !    Copyright (C) 2009 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -37,7 +37,7 @@ subroutine test_length_scale_tensor
    use smoothing_module
    use global_parameters, only : pi
    implicit none
-   
+
    type(vector_field) :: positions
    type(element_type) :: shape
    real :: edge
@@ -46,7 +46,7 @@ subroutine test_length_scale_tensor
    real, dimension(:,:,:), allocatable :: computed_result
    real, dimension(:,:), allocatable :: expected_result
    logical :: fail
-   
+
    positions = read_mesh_files("data/structured", quad_degree=3, format="gmsh")
    ! Edge length in mesh
    edge = pi/8.
@@ -69,11 +69,10 @@ subroutine test_length_scale_tensor
 
    fail = .not.fequals(computed_result(:,:,1), expected_result, 1.0e-9)
    call report_test("[length_scale_tensor]", fail, .false., "Result from length_scale_tensor is incorrect.")
-   
+
    deallocate(computed_result)
    deallocate(expected_result)
    deallocate(detwei)
    deallocate(dshape)
 
 end subroutine test_length_scale_tensor
-

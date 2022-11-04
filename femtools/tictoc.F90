@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -24,8 +24,8 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-  
-#include "fdebug.h" 
+
+#include "fdebug.h"
 
 module tictoc
 
@@ -33,7 +33,7 @@ module tictoc
   use mpi_interfaces
   use parallel_tools
   use timers
-  
+
   implicit none
 
   private
@@ -59,7 +59,7 @@ contains
 
     assert(id > 0)
     assert(id <= MAX_TIC_ID)
-    
+
     starttime(id) = wall_time()
 
 #ifdef DDEBUG
@@ -78,14 +78,14 @@ contains
 #ifdef DDEBUG
     assert(timer_running(id))
 #endif
-        
+
     finish_time = wall_time()
     totaltime(id) = totaltime(id) + (finish_time - starttime(id))
 
 #ifdef DDEBUG
     timer_running(id) = .false.
 #endif
-    
+
   end subroutine toc
 
   subroutine tictoc_reset()
@@ -109,7 +109,7 @@ contains
 
     assert(id > 0)
     assert(id <= MAX_TIC_ID)
-    
+
     tictoc_time = totaltime(id)
 
   end function tictoc_time
@@ -136,7 +136,7 @@ contains
       allocate(times(nprocs))
       call MPI_Gather(dt, 1, getpreal(), times, 1, getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
       assert(ierr == MPI_SUCCESS)
-      
+
       if(rank == 0) then
          mean_time = times(1)
          max_time = times(1)
@@ -171,7 +171,7 @@ contains
     assert(id <= MAX_TIC_ID)
 
     if(debug_level > current_debug_level) return
-    
+
     time = tictoc_time(id)
 
     if(isparallel()) then
@@ -205,7 +205,7 @@ contains
          case default
            ewrite(debug_level, "(a,i0)") "For tictoc ID: ", id
        end select
-       
+
        if(isparallel()) then
          ewrite(debug_level, *) "Time (process 0) = ", time
          ewrite(debug_level, *) "Min. time = ", min_time

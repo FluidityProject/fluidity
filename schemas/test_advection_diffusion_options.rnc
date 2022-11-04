@@ -42,14 +42,14 @@ start =
             ## Quadrature
             element quadrature {
                ## Quadrature degree
-               ## 
+               ##
                ## note: this specifies the degree of quadrature,
                ## not the number of gauss points
                element degree {
                   integer
                },
                ## Surface quadrature degree
-               ## 
+               ##
                ## note: this specifies the degree of surface
                ## quadrature not the number of surface gauss points
                element surface_degree {
@@ -62,7 +62,7 @@ start =
                ## family_grundmann_moeller allows for degree up to
                ## 29 on simplicial meshes in arbitrary dimension.
                element quadrature_family {
-                 ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" ) 
+                 ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" )
                }?
             }
          },
@@ -97,7 +97,7 @@ start =
               )
               }|
               ## Dump period, in timesteps.
-              ## 
+              ##
               ## Specifies the number of timesteps between each dump of the solution to disk.
               ## A value of 0 indicates a dump at every timestep.
               element dump_period_in_timesteps {
@@ -196,14 +196,14 @@ start =
             }?,
             ## Maximum CPU time (secs) taken up before
             ## simulation terminates writing results to disc.
-            ## 
+            ##
             ## Manual suggests 1.E+20
             element cpu_time_limit {
                real
             }?,
             ## Maximum wall time (secs) taken up before
             ## simulation terminates writing results to disc.
-            ## 
+            ##
             ## This is usually disabled.
             element wall_time_limit {
                real
@@ -256,7 +256,7 @@ start =
             )
          }
       }
-   )      
+   )
 
 # Choice of input method, e.g. for boundary conditions
 input_choice_real =
@@ -313,7 +313,7 @@ input_choice_real_contents =
    element python {
       python_code
    }
-   
+
 # Choice of input method for initial conditions
 # Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
 input_choice_initial_condition_real =
@@ -334,8 +334,8 @@ input_choice_initial_condition_real =
       }|
       ## Initialise the field from an existing file (indended
       ## primarily for use in checkpointing). The file mesh must match
-      ## the mesh of this field  (except for piecewise constant fields 
-      ## which will be remapped back from the discontinuous nodal values). 
+      ## the mesh of this field  (except for piecewise constant fields
+      ## which will be remapped back from the discontinuous nodal values).
       ## In parallel the process number is
       ## appended to the filename, e.g. if the file_name attribute is
       ## set to "input.vtu", process 0 reads from "input-0.vtu".
@@ -454,7 +454,7 @@ input_choice_initial_condition_vector =
          },
          comment
       }
-   )  
+   )
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor
@@ -466,7 +466,7 @@ input_choice_real_dim_symmetric_tensor =
       }|
       ## Python command prescribing symmetric tensor input.
       ##
-      ## Note that it is for the python function to determine 
+      ## Note that it is for the python function to determine
       ## that the results it produces are, in fact, symmetric.
       ##
       ## An example that returns the three-dimensional identity:
@@ -659,7 +659,7 @@ prognostic_velocity_field =
                    |
                      element stress_form{empty}
                   },
-                  element order {  
+                  element order {
                      element second_order{empty}
                    |
                      element fourth_order{empty}
@@ -679,7 +679,7 @@ prognostic_velocity_field =
                }?,
                element viscosity_scheme {
                   (
-                     ## Classical scheme from Bassi and Rebay 
+                     ## Classical scheme from Bassi and Rebay
                      ## (JCP 131 267-179 1997)
                      element bassi_rebay {
                         empty
@@ -691,13 +691,13 @@ prognostic_velocity_field =
                      }|
                      ## Classical interior penalty scheme
                      ## see, e.g., SIAM Journal on Numerical Analysis
-                     ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+                     ## Vol. 39, No. 5 (2002), pp. 1749-1779
                      element interior_penalty {
                         ## Penalty_parameter
                         ## The penalty term Int [u][v] dS on element boundaries
                         ## is scaled by C = C_0 h**p
                         ## This option specifies the C_0
-                        ## There is a theoretical lower bound for 
+                        ## There is a theoretical lower bound for
                         ## stability and hence convergence
                         element penalty_parameter {
                            real
@@ -801,7 +801,7 @@ prognostic_velocity_field =
                   ##         /                                        /
                   ##      /                                                /
                   ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-                  ##      /                                                /                  
+                  ##      /                                                /
                   ## where beta is set in conservative_advection, N is
                   ## a shape function (uppercase
                   ## subscripts indicate nodes A or B while lowercase
@@ -898,7 +898,7 @@ prognostic_velocity_field =
                ##  DISOPT=5 - nonlinear streamline and cross stream diffusion.
                ##  DISOPT=6 - nonlinear upwind in steapest direction.
                ##  DISOPT=7 - nonlinear streamline+ cross stream diffusion(but restricted)
-               ##  
+               ##
                ##  DISOPT=42- LES option using constant length scale.
                ##  DISOPT=43- LES option using isotropic length scale.
                ##  DISOPT=44- LES option which uses no balancing diffusion.
@@ -906,7 +906,7 @@ prognostic_velocity_field =
                ##  DISOPT=46- same as 45 but with 4th order dissipation.
                ##  DISOPT=47 -LES but in tensor form like hart3d.
                ##  DISOPT=48 -LES 4th order version of 47.
-               ##  
+               ##
                ##  DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.
                element legacy_disopt {
                   integer
@@ -1048,7 +1048,7 @@ prognostic_velocity_field =
             element prescribed {
                prescribed_vector_field_no_adapt
             }|
-            element diagnostic { 
+            element diagnostic {
                internal_algorithm,
                diagnostic_vector_field
             }
@@ -1157,7 +1157,7 @@ diagnostic_scalar_field =
       adaptivity_options_scalar_field,
       recalculation_options?
    )
-   
+
 # Default child of diagnostic scalar field without adaptivity options
 diagnostic_scalar_field_no_adapt =
    (
@@ -1177,7 +1177,7 @@ diagnostic_scalar_field_tidal_range =
           element spin_up_time {
              real
           }
-      )       
+      )
    )
 
 # Default child of prescribed scalar field
@@ -1200,7 +1200,7 @@ prescribed_scalar_field_no_adapt =
       prescribed_scalar_stat_options,
       prescribed_detector_options
    )
-   
+
 prescribed_values_scalar_field =
    (
       (
@@ -1230,9 +1230,9 @@ diagnostic_vector_field =
    (
       diagnostic_output_options,
       diagnostic_vector_stat_options,
-      vector_convergence_options,      
+      vector_convergence_options,
       diagnostic_detector_options,
-      vector_steady_state_options,      
+      vector_steady_state_options,
       adaptivity_options_vector_field,
       recalculation_options?
    )
@@ -1244,12 +1244,12 @@ diagnostic_vector_field_bed_shear_stress =
           element density {
              real
           }
-      ),       
+      ),
       (
           element drag_coefficient {
              real
           }
-      ),   
+      ),
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
@@ -1268,7 +1268,7 @@ prescribed_vector_field =
       discrete_properties_algorithm_vector?,
       recalculation_options?
    )
-   
+
 # Default child of prescribed vector field without adaptivity options
 # This is a choice of ways of inputing the prescribed field
 prescribed_vector_field_no_adapt =
@@ -1417,8 +1417,8 @@ prognostic_pressure_field =
             ## cg and to use the full momentum matrix in the projection if
             ## you so desire.
             element full_schur_complement {
-              ( 
-                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+              (
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
                 ## Use the full mass matrix.
                 ##
                 ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
@@ -1428,7 +1428,7 @@ prognostic_pressure_field =
                     linear_solver_options_sym_scalar
                   }
                 }|
-                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
                 ## Use the full momentum matrix.
                 ##
                 ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
@@ -1581,7 +1581,7 @@ prognostic_geostrophic_pressure_field =
       interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # Balance pressure field, this is a copy of prognostic_scalar_field above
 # removing all options that don't apply (mainly advection related)
 prognostic_balance_pressure_field =
@@ -1657,7 +1657,7 @@ prognostic_vertical_balance_pressure_field =
       interpolation_algorithm_scalar,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # stream function, this is a copy of prognostic_scalar_field above
 # removing all options that don't apply (mainly advection related)
 prognostic_stream_function_field =
@@ -1681,7 +1681,7 @@ prognostic_stream_function_field =
       interpolation_algorithm_scalar,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # Richardson number field. This is a normal diagnostic scalar field, but with
 # Richardson number metric options added
 adaptivity_options_richardson_number_field.adaptivity_options =
@@ -1849,12 +1849,12 @@ velocity_components_choice =
          }
       )
    )
-   
-input_choice_real_bc_component = 
+
+input_choice_real_bc_component =
    (
       input_choice_real|
       element synthetic_eddy_method {
-         ## use a large number to ensure Gaussian 
+         ## use a large number to ensure Gaussian
          ## behaviour of the fluctuating component
          element number_of_eddies {
            integer
@@ -1872,7 +1872,7 @@ input_choice_real_bc_component =
          ## Reynolds stresses profile
          ##
          ## usually a function of height,
-         ## assumes that the remaining stresses are negligible 
+         ## assumes that the remaining stresses are negligible
          element Re_stresses_profile {
            input_choice_real
          }
@@ -2009,7 +2009,7 @@ velocity_boundary_conditions =
                ## Wind forcing with user specified wind stress
                ##
                ## <b> Note that the stress needs to be specified
-               ## using the same density units as the reference_density 
+               ## using the same density units as the reference_density
                ## under equation of state.</b>So if you use the recommended
                ## non-dimensional value of 1.0 for reference_density and
                ## your calculated stress is in kg m^-1s^-2 and the dimensional
@@ -2033,14 +2033,14 @@ velocity_boundary_conditions =
                   element wind_drag_coefficient {
                      input_choice_real
                   },
-                  ## Density of air. 
+                  ## Density of air.
                   ##
                   ## <b>Note that you have to specify
-                  ## this density in the same units as the 
+                  ## this density in the same units as the
                   ## reference_density under equation of state.</b>
                   ## So with a typicial value of rho_air=1.3 kgm^-3
-                  ## and rho_water=1000 kgm^-3, if you fill in the 
-                  ## recommended (non-dimensional) value of 1.0 for 
+                  ## and rho_water=1000 kgm^-3, if you fill in the
+                  ## recommended (non-dimensional) value of 1.0 for
                   ## reference_density, this field needs to be 1.3e-3.
                   element density_air {
                      real
@@ -2073,7 +2073,7 @@ velocity_boundary_conditions =
          }
       )
    )
-   
+
 # Output options for prognostic fields
 prognostic_scalar_output_options =
    (
@@ -2130,7 +2130,7 @@ pressure_output_options =
          }?,
          ## Write out some extra debugging vtu files that can be used
          ## to analyse what goes on in the pressure projection steps.
-         ## WARNING: this may create a huge amount of vtu files, as 
+         ## WARNING: this may create a huge amount of vtu files, as
          ## multiple files are written per nonlinear iteration.
          element debugging_vtus {
             empty
@@ -2162,7 +2162,7 @@ prognostic_vector_output_options =
          }?
       }
    )
-   
+
 # Output options for all other fields
 field_output_options =
    (
@@ -2175,7 +2175,7 @@ field_output_options =
          }?
       }
    )
-   
+
 diagnostic_output_options = field_output_options
 prescribed_output_options = field_output_options
 
@@ -2205,21 +2205,21 @@ exclude_stat =
    )
 
 # Diagnostic statistics options for prognostic scalar fields
-prognostic_scalar_stat_options = 
+prognostic_scalar_stat_options =
    (
       ## Specify what is added to .stat files
       element stat {
         prognostic_scalar_stat_options.stat
       }
    )
-  
+
 # Diagnostic statistics for all other scalar fields
 prognostic_scalar_stat_no_old_or_nonlinear_options =
    (
       ## Specify what is added to .stat files
       element stat {
          prognostic_scalar_stat_no_old_or_nonlinear_options.stat
-         
+
       }
    )
 
@@ -2240,14 +2240,14 @@ prognostic_scalar_stat_options.stat &=
          comment
       }?
    )
-prognostic_scalar_stat_no_old_or_nonlinear_options.stat = 
+prognostic_scalar_stat_no_old_or_nonlinear_options.stat =
    (
       exclude_stat?,
       cv_stats?,
       surface_integral_stats_scalar*,
       mixing_stats*
-   )   
-   
+   )
+
 # Diagnostic statistics options for vector fields, with enabled by default
 vector_field_stat_options_enabled_default = include_stat
 vector_field_stat_options_enabled_default |= exclude_components_from_stat
@@ -2266,7 +2266,7 @@ prognostic_vector_stat_options =
          (
             prognostic_vector_stat_options.stat
          )
-      }      
+      }
    )
 
 # Diagnostic statistics for all other vector fields
@@ -2311,7 +2311,7 @@ scalar_convergence_options =
       ## (if /timestepping/nonlinear_iterations and
       ## /timestepping/nonlinear_iterations/tolerance are
       ## enabled).
-      ## Also specifies whether the field is added to the 
+      ## Also specifies whether the field is added to the
       ## convergence file (if /io/convergence_file is enabled).
       element convergence {
          (
@@ -2322,7 +2322,7 @@ scalar_convergence_options =
             element include_in_convergence {
                comment
             }|
-            ## Exclude this field from convergence testing and file 
+            ## Exclude this field from convergence testing and file
             element exclude_from_convergence {
                comment
             }
@@ -2338,7 +2338,7 @@ vector_convergence_options =
       ## (if /timestepping/nonlinear_iterations and
       ## /timestepping/nonlinear_iterations/tolerance are
       ## enabled).
-      ## Also specifies whether the field is added to the 
+      ## Also specifies whether the field is added to the
       ## convergence file (if /io/convergence_file is enabled).
       element convergence {
          (
@@ -2350,7 +2350,7 @@ vector_convergence_options =
             element include_in_convergence {
                comment
             }|
-            ## Include just the magnitude of this field 
+            ## Include just the magnitude of this field
             ## in convergence testing
             ## (if /timestepping/nonlinear_iterations and
             ## /timestepping/nonlinear_iterations/tolerance are
@@ -2359,7 +2359,7 @@ vector_convergence_options =
             element exclude_components_from_convergence {
                comment
             }|
-            ## Exclude this field entirely from convergence testing and file 
+            ## Exclude this field entirely from convergence testing and file
             element exclude_from_convergence {
                comment
             }
@@ -2405,7 +2405,7 @@ vector_steady_state_options =
             element include_in_steady_state {
                comment
             }|
-            ## Include just the magnitude of this field 
+            ## Include just the magnitude of this field
             ## in steady state testing
             ## (if /timestepping/steady_state is
             ## enabled)
@@ -2413,7 +2413,7 @@ vector_steady_state_options =
             element exclude_components_from_steady_state {
                comment
             }|
-            ## Exclude this field entirely from convergence testing and file 
+            ## Exclude this field entirely from convergence testing and file
             element exclude_from_steady_state {
                comment
             }
@@ -2422,7 +2422,7 @@ vector_steady_state_options =
    )
 
 # Options for whether a field is to be included in detector output.
-detector_options_enabled_default = 
+detector_options_enabled_default =
    (
       ## Specify what is added to detector files
       element detectors {
@@ -2440,7 +2440,7 @@ detector_options_enabled_default =
    )
 
 # Options for whether a field is to be included in detector output.
-detector_options_disabled_default = 
+detector_options_disabled_default =
    (
       ## Specify what is added to detector files
       element detectors {
@@ -2457,7 +2457,7 @@ detector_options_disabled_default =
       }
    )
 
-# Detector output defaults on for prognostic and diagnostic fields, 
+# Detector output defaults on for prognostic and diagnostic fields,
 # off for prescribed.
 prognostic_detector_options = detector_options_enabled_default
 diagnostic_detector_options = detector_options_enabled_default
@@ -2487,10 +2487,10 @@ adaptivity_options_prognostic_scalar_field =
       element adaptivity_options {
          (
             ## When specifying absolute measure
-            ## one specifies the absolute interpolation 
-            ## error in the units of the field that is 
+            ## one specifies the absolute interpolation
+            ## error in the units of the field that is
             ## being adapted, e.g. you can specify
-            ## the error to be 1.3 units 
+            ## the error to be 1.3 units
             element absolute_measure {
                element scalar_field {
                   attribute rank { "0" },
@@ -2526,7 +2526,7 @@ adaptivity_options_prognostic_scalar_field =
                   real
                }
             }|
-            ## Adapt using the anisotropic strategy of 
+            ## Adapt using the anisotropic strategy of
             ## Formaggia, Perotto, Micheletti.
             ## Rather than taking two derivatives
             ## and deriving the anisotropic information,
@@ -2552,10 +2552,10 @@ adaptivity_options_prognostic_scalar_field =
 adaptivity_options_scalar_field.adaptivity_options =
    (
       ## When specifying absolute measure
-      ## one specifies the absolute interpolation 
-      ## error in the units of the field that is 
+      ## one specifies the absolute interpolation
+      ## error in the units of the field that is
       ## being adapted, e.g. you can specify
-      ## the error to be 1.3 units 
+      ## the error to be 1.3 units
       element absolute_measure {
          element scalar_field {
             attribute rank { "0" },
@@ -2591,7 +2591,7 @@ adaptivity_options_scalar_field.adaptivity_options =
             real
          }
       }|
-      ## Adapt using the anisotropic strategy of 
+      ## Adapt using the anisotropic strategy of
       ## Formaggia, Perotto, Micheletti.
       ## Rather than taking two derivatives
       ## and deriving the anisotropic information,
@@ -2624,10 +2624,10 @@ adaptivity_options_prognostic_vector_field =
       element adaptivity_options {
          (
             ## When specifying absolute measure
-            ## one specifies the absolute interpolation 
-            ## error in the units of the field that is 
+            ## one specifies the absolute interpolation
+            ## error in the units of the field that is
             ## being adapted, e.g. you can specify
-            ## the error to be 1.3 units 
+            ## the error to be 1.3 units
             element absolute_measure {
                element vector_field {
                   attribute rank { "1" },
@@ -2674,10 +2674,10 @@ adaptivity_options_vector_field =
       element adaptivity_options {
          (
             ## When specifying absolute measure
-            ## one specifies the absolute interpolation 
-            ## error in the units of the field that is 
+            ## one specifies the absolute interpolation
+            ## error in the units of the field that is
             ## being adapted, e.g. you can specify
-            ## the error to be 1.3 units 
+            ## the error to be 1.3 units
             element absolute_measure {
                element vector_field {
                   attribute rank { "1" },
@@ -2724,10 +2724,10 @@ adaptivity_options_prognostic_tensor_field =
       element adaptivity_options {
          (
             ## When specifying absolute measure
-            ## one specifies the absolute interpolation 
-            ## error in the units of the field that is 
+            ## one specifies the absolute interpolation
+            ## error in the units of the field that is
             ## being adapted, e.g. you can specify
-            ## the error to be 1.3 units 
+            ## the error to be 1.3 units
             element absolute_measure {
                element tensor_field {
                   attribute rank { "2" },
@@ -2774,10 +2774,10 @@ adaptivity_options_tensor_field =
       element adaptivity_options {
          (
             ## When specifying absolute measure
-            ## one specifies the absolute interpolation 
-            ## error in the units of the field that is 
+            ## one specifies the absolute interpolation
+            ## error in the units of the field that is
             ## being adapted, e.g. you can specify
-            ## the error to be 1.3 units 
+            ## the error to be 1.3 units
             element absolute_measure {
                element tensor_field {
                   attribute rank { "2" },
@@ -2824,7 +2824,7 @@ generic_aliased_field =
    )
 
 # Most common mesh choices
-mesh_choice = 
+mesh_choice =
    (
       element mesh {
          attribute name { xsd:string }
@@ -3062,9 +3062,9 @@ scalar_field_choice =
                }
             )
          }|
-         ## If enabled, decomposes Pressure by solving for the balanced part of 
+         ## If enabled, decomposes Pressure by solving for the balanced part of
          ## Pressure using a "geopressure" solver:
-         ## 
+         ##
          ##   f = - grad p_gp + g
          ##
          ## By choosing an appropriate mesh (typically velocity mesh order + 1)
@@ -3080,7 +3080,7 @@ scalar_field_choice =
             (
                element prognostic {
                   ## The GeostrophicPressure mesh
-                  ## 
+                  ##
                   ## <b>WARNING: It is usual for this to be a higher degree
                   ## mesh than the velocity mesh</b>
                   element mesh {
@@ -3112,7 +3112,7 @@ scalar_field_choice =
          ## Only 1 diagnostic MaterialVolumeFraction field allowed per
          ## simulation or solves for all the volume fractions based on
          ## the SumMaterialVolumeFractions field.
-         ## 
+         ##
          ## A diagnostic MaterialVolumeFraction field is currently required for
          ## compressible multimaterial simulations (even if only 1 material).
          ## Generally also requires a MaterialDensity field.
@@ -3233,7 +3233,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## Calculate the stream function of 2D incompressible flow. Note 
+         ## Calculate the stream function of 2D incompressible flow. Note
          ## that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
          ## Requires a continuous mesh.
          element scalar_field {
@@ -3341,7 +3341,7 @@ scalar_field_choice =
          #               }
          #            )
          #        }
-         
+
 # -- Second is a list of fields that are primarily prescribed,
 #    but can be aliased. An example is wind velocity.
 # -- The list is in order of most frequently used.
@@ -3505,7 +3505,7 @@ scalar_field_choice =
          ## Richardson Number:
          ##
          ##  Ri = \frac{N^2}{(\frac{\partial u}{\partial z})^2 + (\frac{\partial u}{\partial z})^2}
-         ## with 
+         ## with
          ##  N^2 = -\frac{g}{\rho_0}\frac{\partial \rho}{\partial z}
          ##
          ## Limitations:
@@ -3618,7 +3618,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## add a MaterialVolume scalar_field to calculate the spatially varying 
+         ## add a MaterialVolume scalar_field to calculate the spatially varying
          ## volume of a material (requires a MaterialVolumeFraction)
          element scalar_field {
             attribute rank { "0" },
@@ -3634,7 +3634,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## add a MaterialMass scalar_field to calculate the spatially varying 
+         ## add a MaterialMass scalar_field to calculate the spatially varying
          ## mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)
          element scalar_field {
             attribute rank { "0" },
@@ -3685,7 +3685,7 @@ scalar_field_choice =
             )
          }|
          ## Calculates the BulkMaterialPressure based on the MaterialDensity
-         ## and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate) 
+         ## and MaterialVolumeFraction (and MaterialInternalEnergy if appropriate)
          ## for the equation of state of all materials.
          element scalar_field {
             attribute rank { "0" },
@@ -3719,7 +3719,7 @@ scalar_field_choice =
          ## Peclet Number Pe = U*dx/2*diffusivity
          ##
          ## Also see the test case 'grid_peclet_number'
-         ## if you wish to see the effect of changing the 
+         ## if you wish to see the effect of changing the
          ## diffusivity on a 1D, cg-discretised tracer-field
          ##
          ## Adapting to this field is not recommended
@@ -3780,12 +3780,12 @@ scalar_field_choice =
                }
             )
          }|
-         
+
          ## Kinetic energy density:
          ##
          ##  1/2 rho_0*|u|^2
          ##
-         ## where rho_0 is the (reference) density 
+         ## where rho_0 is the (reference) density
          ##
          ## Limitations:
          ##  - The Density, PerturbationDensity, KineticEnergyDensity and Velocity fields must be on the same mesh.
@@ -3803,7 +3803,7 @@ scalar_field_choice =
                }
             )
          }|
-         
+
          ## Gravitational potential energy density:
          ##
          ## rho_0*(1.0 + rho')*(g dot (r - r_0))
@@ -3852,7 +3852,7 @@ scalar_field_choice =
                   element fine_mesh {
                      attribute name { string }
                   },
-                  diagnostic_scalar_field                 
+                  diagnostic_scalar_field
                }|
                element aliased {
                   generic_aliased_field
@@ -3877,14 +3877,14 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field                 
+                  diagnostic_scalar_field
                }|
                element aliased {
                   generic_aliased_field
                }
             )
          }|
-         
+
          ## Ertel potential vorticity:
          ##
          ##  (f + curl u) dot grad rho'
@@ -4029,7 +4029,7 @@ scalar_field_choice =
          ## Galerkin projection of one field onto another mesh.
          ##
          ## The field must be in this material_phase.
-         ## 
+         ##
          ## NOTE: you need the solver options if the mesh
          ## of this field is continuous.
          element scalar_field {
@@ -4041,7 +4041,7 @@ scalar_field_choice =
                   element source_field_name { string },
                   mesh_choice,
                   ## Lump the mass matrix of the galerkin projection
-                  ## less accurate but faster and might give smoother result.                  
+                  ## less accurate but faster and might give smoother result.
                   element lump_mass {
                      empty
                   }?,
@@ -4443,7 +4443,7 @@ scalar_field_choice =
                }
             )
          }
-                  
+
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
 #            attribute rank { "0" },
@@ -4554,7 +4554,7 @@ vector_field_choice =
                }
             )
          }|
-         
+
          ## Relative vorticity field - curl of the velocity field
          element vector_field {
             attribute rank { "1" },
@@ -4577,7 +4577,7 @@ vector_field_choice =
                   generic_aliased_field
                }
             )
-         }|        
+         }|
          ## Planetary vorticity
          ##
          ## Limitations:
@@ -4617,7 +4617,7 @@ vector_field_choice =
                }
             )
          }|
-         
+
          ## Gradient of a scalar field evaluated using the transpose
          ## of the C^T matrix constructed using control volumes.
          ## Field must be in this material_phase.
@@ -4746,7 +4746,7 @@ vector_field_choice =
             )
          }|
          ## LinearMomentum field.
-         ##  p = \rho*u 
+         ##  p = \rho*u
          ## (where p is the linear momentum, \rho the density and u the velocity)
          element vector_field {
              attribute rank { "1" },
@@ -4804,11 +4804,11 @@ vector_field_choice =
                }
             )
          }|
-         
+
          ## Bed Shear Stress = density*drag_coeff*|u|*u
          ##
          ## at the moment this assumes the density and drag coefficients are constants.
-         ## This diagnostic vector field is only calculated over surface elements/nodes, 
+         ## This diagnostic vector field is only calculated over surface elements/nodes,
          ## interior nodes will have zero value.
          element vector_field {
              attribute rank { "1" },
@@ -4849,7 +4849,7 @@ vector_field_choice =
          ## Galerkin projection of one field onto another mesh.
          ##
          ## The field must be in this material_phase.
-         ## 
+         ##
          ## NOTE: you need the solver options if the mesh
          ## of this field is continuous.
          element vector_field {
@@ -4861,10 +4861,10 @@ vector_field_choice =
                   element source_field_name { string },
                   mesh_choice,
                   ## Lump the mass matrix of the galerkin projection
-                  ## less accurate but faster and might give smoother result.                  
+                  ## less accurate but faster and might give smoother result.
                   element lump_mass {
                      empty
-                  }?,                  
+                  }?,
                   element solver {
                   linear_solver_options_sym_scalar
                   }?,
@@ -4934,7 +4934,7 @@ vector_field_choice =
 #            )
 #        }
       )
-   )  
+   )
 
 # This is the choice of additional tensor fields
 tensor_field_choice =
@@ -5283,11 +5283,11 @@ linear_solver_options_asym =
          ## Complete solve
          ##
          ## This only makes sense for solves where a different approximated preconditioner
-         ## matrix is provided. For instance when solving pressure with the 
+         ## matrix is provided. For instance when solving pressure with the
          ## option full_schur_complement and using a masslumped schur complement
          ## as preconditioner matrix.
          ##
-         ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+         ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner
          ## solve you either need to set your tolerances much stricter for it
          ## than in the outer solve (so that the preconditioner is close to an
          ## exact matrix inversion), or use fgmres in the outer solve.
@@ -5311,7 +5311,7 @@ linear_solver_options_asym =
       ),
       generic_solver_options
    )
-   
+
 linear_solver_options_sym_scalar =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
@@ -5432,11 +5432,11 @@ linear_solver_options_sym_scalar =
          ## Complete solve
          ##
          ## This only makes sense for solves where a different approximated preconditioner
-         ## matrix is provided. For instance when solving pressure with the 
+         ## matrix is provided. For instance when solving pressure with the
          ## option full_schur_complement and using a masslumped schur complement
          ## as preconditioner matrix.
          ##
-         ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+         ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner
          ## solve you either need to set your tolerances much stricter for it
          ## than in the outer solve (so that the preconditioner is close to an
          ## exact matrix inversion), or use fgmres in the outer solve.
@@ -5734,9 +5734,9 @@ constitutive_laws =
          }
       )
    )
-   
-region_ids = 
-   ( 
+
+region_ids =
+   (
       ## Optional region ids to associate different values
       ## to different regions of the mesh.
       ## Leave unselected if you`re not using multiple regions or
@@ -5781,7 +5781,7 @@ temporal_control_volume_options =
                   element cv_l2_norm {
                     empty
                   }
-               )               
+               )
             }?
          }?,
          (
@@ -5810,7 +5810,7 @@ temporal_control_volume_options =
          ## continuous galerkin spatial discretisation is selected.
          ## Time discretisation of upwind discretisation off which the
          ## higher order solution is pivotted.
-         ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+         ##  - pivot_theta = 1 - implicit pivot (default if not set and
          ##                      best choice if not intentionally modifying
          ##                      scheme to be explicit)
          ##  - pivot_theta = 0 - explicit pivot
@@ -5820,10 +5820,10 @@ temporal_control_volume_options =
       }
    )
 
-temporal_discontinuous_galerkin_options = 
+temporal_discontinuous_galerkin_options =
    (
       ## This enables DG-specific timestepping options, such as
-      ## explicit advection subcycling. 
+      ## explicit advection subcycling.
       element discontinuous_galerkin {
          (
             ## Use timestep subcycling to solve this equation.
@@ -5840,7 +5840,7 @@ temporal_discontinuous_galerkin_options =
       }
    )
 
-legacy_mixed_cv_cg_options = 
+legacy_mixed_cv_cg_options =
    (
       ## Use a mixed control volume - continuous galerkin
       ## discretisation.
@@ -5854,7 +5854,7 @@ legacy_mixed_cv_cg_options =
       ## However it still follows a partially legacy code path.
       element legacy_mixed_cv_cg {
          spatial_control_volume_options,
-         
+
          ## Allows legacy options to be set.
          ## BE WARNED: this probably means you're using inconsistent discretisations
          ## on different terms - make sure you're happy with what your code path is doing
@@ -5865,7 +5865,7 @@ legacy_mixed_cv_cg_options =
       }
    )
 
-pure_cv_options = 
+pure_cv_options =
    (
       ## Use a pure control volume discretisations.
       ## Follows a new control volume code path.
@@ -5899,7 +5899,7 @@ pure_cv_options =
       }
    )
 
-coupled_cv_options = 
+coupled_cv_options =
    (
       ## Use a pure control volume discretisations with face value
       ## restrictions between different fields in different material_phases.
@@ -5925,12 +5925,12 @@ coupled_cv_options =
 spatial_control_volume_options = standard_control_volume_options
 spatial_control_volume_options |= compressive_control_volume_options
 
-standard_control_volume_options = 
+standard_control_volume_options =
    (
       ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
+      ##  face_value = donor_value,
       ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ##  donor_value = income*val_1 + (1.-income)*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order upwinding is monotonic so no limiting is ever required
@@ -5939,7 +5939,7 @@ standard_control_volume_options =
         empty
       }|
       ## Trapezoidal face value discretisation
-      ##  face_value = 0.5*(val_1 + val_2), 
+      ##  face_value = 0.5*(val_1 + val_2),
       ## where
       ##  val_i is the value on the ith node neighbouring the face
       ##
@@ -5957,18 +5957,18 @@ standard_control_volume_options =
         limiter_options?
       }
    )
-   
+
 coupled_spatial_control_volume_options = coupled_control_volume_options
 coupled_spatial_control_volume_options |= compressive_control_volume_options
 
 # coupled control volume options are the same as the standard ones (annoyingly copied and pasted)
 # except that firstorderupwind gets limiter options
-coupled_control_volume_options = 
+coupled_control_volume_options =
    (
       ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
+      ##  face_value = donor_value,
       ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ##  donor_value = income*val_1 + (1.-income)*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order upwinding is monotonic so no limiting is ever required
@@ -5977,7 +5977,7 @@ coupled_control_volume_options =
         limiter_options?
       }|
       ## Trapezoidal face value discretisation
-      ##  face_value = 0.5*(val_1 + val_2), 
+      ##  face_value = 0.5*(val_1 + val_2),
       ## where
       ##  val_i is the value on the ith node neighbouring the face
       ##
@@ -5995,8 +5995,8 @@ coupled_control_volume_options =
         limiter_options?
       }
    )
-   
-compressive_control_volume_options = 
+
+compressive_control_volume_options =
    (
       ## HyperC face value discretisation
       ##
@@ -6129,7 +6129,7 @@ limiter_options =
       }
   )
 
-sweby_limiter = 
+sweby_limiter =
   ## See "High-Resolution Schemes Using Flux Limiters for
   ## Hyperblic Conservation-Laws", P. K. Sweby, 1984, Siam
   ## Journal on Numerical Analysis, 21, 995-1011
@@ -6174,7 +6174,7 @@ upwind_value_options =
          ## element meshes.
          ##
          ## This method projects the upwind value from a point in the element just
-         ## upwind of the node pair straddling the face.  It is otherwise known as 
+         ## upwind of the node pair straddling the face.  It is otherwise known as
          ## anisotropic limiting.
          ## This is only available on simplex meshes as it involes a search around
          ## the donor node to find the upwind element.
@@ -6411,19 +6411,19 @@ mixing_stats =
             ## Select whether to evaluate the volume fraction over the finite element
             ## (continuous galerkin) or within the control volume (control_volumes).
             element control_volumes {
-               ## if select normalise the volume fractions will be divided by the total volume of the domain  
+               ## if select normalise the volume fractions will be divided by the total volume of the domain
                element normalise {
                   empty
                }?
             }
          ),
-         ## The values of the bounds of the bins 
-         ## e.g. the values 0 1 2 3 will return 4 bins 
+         ## The values of the bounds of the bins
+         ## e.g. the values 0 1 2 3 will return 4 bins
          ## and the fraction of the field in each bin with,
-         ## 0<=field<1, 1<=field<2, 2<=field<3, 3<=field, 
-         ## will be calculated. 
-         element mixing_bin_bounds { 
-            real_vector 
+         ## 0<=field<1, 1<=field<2, 2<=field<3, 3<=field,
+         ## will be calculated.
+         element mixing_bin_bounds {
+            real_vector
          },
          ## Define the tolerance beneath the specified bins that should be included.
          ## Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.
@@ -6441,7 +6441,7 @@ cv_stats =
       }
    )
 
-# Options for inclusion of calculations of surface integrals in the .stat file   
+# Options for inclusion of calculations of surface integrals in the .stat file
 surface_integral_stats_base.surface_integral =
    (
       attribute name { xsd:string },
@@ -6507,7 +6507,7 @@ scalar_equation_choice =
          ## Select the equation used to solve for this field.
          ## Advection Diffusion is the norm for scalar fields.
          ## Works for all discretisation types.
-         element equation { 
+         element equation {
             attribute name { "AdvectionDiffusion" }
          }|
          ## ***UNDER TESTING***
@@ -6516,7 +6516,7 @@ scalar_equation_choice =
          ## Conservation of Mass equation - requires the selection of a Density field.
          ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
          ## DIFFUSIVITY, SOURCE OR ABSORPTION.
-         element equation { 
+         element equation {
             attribute name { "ConservationOfMass" },
             (
                ## Select density to use in the Conservation of Mass Equation
@@ -6550,7 +6550,7 @@ scalar_equation_choice =
          ## This enables consistency between the
          ## MaterialVolumeFraction (ReducedConservationOfMass) and
          ## MaterialDensity (Advection) equations in compressible multimaterial simulations.
-         element equation { 
+         element equation {
             attribute name { "ReducedConservationOfMass" },
             (
                ## Select density to use in the Reduced Conservation of Mass Equation
@@ -6607,7 +6607,7 @@ scalar_equation_choice =
       )
    )
 
-inner_element_scalar = 
+inner_element_scalar =
    (
       ## Inner element sub-grid scale model (Candy and Pain)
       ## Requires continuous galerkin selected above.
@@ -6627,7 +6627,7 @@ inner_element_scalar =
          }
       }
    )
-      
+
 inner_element_velocity =
    (
       ## Inner element sub-grid scale model (Candy and Pain)
@@ -6675,7 +6675,7 @@ forcing =
     element ocean_forcing{
         ## The netCDF data file downloaded from ERA-40 reanalysis
         element input_file {
-           attribute file_name {xsd:string} 
+           attribute file_name {xsd:string}
         },
         element mesh_choice {
             velocity_mesh_choice
@@ -6699,17 +6699,17 @@ biology =
    (
       ## Model of biological processes in the ocean.
       element ocean_biology{
-         ## A simple model of phytoplankton, zooplankton, general nutrient and detritus. 
+         ## A simple model of phytoplankton, zooplankton, general nutrient and detritus.
          element pznd {
             (
-               ## Python code specifying the source and sink relationships 
-               ## between the biological tracers. This is usually achieved by 
-               ## importing fluidity.ocean_biology and calling a scheme from there. 
+               ## Python code specifying the source and sink relationships
+               ## between the biological tracers. This is usually achieved by
+               ## importing fluidity.ocean_biology and calling a scheme from there.
                element source_and_sink_algorithm {
                   python_code
                }|
-               ## Do not calculate sources and sinks. 
-               ## This option is generally only useful for testing. 
+               ## Do not calculate sources and sinks.
+               ## This option is generally only useful for testing.
                element disable_sources_and_sinks {
                   empty
                }
@@ -6797,7 +6797,7 @@ biology =
 prognostic_photosynthetic_radiation =
    (
       ## PAR equation.
-      element equation { 
+      element equation {
          attribute name { "PhotosyntheticRadiation" }
       },
       ## Spatial discretisation options
@@ -6805,7 +6805,7 @@ prognostic_photosynthetic_radiation =
          (
             ## Discontinuous galerkin formulation. You can also use this
             ## formulation with a continuous field in which case a simple
-            ## galerkin formulation will result. 
+            ## galerkin formulation will result.
             element discontinuous_galerkin {
                empty
             }
@@ -6943,10 +6943,10 @@ interpolation_algorithm_scalar =
         galerkin_projection_scalar
       }
     )
-    
+
 interpolation_algorithm_scalar_full = interpolation_algorithm_scalar
 interpolation_algorithm_scalar_full |= interpolation_algorithm_disabled
-    
+
 interpolation_algorithm_vector =
     (
       ## Basis function interpolation.
@@ -6964,11 +6964,11 @@ interpolation_algorithm_vector =
       }
     )
 
-consistent_interpolation_vector = 
+consistent_interpolation_vector =
     (
       balanced_interpolation?
     )
-    
+
 galerkin_projection_vector =
     (
       continuous_discontinuous_projection,
@@ -7011,7 +7011,7 @@ continuous_discontinuous_projection =
             },
             ## If the bounds on this field are known then they can be set here.
             ## These can either further constrain the limits worked out by the
-            ## lumped version of the projection (i.e. to make sure that errors 
+            ## lumped version of the projection (i.e. to make sure that errors
             ## don't accumulate with succesive interpolations) or if apply_globally
             ## is set they are just made to be bounded within the bounds globally
             ## (i.e. anything between those bounds is not smoothed).
@@ -7027,7 +7027,7 @@ continuous_discontinuous_projection =
                 ## This field is to be considered as being coupled to another field
                 ## such that the sum of the two fields is constrained to be less than
                 ## the upper_bound specified above.
-                ## 
+                ##
                 ## The relationships between fields are worked out according to their
                 ## priority ordering.
                 ##
@@ -7150,7 +7150,7 @@ solenoidal_options =
           ## solenoidal projection above.
           ##
           ## Note well: this only really makes sense for scalar fields linked to nondivergent
-          ## vector fields, such as pressure to incompressible velocity!                  
+          ## vector fields, such as pressure to incompressible velocity!
           element update_scalar_field {
             attribute name { "Pressure" },
             empty
@@ -7162,7 +7162,7 @@ solenoidal_options =
           ## solenoidal projection above.
           ##
           ## Note well: this only really makes sense for scalar fields linked to nondivergent
-          ## vector fields, such as pressure to incompressible velocity!                  
+          ## vector fields, such as pressure to incompressible velocity!
           element update_scalar_field {
             attribute name { string },
             empty
@@ -7193,7 +7193,7 @@ balanced_interpolation =
         linear_solver_options_sym_scalar
       }
     }
-    
+
 supermesh_free =
     ## Enables a supermesh free Galerkin projection. Uses incomplete
     ## quadrature, and hence is not conservative.
@@ -7208,7 +7208,7 @@ represcribe_before_interpolation =
     element represcribe_before_interpolation {
       empty
     }
-    
+
 supermesh_conservation =
       ## Options for checking the supermesh conservation properties
       element supermesh_conservation {

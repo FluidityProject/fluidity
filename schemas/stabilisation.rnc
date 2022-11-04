@@ -140,7 +140,7 @@ no_stabilisation = (
 su_stabilisation = (
    ## Add a simple streamline upwind term to the advection term (if being used).
    ##
-   ## This implements equation 2.52 in Donea & Huerta (2003):   
+   ## This implements equation 2.52 in Donea & Huerta (2003):
    ##
    ##   /      nu
    ##   | ----------- (U_nl\dot grad N_j)(U_nl\dot grad N_i)

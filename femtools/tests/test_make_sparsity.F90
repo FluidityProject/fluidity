@@ -17,7 +17,7 @@ subroutine test_make_sparsity
 
   call vtk_read_state("data/sparsity_1.vtu", state2)
   colmesh => extract_mesh(state2, "Mesh")
-  
+
   sparsity = make_sparsity(rowmesh, colmesh, name='Sparsity')
 
   call report_test("[make sparsity]", .false., .false., "Make sparsity should run")

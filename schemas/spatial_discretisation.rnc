@@ -10,7 +10,7 @@ spatial_discretisation_options =
       conservative_advection_option
    }
 
-finite_volume_options = 
+finite_volume_options =
    (
       ## **DO NOT USE!**
       ## UNDER DEVELOPMENT
@@ -34,10 +34,10 @@ finite_volume_options =
             }
          },
          comment
-      }   
+      }
    )
 
-conservative_advection_option = 
+conservative_advection_option =
    (
       ## Conservative discretisation of field advection equation
       ##  TBETA=1. -- conservative (divergence form)
@@ -45,10 +45,10 @@ conservative_advection_option =
       ##  0. < TBETA < 1.
       element conservative_advection {
          real
-      }   
+      }
    )
 
-continuous_galerkin_options = 
+continuous_galerkin_options =
    (
       ## Continuous Galerkin formulation
       element continuous_galerkin {
@@ -56,10 +56,10 @@ continuous_galerkin_options =
          cg_advection_terms,
          cg_mass_terms,
          comment
-      }   
+      }
    )
 
-cg_advection_terms = 
+cg_advection_terms =
    (
       ## Discretisation options for the advection terms.
       element advection_terms {
@@ -79,10 +79,10 @@ cg_advection_terms =
          element only_sinking_velocity {
                empty
          }?
-      }   
+      }
    )
 
-cg_mass_terms = 
+cg_mass_terms =
    (
       ## Discretisation options for the mass terms.
       element mass_terms {
@@ -96,23 +96,23 @@ cg_mass_terms =
          element exclude_mass_terms {
             empty
          }?
-      }   
+      }
    )
 
-discontinuous_galerkin_options = 
+discontinuous_galerkin_options =
    (
       ## Discontinuous galerkin formulation. You can also use this
       ## formulation with a continuous field in which case a simple
-      ## galerkin formulation will result. 
+      ## galerkin formulation will result.
       element discontinuous_galerkin {
          dg_advection_scheme,
          dg_diffusion_scheme,
          dg_upwind_stabilisation,
          dg_mass_terms
-      } 
+      }
    )
 
-dg_advection_scheme = 
+dg_advection_scheme =
    (
       element advection_scheme {
          (
@@ -201,7 +201,7 @@ dg_advection_scheme =
          ##         /                                        /
          ##      /                                                /
          ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-         ##      /                                                /                  
+         ##      /                                                /
          ## where beta is set in conservative_advection, N is
          ## a shape function (uppercase
          ## subscripts indicate nodes A or B while lowercase
@@ -215,10 +215,10 @@ dg_advection_scheme =
          element integrate_conservation_term_by_parts {
            empty
          }?
-      }   
+      }
    )
 
-dg_diffusion_scheme = 
+dg_diffusion_scheme =
    (
       element diffusion_scheme {
          (
@@ -232,20 +232,20 @@ dg_diffusion_scheme =
                   real
                }?
             }|
-            ## Classical scheme from Bassi and Rebay 
+            ## Classical scheme from Bassi and Rebay
             ## (JCP 131 267-179 1997)
             element bassi_rebay {
                empty
             }|
             ## Classical interior penalty scheme
             ## see, e.g., SIAM Journal on Numerical Analysis
-            ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+            ## Vol. 39, No. 5 (2002), pp. 1749-1779
             element interior_penalty {
                ## Penalty_parameter
                ## The penalty term Int [u][v] dS on element boundaries
                ## is scaled by C = C_0 h**p
                ## This option specifies the C_0
-               ## There is a theoretical lower bound for 
+               ## There is a theoretical lower bound for
                ## stability and hence convergence
                element penalty_parameter {
                   real
@@ -264,7 +264,7 @@ dg_diffusion_scheme =
                   element use_face_integral {
                      empty
                   }|
-                  ## Use difference between element centre 
+                  ## Use difference between element centre
                   ## and neighbour centre
                   ## Use 2x distance to face centre on boundaries
                   element use_element_centres {
@@ -275,16 +275,16 @@ dg_diffusion_scheme =
             ## EXPERIMENTAL, DO NOT USE!!!
             ## Only works for P0 in 2d.
             element masslumped_rt0 {
-               ## Use the masslumping based on T. Arbogast and Z. Chen, Math. of Comp. 
-               ## vol.64 nr. 211, 1995. This assumes a homeomorphism between the triangular 
-               ## mesh and an equilateral mesh (true for structured 2d meshes in which all 
-               ## across edges that split up the quads are oriented in the same way). Gives 
+               ## Use the masslumping based on T. Arbogast and Z. Chen, Math. of Comp.
+               ## vol.64 nr. 211, 1995. This assumes a homeomorphism between the triangular
+               ## mesh and an equilateral mesh (true for structured 2d meshes in which all
+               ## across edges that split up the quads are oriented in the same way). Gives
                ## accurate results for such meshes, gives very inaccurate results for other meshes.
                element arbogast {
                   empty
                }|
                ## Use the distance between circumcentres of the triangles. This comes down to a finite
-               ## volume scheme where the diffusive fluxes are computed taking the difference in 
+               ## volume scheme where the diffusive fluxes are computed taking the difference in
                ## adjacent circumcentres, divided by the difference in these centres. Smaller stencil
                ## and works better for non-structured triangular meshes, but the accuracy still depends
                ## on the mesh quality (obtuse triangles reduce the accuracy).
@@ -293,14 +293,14 @@ dg_diffusion_scheme =
               }
             }
          )
-      }   
+      }
    )
 
-dg_upwind_stabilisation = 
+dg_upwind_stabilisation =
    (
       ## This introduces a simple upwind diffusion based on eqn 2.52 in
       ## Donea and Huerta (2003) "Finite elements for flow problems".
-      element upwind_stabilisation { 
+      element upwind_stabilisation {
          empty
       }?,
       (
@@ -309,7 +309,7 @@ dg_upwind_stabilisation =
          ## p-adaptive discontinuous Galerkin methods",
          ## J. Comp Appl. Math. 233/12 (2010)
          ## DOI: 10.1016/j.cam.2009.05.028
-         element slope_limiter {                  
+         element slope_limiter {
             attribute name { "Vertex_Based" }
          }|
          element slope_limiter {
@@ -342,33 +342,33 @@ dg_upwind_stabilisation =
             ##Power coefficient in weights.
             ##This must be a positive number, possibly
             ##an integer. Larger power coefficient leads
-            ##to greater penalisation of oscillations, on 
+            ##to greater penalisation of oscillations, on
             ##the other hand causes numerical problems if it
             ##gets too big.
             ##Suggested value = 4.
             element power_coefficient {
                real
             },
-            ##Relative/absolute tolerance threshold for 
+            ##Relative/absolute tolerance threshold for
             ##oscillation indicator. Values below this emphasise
-            ##absolute rather than relative magnitudes of 
-            ##tracer gradients. 
+            ##absolute rather than relative magnitudes of
+            ##tracer gradients.
             ##Suggested value = 0.001*T
             ##where T is a typical value of the tracer which
             ##you might use in a scaling analysis.
             element tolerance_threshold_oscillations {
                real
             },
-            ##Relative/absolute tolerance threshold for 
+            ##Relative/absolute tolerance threshold for
             ##weights. Values below this emphasise
-            ##absolute rather than relative magnitudes of 
-            ##oscillations indicator. 
+            ##absolute rather than relative magnitudes of
+            ##oscillations indicator.
             ##Suggested value = 1.0e-3
             element tolerance_threshold_weights {
                real
             },
             ##Tolerance for discontinuity detector.
-            ##Uses method of 
+            ##Uses method of
             ##http://www.gce.ucl.ac.be/~remacle/pdf/detect.pdf
             ##Detector values greater than this indicate
             ##discontinuities at the inflow boundary
@@ -456,16 +456,16 @@ dg_upwind_stabilisation =
                 }?
             }?,
             ## Re-distribute mass prior to the diffusion if nodal
-            ## values within an element are both above and below the 
+            ## values within an element are both above and below the
             ## provided bounds.
             element pre_distribute_mass {
                empty
             }?
          }
-      )?   
+      )?
    )
 
-dg_mass_terms = 
+dg_mass_terms =
    (
       ## Discretisation options for the mass terms.
       element mass_terms {
@@ -473,10 +473,10 @@ dg_mass_terms =
          element exclude_mass_terms {
             empty
          }?
-      }?   
+      }?
    )
 
-pure_cv_options = 
+pure_cv_options =
    (
       ## Use a pure control volume discretisations.
       ## Follows a new control volume code path.
@@ -517,7 +517,7 @@ pure_cv_options =
       }
    )
 
-coupled_cv_options = 
+coupled_cv_options =
    (
       ## Use a pure control volume discretisations with face value
       ## restrictions between different fields in different material_phases.
@@ -547,12 +547,12 @@ spatial_control_volume_options = no_advection_control_volume_options
 spatial_control_volume_options |= compressive_control_volume_options
 spatial_control_volume_options |= standard_control_volume_options
 
-standard_control_volume_options = 
+standard_control_volume_options =
    (
       ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
+      ##  face_value = donor_value,
       ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ##  donor_value = income*val_1 + (1.-income)*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order upwinding is monotonic so no limiting is ever required
@@ -561,7 +561,7 @@ standard_control_volume_options =
         empty
       }|
       ## Trapezoidal face value discretisation
-      ##  face_value = 0.5*(val_1 + val_2), 
+      ##  face_value = 0.5*(val_1 + val_2),
       ## where
       ##  val_i is the value on the ith node neighbouring the face
       ##
@@ -584,9 +584,9 @@ standard_control_volume_options =
         limiter_options
       }|
       ## First Order Downwind face value discretisation
-      ##  face_value = downwind_value, 
+      ##  face_value = downwind_value,
       ## where
-      ##  donor_value = (1.-income)*val_1 + income*val_2, 
+      ##  donor_value = (1.-income)*val_1 + income*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order downwinding is unconditionally unstable
@@ -595,8 +595,8 @@ standard_control_volume_options =
         empty
       }
    )
-   
-no_advection_control_volume_options = 
+
+no_advection_control_volume_options =
    (
       ## No face value - i.e. no advection!
       element face_value {
@@ -604,18 +604,18 @@ no_advection_control_volume_options =
         empty
       }
    )
-   
+
 coupled_spatial_control_volume_options = coupled_control_volume_options
 coupled_spatial_control_volume_options |= compressive_control_volume_options
 
 # coupled control volume options are the same as the standard ones (annoyingly copied and pasted)
 # except that firstorderupwind gets limiter options
-coupled_control_volume_options = 
+coupled_control_volume_options =
    (
       ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
+      ##  face_value = donor_value,
       ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ##  donor_value = income*val_1 + (1.-income)*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order upwinding is monotonic so no limiting is ever required
@@ -624,7 +624,7 @@ coupled_control_volume_options =
         limiter_options
       }|
       ## Trapezoidal face value discretisation
-      ##  face_value = 0.5*(val_1 + val_2), 
+      ##  face_value = 0.5*(val_1 + val_2),
       ## where
       ##  val_i is the value on the ith node neighbouring the face
       ##
@@ -642,8 +642,8 @@ coupled_control_volume_options =
         limiter_options
       }
    )
-   
-compressive_control_volume_options = 
+
+compressive_control_volume_options =
    (
       ## HyperC face value discretisation
       ##
@@ -727,14 +727,14 @@ compressive_control_volume_options =
       }
    )
 
-# standard control volume face value options that 
+# standard control volume face value options that
 # have NO reliance on any CFL field.
-standard_control_volume_options_excluding_cfl = 
+standard_control_volume_options_excluding_cfl =
    (
       ## First Order Upwind face value discretisation
-      ##  face_value = donor_value, 
+      ##  face_value = donor_value,
       ## where
-      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ##  donor_value = income*val_1 + (1.-income)*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order upwinding is monotonic so no limiting is ever required
@@ -743,7 +743,7 @@ standard_control_volume_options_excluding_cfl =
         empty
       }|
       ## Trapezoidal face value discretisation
-      ##  face_value = 0.5*(val_1 + val_2), 
+      ##  face_value = 0.5*(val_1 + val_2),
       ## where
       ##  val_i is the value on the ith node neighbouring the face
       ##
@@ -766,9 +766,9 @@ standard_control_volume_options_excluding_cfl =
         limiter_options_excluding_cfl
       }|
       ## First Order Downwind face value discretisation
-      ##  face_value = downwind_value, 
+      ##  face_value = downwind_value,
       ## where
-      ##  donor_value = (1.-income)*val_1 + income*val_2, 
+      ##  donor_value = (1.-income)*val_1 + income*val_2,
       ## where val_i is the value on the ith node neighbouring the face and
       ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
       ## First order downwinding is unconditionally unstable

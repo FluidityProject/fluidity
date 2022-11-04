@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-
 # Released to the public domain, by Tim Peters, 03 October 2000.
-
 """reindent [-d][-r][-v] [ path ... ]
 
 -d (--dryrun)   Dry run.   Analyze, but don't make any changes to, files.
@@ -42,20 +40,23 @@ you'd prefer. You can always use the --nobackup option to prevent this.
 
 __version__ = "1"
 
-import tokenize
-import os, shutil
+import os
+import shutil
 import sys
+import tokenize
 
-verbose    = 0
-recurse    = 0
-dryrun     = 0
+verbose = 0
+recurse = 0
+dryrun = 0
 makebackup = True
-nspaces    = 4
+nspaces = 4
+
 
 def usage(msg=None):
     if msg is not None:
         print(msg, file=sys.stderr)
     print(__doc__, file=sys.stderr)
+
 
 def errprint(*args):
     sep = ""
@@ -64,27 +65,28 @@ def errprint(*args):
         sep = " "
     sys.stderr.write("\n")
 
+
 def main():
     import getopt
+
     global verbose, recurse, dryrun, makebackup, nspaces
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "drnvNh",
-                        ["dryrun", "recurse", "nobackup", "verbose", "spaces", "help"])
-    except getopt.error(msg):
-        usage(msg)
-        return
+    opts, args = getopt.getopt(
+        sys.argv[1:],
+        "drnvNh",
+        ["dryrun", "recurse", "nobackup", "verbose", "spaces", "help"],
+    )
     for o, a in opts:
-        if o in ('-d', '--dryrun'):
+        if o in ("-d", "--dryrun"):
             dryrun += 1
-        elif o in ('-r', '--recurse'):
+        elif o in ("-r", "--recurse"):
             recurse += 1
-        elif o in ('-n', '--nobackup'):
+        elif o in ("-n", "--nobackup"):
             makebackup = False
-        elif o in ('-v', '--verbose'):
+        elif o in ("-v", "--verbose"):
             verbose += 1
-        elif o in ('-N', '--spaces'):
+        elif o in ("-N", "--spaces"):
             nspaces = 4
-        elif o in ('-h', '--help'):
+        elif o in ("-h", "--help"):
             usage()
             return
     if not args:
@@ -95,6 +97,7 @@ def main():
     for arg in args:
         check(arg)
 
+
 def check(file):
     if os.path.isdir(file) and not os.path.islink(file):
         if verbose:
@@ -102,19 +105,25 @@ def check(file):
         names = os.listdir(file)
         for name in names:
             fullname = os.path.join(file, name)
-            if ((recurse and os.path.isdir(fullname) and
-                 not os.path.islink(fullname) and
-                 not os.path.split(fullname)[1].startswith("."))
-                or name.lower().endswith(".py")):
+            if (
+                recurse
+                and os.path.isdir(fullname)
+                and not os.path.islink(fullname)
+                and not os.path.split(fullname)[1].startswith(".")
+            ) or name.lower().endswith(".py"):
                 check(fullname)
         return
 
     if verbose:
-        print("checking", file, "...",)
+        print(
+            "checking",
+            file,
+            "...",
+        )
     try:
         f = open(file)
-    except IOError(msg):
-        errprint("%s: I/O Error: %s" % (file, str(msg)))
+    except OSError as e:
+        errprint(f"{file}: I/O Error: {e}")
         return
 
     r = Reindenter(f)
@@ -141,7 +150,8 @@ def check(file):
             print("unchanged.")
         return False
 
-def _rstrip(line, JUNK='\n \t'):
+
+def _rstrip(line, JUNK="\n \t"):
     """Return line stripped of trailing spaces, tabs, newlines.
 
     Note that line.rstrip() instead also strips sundry control characters,
@@ -150,15 +160,15 @@ def _rstrip(line, JUNK='\n \t'):
     """
 
     i = len(line)
-    while i > 0 and line[i-1] in JUNK:
+    while i > 0 and line[i - 1] in JUNK:
         i -= 1
     return line[:i]
 
-class Reindenter:
 
+class Reindenter:
     def __init__(self, f):
         self.find_stmt = 1  # next token begins a fresh stmt?
-        self.level = 0      # current indent level
+        self.level = 0  # current indent level
 
         # Raw file lines.
         self.raw = f.readlines()
@@ -166,8 +176,7 @@ class Reindenter:
         # File lines, rstripped & tab-expanded.  Dummy at start is so
         # that we can use tokenize's 1-based line numbering easily.
         # Note that a line is all-blank iff it's "\n".
-        self.lines = [_rstrip(line).expandtabs() + "\n"
-                      for line in self.raw]
+        self.lines = [_rstrip(line).expandtabs() + "\n" for line in self.raw]
         self.lines.insert(0, None)
         self.index = 1  # index into self.lines of next line
 
@@ -194,9 +203,9 @@ class Reindenter:
         # we see a line with *something* on it.
         i = stats[0][0]
         after.extend(lines[1:i])
-        for i in range(len(stats)-1):
+        for i in range(len(stats) - 1):
             thisstmt, thislevel = stats[i]
-            nextstmt = stats[i+1][0]
+            nextstmt = stats[i + 1][0]
             have = getlspace(lines[thisstmt])
             want = thislevel * nspaces
             if want < 0:
@@ -208,21 +217,24 @@ class Reindenter:
                     want = have2want.get(have, -1)
                     if want < 0:
                         # Then it probably belongs to the next real stmt.
-                        for j in range(i+1, len(stats)-1):
+                        for j in range(i + 1, len(stats) - 1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
                                 if have == getlspace(lines[jline]):
                                     want = jlevel * nspaces
                                 break
-                    if want < 0:           # Maybe it's a hanging
-                                           # comment like this one,
+                    if want < 0:  # Maybe it's a hanging
+                        # comment like this one,
                         # in which case we should shift it like its base
                         # line got shifted.
-                        for j in range(i-1, -1, -1):
+                        for j in range(i - 1, -1, -1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
-                                want = have + getlspace(after[jline-1]) - \
-                                       getlspace(lines[jline])
+                                want = (
+                                    have
+                                    + getlspace(after[jline - 1])
+                                    - getlspace(lines[jline])
+                                )
                                 break
                     if want < 0:
                         # Still no luck -- leave it alone.
@@ -259,12 +271,19 @@ class Reindenter:
         return line
 
     # Line-eater for tokenize.
-    def tokeneater(self, type, token, tmp, end, line,
-                   INDENT=tokenize.INDENT,
-                   DEDENT=tokenize.DEDENT,
-                   NEWLINE=tokenize.NEWLINE,
-                   COMMENT=tokenize.COMMENT,
-                   NL=tokenize.NL):
+    def tokeneater(
+        self,
+        type,
+        token,
+        tmp,
+        end,
+        line,
+        INDENT=tokenize.INDENT,
+        DEDENT=tokenize.DEDENT,
+        NEWLINE=tokenize.NEWLINE,
+        COMMENT=tokenize.COMMENT,
+        NL=tokenize.NL,
+    ):
         sline, scol = tmp
 
         if type == NEWLINE:
@@ -295,8 +314,9 @@ class Reindenter:
             # must be the first token of the next program statement, or an
             # ENDMARKER.
             self.find_stmt = 0
-            if line:   # not endmarker
+            if line:  # not endmarker
                 self.stats.append((sline, self.level))
+
 
 # Count number of leading blanks.
 def getlspace(line):
@@ -305,5 +325,6 @@ def getlspace(line):
         i += 1
     return i
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

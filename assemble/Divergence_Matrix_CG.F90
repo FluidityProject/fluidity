@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -64,11 +64,11 @@ module divergence_matrix_cg
 
   contains
 
-    subroutine assemble_divergence_matrix_cg(CT_m, state, ct_rhs, & 
+    subroutine assemble_divergence_matrix_cg(CT_m, state, ct_rhs, &
                                              test_mesh, field, option_path, &
                                              div_mass, grad_mass, &
                                              div_mass_lumped,&
-                                             grad_mass_lumped, get_ct) 
+                                             grad_mass_lumped, get_ct)
 
       ! inputs/outputs
       ! bucket full of fields
@@ -86,7 +86,7 @@ module divergence_matrix_cg
       character(len=*), intent(in), optional :: option_path
 
       type(csr_matrix), intent(inout), optional :: div_mass, grad_mass
-      
+
       type(scalar_field), intent(inout), optional :: div_mass_lumped, grad_mass_lumped
 
       logical, intent(in), optional :: get_ct
@@ -117,7 +117,7 @@ module divergence_matrix_cg
       type(vector_field) :: field_bc
 
       real, dimension(:,:), allocatable :: div_mass_mat, grad_mass_mat
-      
+
       integer :: stat
 
       logical :: l_get_ct
@@ -127,7 +127,7 @@ module divergence_matrix_cg
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac
       type(element_type), pointer :: nvfrac_shape
-      ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
+      ! Transformed gradient function for the non-linear PhaseVolumeFraction.
       real, dimension(:, :, :), allocatable :: dnvfrac_t
 
       ! =============================================================
@@ -197,7 +197,7 @@ module divergence_matrix_cg
          if(multiphase) then
             allocate(dnvfrac_t(ele_loc(nvfrac,1), ele_ngi(nvfrac,1), field%dim))
          end if
-         
+
          do ele=1, element_count(test_mesh)
 
             test_nodes=>ele_nodes(test_mesh, ele)
@@ -245,43 +245,43 @@ module divergence_matrix_cg
             do dim = 1, field%dim
                call addto(ct_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
             end do
-            
+
             if(present(div_mass).or.present(div_mass_lumped)) then
-               
+
                div_mass_mat = shape_shape(test_shape, test_shape, detwei)
-               
+
                if(present(div_mass)) then
-                  
+
                   call addto(div_mass, test_nodes, test_nodes, div_mass_mat)
-                  
+
                end if
-               
+
                if(present(div_mass_lumped)) then
-                  
+
                   call addto(div_mass_lumped, test_nodes, sum(div_mass_mat, 2))
-                  
+
                end if
-               
+
             end if
-            
+
             if(present(grad_mass).or.present(grad_mass_lumped)) then
-               
+
                grad_mass_mat = shape_shape(field_shape, field_shape, detwei)
-               
+
                if(present(grad_mass)) then
-                  
+
                   call addto(grad_mass, field_nodes, field_nodes, grad_mass_mat)
-                  
+
                end if
-          
+
                if(present(grad_mass_lumped)) then
-                  
+
                   call addto(grad_mass_lumped, field_nodes, sum(grad_mass_mat, 2))
-                  
+
                end if
-               
+
             end if
-        
+
          end do
 
          if(multiphase) then
@@ -358,7 +358,7 @@ module divergence_matrix_cg
             end do
           end if
         end do
-        
+
         call deallocate(field_bc)
         deallocate(field_bc_type)
         deallocate(detwei_bdy, normal_bdy)
@@ -375,7 +375,7 @@ module divergence_matrix_cg
     end subroutine assemble_divergence_matrix_cg
 
     subroutine assemble_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass)
-      
+
       ! inputs/outputs
       ! bucket full of fields
       type(state_type), dimension(:), intent(inout) :: state
@@ -394,22 +394,22 @@ module divergence_matrix_cg
          multiphase = .false.
 
          if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
-         
+
             call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, 1, ct_rhs, div_mass)
-         
+
          else
 
             FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
-         
+
          end if
 
       end if
 
 
-    
+
     end subroutine assemble_compressible_divergence_matrix_cg
 
-    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass) 
+    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass)
 
       ! inputs/outputs
       ! bucket full of fields
@@ -438,7 +438,7 @@ module divergence_matrix_cg
       real, dimension(:), allocatable :: detwei, detwei_bdy, density_bdy
       real, dimension(:,:,:), allocatable :: j_mat
       real, dimension(:,:), allocatable :: normal_bdy
-      
+
       real, dimension(:), allocatable :: density_at_quad, olddensity_at_quad
       real, dimension(:,:), allocatable :: density_grad_at_quad, nlvelocity_at_quad
 
@@ -460,7 +460,7 @@ module divergence_matrix_cg
 
       integer, dimension(:), allocatable :: density_bc_type
       type(scalar_field) :: density_bc
-      
+
       integer :: i, stat
 
       !! Multiphase variables
@@ -468,7 +468,7 @@ module divergence_matrix_cg
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac
       type(element_type), pointer :: nvfrac_shape
-      ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
+      ! Transformed gradient function for the non-linear PhaseVolumeFraction.
       real, dimension(:, :, :), allocatable :: dnvfrac_t
       logical :: is_compressible_phase ! Is this the (single) compressible phase in a multiphase simulation?
 
@@ -479,10 +479,10 @@ module divergence_matrix_cg
       ewrite(2,*) 'In assemble_1mat_compressible_divergence_matrix_cg'
 
       coordinate=> extract_vector_field(state(istate), "Coordinate")
-      
+
       density => extract_scalar_field(state(istate), "Density")
       olddensity => extract_scalar_field(state(istate), "OldDensity")
-      
+
       if(have_option(trim(state(istate)%option_path)//"/equation_of_state/compressible")) then
          is_compressible_phase = .true.
       else
@@ -499,10 +499,10 @@ module divergence_matrix_cg
       end if
 
       pressure => extract_scalar_field(state(istate), "Pressure")
-      
+
       velocity=>extract_vector_field(state(istate), "Velocity")
       nonlinearvelocity=>extract_vector_field(state(istate), "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
-      
+
       ! Get the non-linear PhaseVolumeFraction field if multiphase
       if(multiphase) then
          vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
@@ -526,7 +526,7 @@ module divergence_matrix_cg
         ewrite(2, *) "Streamline upwind stabilisation"
         FLExit("SU stabilisation broken with continuity at the moment.")
         stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
-        call get_upwind_options(trim(density%option_path) // & 
+        call get_upwind_options(trim(density%option_path) // &
                                 "/prognostic/spatial_discretisation/continuous_galerkin/&
                                 &stabilisation/streamline_upwind", &
                                 & nu_bar_scheme, nu_bar_scale)
@@ -535,7 +535,7 @@ module divergence_matrix_cg
                           &stabilisation/streamline_upwind_petrov_galerkin")) then
         ewrite(2, *) "SUPG stabilisation"
         stabilisation_scheme = STABILISATION_SUPG
-        call get_upwind_options(trim(density%option_path) // & 
+        call get_upwind_options(trim(density%option_path) // &
                                 "/prognostic/spatial_discretisation/continuous_galerkin/&
                                 &stabilisation/streamline_upwind_petrov_galerkin", &
                                 & nu_bar_scheme, nu_bar_scale)
@@ -547,7 +547,7 @@ module divergence_matrix_cg
       call get_option(trim(complete_field_path(density%option_path, stat=stat))//&
                          &"/temporal_discretisation/theta", theta)
       call get_option("/timestepping/timestep", dt)
-      
+
       test_mesh => pressure%mesh
       field => velocity
 
@@ -567,7 +567,7 @@ module divergence_matrix_cg
                density_grad_at_quad(field%dim, ele_ngi(density,1)), &
                j_mat(field%dim, field%dim, ele_ngi(density, 1)), &
                div_mass_mat(ele_loc(test_mesh, 1), ele_loc(test_mesh, 1)))
-      
+
       if(multiphase) then
          ! We will need grad(nvfrac) if we are not integrating by parts below
          allocate(dnvfrac_t(ele_loc(nvfrac,1), ele_ngi(nvfrac,1), field%dim))
@@ -581,10 +581,10 @@ module divergence_matrix_cg
         test_shape_ptr => ele_shape(test_mesh, ele)
         field_shape=>ele_shape(field, ele)
         density_shape => ele_shape(density, ele)
-        
+
         density_at_quad = ele_val_at_quad(density, ele)
         olddensity_at_quad = ele_val_at_quad(olddensity, ele)
-        
+
         nlvelocity_at_quad = ele_val_at_quad(nonlinearvelocity, ele)
 
         if(any(stabilisation_scheme == (/STABILISATION_STREAMLINE_UPWIND, STABILISATION_SUPG/))) then
@@ -593,11 +593,11 @@ module divergence_matrix_cg
         else
           call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei)
         end if
-        
+
         if(.not.integrate_by_parts .or. (multiphase .and. integrate_by_parts .and. .not.is_compressible_phase)) then
           ! transform the field (velocity) derivatives into physical space
           call transform_to_physical(coordinate, ele, field_shape, dshape=dfield_t)
-          
+
           if(test_shape_ptr==density_shape) then
             ddensity_t = dtest_t
           else
@@ -607,7 +607,7 @@ module divergence_matrix_cg
           dfield_t = 0.0
           ddensity_t = 0.0
         end if
-        
+
         select case(stabilisation_scheme)
           case(STABILISATION_SUPG)
             test_shape = make_supg_shape(test_shape_ptr, dtest_t, nlvelocity_at_quad, j_mat, &
@@ -632,15 +632,15 @@ module divergence_matrix_cg
 
             else if(multiphase .and. is_compressible_phase) then
                ele_mat = -dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele)*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
-         
+
             else
-         
+
                ele_mat = -dshape_shape(dtest_t, field_shape, detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
             end if
         else
             density_grad_at_quad = theta*(ele_grad_at_quad(density, ele, ddensity_t))+&
                                    (1-theta)*(ele_grad_at_quad(olddensity, ele, ddensity_t))
-            
+
             if(multiphase) then
 
                ! If the field and nvfrac meshes are different, then we need to
@@ -670,7 +670,7 @@ module divergence_matrix_cg
             end if
 
         end if
-        
+
         ! Stabilisation does not return the right shape for this operator!
         select case(stabilisation_scheme)
           case(STABILISATION_STREAMLINE_UPWIND)
@@ -678,18 +678,18 @@ module divergence_matrix_cg
 !               & element_upwind_stabilisation_div(field_shape, ddensity_t, nlvelocity_at_quad, j_mat, detwei, &
 !               & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
         end select
-        
+
         do dim = 1, field%dim
             call addto(ctp_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
         end do
 
         if(present(div_mass)) then
            div_mass_mat = shape_shape(test_shape, test_shape, detwei)
-           call addto(div_mass, test_nodes, test_nodes, div_mass_mat)         
+           call addto(div_mass, test_nodes, test_nodes, div_mass_mat)
         end if
-        
+
         call deallocate(test_shape)
-        
+
       end do
 
       if(integrate_by_parts) then
@@ -718,13 +718,13 @@ module divergence_matrix_cg
           if(any(field_bc_type(:,sele)==2)&
                .or.any(field_bc_type(:,sele)==3)&
                .or.any(field_bc_type(:,sele)==4)) cycle
-          
+
           test_shape_ptr=>face_shape(test_mesh, sele)
           field_shape=>face_shape(field, sele)
 
           test_nodes_bdy=face_global_nodes(test_mesh, sele)
           field_nodes_bdy=face_global_nodes(field, sele)
-          
+
           if(density_bc_type(sele)==1) then
             ! not considering time varying bc yet!
             density_bdy = ele_val_at_quad(density_bc, sele)
@@ -735,7 +735,7 @@ module divergence_matrix_cg
 
           call transform_facet_to_physical(coordinate, sele, &
               &                          detwei_f=detwei_bdy,&
-              &                          normal=normal_bdy) 
+              &                          normal=normal_bdy)
 
 
           if(multiphase) then
@@ -771,7 +771,7 @@ module divergence_matrix_cg
          deallocate(dnvfrac_t)
          call deallocate(nvfrac)
       end if
-      
+
     end subroutine assemble_1mat_compressible_divergence_matrix_cg
 
 end module divergence_matrix_cg

@@ -1,6 +1,5 @@
 # $Id: __init__.py 1821 2004-06-03 16:57:49Z fredrik $
 # elementtree package
-
 # --------------------------------------------------------------------
 # The ElementTree toolkit is
 #

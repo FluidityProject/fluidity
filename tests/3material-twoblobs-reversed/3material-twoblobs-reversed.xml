@@ -6,21 +6,21 @@
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l 3material-twoblobs.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-     <variable name="mxvfracwater" language="python"> 
+     <variable name="mxvfracwater" language="python">
 import fluidity_tools
 mxvfracwater = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracwater" language="python"> 
+    </variable>
+     <variable name="mnvfracwater" language="python">
 import fluidity_tools
 mnvfracwater = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracdrop" language="python">
 import fluidity_tools
 mxvfracdrop = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Droplet']['MaterialVolumeFraction']['max'])
@@ -29,14 +29,14 @@ mxvfracdrop = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Droplet
 import fluidity_tools
 mnvfracdrop = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Droplet']['MaterialVolumeFraction']['min'])
     </variable>
-     <variable name="mxvfracair" language="python"> 
+     <variable name="mxvfracair" language="python">
 import fluidity_tools
 mxvfracair = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Air']['MaterialVolumeFraction']['max'])
-    </variable>    
-     <variable name="mnvfracair" language="python"> 
+    </variable>
+     <variable name="mnvfracair" language="python">
 import fluidity_tools
 mnvfracair = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Air']['MaterialVolumeFraction']['min'])
-    </variable>    
+    </variable>
     <variable name="mxvfracsum" language="python">
 import fluidity_tools
 mxvfracsum = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['SumMaterialVolumeFractions']['max'])
@@ -48,17 +48,17 @@ mnvfracsum = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water'][
     <variable name="mxvelocity" language="python">
 import fluidity_tools
 mxvelocity = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['Velocity%magnitude']['max'])
-    </variable>    
+    </variable>
     <variable name="mxcfl" language="python">
 import fluidity_tools
 mxcfl = max(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['ControlVolumeCFLNumber']['max'])
-    </variable>    
+    </variable>
     <variable name="mncfl" language="python">
 import fluidity_tools
 mncfl = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['ControlVolumeCFLNumber']['min'])
-    </variable>    
+    </variable>
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
@@ -88,13 +88,13 @@ mncfl = min(fluidity_tools.stat_parser("3material-twoblobs.stat")['Water']['Cont
     </test>
     <test name="check maximum speed is 1.0" language="python">
 	assert abs(mxvelocity-1.0) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check maximum cv cfl" language="python">
       assert abs(mxcfl-0.16) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check minimum cv cfl" language="python">
       assert abs(mncfl-0.08) &lt; 1e-10
-    </test>    
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

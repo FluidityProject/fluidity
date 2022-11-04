@@ -41,199 +41,199 @@ for file in files:
     err_n_lines[file] = len(logSplit)
     fileHandle.close()
 </variable>
-    <variable name="material1integralstart" language="python"> 
+    <variable name="material1integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 material1integralstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material1integralend" language="python"> 
+    <variable name="material1integralend" language="python">
 from fluidity_tools import stat_parser as stat
 material1integralend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material1maxstart" language="python"> 
+    <variable name="material1maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 material1maxstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material1maxend" language="python"> 
+    <variable name="material1maxend" language="python">
 from fluidity_tools import stat_parser as stat
 material1maxend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material1minstart" language="python"> 
+    <variable name="material1minstart" language="python">
 from fluidity_tools import stat_parser as stat
 material1minstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material1minend" language="python"> 
+    <variable name="material1minend" language="python">
 from fluidity_tools import stat_parser as stat
 material1minend = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="material2integralstart" language="python"> 
+    <variable name="material2integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 material2integralstart = stat("mmat-interpolation.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material2integralend" language="python"> 
+    <variable name="material2integralend" language="python">
 from fluidity_tools import stat_parser as stat
 material2integralend = stat("mmat-interpolation.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3integralstart" language="python"> 
+    <variable name="material3integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 material3integralstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material3integralend" language="python"> 
+    <variable name="material3integralend" language="python">
 from fluidity_tools import stat_parser as stat
 material3integralend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3maxstart" language="python"> 
+    <variable name="material3maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 material3maxstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material3maxend" language="python"> 
+    <variable name="material3maxend" language="python">
 from fluidity_tools import stat_parser as stat
 material3maxend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material3minstart" language="python"> 
+    <variable name="material3minstart" language="python">
 from fluidity_tools import stat_parser as stat
 material3minstart = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material3minend" language="python"> 
+    <variable name="material3minend" language="python">
 from fluidity_tools import stat_parser as stat
 material3minend = stat("mmat-interpolation.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="divergenceminstart" language="python"> 
+    <variable name="divergenceminstart" language="python">
 from fluidity_tools import stat_parser as stat
 divergenceminstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="divergenceminend" language="python"> 
+    <variable name="divergenceminend" language="python">
 from fluidity_tools import stat_parser as stat
 divergenceminend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="divergencemaxstart" language="python"> 
+    <variable name="divergencemaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 divergencemaxstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="divergencemaxend" language="python"> 
+    <variable name="divergencemaxend" language="python">
 from fluidity_tools import stat_parser as stat
 divergencemaxend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="cflmaxstart" language="python"> 
+    <variable name="cflmaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 cflmaxstart = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="cflmaxend" language="python"> 
+    <variable name="cflmaxend" language="python">
 from fluidity_tools import stat_parser as stat
 cflmaxend = stat("mmat-interpolation.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="lambdamaxstart" language="python"> 
+    <variable name="lambdamaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lambdamaxstart = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="lambdamaxend" language="python"> 
+    <variable name="lambdamaxend" language="python">
 from fluidity_tools import stat_parser as stat
 lambdamaxend = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="lambdaminstart" language="python"> 
+    <variable name="lambdaminstart" language="python">
 from fluidity_tools import stat_parser as stat
 lambdaminstart = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="lambdaminend" language="python"> 
+    <variable name="lambdaminend" language="python">
 from fluidity_tools import stat_parser as stat
 lambdaminend = stat("mmat-interpolation.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="material1integralstart_checkpoint" language="python"> 
+    <variable name="material1integralstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material1integralend_checkpoint" language="python"> 
+    <variable name="material1integralend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material1maxstart_checkpoint" language="python"> 
+    <variable name="material1maxstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1maxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material1maxend_checkpoint" language="python"> 
+    <variable name="material1maxend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1maxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material1minstart_checkpoint" language="python"> 
+    <variable name="material1minstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1minstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material1minend_checkpoint" language="python"> 
+    <variable name="material1minend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material1minend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="material2integralstart_checkpoint" language="python"> 
+    <variable name="material2integralstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material2integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material2integralend_checkpoint" language="python"> 
+    <variable name="material2integralend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material2integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3integralstart_checkpoint" language="python"> 
+    <variable name="material3integralstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3integralstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="material3integralend_checkpoint" language="python"> 
+    <variable name="material3integralend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3integralend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="material3maxstart_checkpoint" language="python"> 
+    <variable name="material3maxstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3maxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="material3maxend_checkpoint" language="python"> 
+    <variable name="material3maxend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3maxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="material3minstart_checkpoint" language="python"> 
+    <variable name="material3minstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3minstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="material3minend_checkpoint" language="python"> 
+    <variable name="material3minend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 material3minend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="divergenceminstart_checkpoint" language="python"> 
+    <variable name="divergenceminstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 divergenceminstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="divergenceminend_checkpoint" language="python"> 
+    <variable name="divergenceminend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 divergenceminend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="divergencemaxstart_checkpoint" language="python"> 
+    <variable name="divergencemaxstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 divergencemaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="divergencemaxend_checkpoint" language="python"> 
+    <variable name="divergencemaxend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 divergencemaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="cflmaxstart_checkpoint" language="python"> 
+    <variable name="cflmaxstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 cflmaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="cflmaxend_checkpoint" language="python"> 
+    <variable name="cflmaxend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 cflmaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="lambdamaxstart_checkpoint" language="python"> 
+    <variable name="lambdamaxstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 lambdamaxstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="lambdamaxend_checkpoint" language="python"> 
+    <variable name="lambdamaxend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 lambdamaxend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="lambdaminstart_checkpoint" language="python"> 
+    <variable name="lambdaminstart_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 lambdaminstart_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="lambdaminend_checkpoint" language="python"> 
+    <variable name="lambdaminend_checkpoint" language="python">
 from fluidity_tools import stat_parser as stat
 lambdaminend_checkpoint = stat("mmat-interpolation_checkpoint.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="absolutedifference" language="python"> 
+    <variable name="absolutedifference" language="python">
 from fluidity_tools import stat_parser as stat
 absolutedifference = stat("mmat-interpolation.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>

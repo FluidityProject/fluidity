@@ -2,7 +2,7 @@
 #define EWRITE_H
 
 #ifndef ewrite
-#define ewrite(priority, format) if (priority<=cdl) write(dunit(priority), format) 
+#define ewrite(priority, format) if (priority<=cdl) write(dunit(priority), format)
 #endif
 
 #ifndef EWRITE

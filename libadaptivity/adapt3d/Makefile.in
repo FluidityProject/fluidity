@@ -304,4 +304,3 @@ Flag_Handling.o: include/blkerr.i include/blkprm.i Debug.o
 
 clean:
 	rm -rf *.o *.mod
-

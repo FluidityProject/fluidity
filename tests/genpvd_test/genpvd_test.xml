@@ -11,7 +11,7 @@
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name = "pvd_generated" language = "python">
 import os
@@ -29,7 +29,7 @@ if (pvd_generated):
   infile.close()
   infile = open("genpvd_test_rectangle.pvd", "r")
   pvd_content = [i.strip() for i in infile]
-  infile.close()  
+  infile.close()
   if (pvd_content == correct_pvd_content):
     pvd_correct = True
     </variable>
@@ -46,4 +46,3 @@ assert(pvd_correct)
     </test>
   </pass_tests>
 </testproblem>
-

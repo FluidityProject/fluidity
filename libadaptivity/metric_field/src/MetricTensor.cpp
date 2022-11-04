@@ -50,7 +50,7 @@ MetricTensor::MetricTensor(double m11,
   if(verbose)
     cout<<"MetricTensor::MetricTensor("<<m11<<",\n"
         <<"                           "<<m12<<", "<<m22<<")\n";
-  
+
   dim = 2;
   t_size = 3;
   metric.resize(t_size);
@@ -78,7 +78,7 @@ MetricTensor::MetricTensor(double m11,
 MetricTensor::MetricTensor(int dimension, const double *M){
   if(verbose){
     cout<<"MetricTensor::MetricTensor("<<dimension<<", const double *M)\n";
-    
+
     cout<<"M =\n";
     for(int i=0;i<dimension;i++){
       for(int j=0;j<dimension;j++){
@@ -87,9 +87,9 @@ MetricTensor::MetricTensor(int dimension, const double *M){
       cout<<"\n";
     }
   }
-  
+
   dim = dimension;
-  
+
   if(dim==2){
     t_size = 3;
     metric.resize(t_size);
@@ -142,7 +142,7 @@ double MetricTensor::aspect_ratio() const{
     hmin = min(hmin, 1/sqrt(D[i]));
     hmax = max(hmax, 1/sqrt(D[i]));
   }
-  
+
   return hmax/hmin;
 }
 
@@ -152,7 +152,7 @@ double MetricTensor::average_length() const{
 
   double D[dim], V[dim*dim];
   eigen_decomp(D, V);
-  
+
   double sum = D[0];
   for(size_t i=1;i<dim;i++)
     sum+=D[i];
@@ -161,10 +161,10 @@ double MetricTensor::average_length() const{
   return sqrt(1.0/average);
 }
 
-int MetricTensor::blas_spev(char jobz, char uplo, int N, const double ap[],  
+int MetricTensor::blas_spev(char jobz, char uplo, int N, const double ap[],
 			     double eigenvalues[],  double eigenvectors[],
 			     int ldz,  double work[]) const{
-  
+
   int info;
   dspev_(&jobz, &uplo, &N, ap, eigenvalues, eigenvectors, &ldz, work, &info);
   return info;
@@ -174,15 +174,15 @@ int MetricTensor::circumscribe(const MetricTensor& M){
   if(verbose)
     cout<<"int MetricTensor::circumscribe(const MetricTensor& M)\n";
 
-  map(M); 
+  map(M);
   double D[dim], V[dim*dim];
   eigen_decomp(D, V);
-  
+
   for(size_t i=0;i<dim;i++)
     D[i] = std::max((double)1.0, D[i]);
-  
+
   eigen_undecomp(D, V);
-  unmap(M); 
+  unmap(M);
   return 0;
 }
 
@@ -195,16 +195,16 @@ double MetricTensor::cofactor(int i, int j) const{
     int sign=1;
     if((i+j)%2)
       sign = -1;
-    
+
     int ii = (i+1)%2;
     int jj = (j+1)%2;
-    
+
     cofactor = sign*metric[lookup(ii, jj)];
   }else{ // if(dim==3)
     int sign=1;
     if((i+j)%2)
       sign = -1;
-    
+
     double c[4];
     int ii=0;
     for(int k=0;k<3;k++){
@@ -217,7 +217,7 @@ double MetricTensor::cofactor(int i, int j) const{
         ii++;
       }
     }
-    
+
     cofactor = sign*(c[0]*c[3] - c[1]*c[2]);
   }
 
@@ -314,7 +314,7 @@ int MetricTensor::eigen_undecomp(const double *D, const double *V){
   double eigenvalues[dim];
   for(size_t i=0;i<dim;i++)
     eigenvalues[i] = fabs(D[i]);
-  
+
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<dim;j++){
       int ii = lookup(i,j);
@@ -334,7 +334,7 @@ int MetricTensor::eigen_undecomp(const double *D, const double *V, double *T) co
   double eigenvalues[dim];
   for(size_t i=0;i<dim;i++)
     eigenvalues[i] = fabs(D[i]);
-  
+
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<dim;j++){
       T[i*dim+j] = 0.0;
@@ -353,45 +353,45 @@ MetricTensor MetricTensor::dot(const MetricTensor &M2){
     double m11 = 0.0;
     for(int i=0;i<2;i++)
       m11+=metric[lookup(i,0)]*M2.metric[lookup(0,i)];
-    
+
     double m12 = 0.0;
     for(int i=0;i<2;i++)
       m12+=metric[lookup(i,0)]*M2.metric[lookup(1,i)];
-    
+
     double m22 = 0.0;
     for(int i=0;i<2;i++)
       m22+=metric[lookup(i,1)]*M2.metric[lookup(1,i)];
-    
+
     return MetricTensor(m11,
                         m12, m22);
   }else{ // if(dim==3)
     double m11 = 0.0;
     for(int i=0;i<3;i++)
       m11+=metric[lookup(i,0)]*M2.metric[lookup(0,i)];
-    
+
     double m12 = 0.0;
     for(int i=0;i<3;i++)
       m12+=metric[lookup(i,0)]*M2.metric[lookup(1,i)];
-    
+
     double m13 = 0.0;
     for(int i=0;i<3;i++)
       m13+=metric[lookup(i,0)]*M2.metric[lookup(2,i)];
-    
+
     double m22 = 0.0;
     for(int i=0;i<3;i++)
       m22+=metric[lookup(i,1)]*M2.metric[lookup(1,i)];
-    
+
     double m23 = 0.0;
     for(int i=0;i<3;i++)
       m23+=metric[lookup(i,1)]*M2.metric[lookup(2,i)];
-    
+
     double m33 = 0.0;
     for(int i=0;i<3;i++)
       m33+=metric[lookup(i,2)]*M2.metric[lookup(2,i)];
-    
+
     return MetricTensor(m11,
                         m12, m22,
-                        m13, m23, m33); 
+                        m13, m23, m33);
   }
 }
 
@@ -422,13 +422,13 @@ int MetricTensor::inscribe(const MetricTensor& M){
 
   double D[dim], V[dim*dim];
   eigen_decomp(D, V);
-  
-  
+
+
   for(size_t i=0;i<dim;i++)
     D[i] = std::min((double)1.0, D[i]);
-  
+
   eigen_undecomp(D, V);
-  
+
   unmap(M);
   return 0;
 }
@@ -441,10 +441,10 @@ int MetricTensor::limit_max_size(const double *max_len){
   eigen_decomp(max_len, D, V);
   for(size_t i=0;i<dim;i++)
     D[i] = 1.0/(D[i]*D[i]);
-  
+
   double T[dim*dim];
   eigen_undecomp(D, V, T);
-    
+
   circumscribe(MetricTensor(dim, T));
 
   return 0;
@@ -464,7 +464,7 @@ int MetricTensor::limit_min_size(const double *min_len){
   eigen_undecomp(D, V, T);
 
   inscribe(MetricTensor(dim, T));
-  
+
   return 0;
 }
 
@@ -475,13 +475,13 @@ MetricTensor MetricTensor::inv() const{
   double d = det();
   if(fabs(d)<FLT_SMALL){
     vector<double> components(t_size, 0.0);
-    return MetricTensor(dim, &(components[0])); 
+    return MetricTensor(dim, &(components[0]));
   }else{
     vector<double> components(t_size);
     for(size_t i=0, loc=0;i<dim;i++)
       for(size_t j=0;j<=i;j++,loc++)
         components[loc] = cofactor(i, j)/d;
-    
+
     return MetricTensor(dim, &(components[0]));
   }
 }
@@ -492,10 +492,10 @@ int MetricTensor::inv(double &v00, double &v01,
     cout<<"int MetricTensor::inv(double &v00, double &v01,double &v10, double &v11) const\n";
 
   double d = v00*v11 - v10*v01;
-  
+
   if(fabs(d)<FLT_SMALL)
     return -1;
-  
+
   double _v00 = v00, _v01 = v01;
   double _v10 = v10, _v11 = v11;
 
@@ -513,14 +513,14 @@ int MetricTensor::inv(double &v00, double &v01, double &v02,
         <<"double &v10, double &v11, double &v12, "
         <<"double &v20, double &v21, double &v22) const\n";
 
-  double d = 
+  double d =
     v00*(v11*v22 - v12*v21) -
     v01*(v10*v22 - v12*v20) +
     v02*(v10*v21 - v11*v20);
-  
+
   if(fabs(d)<FLT_SMALL)
     return -1;
-  
+
   double _v00 = v00, _v01 = v01, _v02 = v02;
   double _v10 = v10, _v11 = v11, _v12 = v12;
   double _v20 = v20, _v21 = v21, _v22 = v22;
@@ -565,12 +565,12 @@ int MetricTensor::map(const MetricTensor &M){
   M.eigen_decomp(D, V);
   for(size_t i=0;i<dim;i++)
     D[i] = sqrt(D[i]);
-  
+
   double F[dim*dim];
   if(dim==2){
-    F[0] = D[0]*V[0]; F[2] = D[0]*V[2]; 
+    F[0] = D[0]*V[0]; F[2] = D[0]*V[2];
     F[1] = D[1]*V[1]; F[3] = D[1]*V[3];
-    
+
     if(inv(F[0], F[2],
            F[1], F[3]))
       return -1;
@@ -578,22 +578,22 @@ int MetricTensor::map(const MetricTensor &M){
     F[0] = D[0]*V[0]; F[3] = D[0]*V[1]; F[6] = D[0]*V[2];
     F[1] = D[1]*V[3]; F[4] = D[1]*V[4]; F[7] = D[1]*V[5];
     F[2] = D[2]*V[6]; F[5] = D[2]*V[7]; F[8] = D[2]*V[8];
-    
+
     if(inv(F[0], F[3], F[6],
            F[1], F[4], F[7],
            F[2], F[5], F[8]))
       return -1;
   }
-  
+
   double M1[dim*dim];
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<dim;j++)
       M1[i*dim+j] = metric[lookup(i, j)];
-  
+
   double C[dim*dim];
   MatrixDotMatrix(F,false,M1,false,C);
   MatrixDotMatrix(C,false,F,true,M1);
-  
+
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<=i;j++)
       metric[lookup(i, j)] = M1[i*dim+j];
@@ -607,21 +607,21 @@ int MetricTensor::unmap(const MetricTensor &M){
 
   double D[dim], V[dim*dim];
   M.eigen_decomp(D, V);
-  for(unsigned i=0;i<dim;i++) 
+  for(unsigned i=0;i<dim;i++)
     D[i] = 1.0/sqrt(D[i]);
 
   double F[dim*dim];
   if(dim==2){
-    F[0] = D[0]*V[0]; F[2] = D[0]*V[2]; 
+    F[0] = D[0]*V[0]; F[2] = D[0]*V[2];
     F[1] = D[1]*V[1]; F[3] = D[1]*V[3];
-    
+
     inv(F[0], F[2],
         F[1], F[3]);
   }else{
     F[0] = D[0]*V[0]; F[3] = D[0]*V[1]; F[6] = D[0]*V[2];
     F[1] = D[1]*V[3]; F[4] = D[1]*V[4]; F[7] = D[1]*V[5];
     F[2] = D[2]*V[6]; F[5] = D[2]*V[7]; F[8] = D[2]*V[8];
-    
+
     inv(F[0], F[3], F[6],
         F[1], F[4], F[7],
         F[2], F[5], F[8]);
@@ -631,15 +631,15 @@ int MetricTensor::unmap(const MetricTensor &M){
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<dim;j++)
       M1[i*dim+j] = metric[lookup(i, j)];
-  
+
   double C[dim*dim];
   MatrixDotMatrix(F,true,M1,false,C);
   MatrixDotMatrix(C,false,F,false,M1);
-  
+
   for(size_t i=0;i<dim;i++)
     for(size_t j=0;j<=i;j++)
       metric[lookup(i, j)] = M1[i*dim+j];
-  
+
   return(0);
 }
 
@@ -649,18 +649,18 @@ int MetricTensor::MatrixDotMatrix(double *A, bool aT, double *B, bool bT, double
 
   char TRANSA='N';
   if(aT) TRANSA='T';
-  
+
   char TRANSB='N';
   if(bT) TRANSB='T';
-  
+
   int M=dim, N=dim, K=dim;
   int LDA=dim, LDB=dim, LDC=dim;
-  
+
   double ALPHA = 1.0;
   double BETA=0.0;
-  
+
   dgemm_(&TRANSA, &TRANSB, &M, &N, &K, &ALPHA, A, &LDA, B, &LDB, &BETA, C, &LDC);
-  
+
   return 0;
 }
 
@@ -718,7 +718,7 @@ int MetricTensor::lookup(size_t i, size_t j) const{
       case(2): return 4;
       }
     case(2): return 3+j;
-    } 
+    }
   }
   return -1;
 }
@@ -735,7 +735,7 @@ int MetricTensor::write_vtk(const char *name) const{
 #ifdef HAVE_VTK
   vtkPolyData *dataSet = vtkPolyData::New();
   dataSet->Allocate();
-  
+
   vtkPoints *newPts = vtkPoints::New();
   newPts->InsertNextPoint(0.0, 0.0, 0.0);
   newPts->InsertNextPoint(1.0, 1.0, 1.0);
@@ -769,12 +769,12 @@ int MetricTensor::write_vtk(const char *name) const{
   dataSet->Update();
 #endif
   tensor->Delete();
-  
+
   vtkXMLPolyDataWriter *writer= vtkXMLPolyDataWriter::New();
   vtkZLibDataCompressor* compressor = vtkZLibDataCompressor::New();
   writer->SetCompressor(compressor);
   compressor->Delete();
-  
+
   std::string fname(name);
   fname.append(".vtp");
   writer->SetFileName(fname.c_str());

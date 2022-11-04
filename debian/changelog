@@ -32,7 +32,7 @@ fluidity (3.4.svn6573) unstable; urgency=low
 
 fluidity (3.4.svn5549) unstable; urgency=low
 
-  * General revision after many changes, especially to new options. 
+  * General revision after many changes, especially to new options.
 
  -- David Ham <dham@attila.ese.ic.ac.uk>  Tue, 04 Mar 2008 11:31:54 +0000
 
@@ -56,7 +56,6 @@ fluidity (3.4.svn4115) unstable; urgency=low
 
 fluidity (3.4.svn4090-1) unstable; urgency=low
 
-  * Initial release 
-	
- -- David Ham <david.ham@imperial.ac.uk>  Mon, 05 Nov 2007 15:35:54 +0000
+  * Initial release
 
+ -- David Ham <david.ham@imperial.ac.uk>  Mon, 05 Nov 2007 15:35:54 +0000

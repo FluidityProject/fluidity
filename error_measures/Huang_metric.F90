@@ -84,7 +84,7 @@ module huang_metric_module
       call set(hessian, node, metric)
     end do
 
-    contains 
+    contains
 
       function find_root(func, x0, x1, eps) result(root)
         real, intent(in) :: x0, x1, eps
@@ -150,7 +150,7 @@ module huang_metric_module
         real, dimension(:, :), intent(in) :: hessian
         real, dimension(size(hessian, 1), size(hessian, 2)) :: abs_h, evecs
         real, dimension(size(hessian, 1)) :: evals
-        
+
         call eigendecomposition_symmetric(hessian, evecs, evals)
         evals = abs(evals)
         call eigenrecomposition(abs_h, evecs, evals)

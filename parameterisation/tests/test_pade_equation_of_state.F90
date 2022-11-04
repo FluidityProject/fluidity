@@ -1,5 +1,5 @@
 !    Copyright (C) 2009 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -38,7 +38,7 @@ subroutine test_pade_equation_of_state
   use equation_of_state
   use unittest_tools
   implicit none
-  
+
   real :: rho
 
   call mcD_J_W_F2002(rho, 25., 35., invert_distance(2000.))
@@ -60,7 +60,7 @@ subroutine test_pade_equation_of_state
       & "Equation of state returned wrong value")
 
 contains
-  
+
   function invert_distance(pressure)
     real :: invert_distance
     real, intent(in) :: pressure

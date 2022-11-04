@@ -150,7 +150,7 @@ kspgmres_options =
          }?
       }
    )
-   
+
 kspcg_options =
    (
       ## Conjugate gradient method
@@ -171,7 +171,7 @@ ksppreonly_options =
          attribute name { "preonly" }
       }
    )
-   
+
 ksprichardson_options =
    (
       ## Richardson iteration
@@ -181,7 +181,7 @@ ksprichardson_options =
          attribute name { "richardson" }
       }
    )
-   
+
 kspother_options =
    (
       ## Other methods
@@ -193,7 +193,7 @@ kspother_options =
          attribute name { xsd:string }
       }
    )
-   
+
 # ####################################################################
 #
 # options for the different preconditioners
@@ -209,7 +209,7 @@ pcsor_options =
          attribute name { "sor" }
       }
    )
-   
+
 pceisenstat_options =
    (
       ## The Eisenstat method
@@ -224,15 +224,15 @@ pceisenstat_options =
          attribute name { "eisenstat" }
       }
    )
-   
-pcilu_options = 
+
+pcilu_options =
    (
       ## Incomplete LU decomposition
       element preconditioner {
          attribute name { "ilu" }
       }
    )
-   
+
 pcicc_options =
    (
       ## Incomplete Cholesky decomposition (only works for symmetric matrices)
@@ -240,7 +240,7 @@ pcicc_options =
          attribute name { "icc" }
       }
    )
-   
+
 pclu_options =
    (
       ## LU direct solver
@@ -297,7 +297,7 @@ pcmg_options =
          }?,
          ## Only useful for solves on meshes that are not P1 continuous. This
          ## option makes the first coarsening step of mg consist of a reduction
-         ## from the Pn>=1 discontinuous or Pn>1 continuous mesh to a P1 
+         ## from the Pn>=1 discontinuous or Pn>1 continuous mesh to a P1
          ## continous mesh. Currently only works for the Pressure solve,
          ## and the advection-diffusion solve of prognostic scalar fields.
          element higher_order_lumping {
@@ -338,7 +338,7 @@ pcbjacobi_options =
       ## locally within each domain. This means within the domain you can
       ## choose whatever preconditioner you would choose in serial. Because
       ## there is no coupling between the domains in the preconditioning
-      ## the performance may be less than in serial and degrade with 
+      ## the performance may be less than in serial and degrade with
       ## increasing number of processors/decreasing local domain size.
       element preconditioner {
          attribute name { "bjacobi" },
@@ -376,7 +376,7 @@ subpc_options =
          pcother_options
       )
    )
-   
+
 pcother_options =
    (
       ## Other preconditioners
@@ -388,15 +388,15 @@ pcother_options =
          attribute name { string }
       }
    )
-   
+
 pcksp_options =
    (
       ## This only makes sense for solves where a different approximated preconditioner
-      ## matrix is provided. For instance when solving pressure with the 
+      ## matrix is provided. For instance when solving pressure with the
       ## option full_schur_complement and using a masslumped schur complement
       ## as preconditioner matrix.
       ##
-      ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+      ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner
       ## solve you either need to set your tolerances much stricter for it
       ## than in the outer solve (so that the preconditioner is close to an
       ## exact matrix inversion), or use fgmres in the outer solve.
@@ -445,9 +445,9 @@ pc_ksp_solver_options =
 pcgamg_options =
    (
       ## GAMG preconditioner.
-      ## For vector solves, this preconditioner should be used in conjunction 
+      ## For vector solves, this preconditioner should be used in conjunction
       ## with the multigrid_near_null_space option to improve convergence. The
-      ## near null-space option is not applicable for scalar solves.  
+      ## near null-space option is not applicable for scalar solves.
       element preconditioner {
          attribute name { "gamg" }
       }
@@ -455,7 +455,7 @@ pcgamg_options =
 
 pcfieldsplit_options =
    (
-      ## Uses fieldsplit preconditioner that seperately solves/preconditions 
+      ## Uses fieldsplit preconditioner that seperately solves/preconditions
       ## the diagonal blocks associated with the different velocity components.
       ## FIXME: maybe some hints what a useful setup is
       element preconditioner {
@@ -637,7 +637,7 @@ miscellaneous_solver_options =
       ## a multigrid preconditioner, as the data doesn't have to be
       ## recreated every solve, but at the cost of increased memory usage.
       ## This option is only useful for solves where the matrix doesn't
-      ## change between time steps, e.g. the pressure solve (only for 
+      ## change between time steps, e.g. the pressure solve (only for
       ## incompressible flow and without mesh movement) or solving
       ## balance pressure.
       element cache_solver_context {
@@ -647,7 +647,7 @@ miscellaneous_solver_options =
       ## to improve cache performance, see
       ## http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
       ##
-      ## Note that the use of reordering mechanisms for solves is 
+      ## Note that the use of reordering mechanisms for solves is
       ## currently untested.  Possible schemes include:
       ## Reverse Cuthill-McKee reordering (rcm), a one way dissecting (1wd)
       ## algorithm, and also a natural ordering (natural) for debugging.
@@ -700,8 +700,8 @@ miscellaneous_solver_options =
          }?
       }
    )
-   
-galerkin_projection_mass_options =  
+
+galerkin_projection_mass_options =
    (
       ## Lump the mass matrix
       element lump_mass {
@@ -714,7 +714,7 @@ galerkin_projection_mass_options =
       }
    )
 
-galerkin_projection_mass_options_submesh =  
+galerkin_projection_mass_options_submesh =
    (
       ## Lump the mass matrix
       element lump_mass {

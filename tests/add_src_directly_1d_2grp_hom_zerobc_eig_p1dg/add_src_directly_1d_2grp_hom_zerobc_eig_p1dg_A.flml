@@ -221,25 +221,25 @@ eigen_val = eigen.node_val(1)
 
 # fix for first iteration
 if eigen_val &lt; 1.0e-10:
-   
+
    eigen_val = 1.0
 
-# zero field 
+# zero field
 for n in range(field.node_count):
-   
+
    field.set(n,0.0)
 
 for ele in range(field.element_count):
 
    # form element transform object
    tr_ele = Transform(ele, coord)
-   
+
    src_n = sigs_2_to_1*numpy.dot(tr_ele.shape_shape(field.mesh.shape, flux2.mesh.shape),flux2.ele_val(ele))
-   
+
    src_n = src_n + (nusigf_1*chi_1/eigen_val)*numpy.dot(tr_ele.shape_shape(field.mesh.shape, oldflux1.mesh.shape),oldflux1.ele_val(ele))
-    
+
    src_n = src_n + (nusigf_2*chi_1/eigen_val)*numpy.dot(tr_ele.shape_shape(field.mesh.shape, oldflux2.mesh.shape),oldflux2.ele_val(ele))
-      
+
    field.addto(field.ele_nodes(ele),src_n)</string_value>
             </algorithm>
             <add_directly_to_rhs/>
@@ -385,25 +385,25 @@ eigen_val = eigen.node_val(1)
 
 # fix for first iteration
 if eigen_val &lt; 1.0e-10:
-   
+
    eigen_val = 1.0
 
-# zero field 
+# zero field
 for n in range(field.node_count):
-   
+
    field.set(n,0.0)
 
 for ele in range(field.element_count):
 
    # form element transform object
    tr_ele = Transform(ele, coord)
-   
+
    src_n = sigs_1_to_2*numpy.dot(tr_ele.shape_shape(field.mesh.shape, flux1.mesh.shape),flux1.ele_val(ele))
-   
+
    src_n = src_n + (nusigf_1*chi_2/eigen_val)*numpy.dot(tr_ele.shape_shape(field.mesh.shape, oldflux1.mesh.shape),oldflux1.ele_val(ele))
-    
+
    src_n = src_n + (nusigf_2*chi_2/eigen_val)*numpy.dot(tr_ele.shape_shape(field.mesh.shape, oldflux2.mesh.shape),oldflux2.ele_val(ele))
-      
+
    field.addto(field.ele_nodes(ele),src_n)</string_value>
             </algorithm>
             <add_directly_to_rhs/>
@@ -508,7 +508,7 @@ oldeigen_val = oldeigen.node_val(1)
 
 # fix for first iteration
 if oldeigen_val &lt; 1.0e-10:
-   
+
    oldeigen_val = 1.0
 
 nusigf_1 = 4.6798000E-03
@@ -518,31 +518,31 @@ eigen_top = 0.0
 eigen_bottom = 0.0
 
 for n in range(field.node_count):
-   
-   flux1_n = flux1_ele.node_val(n)   
+
+   flux1_n = flux1_ele.node_val(n)
    flux2_n = flux2_ele.node_val(n)
-   
-   oldflux1_n = oldflux1_ele.node_val(n)   
+
+   oldflux1_n = oldflux1_ele.node_val(n)
    oldflux2_n = oldflux2_ele.node_val(n)
-   
+
    # fix for first iteration
    if oldflux1_n &lt; 1.0e-10:
-      
+
       oldflux1_n = 1.0
-   
+
    # fix for first iteration
    if oldflux2_n &lt; 1.0e-10:
-      
+
       oldflux2_n = 1.0
-   
+
    eigen_top = eigen_top + (nusigf_1*flux1_n + nusigf_2*flux2_n)**2
-   
+
    eigen_bottom = eigen_bottom + (nusigf_1*flux1_n + nusigf_2*flux2_n)*(nusigf_1*oldflux1_n + nusigf_2*oldflux2_n)
-   
+
 eigen = oldeigen_val*eigen_top/eigen_bottom
 
 for n in range(field.node_count):
-    
+
    field.set(n,eigen)</string_value>
         </algorithm>
         <mesh name="DGP0"/>

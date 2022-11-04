@@ -23,7 +23,7 @@ module interpolation_metric
   use aspect_ratios_module
   use field_preprocessing_module
   use project_metric_to_surface_module
-  
+
   implicit none
 
   logical :: use_interpolation_metric
@@ -161,7 +161,7 @@ module interpolation_metric
 
     call halo_update(fields_list(1))
     call compute_hessian(fields_list(1), positions, error_metric)
-    
+
     if (align_metric_vertically) then
       ! state only used for "GravityDirection", so state(1) is fine
       call vertically_align_metric(state(1), error_metric)
@@ -225,8 +225,8 @@ module interpolation_metric
     end do
 
    call check_metric(error_metric)
-   
-   if (size(fields_list) > 1) then 
+
+   if (size(fields_list) > 1) then
     call deallocate(tmp_tensor)
    end if
 

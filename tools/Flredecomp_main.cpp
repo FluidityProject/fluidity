@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -75,7 +75,7 @@ int main(int argc, char** argv){
   // Modified version of fldecomp argument parsing
   // Get any command line arguments
   // Reset optarg so we can detect changes
-  optarg = NULL;  
+  optarg = NULL;
   char c;
   map<char, string> args;
   while((c = getopt(argc, argv, "i:o:hlv")) != -1){
@@ -95,7 +95,7 @@ int main(int argc, char** argv){
       exit(-1);
     }
   }
-  
+
   // Logging
   if(args.count('l')){
     int rank = 0;
@@ -126,14 +126,14 @@ int main(int argc, char** argv){
     Usage();
     exit(0);
   }
-  
+
   // Verbosity
   int verbosity = 0;
   if(args.count('v') > 0){
     verbosity = 3;
   }
   set_global_debug_level_fc(&verbosity);
-  
+
   // Input and output base names
   string input_basename, output_basename;
   if(argc > optind + 2){
@@ -146,21 +146,21 @@ int main(int argc, char** argv){
     Usage();
     exit(-1);
   }
-  
+
   // Input number of processors
   if(args.count('i') == 0){
     Usage();
     exit(-1);
   }
   int input_nprocs = atoi(args['i'].c_str());
-  
+
   // Target number of processors
   if(args.count('o') == 0){
     Usage();
     exit(-1);
   }
   int target_nprocs = atoi(args['o'].c_str());
-    
+
   size_t input_basename_len = input_basename.size();
   size_t output_basename_len = output_basename.size();
   flredecomp(input_basename.c_str(), input_basename_len, output_basename.c_str(), output_basename_len,

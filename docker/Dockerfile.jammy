@@ -1,10 +1,10 @@
 # DockerFile for a Fludity development container
 
-# Use an Impish base image
-FROM ubuntu:impish
+# Use an Jammy base image
+FROM ubuntu:jammy
 
 # This DockerFile is looked after by
-MAINTAINER Tim Greaves <tim.greaves@imperial.ac.uk>
+MAINTAINER Stephan Kramer <s.kramer@imperial.ac.uk>
 
 # Installs shouldn't expect input
 ENV DEBIAN_FRONTEND=noninteractive
@@ -13,14 +13,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
      apt-get -y dist-upgrade && \
      apt-get -y install gnupg dirmngr && \
-     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu impish main" > /etc/apt/sources.list.d/fluidity-core-ppa-impish.list && \
+     echo "deb http://ppa.launchpad.net/fluidity-core/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/fluidity-core-ppa-jammy.list && \
      gpg --keyserver keyserver.ubuntu.com --recv 0D45605A33BAC3BE && \
      gpg --export --armor 33BAC3BE | apt-key add - && \
      apt-get update && \
      echo "Europe/London" > /etc/timezone && \
      apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip && \
-     rm -rf /var/cache/apt && \
-     rm -rf /var/lib/apt/lists
+     apt-get clean
 
 RUN python3 -m pip install --upgrade junit-xml
 

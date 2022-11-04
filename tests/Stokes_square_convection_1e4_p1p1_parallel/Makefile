@@ -32,5 +32,3 @@ run: clean-run input
 	$(FLUIDITY) $(FLFLAGS) $(MODEL).flml $MESH.*
 run-debug: clean-run-debug input
 	$(FLUIDITY)-debug $(FLFLAGS) $(MODEL).flml
-
-

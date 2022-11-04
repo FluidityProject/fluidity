@@ -20,7 +20,7 @@ program openclose
   integer :: comm, rank
   integer*8 :: file_id, status
   integer*8 :: props
-  
+
 #if defined(PARALLEL_IO)
   integer :: ierr
   comm = MPI_COMM_WORLD
@@ -30,7 +30,7 @@ program openclose
   comm = 0
   rank = 1
 #endif
-  
+
   props = h5_createprop_file ()
 #if defined(PARALLEL_IO)
   status = h5_setprop_file_mpio_collective (props, comm)
@@ -42,5 +42,5 @@ program openclose
 #if defined(PARALLEL_IO)
   call mpi_finalize(ierr)
 #endif
-  
+
 end program openclose

@@ -9,7 +9,7 @@ subroutine test_pseudo2d_gradation
   use form_metric_field
   use metric_tools
   implicit none
-  
+
   type(state_type) :: state
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions
@@ -68,7 +68,7 @@ subroutine test_pseudo2d_gradation
 
     if (x == minval(positions%val(1,:)) .or. x == maxval(positions%val(1,:))) cycle
     if (y == minval(positions%val(2,:)) .or. y == maxval(positions%val(2,:))) cycle
-    
+
     call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
     domvec = dominant_eigenvector(evecs, evals)
     angle = get_angle(domvec, (/1.0, 0.0, 0.0/))

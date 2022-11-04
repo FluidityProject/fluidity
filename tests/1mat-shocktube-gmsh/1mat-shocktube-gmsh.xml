@@ -6,8 +6,8 @@
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l 1material_shocktube.flml</command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -125,37 +125,37 @@ import fluidity_tools
 checkpointstarttime=fluidity_tools.stat_parser('1material_shocktube_checkpoint.stat')['ElapsedTime']['value'][0]
     </variable>-->
   </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
     <test name="check pressure follows a step pattern" language="python">
    assert pressureerror &lt; 1e-3
-    </test>    
+    </test>
     <test name="check y velocity follows a top hat pattern" language="python">
    assert yvelocityerror &lt; 1e-3
-    </test>    
+    </test>
     <test name="check density follows a double step pattern" language="python">
    assert densityerror &lt; 1e-3
-    </test>    
+    </test>
 <!--    <test name="check checkpointed pressure follows a step pattern" language="python">
    assert checkpointpressureerror &lt; 1e-3
-    </test>    
+    </test>
     <test name="check checkpointed y velocity follows a top hat pattern" language="python">
    assert checkpointyvelocityerror &lt; 1e-3
-    </test>    
+    </test>
     <test name="check checkpointed material density follows a double step pattern" language="python">
    assert checkpointmatdenserror &lt; 1e-3
-    </test>    
+    </test>
     <test name="check checkpointed bulk density follows a double step pattern" language="python">
    assert checkpointdensityerror &lt; 1e-3
     </test>    -->
     <test name="check finish time is 0.375" language="python">
    assert abs(time-0.375) &lt; 1e-10
-    </test>    
+    </test>
 <!--    <test name="check checkpointed start time is 0.125" language="python">
    assert abs(checkpointstarttime-0.125) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check checkpointed finish time is 0.375" language="python">
    assert abs(checkpointtime-0.375) &lt; 1e-10
     </test>    -->
@@ -163,12 +163,12 @@ checkpointstarttime=fluidity_tools.stat_parser('1material_shocktube_checkpoint.s
   <warn_tests>
     <test name="check pressure follows a step pattern" language="python">
    assert pressureerror &lt; 1e-6
-    </test>    
+    </test>
     <test name="check y velocity follows a top hat pattern" language="python">
    assert yvelocityerror &lt; 1e-6
-    </test>    
+    </test>
     <test name="check density follows a double step pattern" language="python">
    assert densityerror &lt; 1e-6
-    </test>    
+    </test>
   </warn_tests>
 </testproblem>

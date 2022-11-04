@@ -36,7 +36,7 @@ USA
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
-#define PyString_Size PyUnicode_GET_SIZE
+#define PyString_Size PyUnicode_GET_LENGTH
 #define PyString_AsString PyUnicode_AsUTF8
 #endif
 #endif
@@ -1515,7 +1515,7 @@ void string_from_python(char* function, int* function_len,
     fprintf(stderr, "Warning: Truncating returned string\n");
     fflush(stderr);
     memcpy(result, PyString_AsString(pResult), *result_len * sizeof(char));
-  }else{
+  } else{
     memcpy(result, PyString_AsString(pResult), pResult_len * sizeof(char));
     *result_len = pResult_len;
   }

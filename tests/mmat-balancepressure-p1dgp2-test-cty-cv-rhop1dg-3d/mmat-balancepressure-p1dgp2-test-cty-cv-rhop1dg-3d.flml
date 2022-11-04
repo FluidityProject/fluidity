@@ -4,10 +4,10 @@
     <string_value lines="1">mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d</string_value>
     <comment>test p1dgp2-test-cty-cv-rhop1dg to capture hydrostatic balance which it does.
 
-It is however depedent on the p1cv volf being remapped to p1dg to form the 
-bulk density. This action (remapping) is mesh dependent such that although there 
+It is however depedent on the p1cv volf being remapped to p1dg to form the
+bulk density. This action (remapping) is mesh dependent such that although there
 is a hydro balance the bulk density  is not conservative in this term,  hence max
- hydrostatic pressure value can varies between error (that reduces) and exact. 
+ hydrostatic pressure value can varies between error (that reduces) and exact.
 
 This is however the same as when using the geostrophic or hydrostatic pressure solvers.</comment>
   </simulation_name>

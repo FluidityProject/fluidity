@@ -26,14 +26,14 @@ using std::string;
 // ****************************************************************************
 // Method: QvisBinnerWindow::QvisBinnerWindow
 //
-// Purpose: 
+// Purpose:
 //   Constructor
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 QvisBinnerWindow::QvisBinnerWindow(const int type,
@@ -50,14 +50,14 @@ QvisBinnerWindow::QvisBinnerWindow(const int type,
 // ****************************************************************************
 // Method: QvisBinnerWindow::~QvisBinnerWindow
 //
-// Purpose: 
+// Purpose:
 //   Destructor
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 QvisBinnerWindow::~QvisBinnerWindow()
@@ -68,14 +68,14 @@ QvisBinnerWindow::~QvisBinnerWindow()
 // ****************************************************************************
 // Method: QvisBinnerWindow::CreateWindowContents
 //
-// Purpose: 
+// Purpose:
 //   Creates the widgets for the window.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void
@@ -111,14 +111,14 @@ QvisBinnerWindow::CreateWindowContents()
 // ****************************************************************************
 // Method: QvisBinnerWindow::UpdateWindow
 //
-// Purpose: 
+// Purpose:
 //   Updates the widgets in the window when the subject changes.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void
@@ -166,14 +166,14 @@ QvisBinnerWindow::UpdateWindow(bool doAll)
 // ****************************************************************************
 // Method: QvisBinnerWindow::GetCurrentValues
 //
-// Purpose: 
+// Purpose:
 //   Gets values from certain widgets and stores them in the subject.
 //
 // Programmer: xml2window
 // Creation:   Thu Mar 30 12:05:26 PDT 2006
 //
 // Modifications:
-//   
+//
 // ****************************************************************************
 
 void
@@ -275,5 +275,3 @@ QvisBinnerWindow::dim3ProcessText()
     GetCurrentValues(2);
     Apply();
 }
-
-

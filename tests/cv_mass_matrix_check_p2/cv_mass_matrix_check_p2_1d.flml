@@ -159,10 +159,10 @@
           <string_value type="code" language="python" lines="20">coord = states["fluid"].vector_fields["Coordinate"]
 
 for ele in range(field.element_count):
-   
+
    # form element transform object
    tr_ele = Transform(ele, coord)
-   
+
    # set volume via sum of detwei
    field.set(ele, sum(tr_ele.detwei))</string_value>
         </algorithm>
@@ -191,7 +191,7 @@ for ele in range(field.element_count):
 sum_cvmass = sum(cvmass.val)
 
 for ele in range(field.element_count):
-   
+
    field.set(ele, sum_cvmass)</string_value>
         </algorithm>
         <mesh name="DGP0"/>
@@ -219,7 +219,7 @@ for ele in range(field.element_count):
 sum_felmass = sum(felmass.val)
 
 for ele in range(field.element_count):
-   
+
    field.set(ele, sum_felmass)</string_value>
         </algorithm>
         <mesh name="DGP0"/>

@@ -31,7 +31,7 @@
 typedef int idxtype;
 
 void ParMETIS_V3_AdaptiveRepart(idxtype *vtxdist, idxtype *xadj, idxtype *adjncy,
-                                idxtype *vwgt, idxtype *vsize, idxtype *adjwgt, 
+                                idxtype *vwgt, idxtype *vsize, idxtype *adjwgt,
                                 int *wgtflag, int *numflag, int *ncon, int *nparts,
                                 float *tpwgts, float *ubvec, float *itr, int *options,
                                 int *edgecut, idxtype *part, MPI_Comm *comm);

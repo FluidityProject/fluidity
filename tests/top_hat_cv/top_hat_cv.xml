@@ -15,7 +15,7 @@ times = s["ElapsedTime"]["value"]
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name="min_ts" language="python">
 import fluidity_tools
@@ -33,14 +33,16 @@ s = fluidity_tools.stat_parser("top_hat_cv.stat")
 t_integrals = s["Fluid"]["Tracer"]["integral"]
     </variable>
     <variable name="initial_vtu" language="python">
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 initial_vtu = vtktools.vtu("top_hat_cv_0.vtu")
-initial_vtu = vtktools.PlanarVtuCut(initial_vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
+initial_vtu = vtutools.PlanarVtuCut(initial_vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
     </variable>
     <variable name="final_vtu" language="python">
-import fluidity.diagnostics.vtutools as vtktools
+import fluidity.diagnostics.vtutools as vtutools
+import vtktools
 final_vtu = vtktools.vtu("top_hat_cv_80.vtu")
-final_vtu = vtktools.PlanarVtuCut(final_vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
+final_vtu = vtutools.PlanarVtuCut(final_vtu, origin = (0.0, 0.5, 0.0), normal = (0.0, 1.0, 0.0))
     </variable>
   </variables>
   <pass_tests>

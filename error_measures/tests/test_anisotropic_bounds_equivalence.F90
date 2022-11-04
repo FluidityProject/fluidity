@@ -25,14 +25,14 @@ subroutine test_anisotropic_bounds_equivalence
   real, dimension(4), target :: hmaxxx, hmaxxy, hmaxxz, hmaxyy, hmaxyz, hmaxzz
   logical :: fail
   integer :: i, nhsamp
-  real :: x, y, z 
+  real :: x, y, z
 
   pseudo2d_coord = 3
   call vtk_read_state("data/1x1square-delaunay.vtu", state)
 
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
-  call allocate(field, mesh, "Field") 
+  call allocate(field, mesh, "Field")
 
   do i=1,mesh%nodes
     x = positions%val(1,i)

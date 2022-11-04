@@ -26,7 +26,7 @@ module geometric_constraints_metric
   private
   public :: use_geometric_constraints_metric,&
             initialise_geometric_constraints_metric,&
-	    form_geometric_constraints_metric
+            form_geometric_constraints_metric
 
   logical :: use_geometric_constraints_metric = .false.
   logical :: geometric_constraints_initialised = .false.
@@ -46,7 +46,6 @@ module geometric_constraints_metric
     type(state_type), intent(in) :: state
 
     integer :: dim
-    integer :: stat, stat2
 
     type(vector_field) :: metric_positions
     real, dimension(error_metric%dim(1) * error_metric%dim(2) * node_count(error_metric)) :: geometric_edge_lengths_raw
@@ -62,7 +61,7 @@ module geometric_constraints_metric
 #endif
 
     logical :: debug_metric
-    
+
     if(.not.use_geometric_constraints_metric) then
         return
     end if
@@ -71,13 +70,13 @@ module geometric_constraints_metric
 
     snloc = face_loc(error_metric%mesh, 1)
     nselements = surface_element_count(error_metric%mesh)
-    
+
     dim = error_metric%dim(1)
     ewrite(2,*) "++: Applying geometric constraints"
 
     metric_positions = get_coordinate_field(state, error_metric%mesh)
     call FindGeometryConstraints(metric_positions, geometric_edge_lengths_raw)
-    
+
     geometric_edge_lengths = wrap_tensor_field(error_metric%mesh, geometric_edge_lengths_raw, "GeometricEdgeLengths")
 
     call bound_metric(geometric_edge_lengths, state)

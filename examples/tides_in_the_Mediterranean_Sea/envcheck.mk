@@ -35,7 +35,7 @@ ifneq (${TESTBIN},00)
     # No fluidity binary on the system path or locally
 	@echo "*** ERROR ***\nThe Fluidity binaries needed to run this example can't be found.\nTo fix this either:\n\n   (a) install the Fluidity binary package if you are on Ubuntu\n   (b) compile Fluidity from source and install it in a system-accessable\n         location\n   (c) set your PATH environment variable to point to a built version of\n         Fluidity.\n\nRefer to the Fluidity manual for more instructions on any of the above,\nor contact the fluidity@imperial.ac.uk mailing list.\n"
 	@exit 1
-   endif 
+   endif
   endif
  endif
  # Do we have both system AND local builds available?
@@ -53,6 +53,6 @@ ifneq (${TESTFLOPTIONSLOCAL},0)
 	@echo "*** ERROR ***\nA Fluidity options Relax NG file, required by this example, was not found on your\nsystem. Please either (a) install the Fluidity binary package if you are on\nUbuntu, or (b) get hold of a Fluidity source tree and run this example there."
 	@exit 1
 endif
- 
+
 
 .phony: envcheck

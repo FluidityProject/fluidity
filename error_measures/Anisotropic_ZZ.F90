@@ -33,7 +33,7 @@ module anisotropic_zz_module
   use edge_length_module
   use bounding_box_metric
   use form_metric_field
-  
+
   implicit none
 
   private
@@ -134,7 +134,7 @@ module anisotropic_zz_module
 
     assert(field%mesh%shape%degree == 1)
     assert(associated(metric%val))
-    
+
     call zero(metric)
 
     ! Build the P0 metric
@@ -175,7 +175,7 @@ module anisotropic_zz_module
     real, intent(out) :: eta
     integer, intent(out), optional :: patch_count
 
-    real, dimension(positions%dim) :: lambda_k, g_evals, sorted_g_evals, out_evals, out_edges 
+    real, dimension(positions%dim) :: lambda_k, g_evals, sorted_g_evals, out_evals, out_edges
     real, dimension(positions%dim, positions%dim) :: g_hat, m_k, out_k, rt_k, vt_k, g_evecs, &
                                                   & sorted_g_evecs, out_evecs, g, j_k
     real :: patch_volume, transformed_patch_volume
@@ -238,7 +238,7 @@ module anisotropic_zz_module
     out_evals = eigenvalue_from_edge_length(out_edges)
 
     call eigenrecomposition(out_k, out_evecs, out_evals)
-   
+
     out_k = weight * (omega * out_k + (1.0-omega)*m_k)
 
     call set(pwc_metric, ele, out_k)
@@ -363,7 +363,7 @@ module anisotropic_zz_module
     dim = positions%dim
     loc = ele_loc(field, ele)
     ngi = ele_ngi(field, ele)
-    
+
     allocate(detwei(patch_size, ngi))
     allocate(dm_t(patch_size, loc, ngi, dim))
     allocate(ele_gradient(patch_size, dim))
@@ -379,7 +379,7 @@ module anisotropic_zz_module
                                  detwei=detwei(i, :), dshape=dm_t(i, :, :, :))
     end do
 
-    ! Step (a): compute recovered gradient 
+    ! Step (a): compute recovered gradient
     recovered_gradient = 0.0
     patch_volume = 0.0
     do i=1,size(patch_elements)

@@ -7,4 +7,3 @@ clean:
 
 run: input
 	fluidity -v3 -l mix.flml
-

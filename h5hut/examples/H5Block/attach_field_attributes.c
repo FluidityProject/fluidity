@@ -30,7 +30,7 @@ main (
 
         // open file and create first step
         h5_file_t file = H5OpenFile (fname, H5_O_RDWR, H5_PROP_DEFAULT);
-        H5SetStep (file, 0); 
+        H5SetStep (file, 0);
 
 	if (!H5BlockHasField (file, "data")) {
 		printf ("Doesn't have field data with name 'data' in step#0\n");

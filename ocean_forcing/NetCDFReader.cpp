@@ -2,7 +2,7 @@
  *    Copyright (c) 2004-2006 by Gerard Gorman
  *    Copyright (c) 2006- Imperial College London
  *    See COPYING file for copying and redistribution conditions.
- *   
+ *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
  *    License as published by the Free Software Foundation,
@@ -73,7 +73,7 @@ void NetCDFReader::Close(){
 #ifdef HAVE_LIBNETCDF
   if(fileOpen){
     // Close the netCDF file.
-    ncclose(ncid);  
+    ncclose(ncid);
   }
   fileOpen = false;
 #endif
@@ -91,7 +91,7 @@ void NetCDFReader::SetFile(const char *filename){
     exit(-1);
   }
   ncfile.close();
-  
+
   // Open the netCDF file.
   nc_open(filename, NC_NOWRITE, &ncid);
   if(ncerr!=NC_NOERR){
@@ -122,7 +122,7 @@ void NetCDFReader::GetGrid(){
     exit(-1);
   }
   ncdiminq(ncid, id, (char *)0, &(dimension[0]));
-    
+
   // Get dimensions -- latitude
   id = ncdimid(ncid, "latitude");
   if(ncerr!=NC_NOERR){
@@ -139,7 +139,7 @@ void NetCDFReader::GetGrid(){
     cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable \"longitude\" does not exist.\n";
     exit(-1);
   }
-  
+
   nc_type xtypep;
   int len;
   ncattinq(ncid, varid, "actual_range", &xtypep, &len);
@@ -177,7 +177,7 @@ void NetCDFReader::GetGrid(){
     cerr<<__FILE__<<", "<<__LINE__<<" - ERROR: unexpected data type for y_range\n";
     exit(-1);
   }
-  
+
   spacing[0] = (x_range[1] - x_range[0])/(dimension[0]-1);
   spacing[1] = (y_range[1] - y_range[0])/(dimension[1]-1);
 #endif
@@ -235,7 +235,7 @@ int NetCDFReader::Read(string varname, vector<double> &var){
   nc_type xtypep;                 /* variable type */
   int ndims;                      /* number of dims */
   int dims[MAX_VAR_DIMS];         /* variable shape */
-  
+
   int varid = ncvarid(ncid, varname.c_str());
   ncvarinq(ncid, varid, 0, &xtypep, &ndims, dims, NULL);
 

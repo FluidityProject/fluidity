@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     g.gorman@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -26,7 +26,7 @@
     USA
 */
 
-#include "Calendar.h" 
+#include "Calendar.h"
 
 using namespace std;
 
@@ -53,7 +53,7 @@ Calendar::Calendar(){
     cerr<<"ERROR ("<<__FILE__<<"): No udunits support.\n";
     exit(1);
 #endif
-  SetTransformation("seconds since 1-1-1 0:0:0", 
+  SetTransformation("seconds since 1-1-1 0:0:0",
                     "seconds since 1-1-1 0:0:0",
                     "none");
 }
@@ -68,7 +68,7 @@ const Calendar& Calendar::operator=(const Calendar &in){
   to_unit = in.to_unit;
 #endif
   calendar = in.calendar;
-  
+
   return *this;
 }
 
@@ -106,7 +106,7 @@ int Calendar::SetTransformation(string _from_unit, string _to_unit, string _cale
   }
   if(err)
     exit(-1);
-  
+
   err = utConvert(&from_unit, &to_unit, &slope, &intercept);
   if(err==UT_ENOINIT){
     cerr<<"ERROR ("<<__FILE__<<"): The package has not been initialized.\n";
@@ -128,6 +128,6 @@ int Calendar::SetTransformation(string _from_unit, string _to_unit, string _cale
 
 int Calendar::Convert(double from_value, double& to_value){
   to_value = slope*from_value + intercept;
-  
+
   return 0;
 }

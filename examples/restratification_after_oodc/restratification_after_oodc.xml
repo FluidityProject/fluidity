@@ -9,7 +9,7 @@
     <problem_definition length="vlong" nprocs="64">
     <command_line>mpiexec flredecomp -i 1 -o 64 -v -l restratification_after_oodc restratification_after_oodc_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l restratification_after_oodc_flredecomp.flml </command_line>
-  </problem_definition>  
+  </problem_definition>
    <variables>
     <variable name="final_time" language="python">
 from fluidity_tools import stat_parser

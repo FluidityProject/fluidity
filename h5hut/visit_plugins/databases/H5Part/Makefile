@@ -19,7 +19,7 @@ VTK_INCLUDE= \
   -I$(TOPDIR)/include/vtk/Imaging \
   -I$(TOPDIR)/include/vtk/Rendering
 MOC=$(TOPDIR)/bin/moc
-CXXFLAGS=$(CXXFLAGSORIG) -I/usr/local/hdf5/include -I/d/visusers/cristina/H5Part/H5ecloud 
+CXXFLAGS=$(CXXFLAGSORIG) -I/usr/local/hdf5/include -I/d/visusers/cristina/H5Part/H5ecloud
 CPPFLAGS=$(CPPFLAGSORIG) $(VTK_INCLUDE) -I. -I/usr/local/hdf5/include -I/d/visusers/cristina/H5Part/H5ecloud -I$(TOPDIR)/include -I$(TOPDIR)/include/visit
 LDFLAGS=$(LDFLAGSORIG)  -L$(HOMEPLUGINS)/databases
 
@@ -38,7 +38,7 @@ ESRC=h5partEnginePluginInfo.C avth5partFileFormat.C
 
 SRC=$(ISRC) $(COMMONSRC) $(MSRC) $(ESRC)
 
-SHLIB_FORCED=-L/d/visusers/cristina/H5Part/H5ecloud/ -lH5Part 
+SHLIB_FORCED=-L/d/visusers/cristina/H5Part/H5ecloud/ -lH5Part
 
 ELIBS_FOR_MACOSX_PREBINDING=$(BZIP2_LIBS)
 MLIBS_FOR_MACOSX_PREBINDING=$(BZIP2_LIBS)

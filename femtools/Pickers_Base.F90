@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -28,37 +28,37 @@
 #include "fdebug.h"
 
 module pickers_base
-  
+
   use fldebug
   use picker_data_types
-  
+
   implicit none
-  
+
   private
-  
+
   public :: picker_name, set_picker_name
 
 contains
-  
+
   pure function picker_name(picker)
     !!< Return the name of the supplied picker
-  
+
     type(picker_type), intent(in) :: picker
-    
+
     character(len = len_trim(picker%name)) :: picker_name
-    
+
     picker_name = picker%name
-    
+
   end function picker_name
-  
+
   subroutine set_picker_name(picker, name)
     !!< Set the name of the supplied picker
-    
+
     type(picker_type), intent(inout) :: picker
     character(len = *), intent(in) :: name
-    
+
     picker%name = name
-  
+
   end subroutine set_picker_name
 
 end module pickers_base

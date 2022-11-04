@@ -1,5 +1,5 @@
 subroutine test_div
-  
+
   use fields
   use field_derivatives
   use vtk_interfaces
@@ -34,7 +34,7 @@ subroutine test_div
   call vtk_write_fields("data/div_out", 0, positions, mesh, sfields=(/divergence/), &
                                                            & vfields=(/field/))
 
-  
+
   fail = any(divergence%val > 1e-12)
   call report_test("[div]", fail, .false., "div(constant) == 0 everywhere, remember?")
 
@@ -48,4 +48,3 @@ function solution(pos)
 
   solution = (/1.0, 2.0, 3.0/)
 end function solution
-

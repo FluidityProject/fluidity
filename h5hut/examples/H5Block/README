@@ -1,6 +1,6 @@
-Since we have no different version for serial and parallel system, 
+Since we have no different version for serial and parallel system,
 all tests are compiled for "parallel" systems (which may have only
-one processor). 
+one processor).
 
 Only one time-step!
 

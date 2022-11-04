@@ -1,25 +1,25 @@
 /*  Copyright (C) 2009 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
-    
+
     Prof. C Pain
     Applied Modelling and Computation Group
     Department of Earth Science and Engineering
     Imperial College London
-    
+
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
     version 2.1 of the License.
-    
+
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
-    
+
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -35,30 +35,30 @@
 using namespace std;
 using namespace Spud;
 
-void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
+void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z,
                      double *T, const double *Vx, const double *Vy, const double *Vz, double *salinity,
                      double *F, double *Q, double *tau_u, double *tau_v, double *solar,
                      const int *n, bool rotate, int *bulk_formula ) {
 
     // physical constants
-    const double air_density = 1.22, 
-               q1 = 0.98*640380, 
+    const double air_density = 1.22,
+               q1 = 0.98*640380,
                q2 = -5107.4,
                kelvin_centrigrade = 273.15;
-    
+
     // Set up for ERA40 data. Options to change rate are set below
     double accumulated_correction = 6.0*60.0*60.0; // Assumes data every 6 hours.
 
     // problem constants
     const int nFields = 9;
     const int NNodes = *n;
-        
+
     double *delU_u = new double[NNodes];
     double *delU_v = new double[NNodes];
     double *t_2m = new double[NNodes];
     double *q = new double[NNodes];
     double *z_data = new double[NNodes];
-    double *Q_solar = new double[NNodes]; 
+    double *Q_solar = new double[NNodes];
     double *thermal = new double[NNodes];
     double *cloud = new double[NNodes];
     double *runoff = new double[NNodes];
@@ -73,7 +73,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         cout<<"Found flag"<<endl;
         accumulated_correction = 1;
     }
-    
+
 
     double surface_radius = get_surface_radius();
     double longitude[NNodes];
@@ -85,7 +85,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
 
     // loop over nodes
     for (int i=0; i<NNodes; i++) {
-        
+
         // Rotate ocean surface velocity to zonal-meridional-vertical. Also
         //  Transforms cartesian position components into lon-lat-height.
         double u_cart = Vx[i];
@@ -95,7 +95,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         double y_cart = Y[i];
         double z_cart = Z[i];
         if (rotate) {
-          vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
+          vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart,
                                               &x_cart, &y_cart, &z_cart,
                                               &u_rot, &v_rot, &w_rot,
                                               &longitude[i], &latitude[i], &height[i],
@@ -118,7 +118,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         u10         |   0   | 10 metre U wind component
         v10         |   1   | 10 metre V wind component
         ssrd        |   2   | Surface solar radiation
-        strd        |   3   | Surface thermal radiation 
+        strd        |   3   | Surface thermal radiation
         ro          |   4   | Runoff
         tp          |   5   | Total precipitation
         d2m         |   6   | Dewpoint temp at 2m
@@ -140,7 +140,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
             // already in K - don't convert
             SST[i] = T[i];
         }
-            
+
         // calculate parameters required for bulk forcing from ERA data
         z_data[i] = 2.0; // assume 2m height for t & q
         speed[i] = sqrt(pow(delU_u[i],2.0) + pow(delU_v[i],2.0));
@@ -166,7 +166,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         //  - str
         thermal[i] = (values[3] / accumulated_correction);
     }
-       
+
 
     switch (*bulk_formula) {
 
@@ -191,7 +191,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] t_2m;
     delete [] q;
     delete [] z_data;
-    delete [] Q_solar; 
+    delete [] Q_solar;
     delete [] thermal;
     delete [] cloud;
     delete [] runoff;
@@ -201,4 +201,3 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] qs;
 
 }
-

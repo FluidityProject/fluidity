@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     g.gorman@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -68,11 +68,11 @@ extern "C"{
      all_leap or 366_day: Gregorian calendar with every year being a
      leap year, i.e., all years are 366 days long.
 
-     360_day: All years are 360 days divided into 30 day months. 
+     360_day: All years are 360 days divided into 30 day months.
 
      julian: Julian calendar.
 
-     none: No calendar. 
+     none: No calendar.
 
      The calendar attribute may be set to none in climate experiments
      that simulate a fixed time of year. The time of year is indicated
@@ -81,7 +81,7 @@ extern "C"{
      are given in the following example.
 
      Example 4.5. Perpetual time axis
-     
+
 variables:
   double time(time) ;
     time:long_name = "time" ;
@@ -89,7 +89,7 @@ variables:
     time:calendar = "none" ;
 data:
   time = 0., 1., 2., ...;
-      
+
 
 
      Here, all days simulate the conditions of 15th July, so it does
@@ -134,7 +134,7 @@ double time(time) ;
   time:units = "days since 1-1-1 0:0:0" ;
   time:calendar = "126 kyr B.P." ;
   time:month_lengths = 34, 31, 32, 30, 29, 27, 28, 28, 28, 32, 32, 34 ;
-	
+
      The mixed Gregorian/Julian calendar used by Udunits is explained
      in the following excerpt from the udunits(3) man page:
 
@@ -150,8 +150,8 @@ double time(time) ;
      if  a user-given time interval includes the changeover date.
      For example, utCalendar() and utInvCalendar() can be used to
      show that 1582-10-15 *preceded* 1582-10-14 by 9 days.
-     
-     
+
+
      Due to problems caused by the discontinuity in the default mixed
      Gregorian/Julian calendar, we strongly recommend that this
      calendar should only be used when the time coordinate does not
@@ -174,7 +174,7 @@ class Calendar{
 
   int Convert(double from_value, double& to_value);
   int SetTransformation(std::string from_unit, std::string to_unit, std::string calendar);
-  
+
  private:
 #ifdef HAVE_LIBUDUNITS
   utUnit from_unit, to_unit;

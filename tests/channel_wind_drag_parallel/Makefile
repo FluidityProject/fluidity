@@ -8,7 +8,7 @@ clean:
 	rm -f $(PROJECT).stat
 	rm -f *vtu
 	rm -f fluidity*
-	rm -f *.ele *.face *.node 
+	rm -f *.ele *.face *.node
 	rm -f *.msh
 	rm -f *_periodised.flml
 	rm -f *_flredecomp.flml

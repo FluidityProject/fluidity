@@ -24,7 +24,7 @@ module hadapt_combine_meshes
   implicit none
 
   private
-  
+
   public :: combine_z_meshes
 
   contains
@@ -67,7 +67,7 @@ module hadapt_combine_meshes
       end if
       call allocate(layer_nodes(layer))
     end do
-    
+
     total_out_nodes = 0
     ! For each column,
     ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
@@ -99,7 +99,7 @@ module hadapt_combine_meshes
       call allocate(out_mesh, mesh_dim(h_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
     end if
     call deallocate(mesh)
-    
+
     out_mesh%mesh%option_path=option_path
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(h_mesh)
@@ -141,14 +141,14 @@ module hadapt_combine_meshes
     assert(all(out_mesh%mesh%columns>0))
 
     call create_columns_sparsity(out_columns, out_mesh%mesh)
-    
+
     if (associated(h_mesh%mesh%halos)) then
       ! derive l2 node halo for the out_mesh
       call derive_extruded_l2_node_halo(h_mesh%mesh, out_mesh%mesh, out_columns)
       ! positions in the non-owned columns can now simply be halo-updated
       call halo_update(out_mesh)
     end if
-      
+
     call generate_layered_mesh(out_mesh, h_mesh, layer_nodes)
     call deallocate(layer_nodes)
 
@@ -169,9 +169,9 @@ module hadapt_combine_meshes
     end if
 
     call deallocate(out_columns)
-    
+
   end subroutine combine_z_meshes
-  
+
   subroutine append_to_structures(column, z_mesh, h_mesh, out_mesh, last_seen, skip_top_node)
     integer, intent(in) :: column
     type(vector_field), intent(in) :: z_mesh, h_mesh
@@ -186,7 +186,7 @@ module hadapt_combine_meshes
     real, dimension(mesh_dim(out_mesh)) :: pos, origin, direction
 
     radial_extrusion = have_option("/geometry/spherical_earth")
-    
+
     v_dim = mesh_dim(out_mesh)
 
     origin = 0.0
@@ -210,7 +210,7 @@ module hadapt_combine_meshes
       end if
       call set(out_mesh, last_seen, pos)
     end do
-    
+
   end subroutine append_to_structures
 
   subroutine derive_extruded_l2_node_halo(h_mesh, out_mesh, columns)
@@ -218,30 +218,30 @@ module hadapt_combine_meshes
     type(mesh_type), intent(in):: h_mesh
     type(mesh_type), intent(inout):: out_mesh
     type(csr_sparsity), intent(in):: columns
-    
+
     integer, dimension(:), allocatable:: nsends, nreceives, sends, receives
     integer:: proc_count, nowned_nodes
     integer:: i, j, l, node, proc
-    
+
     assert(halo_count(h_mesh) == 2)
     assert(halo_valid_for_communication(h_mesh%halos(1)))
     assert(halo_valid_for_communication(h_mesh%halos(2)))
-    
+
     assert(halo_count(out_mesh) == 0)
     assert(size(columns,1)==node_count(h_mesh))
     assert(size(columns,2)==node_count(out_mesh))
-    
+
     ! this is easy, ownership of a node is determined by ownership
     ! of the column it is in, where columns correspond to nodes in h_mesh
-    allocate(out_mesh%halos(2))    
-    
+    allocate(out_mesh%halos(2))
+
     nowned_nodes = 0
     do i=1, node_count(h_mesh)
       if (node_owned(h_mesh%halos(2), i)) then
         nowned_nodes = nowned_nodes + row_length(columns, i)
       end if
     end do
-    
+
     proc_count = halo_proc_count(h_mesh%halos(2))
     allocate(nsends(proc_count), nreceives(proc_count))
     do proc=1, proc_count
@@ -251,14 +251,14 @@ module hadapt_combine_meshes
         node = halo_send(h_mesh%halos(2), proc, i)
         nsends(proc) = nsends(proc) + row_length(columns, node)
       end do
-      
+
       nreceives(proc) = 0
       do i=1, halo_receive_count(h_mesh%halos(2), proc)
         node = halo_receive(h_mesh%halos(2), proc, i)
         nreceives(proc) = nreceives(proc) + row_length(columns, node)
       end do
     end do
-    
+
     call allocate(out_mesh%halos(2), &
                   nsends = nsends, &
                   nreceives = nreceives, &
@@ -267,7 +267,7 @@ module hadapt_combine_meshes
                   nowned_nodes = nowned_nodes, &
                   data_type = halo_data_type(h_mesh%halos(2)), &
                   ordering_scheme = halo_ordering_scheme(h_mesh%halos(2)))
-                  
+
     do proc=1, proc_count
 
       allocate( sends(1:nsends(proc)) )
@@ -281,7 +281,7 @@ module hadapt_combine_meshes
       assert( j==nsends(proc)+1 )
       call set_halo_sends(out_mesh%halos(2), proc, sends)
       deallocate(sends)
-        
+
       allocate( receives(1:nreceives(proc)) )
       j=1
       do i=1, halo_receive_count(h_mesh%halos(2), proc)
@@ -293,16 +293,16 @@ module hadapt_combine_meshes
       assert( j==nreceives(proc)+1 )
       call set_halo_receives(out_mesh%halos(2), proc, receives)
       deallocate(receives)
-      
+
     end do
-    
+
     assert(halo_valid_for_communication(out_mesh%halos(2)))
-    
+
     deallocate( nsends, nreceives )
-    
+
     call create_global_to_universal_numbering(out_mesh%halos(2))
-    call create_ownership(out_mesh%halos(2))    
-    
+    call create_ownership(out_mesh%halos(2))
+
   end subroutine derive_extruded_l2_node_halo
 
 

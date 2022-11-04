@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -129,11 +129,11 @@ contains
             cvbdy_temp_list=> cv_point_bdy_temp
           end if
       case default
-      
+
           FLExit('Invalid control volume type.')
-      
+
       end select
-          
+
     case(2)
       select case (vertices)
       case (3)
@@ -157,7 +157,7 @@ contains
       case default
 
           FLExit('Invalid control volume type.')
-          
+
       end select
 
     case(3)
@@ -237,7 +237,7 @@ contains
   subroutine allocate_cv_faces_type(cvfaces, nodes, snodes, faces, sfaces, coords, scoords, &
                                     ncorn, stat)
     !!< Allocate memory for a quadrature type. Note that this is done
-    !!< automatically in make_quadrature. 
+    !!< automatically in make_quadrature.
     type(cv_faces_type), intent(inout) :: cvfaces
     !! nodes is the number of nodes
     integer, intent(in) :: nodes, snodes, faces, sfaces, ncorn, coords, scoords
@@ -1667,7 +1667,7 @@ contains
     allocate(generator%coords(size(coords)))
     generator%nodes=nodes
     generator%coords=coords
-    
+
   end function make_face_generator
 
   subroutine expand_cv_faces_template(cvfaces, cv_temp, cvbdy_temp)

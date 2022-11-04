@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-
 import math
 
 import numpy
 import vtk
-
-# All returned arrays are cast into either numpy or numarray arrays
-arr = numpy.array
 
 
 class vtu:
@@ -52,7 +48,9 @@ class vtu:
                     + self.filename
                     + "."
                 )
-        return arr([vtkdata.GetTuple1(i) for i in range(vtkdata.GetNumberOfTuples())])
+        return numpy.array(
+            [vtkdata.GetTuple1(i) for i in range(vtkdata.GetNumberOfTuples())]
+        )
 
     def GetScalarRange(self, name):
         """Returns the range (min, max) of the specified scalar field."""
@@ -94,7 +92,9 @@ class vtu:
                     + self.filename
                     + "."
                 )
-        return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
+        return numpy.array(
+            [vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())]
+        )
 
     def GetVectorNorm(self, name):
         """Return the field with the norm of the specified vector field."""
@@ -115,7 +115,7 @@ class vtu:
         for node in range(self.ugrid.GetNumberOfPoints()):
             n.append(norm(v[node]))
 
-        return arr(n)
+        return numpy.array(n)
 
     def GetField(self, name):
         """Returns an array with the values of the specified field."""
@@ -138,7 +138,7 @@ class vtu:
                 )
         nc = vtkdata.GetNumberOfComponents()
         nt = vtkdata.GetNumberOfTuples()
-        array = arr([vtkdata.GetValue(i) for i in range(nc * nt)])
+        array = numpy.array([vtkdata.GetValue(i) for i in range(nc * nt)])
         if nc == 9:
             return array.reshape(nt, 3, 3)
         elif nc == 4:
@@ -245,7 +245,7 @@ class vtu:
         """Adds a field with arbitrary number of components under the specified name
         using."""
         n = array.size
-        sh = arr(array.shape)
+        sh = numpy.array(array.shape)
         data = vtk.vtkDoubleArray()
         # number of tuples is sh[0]
         # number of components is the product of the rest of sh
@@ -283,7 +283,7 @@ class vtu:
 
         for i in range(npoints):
             (x, y, z) = self.ugrid.GetPoint(i)
-            newX = f(arr([x, y, z]), t=0)
+            newX = f(numpy.array([x, y, z]), t=0)
             self.ugrid.GetPoints().SetPoint(i, newX[0], newX[1], newX[2])
 
     def ApplyEarthProjection(self):
@@ -320,13 +320,15 @@ class vtu:
             vtkData = vtk.vtkDoubleArray()
         else:
             vtkData = vtkPoints.GetData()
-        return arr([vtkData.GetTuple3(i) for i in range(vtkData.GetNumberOfTuples())])
+        return numpy.array(
+            [vtkData.GetTuple3(i) for i in range(vtkData.GetNumberOfTuples())]
+        )
 
     def GetCellPoints(self, id):
         """Returns an array with the node numbers of each cell (ndglno)."""
         idlist = vtk.vtkIdList()
         self.ugrid.GetCellPoints(id, idlist)
-        return arr([idlist.GetId(i) for i in range(idlist.GetNumberOfIds())])
+        return numpy.array([idlist.GetId(i) for i in range(idlist.GetNumberOfIds())])
 
     def GetFieldNames(self):
         """Returns the names of the available fields."""
@@ -337,7 +339,7 @@ class vtu:
         """Return an array with the elements which contain a node."""
         idlist = vtk.vtkIdList()
         self.ugrid.GetPointCells(id, idlist)
-        return arr([idlist.GetId(i) for i in range(idlist.GetNumberOfIds())])
+        return numpy.array([idlist.GetId(i) for i in range(idlist.GetNumberOfIds())])
 
     def GetPointPoints(self, id):
         """Return the nodes connecting to a given node."""
@@ -347,13 +349,13 @@ class vtu:
             lst = lst + list(self.GetCellPoints(cell))
 
         s = set(lst)  # remove duplicates
-        return arr(list(s))  # make into a list again
+        return numpy.array(list(s))  # make into a list again
 
     def GetDistance(self, x, y):
         """Return the distance in physical space between x and y."""
         posx = self.ugrid.GetPoint(x)
         posy = self.ugrid.GetPoint(y)
-        return math.sqrt(sum([(posx[i] - posy[i]) ** 2 for i in range(len(posx))]))
+        return math.sqrt(sum((posx[i] - posy[i]) ** 2 for i in range(len(posx))))
 
     def Crop(self, min_x, max_x, min_y, max_y, min_z, max_z):
         """Trim off the edges defined by a bounding box."""
@@ -454,12 +456,12 @@ class vtu:
         field = self.GetField(name)
         rank = self.GetFieldRank(name)
         if rank == 0:
-            normField = arr([field[i] ** 2.0 for i in range(len(field))])
+            normField = numpy.array([field[i] ** 2.0 for i in range(len(field))])
         elif rank == 1:
             normField = self.GetVectorNorm(name)
         else:
             raise Exception("Cannot calculate norm field for field rank > 1")
-        volField = arr([1.0 for i in range(len(field))])
+        volField = numpy.array([1.0 for i in range(len(field))])
         rms = self.IntegrateField(normField)
         rms /= self.IntegrateField(volField)
         rms = numpy.sqrt(rms)
@@ -528,7 +530,7 @@ class vtu:
             vtkdata = (
                 cd.GetUnstructuredGridOutput().GetCellData().GetArray("ScalarGradient")
             )
-            return arr(
+            return numpy.array(
                 [vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())]
             )
         else:
@@ -539,7 +541,7 @@ class vtu:
             vtkdata = (
                 cd.GetUnstructuredGridOutput().GetCellData().GetArray("VectorGradient")
             )
-            return arr(
+            return numpy.array(
                 [vtkdata.GetTuple9(i) for i in range(vtkdata.GetNumberOfTuples())]
             )
 
@@ -562,7 +564,9 @@ class vtu:
         vtkdata = (
             cd.GetUnstructuredGridOutput().GetCellData().GetArray("VectorGradient")
         )
-        return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
+        return numpy.array(
+            [vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())]
+        )
 
     def CellDataToPointData(self):
         """
@@ -579,7 +583,7 @@ class vtu:
         self.ugrid = cdtpd.GetUnstructuredGridOutput()
 
 
-class VTU_Probe(object):
+class VTU_Probe:
     """A class that combines a vtkProbeFilter with a list of invalid points (points that
     it failed to probe where we take the value of the nearest point)"""
 
@@ -630,7 +634,7 @@ class VTU_Probe(object):
         vtkdata = pointdata.GetArray(name)
         nc = vtkdata.GetNumberOfComponents()
         nt = vtkdata.GetNumberOfTuples()
-        array = arr([vtkdata.GetValue(i) for i in range(nt * nc)])
+        array = numpy.array([vtkdata.GetValue(i) for i in range(nt * nc)])
 
         # Fix the point data at invalid nodes
         if len(self.invalidNodes) > 0:

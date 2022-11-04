@@ -14,7 +14,7 @@ subroutine compute_interpolation_error_adapt
   use mpi
   use interpolation_error
   implicit none
-  
+
   type(state_type) :: state
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions
@@ -53,7 +53,7 @@ subroutine compute_interpolation_error_adapt
   call set_from_function(field, solution, positions)
   call insert(state, field, "Field")
   field_ptr => extract_scalar_field(state, "Field")
-  
+
   call allocate(metric, mesh, "Metric")
   call allocate(hessian, mesh, "Hessian")
 
@@ -96,7 +96,7 @@ subroutine compute_interpolation_error_adapt
     call assemble_metric((/state/), metric, opts)
     call vtk_write_fields("data/interpolation_error_adapted", i, positions, mesh, &
                         sfields=(/field_ptr/))
-    call adapt_state(state, metric) 
+    call adapt_state(state, metric)
   end do
 
   mesh => extract_mesh(state, "Mesh")
@@ -108,7 +108,7 @@ subroutine compute_interpolation_error_adapt
   inf = compute_interpolation_error_inf(solution, field_ptr, positions)
   l2  = compute_interpolation_error_l2(solution, field_ptr, positions)
   h1  = compute_interpolation_error_h1(gradsoln, field_ptr, positions)
-  call vtk_write_fields("data/interpolation_error_adapted", 4, positions,  mesh, sfields=(/field_ptr/)) 
+  call vtk_write_fields("data/interpolation_error_adapted", 4, positions,  mesh, sfields=(/field_ptr/))
   write(0,*) "inf: (", mesh%nodes, ", ", inf, ")"
   write(0,*) "l2: (", mesh%nodes, ", ", l2, ")"
   write(0,*) "h1: (", mesh%nodes, ", ", h1, ")"

@@ -41,10 +41,10 @@ if [ $FILETYPE = "gif" ]; then
    echo "============================================================= "
    echo
    # Convert the images
-   for file in $DIRNAME/*.gif; do convert "$file" $PNGDIRNAME"/$(basename $file .gif).png"; done 
+   for file in $DIRNAME/*.gif; do convert "$file" $PNGDIRNAME"/$(basename $file .gif).png"; done
    FILETYPE="png"
    IMAGEDIRNAME=$PNGDIRNAME
-fi 
+fi
 
 # The input line for mencoder. change fps if you want a slower/faster movie
 JOPT="mf://$IMAGEDIRNAME/"$4"*."$FILETYPE" -mf type="$FILETYPE":fps=25"
@@ -65,7 +65,7 @@ mencoder $JOPT -ovc lavc -lavcopts vcodec=msmpeg4v2:vpass=2:$VOPT -nosound -o $D
 rm -rf divx2pass.log
 
 # Check we made a movie
-if [ -f $DIRNAME/$OUTPUTNAME.avi ]; then 
+if [ -f $DIRNAME/$OUTPUTNAME.avi ]; then
    echo
    echo "=============================="
    if [ $1 = "gif" ]; then
@@ -77,7 +77,7 @@ if [ -f $DIRNAME/$OUTPUTNAME.avi ]; then
    echo "=============================="
    echo
 else
-   echo 
+   echo
    echo "=================================================================="
    echo "! No .avi file produced. Check inputs are correct and try again. !"
    echo "!                                                                !"

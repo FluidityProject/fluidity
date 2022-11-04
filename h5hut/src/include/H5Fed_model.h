@@ -25,7 +25,7 @@ extern "C" {
   \return   \c H5_FAILURE
  */
 static inline h5_ssize_t
-H5FedGetNumTetrahedralMeshes ( 
+H5FedGetNumTetrahedralMeshes (
 	const h5_file_t f	///< file object
 	) {
 	H5_API_ENTER (h5_err_t,
@@ -35,7 +35,7 @@ H5FedGetNumTetrahedralMeshes (
 }
 
 static inline h5_ssize_t
-H5FedGetNumTriangleMeshes ( 
+H5FedGetNumTriangleMeshes (
 	const h5_file_t f
 	) {
 	H5_API_ENTER (h5_err_t,
@@ -163,7 +163,7 @@ H5FedOpenTetrahedralMesh (
 	h5t_mesh_t** mesh
 	) {
 	H5_API_ENTER (h5_err_t,
-                      "f=%p, name=%s, mesh=%p", 
+                      "f=%p, name=%s, mesh=%p",
                       (h5_file_p)f, name, mesh);
 	H5_API_RETURN (h5t_open_tetrahedral_mesh (f, name, mesh));
 }

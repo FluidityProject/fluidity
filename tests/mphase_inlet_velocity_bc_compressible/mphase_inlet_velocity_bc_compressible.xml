@@ -2,16 +2,16 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-   
+
   <name>mphase_inlet_velocity_bc_compressible</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
-  
+
   <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
-  
-  <variables>  
+
+  <variables>
     <variable name="gas_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_inlet_velocity_bc_compressible.stat")
@@ -28,7 +28,7 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
-    
+
   <pass_tests>
     <test name="Gas::Velocity is at most ~300 m/s" language="python">
 assert(abs(gas_velocity_max) &lt; 305)
@@ -41,8 +41,8 @@ assert(abs(gas_velocity_min) &gt; 75)
 assert(solvers_converged)
     </test>
   </pass_tests>
-  
+
   <warn_tests>
   </warn_tests>
-  
+
 </testproblem>
