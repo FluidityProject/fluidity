@@ -47,7 +47,7 @@ linear_solver_options_sym_scalar =
          kspgmres_options|
          ksppreonly_options|
          ksprichardson_options|
-         kspother_options 
+         kspother_options
       ),
       ## Preconditioner to be used in combination with the iterative method.
       (

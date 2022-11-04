@@ -7502,7 +7502,7 @@ solenoidal_options =
             (
               ## Solver options for the (inner) solve.
               element full_schur_complement {
-                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
                 ## Use the full mass matrix (the only option).
                 element inner_matrix {
                   attribute name { "FullMassMatrix" },

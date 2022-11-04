@@ -8,10 +8,10 @@
                   mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-masspc mmat-interpolation-masspc-flredecomp &amp;&amp;
                   mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-lumppc mmat-interpolation-lumppc-flredecomp &amp;&amp;
                   mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l mmat-interpolation-diagpc mmat-interpolation-diagpc-flredecomp &amp;&amp;
-                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-nopc-flredecomp.flml &amp;&amp; mv fluidity.log-0 nopc.log-0 &amp;&amp; mv fluidity.err-0 nopc.err-0 &amp;&amp; 
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-nopc-flredecomp.flml &amp;&amp; mv fluidity.log-0 nopc.log-0 &amp;&amp; mv fluidity.err-0 nopc.err-0 &amp;&amp;
                   mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-masspc-flredecomp.flml &amp;&amp; mv fluidity.log-0 masspc.log-0 &amp;&amp; mv fluidity.err-0 masspc.err-0 &amp;&amp;
                   mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-lumppc-flredecomp.flml &amp;&amp; mv fluidity.log-0 lumppc.log-0 &amp;&amp; mv fluidity.err-0 lumppc.err-0 &amp;&amp;
-                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-diagpc-flredecomp.flml &amp;&amp; mv fluidity.log-0 diagpc.log-0 &amp;&amp; mv fluidity.err-0 diagpc.err-0 
+                  mpiexec ../../bin/fluidity -v2 -l mmat-interpolation-diagpc-flredecomp.flml &amp;&amp; mv fluidity.log-0 diagpc.log-0 &amp;&amp; mv fluidity.err-0 diagpc.err-0
     </command_line>
   </problem_definition>
   <variables>
@@ -20,403 +20,403 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
-    <variable name="nopc_material1integralstart" language="python"> 
+    <variable name="nopc_material1integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1integralstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="nopc_material1integralend" language="python"> 
+    <variable name="nopc_material1integralend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1integralend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="nopc_material1maxstart" language="python"> 
+    <variable name="nopc_material1maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1maxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="nopc_material1maxend" language="python"> 
+    <variable name="nopc_material1maxend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1maxend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="nopc_material1minstart" language="python"> 
+    <variable name="nopc_material1minstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1minstart = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="nopc_material1minend" language="python"> 
+    <variable name="nopc_material1minend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material1minend = stat("mmat-interpolation-nopc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="nopc_material2integralstart" language="python"> 
+    <variable name="nopc_material2integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material2integralstart = stat("mmat-interpolation-nopc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="nopc_material2integralend" language="python"> 
+    <variable name="nopc_material2integralend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material2integralend = stat("mmat-interpolation-nopc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="nopc_material3integralstart" language="python"> 
+    <variable name="nopc_material3integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3integralstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="nopc_material3integralend" language="python"> 
+    <variable name="nopc_material3integralend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3integralend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="nopc_material3maxstart" language="python"> 
+    <variable name="nopc_material3maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3maxstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="nopc_material3maxend" language="python"> 
+    <variable name="nopc_material3maxend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3maxend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="nopc_material3minstart" language="python"> 
+    <variable name="nopc_material3minstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3minstart = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="nopc_material3minend" language="python"> 
+    <variable name="nopc_material3minend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_material3minend = stat("mmat-interpolation-nopc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="nopc_divergenceminstart" language="python"> 
+    <variable name="nopc_divergenceminstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_divergenceminstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="nopc_divergenceminend" language="python"> 
+    <variable name="nopc_divergenceminend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_divergenceminend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="nopc_divergencemaxstart" language="python"> 
+    <variable name="nopc_divergencemaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_divergencemaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="nopc_divergencemaxend" language="python"> 
+    <variable name="nopc_divergencemaxend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_divergencemaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="nopc_cflmaxstart" language="python"> 
+    <variable name="nopc_cflmaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_cflmaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="nopc_cflmaxend" language="python"> 
+    <variable name="nopc_cflmaxend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_cflmaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="nopc_lambdamaxstart" language="python"> 
+    <variable name="nopc_lambdamaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_lambdamaxstart = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="nopc_lambdamaxend" language="python"> 
+    <variable name="nopc_lambdamaxend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_lambdamaxend = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="nopc_lambdaminstart" language="python"> 
+    <variable name="nopc_lambdaminstart" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_lambdaminstart = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="nopc_lambdaminend" language="python"> 
+    <variable name="nopc_lambdaminend" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_lambdaminend = stat("mmat-interpolation-nopc.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="nopc_absolutedifference" language="python"> 
+    <variable name="nopc_absolutedifference" language="python">
 from fluidity_tools import stat_parser as stat
 nopc_absolutedifference = stat("mmat-interpolation-nopc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
-    <variable name="masspc_material1integralstart" language="python"> 
+    <variable name="masspc_material1integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1integralstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="masspc_material1integralend" language="python"> 
+    <variable name="masspc_material1integralend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1integralend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="masspc_material1maxstart" language="python"> 
+    <variable name="masspc_material1maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1maxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="masspc_material1maxend" language="python"> 
+    <variable name="masspc_material1maxend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1maxend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="masspc_material1minstart" language="python"> 
+    <variable name="masspc_material1minstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1minstart = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="masspc_material1minend" language="python"> 
+    <variable name="masspc_material1minend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material1minend = stat("mmat-interpolation-masspc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="masspc_material2integralstart" language="python"> 
+    <variable name="masspc_material2integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material2integralstart = stat("mmat-interpolation-masspc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="masspc_material2integralend" language="python"> 
+    <variable name="masspc_material2integralend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material2integralend = stat("mmat-interpolation-masspc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="masspc_material3integralstart" language="python"> 
+    <variable name="masspc_material3integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3integralstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="masspc_material3integralend" language="python"> 
+    <variable name="masspc_material3integralend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3integralend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="masspc_material3maxstart" language="python"> 
+    <variable name="masspc_material3maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3maxstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="masspc_material3maxend" language="python"> 
+    <variable name="masspc_material3maxend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3maxend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="masspc_material3minstart" language="python"> 
+    <variable name="masspc_material3minstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3minstart = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="masspc_material3minend" language="python"> 
+    <variable name="masspc_material3minend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_material3minend = stat("mmat-interpolation-masspc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="masspc_divergenceminstart" language="python"> 
+    <variable name="masspc_divergenceminstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_divergenceminstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="masspc_divergenceminend" language="python"> 
+    <variable name="masspc_divergenceminend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_divergenceminend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="masspc_divergencemaxstart" language="python"> 
+    <variable name="masspc_divergencemaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_divergencemaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="masspc_divergencemaxend" language="python"> 
+    <variable name="masspc_divergencemaxend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_divergencemaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="masspc_cflmaxstart" language="python"> 
+    <variable name="masspc_cflmaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_cflmaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="masspc_cflmaxend" language="python"> 
+    <variable name="masspc_cflmaxend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_cflmaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="masspc_lambdamaxstart" language="python"> 
+    <variable name="masspc_lambdamaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_lambdamaxstart = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="masspc_lambdamaxend" language="python"> 
+    <variable name="masspc_lambdamaxend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_lambdamaxend = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="masspc_lambdaminstart" language="python"> 
+    <variable name="masspc_lambdaminstart" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_lambdaminstart = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="masspc_lambdaminend" language="python"> 
+    <variable name="masspc_lambdaminend" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_lambdaminend = stat("mmat-interpolation-masspc.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="masspc_absolutedifference" language="python"> 
+    <variable name="masspc_absolutedifference" language="python">
 from fluidity_tools import stat_parser as stat
 masspc_absolutedifference = stat("mmat-interpolation-masspc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
-    <variable name="lumppc_material1integralstart" language="python"> 
+    <variable name="lumppc_material1integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1integralstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="lumppc_material1integralend" language="python"> 
+    <variable name="lumppc_material1integralend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1integralend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="lumppc_material1maxstart" language="python"> 
+    <variable name="lumppc_material1maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1maxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="lumppc_material1maxend" language="python"> 
+    <variable name="lumppc_material1maxend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1maxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="lumppc_material1minstart" language="python"> 
+    <variable name="lumppc_material1minstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1minstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="lumppc_material1minend" language="python"> 
+    <variable name="lumppc_material1minend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material1minend = stat("mmat-interpolation-lumppc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="lumppc_material2integralstart" language="python"> 
+    <variable name="lumppc_material2integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material2integralstart = stat("mmat-interpolation-lumppc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="lumppc_material2integralend" language="python"> 
+    <variable name="lumppc_material2integralend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material2integralend = stat("mmat-interpolation-lumppc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="lumppc_material3integralstart" language="python"> 
+    <variable name="lumppc_material3integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3integralstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="lumppc_material3integralend" language="python"> 
+    <variable name="lumppc_material3integralend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3integralend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="lumppc_material3maxstart" language="python"> 
+    <variable name="lumppc_material3maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3maxstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="lumppc_material3maxend" language="python"> 
+    <variable name="lumppc_material3maxend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3maxend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="lumppc_material3minstart" language="python"> 
+    <variable name="lumppc_material3minstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3minstart = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="lumppc_material3minend" language="python"> 
+    <variable name="lumppc_material3minend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_material3minend = stat("mmat-interpolation-lumppc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="lumppc_divergenceminstart" language="python"> 
+    <variable name="lumppc_divergenceminstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_divergenceminstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="lumppc_divergenceminend" language="python"> 
+    <variable name="lumppc_divergenceminend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_divergenceminend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="lumppc_divergencemaxstart" language="python"> 
+    <variable name="lumppc_divergencemaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_divergencemaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="lumppc_divergencemaxend" language="python"> 
+    <variable name="lumppc_divergencemaxend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_divergencemaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="lumppc_cflmaxstart" language="python"> 
+    <variable name="lumppc_cflmaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_cflmaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="lumppc_cflmaxend" language="python"> 
+    <variable name="lumppc_cflmaxend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_cflmaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="lumppc_lambdamaxstart" language="python"> 
+    <variable name="lumppc_lambdamaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_lambdamaxstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="lumppc_lambdamaxend" language="python"> 
+    <variable name="lumppc_lambdamaxend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_lambdamaxend = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="lumppc_lambdaminstart" language="python"> 
+    <variable name="lumppc_lambdaminstart" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_lambdaminstart = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="lumppc_lambdaminend" language="python"> 
+    <variable name="lumppc_lambdaminend" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_lambdaminend = stat("mmat-interpolation-lumppc.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="lumppc_absolutedifference" language="python"> 
+    <variable name="lumppc_absolutedifference" language="python">
 from fluidity_tools import stat_parser as stat
 lumppc_absolutedifference = stat("mmat-interpolation-lumppc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
-    <variable name="diagpc_material1integralstart" language="python"> 
+    <variable name="diagpc_material1integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1integralstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="diagpc_material1integralend" language="python"> 
+    <variable name="diagpc_material1integralend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1integralend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="diagpc_material1maxstart" language="python"> 
+    <variable name="diagpc_material1maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1maxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="diagpc_material1maxend" language="python"> 
+    <variable name="diagpc_material1maxend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1maxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="diagpc_material1minstart" language="python"> 
+    <variable name="diagpc_material1minstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1minstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="diagpc_material1minend" language="python"> 
+    <variable name="diagpc_material1minend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material1minend = stat("mmat-interpolation-diagpc.stat")["Material1"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="diagpc_material2integralstart" language="python"> 
+    <variable name="diagpc_material2integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material2integralstart = stat("mmat-interpolation-diagpc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="diagpc_material2integralend" language="python"> 
+    <variable name="diagpc_material2integralend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material2integralend = stat("mmat-interpolation-diagpc.stat")["Material2"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="diagpc_material3integralstart" language="python"> 
+    <variable name="diagpc_material3integralstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3integralstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][0]
     </variable>
-    <variable name="diagpc_material3integralend" language="python"> 
+    <variable name="diagpc_material3integralend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3integralend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["integral"][-1]
     </variable>
-    <variable name="diagpc_material3maxstart" language="python"> 
+    <variable name="diagpc_material3maxstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3maxstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["max"][0]
     </variable>
-    <variable name="diagpc_material3maxend" language="python"> 
+    <variable name="diagpc_material3maxend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3maxend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["max"][-1]
     </variable>
-    <variable name="diagpc_material3minstart" language="python"> 
+    <variable name="diagpc_material3minstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3minstart = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["min"][0]
     </variable>
-    <variable name="diagpc_material3minend" language="python"> 
+    <variable name="diagpc_material3minend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_material3minend = stat("mmat-interpolation-diagpc.stat")["Material3"]["MaterialVolumeFraction"]["min"][-1]
     </variable>
-    <variable name="diagpc_divergenceminstart" language="python"> 
+    <variable name="diagpc_divergenceminstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_divergenceminstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["min"][0]
     </variable>
-    <variable name="diagpc_divergenceminend" language="python"> 
+    <variable name="diagpc_divergenceminend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_divergenceminend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["min"][-1]
     </variable>
-    <variable name="diagpc_divergencemaxstart" language="python"> 
+    <variable name="diagpc_divergencemaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_divergencemaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["max"][0]
     </variable>
-    <variable name="diagpc_divergencemaxend" language="python"> 
+    <variable name="diagpc_divergencemaxend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_divergencemaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeDivergence"]["max"][-1]
     </variable>
-    <variable name="diagpc_cflmaxstart" language="python"> 
+    <variable name="diagpc_cflmaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_cflmaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][0]
     </variable>
-    <variable name="diagpc_cflmaxend" language="python"> 
+    <variable name="diagpc_cflmaxend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_cflmaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["ControlVolumeCFLNumber"]["max"][-1]
     </variable>
-    <variable name="diagpc_lambdamaxstart" language="python"> 
+    <variable name="diagpc_lambdamaxstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_lambdamaxstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["max"][0]
     </variable>
-    <variable name="diagpc_lambdamaxend" language="python"> 
+    <variable name="diagpc_lambdamaxend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_lambdamaxend = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["max"][-1]
     </variable>
-    <variable name="diagpc_lambdaminstart" language="python"> 
+    <variable name="diagpc_lambdaminstart" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_lambdaminstart = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["min"][0]
     </variable>
-    <variable name="diagpc_lambdaminend" language="python"> 
+    <variable name="diagpc_lambdaminend" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_lambdaminend = stat("mmat-interpolation-diagpc.stat")["Material1"]["Lambda"]["min"][-1]
     </variable>
-    <variable name="diagpc_absolutedifference" language="python"> 
+    <variable name="diagpc_absolutedifference" language="python">
 from fluidity_tools import stat_parser as stat
 diagpc_absolutedifference = stat("mmat-interpolation-diagpc.stat")["Material3"]["ScalarAbsoluteDifference"]["max"][1]
     </variable>
