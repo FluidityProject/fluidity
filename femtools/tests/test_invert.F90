@@ -1,15 +1,15 @@
 subroutine test_invert
 
-  use vector_tools
-  use unittest_tools
-  implicit none
+   use vector_tools
+   use unittest_tools
+   implicit none
 
-  real, dimension(10, 10) :: mat, inv, tmp, id
-  logical :: fail, warn
-  integer :: i
-  character(len=20) :: buf
+   real, dimension(10, 10) :: mat, inv, tmp, id
+   logical :: fail, warn
+   integer :: i
+   character(len=20) :: buf
 
-  id = get_matrix_identity(10)
+   id = get_matrix_identity(10)
 
 
 !!$  mat=reshape((/0.0002083333333333334,   -7.9576252343771758e-05, &
@@ -72,17 +72,17 @@ subroutine test_invert
 !!$  if (.not. mat_zero(tmp)) fail = .true.
 !!$  call report_test("[invert " // trim(buf) // "]", fail, warn, "Invert should produce inverses.")
 
-  do i=1,5
-    write(buf,'(i0)') i
-    fail = .false.; warn = .false.
-    mat = random_posdef_matrix(10)
-    inv = mat; call invert(inv)
-    tmp = matmul(mat, inv)
-    tmp = tmp - id
+   do i=1,5
+      write(buf,'(i0)') i
+      fail = .false.; warn = .false.
+      mat = random_posdef_matrix(10)
+      inv = mat; call invert(inv)
+      tmp = matmul(mat, inv)
+      tmp = tmp - id
 
-    if (.not. mat_zero(tmp)) fail = .true.
-    call report_test("[invert " // trim(buf) // "]", fail, warn, "Invert should produce inverses.")
-  end do
+      if (.not. mat_zero(tmp)) fail = .true.
+      call report_test("[invert " // trim(buf) // "]", fail, warn, "Invert should produce inverses.")
+   end do
 
 !  mat(1, :) = (/1.0, 5.0, 2.0/)
 !  mat(2, :) = (/1.0, 1.0, 7.0/)

@@ -26,70 +26,70 @@
 !    USA
 #include "fdebug.h"
 
-  subroutine test_colouring
-  use fldebug
-  use sparse_tools
-  use fields_data_types
-  use fields_manipulation
-  use state_module
-  use vtk_interfaces
-  use colouring
-  use sparsity_patterns
-  use unittest_tools
-  use mesh_files
-  use data_structures
+subroutine test_colouring
+   use fldebug
+   use sparse_tools
+   use fields_data_types
+   use fields_manipulation
+   use state_module
+   use vtk_interfaces
+   use colouring
+   use sparsity_patterns
+   use unittest_tools
+   use mesh_files
+   use data_structures
 
-  implicit none
+   implicit none
 
-  type(vector_field) :: positions
-  type(mesh_type)  :: mesh
-  type(csr_sparsity) :: sparsity
-  integer :: maxdgr, i, j, len, sum1, sum2
-  logical :: fail=.false.
-  type(scalar_field) :: node_colour
-  integer :: no_colours
-  type(integer_set), dimension(:), allocatable :: clr_sets
+   type(vector_field) :: positions
+   type(mesh_type)  :: mesh
+   type(csr_sparsity) :: sparsity
+   integer :: maxdgr, i, j, len, sum1, sum2
+   logical :: fail=.false.
+   type(scalar_field) :: node_colour
+   integer :: no_colours
+   type(integer_set), dimension(:), allocatable :: clr_sets
 
-  positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
-  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
-  sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
+   positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
+   mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
+   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
-  ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes
-  assert(size(sparsity,1)==size(sparsity,2))
+   ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes
+   assert(size(sparsity,1)==size(sparsity,2))
 
-  maxdgr=0
-  do i=1, size(sparsity, 1)
-     maxdgr=max(maxdgr, row_length(sparsity, i))
-  enddo
-  call colour_sparsity(sparsity, mesh, node_colour, no_colours)
+   maxdgr=0
+   do i=1, size(sparsity, 1)
+      maxdgr=max(maxdgr, row_length(sparsity, i))
+   enddo
+   call colour_sparsity(sparsity, mesh, node_colour, no_colours)
 
-  if (no_colours > maxdgr+1) fail = .true. ! The +1 is needed for sparsities with zeros on the diagonal
-  call report_test("colour sets", fail, .false., "there are more colours than the degree of the graph")
+   if (no_colours > maxdgr+1) fail = .true. ! The +1 is needed for sparsities with zeros on the diagonal
+   call report_test("colour sets", fail, .false., "there are more colours than the degree of the graph")
 
-  fail=.not. verify_colour_sparsity(sparsity, node_colour)
-  call report_test("colour sets", fail, .false., "the colouring is not valid")
+   fail=.not. verify_colour_sparsity(sparsity, node_colour)
+   call report_test("colour sets", fail, .false., "the colouring is not valid")
 
-  fail= .false.
-  allocate(clr_sets(no_colours))
-  call allocate(clr_sets)
-  clr_sets=colour_sets(sparsity, node_colour, no_colours)
+   fail= .false.
+   allocate(clr_sets(no_colours))
+   call allocate(clr_sets)
+   clr_sets=colour_sets(sparsity, node_colour, no_colours)
 
-  sum1=0
-  sum2=0
-  do i=1, size(sparsity, 1)
-     sum1=sum1+i
-  enddo
+   sum1=0
+   sum2=0
+   do i=1, size(sparsity, 1)
+      sum1=sum1+i
+   enddo
 
-  do i=1, no_colours
-     len=key_count(clr_sets(i))
-     do j= 1, len
-        sum2=sum2+fetch(clr_sets(i), j)
-     enddo
-  enddo
+   do i=1, no_colours
+      len=key_count(clr_sets(i))
+      do j= 1, len
+         sum2=sum2+fetch(clr_sets(i), j)
+      enddo
+   enddo
 
-  fail = .not.(sum1 .eq. sum2)
-  call report_test("colour sets", fail, .false., "there are something wrong in  construction of colour_sets")
-  call deallocate(clr_sets)
-  deallocate(clr_sets)
+   fail = .not.(sum1 .eq. sum2)
+   call report_test("colour sets", fail, .false., "there are something wrong in  construction of colour_sets")
+   call deallocate(clr_sets)
+   deallocate(clr_sets)
 
-  end subroutine test_colouring
+end subroutine test_colouring

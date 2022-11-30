@@ -1,23 +1,23 @@
 #include "fdebug.h"
 
 module merge_tensors
-    !!< This module contains code to merge two tensors representing
-    !!< anisotropic mesh information together to form a new metric
-    !!< satisfying both constraints.
-    !!< See Gerard Gorman's thesis, section 2.4.
+   !!< This module contains code to merge two tensors representing
+   !!< anisotropic mesh information together to form a new metric
+   !!< satisfying both constraints.
+   !!< See Gerard Gorman's thesis, section 2.4.
 
-    use fldebug
-    use vector_tools
-    use unittest_tools
-    use metric_tools, only: aspect_ratio
-    use fields
-    implicit none
+   use fldebug
+   use vector_tools
+   use unittest_tools
+   use metric_tools, only: aspect_ratio
+   use fields
+   implicit none
 
-    private
-    public :: merge_tensor, merge_tensor_fields, get_deformation_matrix
-    contains
+   private
+   public :: merge_tensor, merge_tensor_fields, get_deformation_matrix
+contains
 
-    subroutine merge_tensor(tensor1, tensor2, aniso_min)
+   subroutine merge_tensor(tensor1, tensor2, aniso_min)
       !!< Merge two tensors together, putting the result in tensor1.
       real, dimension(:, :), intent(inout), target :: tensor1
       real, dimension(:, :), intent(inout), target :: tensor2
@@ -43,9 +43,9 @@ module merge_tensors
       ! ignore the case aniso_min/laniso_min = .true.
 
       if (present(aniso_min)) then
-        laniso_min = aniso_min
+         laniso_min = aniso_min
       else
-        laniso_min = .false.
+         laniso_min = .false.
       end if
 
       ! Step 1: decompose the two matrices.
@@ -57,32 +57,32 @@ module merge_tensors
       call vec_clean(a2, 1e-12)
 
       if (maxval(a1) == 0.0 .and. maxval(a2) == 0.0) then
-        return
+         return
       end if
 
       do i=1,dim
-        if (a1(i) .lt. 0.0) then
-          a1(i) = 0.0
-        end if
-        if (a2(i) .lt. 0.0) then
-          a2(i) = 0.0
-        end if
+         if (a1(i) .lt. 0.0) then
+            a1(i) = 0.0
+         end if
+         if (a2(i) .lt. 0.0) then
+            a2(i) = 0.0
+         end if
       end do
 
       aspect1 = aspect_ratio(a1)
       aspect2 = aspect_ratio(a2)
 
       if (.not. laniso_min) then
-        if (aspect1 .le. aspect2) then ! so aspect1 is mapped to the sphere
-          sphere_t => tensor1; sphere_v => v1; sphere_a => a1
-          other_t => tensor2; other_v => v2; other_a => a2
-        else
-          sphere_t => tensor2; sphere_v => v2; sphere_a => a2
-          other_t => tensor1; other_v => v1; other_a => a1
-        end if
+         if (aspect1 .le. aspect2) then ! so aspect1 is mapped to the sphere
+            sphere_t => tensor1; sphere_v => v1; sphere_a => a1
+            other_t => tensor2; other_v => v2; other_a => a2
+         else
+            sphere_t => tensor2; sphere_v => v2; sphere_a => a2
+            other_t => tensor1; other_v => v1; other_a => a1
+         end if
       else
-        sphere_t => tensor2; sphere_v => v2; sphere_a => a2
-        other_t => tensor1; other_v => v1; other_a => a1
+         sphere_t => tensor2; sphere_v => v2; sphere_a => a2
+         other_t => tensor1; other_v => v1; other_a => a1
       end if
 
       store = other_t ! if no eigenvalues change, don't do the eigendecomposition/eigenrecomposition
@@ -95,17 +95,17 @@ module merge_tensors
       Finv = F; call invert(Finv, stat=stat)
 
       if (stat /= 0) then
-        call write_matrix(sphere_t, "The tensor we are mapping to the sphere")
-        call write_matrix(sphere_v, "Its eigenvectors")
-        call write_vector(sphere_a, "Its eigenvalues")
-        call write_matrix(F, "Deformation matrix")
-        call write_matrix(other_t, "Other matrix")
-        call write_matrix(other_v, "Its eigenvectors")
-        call write_vector(other_a, "Its eigenvalues")
-        call write_vector(a1, "First eigenvalues")
-        call write_vector(a2, "Second eigenvalues")
-        write (0,*) "aspect1 == ", aspect1, "; aspect2 == ", aspect2
-        FLAbort("Error: inverting deformation matrix failed")
+         call write_matrix(sphere_t, "The tensor we are mapping to the sphere")
+         call write_matrix(sphere_v, "Its eigenvectors")
+         call write_vector(sphere_a, "Its eigenvalues")
+         call write_matrix(F, "Deformation matrix")
+         call write_matrix(other_t, "Other matrix")
+         call write_matrix(other_v, "Its eigenvectors")
+         call write_vector(other_a, "Its eigenvalues")
+         call write_vector(a1, "First eigenvalues")
+         call write_vector(a2, "Second eigenvalues")
+         write (0,*) "aspect1 == ", aspect1, "; aspect2 == ", aspect2
+         FLAbort("Error: inverting deformation matrix failed")
       end if
 
       T = transpose(Finv)
@@ -121,15 +121,15 @@ module merge_tensors
 
       call eigendecomposition_symmetric(other_t, other_v, other_a)
       if (laniso_min) then
-        do i=1,dim
-          if (other_a(i) .fgt. 1.0) eigenvalue_changed = .true.
-          other_a(i) = min(other_a(i), 1.0)
-        end do
+         do i=1,dim
+            if (other_a(i) .fgt. 1.0) eigenvalue_changed = .true.
+            other_a(i) = min(other_a(i), 1.0)
+         end do
       else
-        do i=1,dim
-          if (other_a(i) .flt. 1.0) eigenvalue_changed = .true.
-          other_a(i) = max(other_a(i), 1.0)
-        end do
+         do i=1,dim
+            if (other_a(i) .flt. 1.0) eigenvalue_changed = .true.
+            other_a(i) = max(other_a(i), 1.0)
+         end do
       end if
       call eigenrecomposition(other_t, other_v, other_a)
       ! Step 3: Apply the inverse map to other_t.
@@ -139,9 +139,9 @@ module merge_tensors
 
       if (.not. eigenvalue_changed) tensor1 = store ! ignore the eigendecomposition/recomposition
       ! Done.
-    end subroutine merge_tensor
+   end subroutine merge_tensor
 
-    function get_deformation_matrix(M, V, A) result(F)
+   function get_deformation_matrix(M, V, A) result(F)
       !! Compute F = A^(1/2) * V^T
       real, dimension(:, :), intent(in) :: M
       real, dimension(size(M, 1), size(M, 1)), intent(in), optional :: V
@@ -151,20 +151,20 @@ module merge_tensors
       integer :: i
 
       if (present(V) .and. present(A)) then
-        local_V = V
-        local_A = A
+         local_V = V
+         local_A = A
       else
-        call eigendecomposition_symmetric(M, local_V, local_A)
+         call eigendecomposition_symmetric(M, local_V, local_A)
       end if
 
       do i=1,size(M, 1)
-        local_A(i) = sqrt(local_A(i))
+         local_A(i) = sqrt(local_A(i))
       end do
 
       F = matmul(get_mat_diag(local_A), transpose(local_V))
-    end function get_deformation_matrix
+   end function get_deformation_matrix
 
-    subroutine merge_tensor_fields(fielda, fieldb, aniso_min)
+   subroutine merge_tensor_fields(fielda, fieldb, aniso_min)
       !!< Loop through the two tensor fields and merge them nodewise.
       type(tensor_field), intent(inout) :: fielda, fieldb
       logical, intent(in), optional :: aniso_min
@@ -175,7 +175,7 @@ module merge_tensors
       ewrite(2,*) "Merging tensor fields."
 
       do i=1,fielda%mesh%nodes
-        call merge_tensor(fielda%val(:, :, i), fieldb%val(:, :, i), aniso_min)
+         call merge_tensor(fielda%val(:, :, i), fieldb%val(:, :, i), aniso_min)
       end do
-    end subroutine
+   end subroutine
 end module merge_tensors

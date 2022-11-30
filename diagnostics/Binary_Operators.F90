@@ -29,118 +29,118 @@
 
 module binary_operators
 
-  use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use spud
-  use fields
-  use state_module
-  use field_options
-  use diagnostic_source_fields
+   use fldebug
+   use global_parameters, only : OPTION_PATH_LEN
+   use spud
+   use fields
+   use state_module
+   use field_options
+   use diagnostic_source_fields
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: calculate_scalar_sum, calculate_scalar_difference, &
-    & calculate_vector_sum, calculate_vector_difference, &
-    & calculate_tensor_difference
+   public :: calculate_scalar_sum, calculate_scalar_difference, &
+   & calculate_vector_sum, calculate_vector_difference, &
+   & calculate_tensor_difference
 
 contains
 
-  subroutine calculate_scalar_sum(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
+   subroutine calculate_scalar_sum(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
 
-    type(scalar_field), pointer :: source_field_1, source_field_2
+      type(scalar_field), pointer :: source_field_1, source_field_2
 
-    source_field_1 => scalar_source_field(state, s_field, index = 1)
-    source_field_2 => scalar_source_field(state, s_field, index = 2)
+      source_field_1 => scalar_source_field(state, s_field, index = 1)
+      source_field_2 => scalar_source_field(state, s_field, index = 2)
 
-    call remap_field(source_field_1, s_field)
-    call addto(s_field, source_field_2)
+      call remap_field(source_field_1, s_field)
+      call addto(s_field, source_field_2)
 
-  end subroutine calculate_scalar_sum
+   end subroutine calculate_scalar_sum
 
-  subroutine calculate_scalar_difference(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
+   subroutine calculate_scalar_difference(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
 
-    character(len = OPTION_PATH_LEN) :: path
-    type(scalar_field), pointer :: source_field_1, source_field_2
+      character(len = OPTION_PATH_LEN) :: path
+      type(scalar_field), pointer :: source_field_1, source_field_2
 
-    source_field_1 => scalar_source_field(state, s_field, index = 1)
-    source_field_2 => scalar_source_field(state, s_field, index = 2)
+      source_field_1 => scalar_source_field(state, s_field, index = 1)
+      source_field_2 => scalar_source_field(state, s_field, index = 2)
 
-    call remap_field(source_field_1, s_field)
-    call addto(s_field, source_field_2, scale = -1.0)
+      call remap_field(source_field_1, s_field)
+      call addto(s_field, source_field_2, scale = -1.0)
 
-    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    if(have_option(trim(path) // "/absolute_difference")) then
-      s_field%val = abs(s_field%val)
-    end if
+      path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+      if(have_option(trim(path) // "/absolute_difference")) then
+         s_field%val = abs(s_field%val)
+      end if
 
-  end subroutine calculate_scalar_difference
+   end subroutine calculate_scalar_difference
 
-  subroutine calculate_vector_sum(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
+   subroutine calculate_vector_sum(state, v_field)
+      type(state_type), intent(in) :: state
+      type(vector_field), intent(inout) :: v_field
 
-    type(vector_field), pointer :: source_field_1, source_field_2
+      type(vector_field), pointer :: source_field_1, source_field_2
 
-    source_field_1 => vector_source_field(state, v_field, index = 1)
-    source_field_2 => vector_source_field(state, v_field, index = 2)
+      source_field_1 => vector_source_field(state, v_field, index = 1)
+      source_field_2 => vector_source_field(state, v_field, index = 2)
 
-    call remap_field(source_field_1, v_field)
-    call addto(v_field, source_field_2)
+      call remap_field(source_field_1, v_field)
+      call addto(v_field, source_field_2)
 
-  end subroutine calculate_vector_sum
+   end subroutine calculate_vector_sum
 
-  subroutine calculate_vector_difference(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
+   subroutine calculate_vector_difference(state, v_field)
+      type(state_type), intent(in) :: state
+      type(vector_field), intent(inout) :: v_field
 
-    character(len = OPTION_PATH_LEN) :: path
-    integer :: i
-    type(vector_field), pointer :: source_field_1, source_field_2
+      character(len = OPTION_PATH_LEN) :: path
+      integer :: i
+      type(vector_field), pointer :: source_field_1, source_field_2
 
-    source_field_1 => vector_source_field(state, v_field, index = 1)
-    source_field_2 => vector_source_field(state, v_field, index = 2)
+      source_field_1 => vector_source_field(state, v_field, index = 1)
+      source_field_2 => vector_source_field(state, v_field, index = 2)
 
-    call remap_field(source_field_1, v_field)
-    call addto(v_field, source_field_2, scale = -1.0)
+      call remap_field(source_field_1, v_field)
+      call addto(v_field, source_field_2, scale = -1.0)
 
-    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    if(have_option(trim(path) // "/absolute_difference")) then
-      do i = 1, v_field%dim
-        v_field%val(i,:) = abs(v_field%val(i,:))
-      end do
-    end if
+      path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+      if(have_option(trim(path) // "/absolute_difference")) then
+         do i = 1, v_field%dim
+            v_field%val(i,:) = abs(v_field%val(i,:))
+         end do
+      end if
 
-  end subroutine calculate_vector_difference
+   end subroutine calculate_vector_difference
 
-  subroutine calculate_tensor_difference(state, t_field)
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: t_field
+   subroutine calculate_tensor_difference(state, t_field)
+      type(state_type), intent(in) :: state
+      type(tensor_field), intent(inout) :: t_field
 
-    character(len = OPTION_PATH_LEN) :: path
-    integer :: i, j
-    type(tensor_field), pointer :: source_field_1, source_field_2
+      character(len = OPTION_PATH_LEN) :: path
+      integer :: i, j
+      type(tensor_field), pointer :: source_field_1, source_field_2
 
-    source_field_1 => tensor_source_field(state, t_field, index = 1)
-    source_field_2 => tensor_source_field(state, t_field, index = 2)
+      source_field_1 => tensor_source_field(state, t_field, index = 1)
+      source_field_2 => tensor_source_field(state, t_field, index = 2)
 
-    call remap_field(source_field_1, t_field)
-    call addto(t_field, source_field_2, scale = -1.0)
+      call remap_field(source_field_1, t_field)
+      call addto(t_field, source_field_2, scale = -1.0)
 
-    path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    if(have_option(trim(path) // "/absolute_difference")) then
-      do i = 1, t_field%dim(1)
-        do j = 1, t_field%dim(2)
-          t_field%val(i,j,:) = abs(t_field%val(i,j,:))
-        end do
-      end do
-    end if
+      path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
+      if(have_option(trim(path) // "/absolute_difference")) then
+         do i = 1, t_field%dim(1)
+            do j = 1, t_field%dim(2)
+               t_field%val(i,j,:) = abs(t_field%val(i,j,:))
+            end do
+         end do
+      end if
 
-  end subroutine calculate_tensor_difference
+   end subroutine calculate_tensor_difference
 
 end module binary_operators

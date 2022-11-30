@@ -28,49 +28,49 @@
 #include "fdebug.h"
 
 subroutine test_python_2d
-  !!< Test that we can set a field using python.
-  use fields
-  use mesh_files
-  use unittest_tools
-  use futils
-  implicit none
+   !!< Test that we can set a field using python.
+   use fields
+   use mesh_files
+   use unittest_tools
+   use futils
+   implicit none
 
-  type(vector_field) :: X
-  type(scalar_field) :: T
-  type(tensor_field) :: Q
-  logical :: fail
+   type(vector_field) :: X
+   type(scalar_field) :: T
+   type(tensor_field) :: Q
+   logical :: fail
 
 #ifdef HAVE_PYTHON
-  X=read_mesh_files("data/square.1", quad_degree=4, format="gmsh")
+   X=read_mesh_files("data/square.1", quad_degree=4, format="gmsh")
 
-  call allocate(T, X%mesh, "tracer")
+   call allocate(T, X%mesh, "tracer")
 
-  call set_from_python_function(T, &
-       "def val(X,t): import math; return math.cos(X[0]*X[1])", X, 0.0)
+   call set_from_python_function(T, &
+      "def val(X,t): import math; return math.cos(X[0]*X[1])", X, 0.0)
 
-  fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
-  call report_test("[test_python 2D function fields]", fail, .false., &
-       "python and fortran should produce the same answer.")
+   fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
+   call report_test("[test_python 2D function fields]", fail, .false., &
+      "python and fortran should produce the same answer.")
 
-  call set_from_python_function(T%val, &
-       "def val(X,t): import math; return math.cos(X[0]*X[1])", X%val(1,:),&
-       & X%val(2,:), time=0.0)
+   call set_from_python_function(T%val, &
+      "def val(X,t): import math; return math.cos(X[0]*X[1])", X%val(1,:),&
+   & X%val(2,:), time=0.0)
 
-  fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
-  call report_test("[test_python 2D function values]", fail, .false., &
-       "python and fortran should produce the same answer.")
+   fail=any(abs(T%val-cos(X%val(1,:)*X%val(2,:)))>1e-14)
+   call report_test("[test_python 2D function values]", fail, .false., &
+      "python and fortran should produce the same answer.")
 
 #ifdef HAVE_NUMPY
 
-  call allocate(Q, X%mesh, "Tensor")
+   call allocate(Q, X%mesh, "Tensor")
 
-  call set_from_python_function(Q, &
-       "def val(X,t): return [[1, 2], [3, 4]]", X, 0.0)
+   call set_from_python_function(Q, &
+      "def val(X,t): return [[1, 2], [3, 4]]", X, 0.0)
 
-  fail=any(node_val(Q,1)/= reshape((/1.,3.,2.,4./),(/2,2/)))
+   fail=any(node_val(Q,1)/= reshape((/1.,3.,2.,4./),(/2,2/)))
 
-  call report_test("[test_python 2D tensor field]", fail, .false., &
-       "Tensor field value is set correctly.")
+   call report_test("[test_python 2D tensor field]", fail, .false., &
+      "Tensor field value is set correctly.")
 
 
 #endif

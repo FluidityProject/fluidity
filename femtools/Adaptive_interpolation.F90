@@ -2,40 +2,40 @@
 
 module adaptive_interpolation_module
 
-  use fldebug
-  use vector_tools
-  use quadrature
-  use futils
-  use elements
-  use spud
-  use quicksort
-  use sparse_tools
-  use tensors
-  use sparse_tools
-  use transform_elements
-  use adjacency_lists
-  use unittest_tools
-  use linked_lists
-  use supermesh_construction
-  use fetools
-  use intersection_finder_module
-  use fields
-  use meshdiagnostics
-  use sparsity_patterns
-  use vtk_interfaces
-  use sparse_matrices_fields
-  use solvers
-  implicit none
+   use fldebug
+   use vector_tools
+   use quadrature
+   use futils
+   use elements
+   use spud
+   use quicksort
+   use sparse_tools
+   use tensors
+   use sparse_tools
+   use transform_elements
+   use adjacency_lists
+   use unittest_tools
+   use linked_lists
+   use supermesh_construction
+   use fetools
+   use intersection_finder_module
+   use fields
+   use meshdiagnostics
+   use sparsity_patterns
+   use vtk_interfaces
+   use sparse_matrices_fields
+   use solvers
+   implicit none
 
-  integer :: max_ai_degree=14
+   integer :: max_ai_degree=14
 
-  private
-  public :: adaptive_interpolation, max_ai_degree
+   private
+   public :: adaptive_interpolation, max_ai_degree
 
-  contains
-    ! Interpolate a field onto new_positions in such a way that the L2 error squared
-    ! of the projection is less than error_tolerance.
-    subroutine adaptive_interpolation(old_field, old_positions, new_field, new_positions, error_tolerance, achieved_error, no_refinements)
+contains
+   ! Interpolate a field onto new_positions in such a way that the L2 error squared
+   ! of the projection is less than error_tolerance.
+   subroutine adaptive_interpolation(old_field, old_positions, new_field, new_positions, error_tolerance, achieved_error, no_refinements)
       type(scalar_field), intent(in) :: old_field
       type(vector_field), intent(in) :: old_positions
       type(scalar_field), intent(inout) :: new_field
@@ -77,68 +77,68 @@ module adaptive_interpolation_module
       map_BA = intersection_finder(new_positions, old_positions)
 
       if (associated(new_field%mesh%region_ids)) then
-        deallocate(new_field%mesh%region_ids)
+         deallocate(new_field%mesh%region_ids)
       end if
       allocate(new_field%mesh%region_ids(ele_count(new_field)))
       new_field%mesh%region_ids = -10000
 
       do p=1,max_ai_degree
-        shape_fns(p) = make_element_shape(vertices=ele_loc(new_positions, 1), dim=dim, degree=p, quad=supermesh_quad)
+         shape_fns(p) = make_element_shape(vertices=ele_loc(new_positions, 1), dim=dim, degree=p, quad=supermesh_quad)
       end do
       allocate(element_value(shape_fns(max_ai_degree)%loc))
 
       domain_volume = 0.0
       do ele_A=1,ele_count(old_positions)
-        call local_coords_matrix(old_positions, ele_A, inversion_matrices_A(:, :, ele_A))
-        domain_volume = domain_volume + simplex_volume(old_positions, ele_A)
+         call local_coords_matrix(old_positions, ele_A, inversion_matrices_A(:, :, ele_A))
+         domain_volume = domain_volume + simplex_volume(old_positions, ele_A)
       end do
 
       do ele_B=1,ele_count(new_positions)
-        call local_coords_matrix(new_positions, ele_B, inversion_matrix_B)
-        p = element_degree(new_field, ele_B)
+         call local_coords_matrix(new_positions, ele_B, inversion_matrix_B)
+         p = element_degree(new_field, ele_B)
 
-        call construct_supermesh(new_positions, ele_B, old_positions, map_BA(ele_B), supermesh_shape, supermesh)
-        call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
-                                         & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
-        ele_volume = simplex_volume(new_positions, ele_B)
-        ele_tol = error_tolerance * (ele_volume / domain_volume)
-        ewrite(3,*) "ele_B: ", ele_B, "; ele_tol: ", ele_tol
-        call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
-                                    & new_positions, ele_B, &
-                                    & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
-        ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
-        do while (ele_error > ele_tol)
-          p = p + 1
-          if (p > max_ai_degree) then
-            ewrite(0,*) "Warning: cannot refine element ", ele_B, " to degree ", p
-            exit
-          end if
-          no_refinements = no_refinements + 1
-          call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
-                                           & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
-          call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
-                                      & new_positions, ele_B, &
-                                      & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
-          ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
-        end do
+         call construct_supermesh(new_positions, ele_B, old_positions, map_BA(ele_B), supermesh_shape, supermesh)
+         call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
+         & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
+         ele_volume = simplex_volume(new_positions, ele_B)
+         ele_tol = error_tolerance * (ele_volume / domain_volume)
+         ewrite(3,*) "ele_B: ", ele_B, "; ele_tol: ", ele_tol
+         call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
+         & new_positions, ele_B, &
+         & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
+         ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
+         do while (ele_error > ele_tol)
+            p = p + 1
+            if (p > max_ai_degree) then
+               ewrite(0,*) "Warning: cannot refine element ", ele_B, " to degree ", p
+               exit
+            end if
+            no_refinements = no_refinements + 1
+            call galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fns(p), new_positions, ele_B, &
+            & inversion_matrix_B, supermesh, element_value(1:shape_fns(p)%loc))
+            call compute_projection_error(old_field, old_positions, shape_fns(p), element_value(1:shape_fns(p)%loc), &
+            & new_positions, ele_B, &
+            & supermesh, inversion_matrices_A, inversion_matrix_B, ele_error)
+            ewrite(3,*) "  p: ", p, "; ele_error: ", ele_error
+         end do
 
-        achieved_error = achieved_error + ele_error
-        new_field%mesh%region_ids(ele_B) = min(p, max_ai_degree)
-        !write(0,*) "ele_B: ", ele_B, "; p: ", min(p, max_ai_degree - 1)
+         achieved_error = achieved_error + ele_error
+         new_field%mesh%region_ids(ele_B) = min(p, max_ai_degree)
+         !write(0,*) "ele_B: ", ele_B, "; p: ", min(p, max_ai_degree - 1)
 
-        call deallocate(supermesh)
+         call deallocate(supermesh)
       end do
 
       call deallocate(supermesh_shape)
       call deallocate(supermesh_quad)
       do ele_B=1,ele_count(new_positions)
-        call deallocate(map_BA(ele_B))
+         call deallocate(map_BA(ele_B))
       end do
 
-    end subroutine adaptive_interpolation
+   end subroutine adaptive_interpolation
 
-    subroutine galerkin_projection_ele(old_field, inversion_matrices_A, shape_B, new_positions, ele_B, &
-                                     & inversion_matrix_B, supermesh, element_value, stat)
+   subroutine galerkin_projection_ele(old_field, inversion_matrices_A, shape_B, new_positions, ele_B, &
+   & inversion_matrix_B, supermesh, element_value, stat)
       type(scalar_field), intent(in) :: old_field
       type(vector_field), intent(in) :: new_positions
       real, dimension(:, :, :), intent(in) :: inversion_matrices_A
@@ -182,67 +182,67 @@ module adaptive_interpolation_module
       little_rhs = 0.0
 
       do ele_C=1,ele_count(supermesh)
-        ele_A = ele_region_id(supermesh, ele_C)
-        shape_A => ele_shape(old_field, ele_A)
-        inversion_matrix_A = inversion_matrices_A(:, :, ele_A)
+         ele_A = ele_region_id(supermesh, ele_C)
+         shape_A => ele_shape(old_field, ele_A)
+         inversion_matrix_A = inversion_matrices_A(:, :, ele_A)
 
-        intersection_val_at_quad = ele_val_at_quad(supermesh, ele_C)
-        pos_at_quad_B(1:dim, :) = intersection_val_at_quad
-        pos_at_quad_B(dim+1, :) = 1.0
-        pos_at_quad_B = matmul(inversion_matrix_B, pos_at_quad_B)
+         intersection_val_at_quad = ele_val_at_quad(supermesh, ele_C)
+         pos_at_quad_B(1:dim, :) = intersection_val_at_quad
+         pos_at_quad_B(dim+1, :) = 1.0
+         pos_at_quad_B = matmul(inversion_matrix_B, pos_at_quad_B)
 
-        pos_at_quad_A(1:dim, :) = intersection_val_at_quad
-        pos_at_quad_A(dim+1, :) = 1.0
-        pos_at_quad_A = matmul(inversion_matrix_A, pos_at_quad_A)
+         pos_at_quad_A(1:dim, :) = intersection_val_at_quad
+         pos_at_quad_A(dim+1, :) = 1.0
+         pos_at_quad_A = matmul(inversion_matrix_A, pos_at_quad_A)
 
-        call transform_to_physical(supermesh, ele_C, detwei_C)
-        vols_C = vols_C + sum(detwei_C)
+         call transform_to_physical(supermesh, ele_C, detwei_C)
+         vols_C = vols_C + sum(detwei_C)
 
-        if (shape_B%degree==0) then
-          basis_at_quad_B = 1.0
-        elseif (shape_B%degree==1) then
-          basis_at_quad_B = pos_at_quad_B
-        else
-          do j=1,ele_ngi(supermesh, ele_C)
-            basis_at_quad_B(:, j) = eval_shape(shape_B, pos_at_quad_B(:, j))
-          end do
-        end if
+         if (shape_B%degree==0) then
+            basis_at_quad_B = 1.0
+         elseif (shape_B%degree==1) then
+            basis_at_quad_B = pos_at_quad_B
+         else
+            do j=1,ele_ngi(supermesh, ele_C)
+               basis_at_quad_B(:, j) = eval_shape(shape_B, pos_at_quad_B(:, j))
+            end do
+         end if
 
-        if (shape_A%degree==0) then
-          basis_at_quad_A = 1.0
-        elseif (shape_A%degree==1) then
-          basis_at_quad_A = pos_at_quad_A
-        else
-          do j=1,ele_ngi(supermesh, ele_C)
-            basis_at_quad_A(:, j) = eval_shape(shape_A, pos_at_quad_A(:, j))
-          end do
-        end if
+         if (shape_A%degree==0) then
+            basis_at_quad_A = 1.0
+         elseif (shape_A%degree==1) then
+            basis_at_quad_A = pos_at_quad_A
+         else
+            do j=1,ele_ngi(supermesh, ele_C)
+               basis_at_quad_A(:, j) = eval_shape(shape_A, pos_at_quad_A(:, j))
+            end do
+         end if
 
-        little_mixed_mass_matrix = 0.0
-        little_mixed_mass_matrix_int = 0.0
-        do j=1,ele_ngi(supermesh, ele_C)
-          forall (k=1:shape_B%loc,l=1:ele_loc(old_field, ele_A))
-            little_mixed_mass_matrix_int(k, l) = basis_at_quad_B(k, j) * basis_at_quad_A(l, j)
-          end forall
-          little_mixed_mass_matrix = little_mixed_mass_matrix + little_mixed_mass_matrix_int * detwei_C(j)
-        end do
+         little_mixed_mass_matrix = 0.0
+         little_mixed_mass_matrix_int = 0.0
+         do j=1,ele_ngi(supermesh, ele_C)
+            forall (k=1:shape_B%loc,l=1:ele_loc(old_field, ele_A))
+               little_mixed_mass_matrix_int(k, l) = basis_at_quad_B(k, j) * basis_at_quad_A(l, j)
+            end forall
+            little_mixed_mass_matrix = little_mixed_mass_matrix + little_mixed_mass_matrix_int * detwei_C(j)
+         end do
 
-        little_rhs = little_rhs + matmul(little_mixed_mass_matrix, ele_val(old_field, ele_A))
-    end do
+         little_rhs = little_rhs + matmul(little_mixed_mass_matrix, ele_val(old_field, ele_A))
+      end do
 
-    if (abs(vol_B - vols_C)/vol_B > 0.01) then
-      stat = 1
-      return
-    else
-      stat = 0
-      call solve(little_mass_matrix, little_rhs)
-      element_value(1:shape_B%loc) = little_rhs
-    end if
+      if (abs(vol_B - vols_C)/vol_B > 0.01) then
+         stat = 1
+         return
+      else
+         stat = 0
+         call solve(little_mass_matrix, little_rhs)
+         element_value(1:shape_B%loc) = little_rhs
+      end if
 
-    end subroutine galerkin_projection_ele
+   end subroutine galerkin_projection_ele
 
-    subroutine galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fn, new_positions, ele_B, &
-                                           & inversion_matrix_B, supermesh, element_value)
+   subroutine galerkin_projection_ele_exact(old_field, inversion_matrices_A, shape_fn, new_positions, ele_B, &
+   & inversion_matrix_B, supermesh, element_value)
       type(scalar_field), intent(in) :: old_field
       type(vector_field), intent(in) :: new_positions
       real, dimension(:, :, :), intent(in) :: inversion_matrices_A
@@ -256,10 +256,10 @@ module adaptive_interpolation_module
 
       call galerkin_projection_ele(old_field, inversion_matrices_A, shape_fn, new_positions, ele_B, inversion_matrix_B, supermesh, element_value, stat)
       if (stat /= 0) then
-        call intersector_set_exactness(.true.)
-        call galerkin_projection_ele(old_field, inversion_matrices_A, shape_fn, new_positions, ele_B, inversion_matrix_B, supermesh, element_value, stat)
-        call intersector_set_exactness(.false.)
+         call intersector_set_exactness(.true.)
+         call galerkin_projection_ele(old_field, inversion_matrices_A, shape_fn, new_positions, ele_B, inversion_matrix_B, supermesh, element_value, stat)
+         call intersector_set_exactness(.false.)
       end if
 
-    end subroutine galerkin_projection_ele_exact
+   end subroutine galerkin_projection_ele_exact
 end module adaptive_interpolation_module

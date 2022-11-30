@@ -29,72 +29,72 @@
 
 module exodusii_common
 
-  type EXOnode
-     integer :: nodeID
-     double precision :: x(3)
-  end type EXOnode
+   type EXOnode
+      integer :: nodeID
+      double precision :: x(3)
+   end type EXOnode
 
-  type EXOelement
-     integer :: elementID, type, numTags, blockID
-     integer, pointer :: tags(:), nodeIDs(:)
-  end type EXOelement
+   type EXOelement
+      integer :: elementID, type, numTags, blockID
+      integer, pointer :: tags(:), nodeIDs(:)
+   end type EXOelement
 
-  contains
+contains
 
-  ! -----------------------------------------------------------------
-  ! Tries valid exodusii file extensions and quits if none of them
-  ! has been found aka file does not exist
-  subroutine get_exodusii_filename(filename, lfilename, fileExists)
-    character(len=*), intent(in) :: filename
-    character(len=*), intent(inout) :: lfilename
-    logical, intent(inout) :: fileExists
-    ! An ExodusII file can have the following file extensions:
-    ! e, exo, E, EXO, our first guess shall be exo
-    lfilename = trim(filename)//".exo"
-    inquire(file = trim(lfilename), exist = fileExists)
-    if(.not. fileExists) then
-      lfilename = trim(filename) // ".e"
+   ! -----------------------------------------------------------------
+   ! Tries valid exodusii file extensions and quits if none of them
+   ! has been found aka file does not exist
+   subroutine get_exodusii_filename(filename, lfilename, fileExists)
+      character(len=*), intent(in) :: filename
+      character(len=*), intent(inout) :: lfilename
+      logical, intent(inout) :: fileExists
+      ! An ExodusII file can have the following file extensions:
+      ! e, exo, E, EXO, our first guess shall be exo
+      lfilename = trim(filename)//".exo"
       inquire(file = trim(lfilename), exist = fileExists)
       if(.not. fileExists) then
-        lfilename = trim(filename) // ".EXO"
-        inquire(file = trim(lfilename), exist = fileExists)
-        if(.not. fileExists) then
-          lfilename = trim(filename) // ".E"
-          inquire(file = trim(lfilename), exist = fileExists)
-        end if
+         lfilename = trim(filename) // ".e"
+         inquire(file = trim(lfilename), exist = fileExists)
+         if(.not. fileExists) then
+            lfilename = trim(filename) // ".EXO"
+            inquire(file = trim(lfilename), exist = fileExists)
+            if(.not. fileExists) then
+               lfilename = trim(filename) // ".E"
+               inquire(file = trim(lfilename), exist = fileExists)
+            end if
+         end if
       end if
-    end if
-    lfilename = trim(lfilename)
-  end subroutine get_exodusii_filename
+      lfilename = trim(lfilename)
+   end subroutine get_exodusii_filename
 
 
 
-  ! -----------------------------------------------------------------
-  ! Reorder to Fluidity node ordering
-  subroutine toFluidityElementNodeOrdering( ele_nodes, elemType )
-    integer, dimension(:), intent(inout) :: ele_nodes
-    integer, intent(in) :: elemType
+   ! -----------------------------------------------------------------
+   ! Reorder to Fluidity node ordering
+   subroutine toFluidityElementNodeOrdering( ele_nodes, elemType )
+      integer, dimension(:), intent(inout) :: ele_nodes
+      integer, intent(in) :: elemType
 
-    integer i
-    integer, dimension(size(ele_nodes)) :: nodeOrder
+      integer i
+      integer, dimension(size(ele_nodes)) :: nodeOrder
 
-    ! Specify node ordering
-    select case( elemType )
-    ! Quads
-    case (3)
-       nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron
-    case (5)
-       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
-    case default
-       do i=1, size(ele_nodes)
-          nodeOrder(i) = i
-       end do
-    end select
+      ! Specify node ordering
+      select case( elemType )
+         ! Quads
+       case (3)
+         nodeOrder = (/1, 2, 4, 3/)
+         ! Hexahedron
+       case (5)
+         nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
+       case default
+         do i=1, size(ele_nodes)
+            nodeOrder(i) = i
+         end do
+      end select
 
-    ele_nodes = ele_nodes(nodeOrder)
+      ele_nodes = ele_nodes(nodeOrder)
 
-  end subroutine toFluidityElementNodeOrdering
+   end subroutine toFluidityElementNodeOrdering
 
 
 end module exodusii_common

@@ -28,29 +28,29 @@
 #include "fdebug.h"
 
 subroutine test_python_real_vector
-  !!< Test that we can set a field using python.
-  use embed_python
-  use unittest_tools
-  use futils
-  implicit none
+   !!< Test that we can set a field using python.
+   use embed_python
+   use unittest_tools
+   use futils
+   implicit none
 
 #ifdef HAVE_PYTHON
-  logical :: fail
-  real, dimension(:), pointer :: result
-  integer :: stat
+   logical :: fail
+   real, dimension(:), pointer :: result
+   integer :: stat
 
-  call real_vector_from_python(&
-       "def val(t): return (1.0, 2.0, 3.0, 4.0)", 0.0,  result, stat)
+   call real_vector_from_python(&
+      "def val(t): return (1.0, 2.0, 3.0, 4.0)", 0.0,  result, stat)
 
-  fail=any(result/=(/1.0, 2.0, 3.0, 4.0/))
+   fail=any(result/=(/1.0, 2.0, 3.0, 4.0/))
 
-  call report_test("[test_python_real_vector]", fail, .false., &
-       "python and fortran should produce the same answer.")
+   call report_test("[test_python_real_vector]", fail, .false., &
+      "python and fortran should produce the same answer.")
 
-  deallocate(result, stat=stat)
+   deallocate(result, stat=stat)
 
-  call report_test("[test_python_real_vector deallocate]", fail, .false., &
-       "failed to deallocate result vector")
+   call report_test("[test_python_real_vector deallocate]", fail, .false., &
+      "failed to deallocate result vector")
 
 #endif
 

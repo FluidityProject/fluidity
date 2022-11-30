@@ -28,49 +28,49 @@
 #include "fdebug.h"
 
 subroutine mainfl() bind(C)
-  !!< This program solves the Navier-Stokes, radiation, and/or
-  !!< advection-diffusion types of equations
-  use fldebug
-  use fluids_module
-  !use reduced_fluids_module
-  use signals
-  use spud
-  use tictoc
+   !!< This program solves the Navier-Stokes, radiation, and/or
+   !!< advection-diffusion types of equations
+   use fldebug
+   use fluids_module
+   !use reduced_fluids_module
+   use signals
+   use spud
+   use tictoc
 #ifdef HAVE_ZOLTAN
-  use zoltan
+   use zoltan
 #endif
 
-  implicit none
+   implicit none
 
-  ! We need to do this here because the fortran Zoltan initialisation
-  ! routine does extra things on top of the C one. That wasn't a fun
-  ! hour's debugging ...
+   ! We need to do this here because the fortran Zoltan initialisation
+   ! routine does extra things on top of the C one. That wasn't a fun
+   ! hour's debugging ...
 #ifdef HAVE_ZOLTAN
-  real(zoltan_float) :: ver
-  integer(zoltan_int) :: ierr
+   real(zoltan_float) :: ver
+   integer(zoltan_int) :: ierr
 
-  ierr = Zoltan_Initialize(ver)
-  assert(ierr == ZOLTAN_OK)
+   ierr = Zoltan_Initialize(ver)
+   assert(ierr == ZOLTAN_OK)
 #endif
 
-  ! Establish signal handlers
-  call initialise_signals()
+   ! Establish signal handlers
+   call initialise_signals()
 
-  call tictoc_reset()
+   call tictoc_reset()
 
-  !######################################################
-  !      Normal Fluidity Model
-  !######################################################
+   !######################################################
+   !      Normal Fluidity Model
+   !######################################################
 
-  call tic(TICTOC_ID_SIMULATION)
-  ewrite(1, *) "Calling fluids from mainfl"
-  call fluids()
-  ewrite(1, *) "Exited fluids"
-  call toc(TICTOC_ID_SIMULATION)
-  call tictoc_report(2, TICTOC_ID_SIMULATION)
+   call tic(TICTOC_ID_SIMULATION)
+   ewrite(1, *) "Calling fluids from mainfl"
+   call fluids()
+   ewrite(1, *) "Exited fluids"
+   call toc(TICTOC_ID_SIMULATION)
+   call tictoc_report(2, TICTOC_ID_SIMULATION)
 
-  if(SIG_INT) then
-    FLExit("Interrupt signal received")
-  end if
+   if(SIG_INT) then
+      FLExit("Interrupt signal received")
+   end if
 
 end subroutine mainfl

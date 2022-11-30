@@ -26,19 +26,19 @@
 !    USA
 
 program testpolynomials
-  use polynomials
-  ! Implicit none.
+   use polynomials
+   ! Implicit none.
 
-  type(polynomial), dimension(10) :: poly
+   type(polynomial), dimension(10) :: poly
 
 
 
-  poly(1)=(/1.0, 1.0/)
-  poly(2)=(/2.0, 1.0/)
-  poly(3)=(/1.0, 1.0, 1.0/)
+   poly(1)=(/1.0, 1.0/)
+   poly(2)=(/2.0, 1.0/)
+   poly(3)=(/1.0, 1.0, 1.0/)
 
-  print '(100f10.3)', poly(1)*poly(1)*poly(1)+poly(2)
-  print '(100f10.3)', 2.0*poly(2)
-  print '(100f10.3)', ddx(poly(1)*poly(1)*poly(1))
+   print '(100f10.3)', poly(1)*poly(1)*poly(1)+poly(2)
+   print '(100f10.3)', 2.0*poly(2)
+   print '(100f10.3)', ddx(poly(1)*poly(1)*poly(1))
 
 end program testpolynomials

@@ -28,43 +28,43 @@
 #include "fdebug.h"
 
 module diagnostic_fields_matrices
-  !!< A module to link to diagnostic variable calculations.
+   !!< A module to link to diagnostic variable calculations.
 
-  use fldebug
-  use global_parameters, only:FIELD_NAME_LEN
-  use futils
-  use spud
-  use parallel_tools
-  use sparse_tools
-  use transform_elements
-  use fetools
-  use parallel_fields, only: zero_non_owned, element_owned
-  use fields
-  use sparse_matrices_fields
-  use state_module
-  use halos
-  use field_derivatives
-  use sparsity_patterns, only: make_sparsity
-  use sparsity_patterns_meshes
-  use state_fields_module
-  use solvers
-  use divergence_matrix_cv, only: assemble_divergence_matrix_cv
-  use divergence_matrix_cg, only: assemble_divergence_matrix_cg, assemble_compressible_divergence_matrix_cg
-  use gradient_matrix_cg, only: assemble_gradient_matrix_cg
-  use state_matrices_module
+   use fldebug
+   use global_parameters, only:FIELD_NAME_LEN
+   use futils
+   use spud
+   use parallel_tools
+   use sparse_tools
+   use transform_elements
+   use fetools
+   use parallel_fields, only: zero_non_owned, element_owned
+   use fields
+   use sparse_matrices_fields
+   use state_module
+   use halos
+   use field_derivatives
+   use sparsity_patterns, only: make_sparsity
+   use sparsity_patterns_meshes
+   use state_fields_module
+   use solvers
+   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
+   use divergence_matrix_cg, only: assemble_divergence_matrix_cg, assemble_compressible_divergence_matrix_cg
+   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
+   use state_matrices_module
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: calculate_divergence_cv, calculate_divergence_fe, &
-            calculate_div_t_cv, calculate_div_t_fe, &
-            calculate_grad_fe, calculate_sum_velocity_divergence, &
-            calculate_compressible_continuity_residual
+   public :: calculate_divergence_cv, calculate_divergence_fe, &
+      calculate_div_t_cv, calculate_div_t_fe, &
+      calculate_grad_fe, calculate_sum_velocity_divergence, &
+      calculate_compressible_continuity_residual
 
 contains
 
-  subroutine calculate_divergence_cv(state, div)
+   subroutine calculate_divergence_cv(state, div)
 
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: div
@@ -105,9 +105,9 @@ contains
 
       call halo_update(div)
 
-  end subroutine calculate_divergence_cv
+   end subroutine calculate_divergence_cv
 
-  subroutine calculate_div_t_cv(state, grad)
+   subroutine calculate_div_t_cv(state, grad)
 
       type(state_type), intent(inout) :: state
       type(vector_field), intent(inout) :: grad
@@ -130,9 +130,9 @@ contains
 
       dg = (continuity(grad)<0)
       lump_mass = have_option(trim(grad%option_path)//&
-                  &"/diagnostic/lump_mass_matrix")
+      &"/diagnostic/lump_mass_matrix")
       normalise = have_option(trim(grad%option_path)//&
-                  &"/diagnostic/normalise")
+      &"/diagnostic/normalise")
 
       field=>extract_scalar_field(state, trim(field_name))
 
@@ -147,38 +147,38 @@ contains
 
       if(lump_mass) then
 
-        lumped_mass => get_lumped_mass(state, grad%mesh)
-        call allocate(inverse_lumped_mass, lumped_mass%mesh, "InverseLumpedMass")
+         lumped_mass => get_lumped_mass(state, grad%mesh)
+         call allocate(inverse_lumped_mass, lumped_mass%mesh, "InverseLumpedMass")
 
-        call invert(lumped_mass, inverse_lumped_mass)
-        call set(grad, cfield)
-        call scale(grad, inverse_lumped_mass)
+         call invert(lumped_mass, inverse_lumped_mass)
+         call set(grad, cfield)
+         call scale(grad, inverse_lumped_mass)
 
-        call deallocate(inverse_lumped_mass)
+         call deallocate(inverse_lumped_mass)
       else if(dg) then
-        inverse_mass => get_dg_inverse_mass(state, grad%mesh)
-        call mult(grad, inverse_mass, cfield)
+         inverse_mass => get_dg_inverse_mass(state, grad%mesh)
+         call mult(grad, inverse_mass, cfield)
       else
-        mass => get_mass_matrix(state, grad%mesh)
-        call petsc_solve(grad, mass, cfield)
+         mass => get_mass_matrix(state, grad%mesh)
+         call petsc_solve(grad, mass, cfield)
       end if
 
       if(normalise) then
-        mag = magnitude(grad)
-        call allocate(inverse_mag, mag%mesh, "InverseMagnitude")
+         mag = magnitude(grad)
+         call allocate(inverse_mag, mag%mesh, "InverseMagnitude")
 
-        call invert(mag, inverse_mag, tolerance=epsilon(0.0))
-        call scale(grad, inverse_mag)
+         call invert(mag, inverse_mag, tolerance=epsilon(0.0))
+         call scale(grad, inverse_mag)
 
-        call deallocate(inverse_mag)
-        call deallocate(mag)
+         call deallocate(inverse_mag)
+         call deallocate(mag)
       end if
 
       call deallocate(cfield)
 
-  end subroutine calculate_div_t_cv
+   end subroutine calculate_div_t_cv
 
-  subroutine calculate_divergence_fe(state, div)
+   subroutine calculate_divergence_fe(state, div)
 
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: div
@@ -212,8 +212,8 @@ contains
       call zero(mass)
 
       call assemble_divergence_matrix_cg(CT_m, state, ct_rhs=ct_rhs, &
-                                         test_mesh=div%mesh, field=field, &
-                                         option_path=div%option_path, div_mass=mass)
+         test_mesh=div%mesh, field=field, &
+         option_path=div%option_path, div_mass=mass)
 
       call mult(ctfield, CT_m, field)
       call addto(ctfield, ct_rhs, -1.0)
@@ -229,9 +229,9 @@ contains
       call deallocate(mass_sparsity)
       call deallocate(mass)
 
-  end subroutine calculate_divergence_fe
+   end subroutine calculate_divergence_fe
 
-  subroutine calculate_div_t_fe(state, grad)
+   subroutine calculate_div_t_fe(state, grad)
 
       type(state_type), intent(inout) :: state
       type(vector_field), intent(inout) :: grad
@@ -263,8 +263,8 @@ contains
       call allocate(mass, mass_sparsity, name="MassMatrix")
 
       call assemble_divergence_matrix_cg(CT_m, state, &
-                                         test_mesh=field%mesh, field=grad, &
-                                         grad_mass=mass)
+         test_mesh=field%mesh, field=grad, &
+         grad_mass=mass)
 
       call mult_T(cfield, CT_m, field)
       call scale(cfield, -1.0)
@@ -279,9 +279,9 @@ contains
       call deallocate(mass)
       call deallocate(cfield)
 
-  end subroutine calculate_div_t_fe
+   end subroutine calculate_div_t_fe
 
-  subroutine calculate_grad_fe(state, grad)
+   subroutine calculate_grad_fe(state, grad)
 
       type(state_type), intent(inout) :: state
       type(vector_field), intent(inout) :: grad
@@ -312,9 +312,9 @@ contains
       call allocate(mass, mass_sparsity, name="MassMatrix")
 
       call assemble_gradient_matrix_cg(C_m, state, &
-                                         test_mesh=grad%mesh, field=field, &
-                                         option_path=trim(grad%option_path), &
-                                         grad_mass=mass)
+         test_mesh=grad%mesh, field=field, &
+         option_path=trim(grad%option_path), &
+         grad_mass=mass)
 
       call mult(cfield, C_m, field)
 
@@ -327,10 +327,10 @@ contains
       call deallocate(mass)
       call deallocate(cfield)
 
-  end subroutine calculate_grad_fe
+   end subroutine calculate_grad_fe
 
 
-  subroutine calculate_sum_velocity_divergence(state, sum_velocity_divergence)
+   subroutine calculate_sum_velocity_divergence(state, sum_velocity_divergence)
       !!< Calculates \sum{div(vfrac*u)}, where we sum over each prognostic velocity
       !!< field (i.e. each phase). Used in multiphase flow simulations.
 
@@ -392,16 +392,16 @@ contains
          ! Reassemble C^T matrix here
          if (test_with_cv_dual) then
             call assemble_divergence_matrix_cv(ct_m, state(i), ct_rhs=ct_rhs, &
-                              test_mesh=sum_velocity_divergence%mesh, field=u)
+               test_mesh=sum_velocity_divergence%mesh, field=u)
          else
             if(i==1) then ! Construct the mass matrix (just do this once)
                call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                              test_mesh=sum_velocity_divergence%mesh, field=u, &
-                              option_path=sum_velocity_divergence%option_path, div_mass=mass)
+                  test_mesh=sum_velocity_divergence%mesh, field=u, &
+                  option_path=sum_velocity_divergence%option_path, div_mass=mass)
             else
                call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                              test_mesh=sum_velocity_divergence%mesh, field=u, &
-                              option_path=sum_velocity_divergence%option_path)
+                  test_mesh=sum_velocity_divergence%mesh, field=u, &
+                  option_path=sum_velocity_divergence%option_path)
             end if
 
          end if
@@ -445,10 +445,10 @@ contains
 
       ewrite(1,*) 'Exiting calculate_sum_velocity_divergence'
 
-  end subroutine calculate_sum_velocity_divergence
+   end subroutine calculate_sum_velocity_divergence
 
 
-  subroutine calculate_compressible_continuity_residual(state, compressible_continuity_residual)
+   subroutine calculate_compressible_continuity_residual(state, compressible_continuity_residual)
       !!< Calculates the residual of the continity equation used in compressible multiphase flow simulations:
       !!< vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
 
@@ -588,7 +588,7 @@ contains
 
       ewrite(1,*) 'Exiting calculate_compressible_continuity_residual'
 
-  end subroutine calculate_compressible_continuity_residual
+   end subroutine calculate_compressible_continuity_residual
 
 
 end module diagnostic_fields_matrices

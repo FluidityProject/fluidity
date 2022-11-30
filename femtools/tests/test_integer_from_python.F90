@@ -29,23 +29,23 @@
 
 subroutine test_integer_from_python
 
-  use embed_python
-  use fldebug
-  use unittest_tools
+   use embed_python
+   use fldebug
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  character(len = *), parameter :: func = &
-    & "def val(t):" // new_line("") // &
-    & "  return int(t)"
-  integer :: result, stat
+   character(len = *), parameter :: func = &
+   & "def val(t):" // new_line("") // &
+   & "  return int(t)"
+   integer :: result, stat
 
-  call integer_from_python(func, 0.1, result, stat = stat)
-  call report_test("[integer_from_python]", stat /= 0, .false., "integer_from_python returned an error")
-  call report_test("[Expected result]", result /= 0, .false., "integer_from_python returned incorrect integer")
+   call integer_from_python(func, 0.1, result, stat = stat)
+   call report_test("[integer_from_python]", stat /= 0, .false., "integer_from_python returned an error")
+   call report_test("[Expected result]", result /= 0, .false., "integer_from_python returned incorrect integer")
 
-  call integer_from_python(func, 1.1, result, stat = stat)
-  call report_test("[integer_from_python]", stat /= 0, .false., "integer_from_python returned an error")
-  call report_test("[Expected result]", result /= 1, .false., "integer_from_python returned incorrect integer")
+   call integer_from_python(func, 1.1, result, stat = stat)
+   call report_test("[integer_from_python]", stat /= 0, .false., "integer_from_python returned an error")
+   call report_test("[Expected result]", result /= 1, .false., "integer_from_python returned incorrect integer")
 
 end subroutine test_integer_from_python

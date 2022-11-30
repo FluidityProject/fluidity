@@ -28,106 +28,106 @@
 #include "confdefs.h"
 
 module AdaptProgress
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public::initialise, finalize, should_exit
+   public::initialise, finalize, should_exit
 #ifdef HAVE_MPI
-  include 'mpif.h'
+   include 'mpif.h'
 #endif
-  logical::initialised=.false.
-  integer, dimension(:), allocatable::load, rrequest
-  integer::myrank, nprocs
-  real::imbalance_tol=0.5
-  integer win
+   logical::initialised=.false.
+   integer, dimension(:), allocatable::load, rrequest
+   integer::myrank, nprocs
+   real::imbalance_tol=0.5
+   integer win
 
 contains
-  subroutine initialise(count, tol)
-    integer, intent(in)::count
-    real, intent(in)::tol
+   subroutine initialise(count, tol)
+      integer, intent(in)::count
+      real, intent(in)::tol
 #ifdef HAVE_MPI
-    integer have_mpi_init, i, ierr
-    if(.not.initialised) then
-       call MPI_Initialized(have_mpi_init, ierr)
-       if(have_mpi_init.eq.0) then
-          nprocs=1
-       else
-          call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
-       endif
+      integer have_mpi_init, i, ierr
+      if(.not.initialised) then
+         call MPI_Initialized(have_mpi_init, ierr)
+         if(have_mpi_init.eq.0) then
+            nprocs=1
+         else
+            call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
+         endif
 
-       if(nprocs.gt.1) then
-          call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
-          allocate(load(0:nprocs-1))
-          call MPI_Allgather(count, 1, MPI_INTEGER, load, 1, &
+         if(nprocs.gt.1) then
+            call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
+            allocate(load(0:nprocs-1))
+            call MPI_Allgather(count, 1, MPI_INTEGER, load, 1, &
                MPI_INTEGER, MPI_COMM_WORLD, ierr)
 
-          allocate(rrequest(0:nprocs-1))
+            allocate(rrequest(0:nprocs-1))
 
-          do i=0, nprocs-1
-             if(i.ne.myrank) then
-                call MPI_Irecv(load(i), 1, MPI_INTEGER, i, 1, &
+            do i=0, nprocs-1
+               if(i.ne.myrank) then
+                  call MPI_Irecv(load(i), 1, MPI_INTEGER, i, 1, &
                      MPI_COMM_WORLD, rrequest(i), ierr)
-             else
-                rrequest(i) = MPI_REQUEST_NULL
-             end if
-          end do
+               else
+                  rrequest(i) = MPI_REQUEST_NULL
+               end if
+            end do
 
-          imbalance_tol = tol
-       end if
+            imbalance_tol = tol
+         end if
 
-       initialised = .true.
-    end if
+         initialised = .true.
+      end if
 #endif
-  end subroutine initialise
+   end subroutine initialise
 
-  subroutine finalize(count)
-    integer, intent(in)::count
+   subroutine finalize(count)
+      integer, intent(in)::count
 #ifdef HAVE_MPI
-    integer i, ierr
-    integer, allocatable, dimension(:)::request
-    integer, allocatable, dimension(:, :)::status
+      integer i, ierr
+      integer, allocatable, dimension(:)::request
+      integer, allocatable, dimension(:, :)::status
 
-    if(nprocs.gt.1) then
-       allocate(request(0:nprocs-1))
-       allocate(status(MPI_STATUS_SIZE, 0:nprocs-1))
+      if(nprocs.gt.1) then
+         allocate(request(0:nprocs-1))
+         allocate(status(MPI_STATUS_SIZE, 0:nprocs-1))
 
-       do i=0, nprocs-1
-          if(i.ne.myrank) then
-             call MPI_Isend(count, 1, MPI_INTEGER, i, 1, &
+         do i=0, nprocs-1
+            if(i.ne.myrank) then
+               call MPI_Isend(count, 1, MPI_INTEGER, i, 1, &
                   MPI_COMM_WORLD, request(i), ierr)
-          else
-             request(i) = MPI_REQUEST_NULL
-          end if
-       end do
+            else
+               request(i) = MPI_REQUEST_NULL
+            end if
+         end do
 
-       call MPI_Waitall(nprocs, rrequest, status, ierr)
-       call MPI_Waitall(nprocs, request, status, ierr)
+         call MPI_Waitall(nprocs, rrequest, status, ierr)
+         call MPI_Waitall(nprocs, request, status, ierr)
 
-       deallocate(request, rrequest, status, load)
-    end if
-    initialised = .false.
+         deallocate(request, rrequest, status, load)
+      end if
+      initialised = .false.
 #endif
-  end subroutine finalize
+   end subroutine finalize
 
-  logical function should_exit(count)
-    integer, intent(in)::count
+   logical function should_exit(count)
+      integer, intent(in)::count
 #ifdef HAVE_MPI
-    real imbalance
-    integer ierr
+      real imbalance
+      integer ierr
 
-    if(nprocs.gt.1) then
-       load(myrank) = count
+      if(nprocs.gt.1) then
+         load(myrank) = count
 
-       imbalance = 1.0 - real(sum(load))/(nprocs*maxval(load))
+         imbalance = 1.0 - real(sum(load))/(nprocs*maxval(load))
 
-       should_exit = (imbalance>imbalance_tol)
-    else
-       should_exit = .false.
-    end if
+         should_exit = (imbalance>imbalance_tol)
+      else
+         should_exit = .false.
+      end if
 #else
-    should_exit = .false.
+      should_exit = .false.
 #endif
-  end function should_exit
+   end function should_exit
 
 end module AdaptProgress

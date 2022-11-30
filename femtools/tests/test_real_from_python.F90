@@ -29,24 +29,24 @@
 
 subroutine test_real_from_python
 
-  use embed_python
-  use fldebug
-  use unittest_tools
+   use embed_python
+   use fldebug
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  character(len = *), parameter :: func = &
-    & "def val(t):" // new_line("") // &
-    & "  return t"
-  integer :: stat
-  real :: result
+   character(len = *), parameter :: func = &
+   & "def val(t):" // new_line("") // &
+   & "  return t"
+   integer :: stat
+   real :: result
 
-  call real_from_python(func, 0.1, result, stat = stat)
-  call report_test("[real_from_python]", stat /= 0, .false., "real_from_python returned an error")
-  call report_test("[Expected result]", result .fne. 0.1, .false., "real_from_python returned incorrect real")
+   call real_from_python(func, 0.1, result, stat = stat)
+   call report_test("[real_from_python]", stat /= 0, .false., "real_from_python returned an error")
+   call report_test("[Expected result]", result .fne. 0.1, .false., "real_from_python returned incorrect real")
 
-  call real_from_python(func, 1.1, result, stat = stat)
-  call report_test("[real_from_python]", stat /= 0, .false., "real_from_python returned an error")
-  call report_test("[Expected result]", result .fne. 1.1, .false., "real_from_python returned incorrect real")
+   call real_from_python(func, 1.1, result, stat = stat)
+   call report_test("[real_from_python]", stat /= 0, .false., "real_from_python returned an error")
+   call report_test("[Expected result]", result .fne. 1.1, .false., "real_from_python returned incorrect real")
 
 end subroutine test_real_from_python

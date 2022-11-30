@@ -64,8 +64,8 @@ subroutine test_length_scale_tensor
    ! This is only correct for regular right-angled triangles
    edge = edge**2/4.
    expected_result = reshape(&
-               (/ edge*5., -edge,&
-               & -edge, edge*5. /),(/2,2/))
+      (/ edge*5., -edge,&
+   & -edge, edge*5. /),(/2,2/))
 
    fail = .not.fequals(computed_result(:,:,1), expected_result, 1.0e-9)
    call report_test("[length_scale_tensor]", fail, .false., "Result from length_scale_tensor is incorrect.")

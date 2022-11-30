@@ -44,7 +44,7 @@ module mass_matrix_diagnostics
    private
 
    public :: calculate_finite_element_lumped_mass_matrix, &
-             calculate_control_volume_mass_matrix
+      calculate_control_volume_mass_matrix
 
 contains
 

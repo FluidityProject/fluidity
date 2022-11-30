@@ -29,36 +29,36 @@
 
 subroutine test_tokenize
 
-  use fldebug
-  use futils
-  use unittest_tools
+   use fldebug
+   use futils
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  character(len = 255), dimension(:), allocatable :: tokens
+   character(len = 255), dimension(:), allocatable :: tokens
 
-  call tokenize("One:Two:Three", tokens, ":")
-  call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
-  call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
-  call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
-  call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
-  call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
-  deallocate(tokens)
+   call tokenize("One:Two:Three", tokens, ":")
+   call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
+   call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
+   call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
+   call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
+   call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
+   deallocate(tokens)
 
-  call tokenize("One::Two::Three", tokens, "::")
-  call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
-  call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
-  call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
-  call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
-  call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
-  deallocate(tokens)
+   call tokenize("One::Two::Three", tokens, "::")
+   call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
+   call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
+   call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
+   call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
+   call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
+   deallocate(tokens)
 
-  call tokenize("One:::Two:::Three", tokens, ":::")
-  call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
-  call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
-  call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
-  call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
-  call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
-  deallocate(tokens)
+   call tokenize("One:::Two:::Three", tokens, ":::")
+   call report_test("[allocated(tokens)]", .not. allocated(tokens), .false., "tokens not allocated")
+   call report_test("[size(tokens)]", size(tokens) /= 3, .false., "Incorrect tokens size")
+   call report_test("[tokens(1)]", trim(tokens(1)) /= "One", .false., "Incorrect split")
+   call report_test("[tokens(2)]", trim(tokens(2)) /= "Two", .false., "Incorrect split")
+   call report_test("[tokens(3)]", trim(tokens(3)) /= "Three", .false., "Incorrect split")
+   deallocate(tokens)
 
 end subroutine test_tokenize

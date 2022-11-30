@@ -28,89 +28,89 @@
 #include "fdebug.h"
 
 subroutine test_halo_allocation
-  !!< Test allocation of the halo_type derived type
+   !!< Test allocation of the halo_type derived type
 
-  use halos
-  use reference_counting
-  use unittest_tools
+   use halos
+   use reference_counting
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  integer :: i
-  integer, dimension(:), allocatable :: nreceives, nsends
-  integer, parameter :: nowned_nodes = 42, nprocs = 1
-  logical :: fail
-  type(halo_type) :: halo
+   integer :: i
+   integer, dimension(:), allocatable :: nreceives, nsends
+   integer, parameter :: nowned_nodes = 42, nprocs = 1
+   logical :: fail
+   type(halo_type) :: halo
 
-  ! Set up halo node counts
-  allocate(nsends(nprocs))
-  allocate(nreceives(nprocs))
-  do i = 1, nprocs
-    nsends(i) = i * 5
-    nreceives(i) = i * 10
-  end do
+   ! Set up halo node counts
+   allocate(nsends(nprocs))
+   allocate(nreceives(nprocs))
+   do i = 1, nprocs
+      nsends(i) = i * 5
+      nreceives(i) = i * 10
+   end do
 
-  ! Allocate a halo
-  call allocate(halo,  nsends, nreceives, nprocs = nprocs, name = "TestHalo", nowned_nodes = nowned_nodes)
-  call report_test("[Has references]", .not. has_references(halo), .false., "Halo does not have references")
-  call report_test("[References]", .not. associated(refcount_list%next), .false., "Have no references")
+   ! Allocate a halo
+   call allocate(halo,  nsends, nreceives, nprocs = nprocs, name = "TestHalo", nowned_nodes = nowned_nodes)
+   call report_test("[Has references]", .not. has_references(halo), .false., "Halo does not have references")
+   call report_test("[References]", .not. associated(refcount_list%next), .false., "Have no references")
 
-  call report_test("[Correct nprocs]", halo%nprocs /= nprocs, .false., "Incorrect nprocs")
-  call report_test("[Correct nprocs]", halo_proc_count(halo) /= nprocs, .false., "Incorrect nprocs")
+   call report_test("[Correct nprocs]", halo%nprocs /= nprocs, .false., "Incorrect nprocs")
+   call report_test("[Correct nprocs]", halo_proc_count(halo) /= nprocs, .false., "Incorrect nprocs")
 
-  call report_test("[Correct name]", trim(halo%name) /= "TestHalo", .false., "Incorrect name")
+   call report_test("[Correct name]", trim(halo%name) /= "TestHalo", .false., "Incorrect name")
 
-  call report_test("[Correct nowned_nodes]", halo%nowned_nodes /= nowned_nodes, .false., "Incorrect nowned_nodes")
-  call report_test("[Correct nowned_nodes]", halo_nowned_nodes(halo) /= nowned_nodes, .false., "Incorrect nowned_nodes")
+   call report_test("[Correct nowned_nodes]", halo%nowned_nodes /= nowned_nodes, .false., "Incorrect nowned_nodes")
+   call report_test("[Correct nowned_nodes]", halo_nowned_nodes(halo) /= nowned_nodes, .false., "Incorrect nowned_nodes")
 
-  call report_test("[sends allocated]", .not. associated(halo%sends), .false., "sends array not allocated")
-  call report_test("[receives allocated]", .not. associated(halo%receives), .false., "receives array not allocated")
-  call report_test("[sends has correct size]", size(halo%sends) /= nprocs, .false., "sends array has incorrect size")
-  call report_test("[receives has correct size]", size(halo%receives) /= nprocs, .false., "receives array has incorrect size")
+   call report_test("[sends allocated]", .not. associated(halo%sends), .false., "sends array not allocated")
+   call report_test("[receives allocated]", .not. associated(halo%receives), .false., "receives array not allocated")
+   call report_test("[sends has correct size]", size(halo%sends) /= nprocs, .false., "sends array has incorrect size")
+   call report_test("[receives has correct size]", size(halo%receives) /= nprocs, .false., "receives array has incorrect size")
 
-  fail = .false.
-  do i = 1, halo_proc_count(halo)
-    if(.not. associated(halo%sends(i)%ptr)) then
-      fail = .true.
-      exit
-    end if
-  end do
-  call report_test("[sends elements allocated]", fail, .false., "At least one element of sends array not allocated")
-  fail = .false.
-  do i = 1, halo_proc_count(halo)
-    if(.not. associated(halo%receives(i)%ptr)) then
-      fail = .true.
-      exit
-    end if
-  end do
-  call report_test("[receives elements allocated]", fail, .false., "At least one element of receives array not allocated")
-  fail = .false.
-  do i = 1, halo_proc_count(halo)
-    if(halo_send_count(halo, i) /= nsends(i)) then
-      fail = .true.
-      exit
-    end if
-  end do
-  call report_test("[sends elements have correct sizes]", fail, .false., "At least one element of sends array has incorrect size")
-  fail = .false.
-  do i = 1, halo_proc_count(halo)
-    if(halo_receive_count(halo, i) /= nreceives(i)) then
-      fail = .true.
-      exit
-    end if
-  end do
-  call report_test("[receives elements have correct sizes]", fail, .false., "At least one element of receives array has incorrect size")
+   fail = .false.
+   do i = 1, halo_proc_count(halo)
+      if(.not. associated(halo%sends(i)%ptr)) then
+         fail = .true.
+         exit
+      end if
+   end do
+   call report_test("[sends elements allocated]", fail, .false., "At least one element of sends array not allocated")
+   fail = .false.
+   do i = 1, halo_proc_count(halo)
+      if(.not. associated(halo%receives(i)%ptr)) then
+         fail = .true.
+         exit
+      end if
+   end do
+   call report_test("[receives elements allocated]", fail, .false., "At least one element of receives array not allocated")
+   fail = .false.
+   do i = 1, halo_proc_count(halo)
+      if(halo_send_count(halo, i) /= nsends(i)) then
+         fail = .true.
+         exit
+      end if
+   end do
+   call report_test("[sends elements have correct sizes]", fail, .false., "At least one element of sends array has incorrect size")
+   fail = .false.
+   do i = 1, halo_proc_count(halo)
+      if(halo_receive_count(halo, i) /= nreceives(i)) then
+         fail = .true.
+         exit
+      end if
+   end do
+   call report_test("[receives elements have correct sizes]", fail, .false., "At least one element of receives array has incorrect size")
 
-  ! Deallocate the halo
-  call deallocate(halo)
+   ! Deallocate the halo
+   call deallocate(halo)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
-  call report_test("[Name reset]", len_trim(halo%name) > 0, .false., "Halo name not reset")
-  call report_test("[sends not associated]", associated(halo%sends), .false., "sends still associated")
-  call report_test("[receives not associated]", associated(halo%receives), .false., "receives still associated")
+   call report_test("[Name reset]", len_trim(halo%name) > 0, .false., "Halo name not reset")
+   call report_test("[sends not associated]", associated(halo%sends), .false., "sends still associated")
+   call report_test("[receives not associated]", associated(halo%receives), .false., "receives still associated")
 
-  deallocate(nsends)
-  deallocate(nreceives)
+   deallocate(nsends)
+   deallocate(nreceives)
 
 end subroutine test_halo_allocation

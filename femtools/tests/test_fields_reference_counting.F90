@@ -26,24 +26,24 @@
 !    USA
 
 subroutine test_fields_reference_counting
-  !!< Test that basic integration and differentiation of 1d elements works.
-  use fields
-  use mesh_files
-  use unittest_tools
-  implicit none
+   !!< Test that basic integration and differentiation of 1d elements works.
+   use fields
+   use mesh_files
+   use unittest_tools
+   implicit none
 
-  logical :: fail
-  type(vector_field) :: X
+   logical :: fail
+   type(vector_field) :: X
 
-  X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
+   X=read_mesh_files("data/interval", quad_degree=4, format="gmsh")
 
-  call incref(X%mesh)
+   call incref(X%mesh)
 
-  call decref(X%mesh)
+   call decref(X%mesh)
 
-  fail=(X%mesh%refcount%count/=1)
+   fail=(X%mesh%refcount%count/=1)
 
-  call report_test("[test_fields_reference_counting]", fail, .false., &
-       "Reference count is not 1")
+   call report_test("[test_fields_reference_counting]", fail, .false., &
+      "Reference count is not 1")
 
 end subroutine test_fields_reference_counting

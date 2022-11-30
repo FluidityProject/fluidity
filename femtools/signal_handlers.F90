@@ -30,57 +30,57 @@
 #include "fdebug.h"
 
 function handle_sighup(signal)
-  use signal_vars
+   use signal_vars
 
-  implicit none
-  integer :: handle_sighup
-  integer, intent(in) :: signal
+   implicit none
+   integer :: handle_sighup
+   integer, intent(in) :: signal
 
-  sig_hup=.true.
+   sig_hup=.true.
 
-  handle_sighup=0
+   handle_sighup=0
 
 end function handle_sighup
 
 
 function handle_sigint(signal)
-  use signal_vars
+   use signal_vars
 
-  implicit none
-  integer :: handle_sigint
-  integer, intent(in) :: signal
+   implicit none
+   integer :: handle_sigint
+   integer, intent(in) :: signal
 
-  sig_int=.true.
+   sig_int=.true.
 
-  handle_sigint=0
+   handle_sigint=0
 
 end function handle_sigint
 
 function handle_sigterm(signal)
-  use signal_vars
+   use signal_vars
 
-  implicit none
-  integer :: handle_sigterm
-  integer, intent(in) :: signal
+   implicit none
+   integer :: handle_sigterm
+   integer, intent(in) :: signal
 
-  sig_int=.true.
+   sig_int=.true.
 
-  handle_sigterm=0
+   handle_sigterm=0
 
 end function handle_sigterm
 
 function handle_sigfpe(signal)
-  use FLDebug
-  use signal_vars
+   use FLDebug
+   use signal_vars
 
-  implicit none
-  integer :: handle_sigfpe
-  integer, intent(in) :: signal
+   implicit none
+   integer :: handle_sigfpe
+   integer, intent(in) :: signal
 
-  handle_sigfpe = 0
+   handle_sigfpe = 0
 
-  FLAbort("Floating point exception")
+   FLAbort("Floating point exception")
 
-  handle_sigfpe=0
+   handle_sigfpe=0
 
 end function handle_sigfpe

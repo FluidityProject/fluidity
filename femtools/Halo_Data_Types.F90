@@ -29,77 +29,77 @@
 
 module halo_data_types
 
-  use global_parameters, only : FIELD_NAME_LEN
-  use futils
-  use mpi_interfaces
-  use reference_counting
+   use global_parameters, only : FIELD_NAME_LEN
+   use futils
+   use mpi_interfaces
+   use reference_counting
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: halo_type, halo_pointer
+   public :: halo_type, halo_pointer
 
-  !! Halo data types
-  integer, parameter, public :: HALO_TYPE_CG_NODE = 1,&
-       HALO_TYPE_DG_NODE = 2, &
-       HALO_TYPE_ELEMENT = 3
+   !! Halo data types
+   integer, parameter, public :: HALO_TYPE_CG_NODE = 1,&
+      HALO_TYPE_DG_NODE = 2, &
+      HALO_TYPE_ELEMENT = 3
 
-  !! Halo ordering schemes
-  integer, parameter, public :: HALO_ORDER_GENERAL = 1, &
-    & HALO_ORDER_TRAILING_RECEIVES = 2
+   !! Halo ordering schemes
+   integer, parameter, public :: HALO_ORDER_GENERAL = 1, &
+   & HALO_ORDER_TRAILING_RECEIVES = 2
 
-  !! Halo information type
-  type halo_type
-    !! Name of this halo
-    character(len = FIELD_NAME_LEN) :: name
-    !! Reference count for halo
-    type(refcount_type), pointer :: refcount => null()
+   !! Halo information type
+   type halo_type
+      !! Name of this halo
+      character(len = FIELD_NAME_LEN) :: name
+      !! Reference count for halo
+      type(refcount_type), pointer :: refcount => null()
 
-    !! Halo data type
-    integer :: data_type = 0
-    !! Ordering scheme for halo
-    integer :: ordering_scheme = 0
+      !! Halo data type
+      integer :: data_type = 0
+      !! Ordering scheme for halo
+      integer :: ordering_scheme = 0
 
-    !! The MPI communicator for this halo
+      !! The MPI communicator for this halo
 #ifdef HAVE_MPI
-    integer :: communicator
+      integer :: communicator
 #else
-    integer :: communicator = -1
+      integer :: communicator = -1
 #endif
-    !! The number of processes
-    integer :: nprocs = 0
-    !! The sends
-    type(integer_vector), dimension(:), pointer :: sends => null()
-    !! The receives
-    type(integer_vector), dimension(:), pointer :: receives => null()
+      !! The number of processes
+      integer :: nprocs = 0
+      !! The sends
+      type(integer_vector), dimension(:), pointer :: sends => null()
+      !! The receives
+      type(integer_vector), dimension(:), pointer :: receives => null()
 
-    !! The number of owned nodes
-    integer :: nowned_nodes = -1
+      !! The number of owned nodes
+      integer :: nowned_nodes = -1
 
-    !! Ownership cache
-    integer, dimension(:), pointer :: owners => null()
+      !! Ownership cache
+      integer, dimension(:), pointer :: owners => null()
 
-    ! Global to universal numbering mapping cache
-    !! Universal number of nodes
-    integer :: unn_count = -1
-    !! Base for owned nodes universal node numbering of each process:
-    integer, dimension(:), pointer :: owned_nodes_unn_base => null()
-    !! Base for owned nodes universal node numbering for this process
-    !! should be the same as owned_nodes_unn_base(rank+1):
-    integer :: my_owned_nodes_unn_base = -1
+      ! Global to universal numbering mapping cache
+      !! Universal number of nodes
+      integer :: unn_count = -1
+      !! Base for owned nodes universal node numbering of each process:
+      integer, dimension(:), pointer :: owned_nodes_unn_base => null()
+      !! Base for owned nodes universal node numbering for this process
+      !! should be the same as owned_nodes_unn_base(rank+1):
+      integer :: my_owned_nodes_unn_base = -1
 
-    !! Map from global to universal numbers for receives
-    integer, dimension(:), pointer :: receives_gnn_to_unn => null()
+      !! Map from global to universal numbers for receives
+      integer, dimension(:), pointer :: receives_gnn_to_unn => null()
 
-    !! Map from global to universal node numbers for all items.
-    !! This is required for halos which are not ordered by ownership.
-    integer, dimension(:), pointer :: gnn_to_unn => null()
-  end type halo_type
+      !! Map from global to universal node numbers for all items.
+      !! This is required for halos which are not ordered by ownership.
+      integer, dimension(:), pointer :: gnn_to_unn => null()
+   end type halo_type
 
-  type halo_pointer
-    !!< Dummy type to allow for arrays of pointers to halos
-    type(halo_type), pointer :: ptr => null()
-  end type halo_pointer
+   type halo_pointer
+      !!< Dummy type to allow for arrays of pointers to halos
+      type(halo_type), pointer :: ptr => null()
+   end type halo_pointer
 
 end module halo_data_types

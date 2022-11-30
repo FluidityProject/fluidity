@@ -29,32 +29,32 @@
 
 subroutine test_1d_pickers
 
-  use fields
-  use fldebug
-  use pickers
-  use mesh_files
-  use unittest_tools
+   use fields
+   use fldebug
+   use pickers
+   use mesh_files
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  integer :: ele
-  type(vector_field) :: positions
+   integer :: ele
+   type(vector_field) :: positions
 
-  positions = read_mesh_files("data/interval", quad_degree = 1, format="gmsh")
+   positions = read_mesh_files("data/interval", quad_degree = 1, format="gmsh")
 
-  call report_test("[Picker pointer allocated]", .not. associated(positions%picker), .false., "Picker pointer not allocated")
-  call report_test("[No picker attached]", associated(positions%picker%ptr), .false., "Picker already attached")
+   call report_test("[Picker pointer allocated]", .not. associated(positions%picker), .false., "Picker pointer not allocated")
+   call report_test("[No picker attached]", associated(positions%picker%ptr), .false., "Picker already attached")
 
-  call picker_inquire(positions, (/-1.0 /), ele)
-  call report_test("[Point not contained]", ele > 0, .false., "Incorrectly reported point contained in mesh")
+   call picker_inquire(positions, (/-1.0 /), ele)
+   call report_test("[Point not contained]", ele > 0, .false., "Incorrectly reported point contained in mesh")
 
-  call report_test("[Picker cached]", .not. associated(positions%picker%ptr), .false., "Picker not cached")
+   call report_test("[Picker cached]", .not. associated(positions%picker%ptr), .false., "Picker not cached")
 
-  call picker_inquire(positions, (/ 0.25 /), ele)
-  call report_test("[Point contained]", ele /= 3, .false., "Reported incorrect containing element")
+   call picker_inquire(positions, (/ 0.25 /), ele)
+   call report_test("[Point contained]", ele /= 3, .false., "Reported incorrect containing element")
 
-  call deallocate(positions)
+   call deallocate(positions)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
 end subroutine test_1d_pickers

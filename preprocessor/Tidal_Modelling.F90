@@ -41,53 +41,53 @@ module Tidal_module
    private
 
    public :: find_chi, equilibrium_tide, get_tidal_frequency, &
-             &compute_pressure_and_tidal_gradient, &
-             &calculate_diagnostic_equilibrium_pressure,&
-             &calculate_shelf_depth
+   &compute_pressure_and_tidal_gradient, &
+   &calculate_diagnostic_equilibrium_pressure,&
+   &calculate_shelf_depth
 
 contains
 
-  function get_tidal_frequency(constituent) result(frequency)
-    character(len=*), intent(in)::constituent
-    real frequency
+   function get_tidal_frequency(constituent) result(frequency)
+      character(len=*), intent(in)::constituent
+      real frequency
 
-    ! Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
-    ! No. 1 pp. 243--268, 1980
-    select case(trim(constituent))
-    case("M2")
-       if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
-           call get_option("/ocean_forcing/tidal_forcing/M2/frequency",frequency)
-       else
-           frequency = 1.40519E-04
-       end if
-    case("S2")
-       frequency = 1.45444E-04
-    case("N2")
-       frequency = 1.3788E-04
-    case("K2")
-       frequency = 1.45842E-04
-    case("K1")
-       frequency = 0.72921E-04
-    case("O1")
-       frequency = 0.67598E-04
-    case("P1")
-       frequency = 0.72523E-04
-    case("Q1")
-       frequency = 0.64959E-04
-    case("Mf")
-       frequency = 0.053234E-04
-    case("Mm")
-       frequency = 0.026392E-04
-    case("Ssa")
-       frequency = 0.003982E-04
-    case default
-       write(0, *) "constituent = ", constituent
-       FLAbort("Unknown tidal constituent")
-    end select
+      ! Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+      ! No. 1 pp. 243--268, 1980
+      select case(trim(constituent))
+       case("M2")
+         if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
+            call get_option("/ocean_forcing/tidal_forcing/M2/frequency",frequency)
+         else
+            frequency = 1.40519E-04
+         end if
+       case("S2")
+         frequency = 1.45444E-04
+       case("N2")
+         frequency = 1.3788E-04
+       case("K2")
+         frequency = 1.45842E-04
+       case("K1")
+         frequency = 0.72921E-04
+       case("O1")
+         frequency = 0.67598E-04
+       case("P1")
+         frequency = 0.72523E-04
+       case("Q1")
+         frequency = 0.64959E-04
+       case("Mf")
+         frequency = 0.053234E-04
+       case("Mm")
+         frequency = 0.026392E-04
+       case("Ssa")
+         frequency = 0.003982E-04
+       case default
+         write(0, *) "constituent = ", constituent
+         FLAbort("Unknown tidal constituent")
+      end select
 
-  end function get_tidal_frequency
+   end function get_tidal_frequency
 
-    SUBROUTINE FIND_CHI(CHI,NCHI,ACCTIM,HORIZ_RESCALE)
+   SUBROUTINE FIND_CHI(CHI,NCHI,ACCTIM,HORIZ_RESCALE)
 
       INTEGER  NCHI,I
       REAL     CHI(NCHI),ACCTIM,HORIZ_RESCALE,TIM
@@ -156,12 +156,12 @@ contains
       CHI(12) = 0.0
 !c Convert to Radians
       do I=1,NCHI       ! Was loop
-        CHI(I) = CHI(I)/DEGRAD
+         CHI(I) = CHI(I)/DEGRAD
       ENDDO
 
-    END SUBROUTINE FIND_CHI
+   END SUBROUTINE FIND_CHI
 
-    FUNCTION equilibrium_tide(which_tide,LAT,LONG,ACCTIM,HORIZ_RESCALE) result(eqtide)
+   FUNCTION equilibrium_tide(which_tide,LAT,LONG,ACCTIM,HORIZ_RESCALE) result(eqtide)
 
       logical, dimension(11), intent(in) ::  which_tide(11)
       REAL, intent(in) ::     LAT,LONG,ACCTIM,HORIZ_RESCALE ! HORIZ_RESCALE is normally set to 1.0
@@ -194,14 +194,14 @@ contains
       real, dimension(nchi) :: chi
 
       if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
-        call get_option("/ocean_forcing/tidal_forcing/M2/frequency", M2FREQ)
+         call get_option("/ocean_forcing/tidal_forcing/M2/frequency", M2FREQ)
       else
-        M2FREQ = 1.40519E-04
+         M2FREQ = 1.40519E-04
       end if
       if (have_option("/ocean_forcing/tidal_forcing/M2/amplitude")) then
-        call get_option("/ocean_forcing/tidal_forcing/M2/amplitude", M2AMP)
+         call get_option("/ocean_forcing/tidal_forcing/M2/amplitude", M2AMP)
       else
-        M2AMP = 0.242334
+         M2AMP = 0.242334
       end if
 
       eqtide   = 0.0
@@ -211,10 +211,10 @@ contains
       TIME     = ACCTIM*HORIZ_RESCALE
 
       if (have_option('/ocean_forcing/tidal_forcing/chi')) then
-        ! Calculate chi
-        call FIND_CHI(chi, nchi, acctim, horiz_rescale)
+         ! Calculate chi
+         call FIND_CHI(chi, nchi, acctim, horiz_rescale)
       else
-        chi = 0
+         chi = 0
       end if
 
 
@@ -257,25 +257,25 @@ contains
          eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME + chi(11))
       ENDIF
 
-    END FUNCTION EQUILIBRIUM_TIDE
+   END FUNCTION EQUILIBRIUM_TIDE
 
-    function calculate_shelf_depth(x) result (depth)
-       real, intent(in) :: x
-       real :: depth
+   function calculate_shelf_depth(x) result (depth)
+      real, intent(in) :: x
+      real :: depth
       ! TODO (asc): clean up these values
-       real :: shelflength      =  500000
-       real :: shelfslopeheight =  900
-       real :: minoceandepth    =  100
-       real :: oceandepth       = 1000
+      real :: shelflength      =  500000
+      real :: shelfslopeheight =  900
+      real :: minoceandepth    =  100
+      real :: oceandepth       = 1000
 
-       if (x .le. shelflength) then
+      if (x .le. shelflength) then
          depth = ( ((x/shelflength) * shelfslopeheight + minoceandepth) - oceandepth )
-       else
+      else
          depth = 0.0
-       end if
-    end function calculate_shelf_depth
+      end if
+   end function calculate_shelf_depth
 
-    subroutine calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+   subroutine calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: equilibrium_pressure
 
@@ -297,12 +297,12 @@ contains
       positions => extract_vector_field(state, "Coordinate")
 
       if(positions%mesh == equilibrium_pressure%mesh) then
-        positions_mapped_to_equilibrium_pressure_space => positions
+         positions_mapped_to_equilibrium_pressure_space => positions
       else
-        allocate(positions_mapped_to_equilibrium_pressure_space)
-        call allocate(positions_mapped_to_equilibrium_pressure_space, positions%dim, &
-          & equilibrium_pressure%mesh, "CoordinateMappedToEquilibriumPressureSpace")
-        call remap_field(positions, positions_mapped_to_equilibrium_pressure_space)
+         allocate(positions_mapped_to_equilibrium_pressure_space)
+         call allocate(positions_mapped_to_equilibrium_pressure_space, positions%dim, &
+         & equilibrium_pressure%mesh, "CoordinateMappedToEquilibriumPressureSpace")
+         call remap_field(positions, positions_mapped_to_equilibrium_pressure_space)
       end if
 
       call get_option('/ocean_forcing/shelf/amplitude', ep_amplitude, default=1.0)
@@ -332,9 +332,9 @@ contains
       do node=1,node_count(positions_mapped_to_equilibrium_pressure_space)
          x = node_val(positions_mapped_to_equilibrium_pressure_space,node)
          if (x(1) .le. shelflength) then
-           shelfdepth = depthsign * ( ((x(1)/shelflength) * shelfslopeheight + minoceandepth) - oceandepth )
+            shelfdepth = depthsign * ( ((x(1)/shelflength) * shelfslopeheight + minoceandepth) - oceandepth )
          else
-           shelfdepth = 0.0
+            shelfdepth = 0.0
          end if
          if (include_density_change_of_ice) then
             ! TODO (asc): clean up these values
@@ -352,13 +352,13 @@ contains
       end do
 
       if(.not. positions%mesh == equilibrium_pressure%mesh) then
-        call deallocate(positions_mapped_to_equilibrium_pressure_space)
-        deallocate(positions_mapped_to_equilibrium_pressure_space)
+         call deallocate(positions_mapped_to_equilibrium_pressure_space)
+         deallocate(positions_mapped_to_equilibrium_pressure_space)
       end if
 
-    end subroutine calculate_diagnostic_equilibrium_pressure
+   end subroutine calculate_diagnostic_equilibrium_pressure
 
-    subroutine compute_pressure_and_tidal_gradient(state, delta_u, ct_m, p_theta, position)
+   subroutine compute_pressure_and_tidal_gradient(state, delta_u, ct_m, p_theta, position)
       ! computes gradient of pressure and tidal forcing term
       ! to be added to the momentum rhs
       type(state_type), intent(inout):: state
@@ -394,7 +394,7 @@ contains
          call incref(equilibrium_pressure)
       end if
       if (stat==0) then
-        call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+         call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
       end if
 
 
@@ -410,65 +410,65 @@ contains
             which_tide=.true.
          else
             if (have_option('/ocean_forcing/tidal_forcing/M2')) &
-                 & which_tide(1)=.true.
+            & which_tide(1)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/S2')) &
-                 & which_tide(2)=.true.
+            & which_tide(2)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/N2')) &
-                 & which_tide(3)=.true.
+            & which_tide(3)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/K2')) &
-                 & which_tide(4)=.true.
+            & which_tide(4)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/K1')) &
-                 & which_tide(5)=.true.
+            & which_tide(5)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/O1')) &
-                 & which_tide(6)=.true.
+            & which_tide(6)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/P1')) &
-                 & which_tide(7)=.true.
+            & which_tide(7)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/Q1')) &
-                 & which_tide(8)=.true.
+            & which_tide(8)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/Mf')) &
-                 & which_tide(9)=.true.
+            & which_tide(9)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/Mm')) &
-                 & which_tide(10)=.true.
+            & which_tide(10)=.true.
             if (have_option('/ocean_forcing/tidal_forcing/Ssa')) &
-                 & which_tide(11)=.true.
+            & which_tide(11)=.true.
          end if
          if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
-              & then
-           call get_option('/ocean_forcing/tidal_forcing/love_number/value', love_number)
-        else
-           love_number=1.0
-        end if
+         & then
+            call get_option('/ocean_forcing/tidal_forcing/love_number/value', love_number)
+         else
+            love_number=1.0
+         end if
 
-        call get_option("/timestepping/current_time", current_time)
-        call get_option('/physical_parameters/gravity/magnitude',&
-             & gravity_magnitude)
-        ! Simple scalar Self-Attraction and Loading term (SAL)
-        call get_option('/ocean_forcing/tidal_forcing/sal/beta', beta, default=0.0)
+         call get_option("/timestepping/current_time", current_time)
+         call get_option('/physical_parameters/gravity/magnitude',&
+         & gravity_magnitude)
+         ! Simple scalar Self-Attraction and Loading term (SAL)
+         call get_option('/ocean_forcing/tidal_forcing/sal/beta', beta, default=0.0)
 
-        if (have_option('/ocean_forcing/tidal_forcing')) then
-           if (have_option('/geometry/spherical_earth/')) then
-             do node=1,node_count(positions_mapped_to_pressure_space)
-                call LongitudeLatitude(node_val(positions_mapped_to_pressure_space,node), long,&
-                     & lat)
-                sal_term = node_val(free_surface,node)* beta
-                eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
-                     &,long*acos(-1.0)/180.0,current_time,1.0)
-                eqtide=love_number*eqtide - sal_term
-                call set(tidal_pressure, node, eqtide*gravity_magnitude)
-              end do
-           else
-              ewrite(-1,*) "Tidal forcing in non spherical geometries"//&
-                   &"is yet to be added. Would you like "//&
-                   &"to add this functionality?"
-              FLExit('Exiting as code missing')
-           end if
-        end if
+         if (have_option('/ocean_forcing/tidal_forcing')) then
+            if (have_option('/geometry/spherical_earth/')) then
+               do node=1,node_count(positions_mapped_to_pressure_space)
+                  call LongitudeLatitude(node_val(positions_mapped_to_pressure_space,node), long,&
+                  & lat)
+                  sal_term = node_val(free_surface,node)* beta
+                  eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
+                  &,long*acos(-1.0)/180.0,current_time,1.0)
+                  eqtide=love_number*eqtide - sal_term
+                  call set(tidal_pressure, node, eqtide*gravity_magnitude)
+               end do
+            else
+               ewrite(-1,*) "Tidal forcing in non spherical geometries"//&
+               &"is yet to be added. Would you like "//&
+               &"to add this functionality?"
+               FLExit('Exiting as code missing')
+            end if
+         end if
       end if
 
       do node=1,node_count(positions_mapped_to_pressure_space)
          call set(combined_p, node, node_val(p_theta, node) - node_val(tidal_pressure, node))
          call set(combined_p, node, node_val(p_theta, node) - node_val(tidal_pressure, node) &
-          & - node_val(equilibrium_pressure, node) )
+         & - node_val(equilibrium_pressure, node) )
       end do
 
       call mult_T(delta_u, ct_m, combined_p)
@@ -478,6 +478,6 @@ contains
       call deallocate(equilibrium_pressure)
       call deallocate(positions_mapped_to_pressure_space)
 
-    end subroutine compute_pressure_and_tidal_gradient
+   end subroutine compute_pressure_and_tidal_gradient
 
 end module Tidal_module

@@ -29,36 +29,36 @@
 
 module pickers_base
 
-  use fldebug
-  use picker_data_types
+   use fldebug
+   use picker_data_types
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: picker_name, set_picker_name
+   public :: picker_name, set_picker_name
 
 contains
 
-  pure function picker_name(picker)
-    !!< Return the name of the supplied picker
+   pure function picker_name(picker)
+      !!< Return the name of the supplied picker
 
-    type(picker_type), intent(in) :: picker
+      type(picker_type), intent(in) :: picker
 
-    character(len = len_trim(picker%name)) :: picker_name
+      character(len = len_trim(picker%name)) :: picker_name
 
-    picker_name = picker%name
+      picker_name = picker%name
 
-  end function picker_name
+   end function picker_name
 
-  subroutine set_picker_name(picker, name)
-    !!< Set the name of the supplied picker
+   subroutine set_picker_name(picker, name)
+      !!< Set the name of the supplied picker
 
-    type(picker_type), intent(inout) :: picker
-    character(len = *), intent(in) :: name
+      type(picker_type), intent(inout) :: picker
+      character(len = *), intent(in) :: name
 
-    picker%name = name
+      picker%name = name
 
-  end subroutine set_picker_name
+   end subroutine set_picker_name
 
 end module pickers_base

@@ -26,38 +26,38 @@
 !    USA
 #include "fdebug.h"
 
-  subroutine test_ispcolouring
-  use sparse_tools
-  use fields_data_types
-  use fields_manipulation
-  use state_module
-  use vtk_interfaces
-  use colouring
-  use sparsity_patterns
-  use unittest_tools
-  use mesh_files
-  implicit none
+subroutine test_ispcolouring
+   use sparse_tools
+   use fields_data_types
+   use fields_manipulation
+   use state_module
+   use vtk_interfaces
+   use colouring
+   use sparsity_patterns
+   use unittest_tools
+   use mesh_files
+   implicit none
 
-  type(vector_field) :: positions
-  type(mesh_type)  :: mesh
-  type(csr_sparsity) :: sparsity
-  type(csr_sparsity) :: isp_sparsity
-  logical :: fail=.false.
-  type(scalar_field) :: node_colour
-  integer :: no_colours
+   type(vector_field) :: positions
+   type(mesh_type)  :: mesh
+   type(csr_sparsity) :: sparsity
+   type(csr_sparsity) :: isp_sparsity
+   logical :: fail=.false.
+   type(scalar_field) :: node_colour
+   integer :: no_colours
 
-  positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
-  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
-  sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
+   positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
+   mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
+   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
-  isp_sparsity=mat_sparsity_to_isp_sparsity(sparsity)
+   isp_sparsity=mat_sparsity_to_isp_sparsity(sparsity)
 
-  call colour_sparsity(isp_sparsity, mesh, node_colour, no_colours)
+   call colour_sparsity(isp_sparsity, mesh, node_colour, no_colours)
 
-  fail=.not. verify_colour_sparsity(isp_sparsity, node_colour)
-  call report_test("colour sets", fail, .false., "the adjacency sparsity colouring is not valid")
+   fail=.not. verify_colour_sparsity(isp_sparsity, node_colour)
+   call report_test("colour sets", fail, .false., "the adjacency sparsity colouring is not valid")
 
-  fail=.not. verify_colour_ispsparsity(sparsity, node_colour)
-  call report_test("colour sets", fail, .false., "the csr sparcity colouring is not valid")
+   fail=.not. verify_colour_ispsparsity(sparsity, node_colour)
+   call report_test("colour sets", fail, .false., "the csr sparcity colouring is not valid")
 
-  end subroutine test_ispcolouring
+end subroutine test_ispcolouring

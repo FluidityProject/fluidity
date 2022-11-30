@@ -26,44 +26,44 @@
 !    USA
 
 subroutine test_adaptive_timestepping
-  !!< Test adaptive timestepping
+   !!< Test adaptive timestepping
 
-  use adaptive_timestepping
-  use fields
-  use fields_data_types
-  use mesh_files
-  use unittest_tools
+   use adaptive_timestepping
+   use fields
+   use fields_data_types
+   use mesh_files
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  real :: dt
-  type(scalar_field) :: cflnumber_field
-  type(vector_field) :: mesh_field
+   real :: dt
+   type(scalar_field) :: cflnumber_field
+   type(vector_field) :: mesh_field
 
-  mesh_field = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
+   mesh_field = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
 
-  call allocate(cflnumber_field, mesh_field%mesh, "CFLNumber")
+   call allocate(cflnumber_field, mesh_field%mesh, "CFLNumber")
 
-  call set(cflnumber_field, 0.1)
+   call set(cflnumber_field, 0.1)
 
-  dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
-  call report_test("[Correct timestep size (increasing dt)]", dt .fne. 10.0, .false., "Incorrect timestep size")
+   dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
+   call report_test("[Correct timestep size (increasing dt)]", dt .fne. 10.0, .false., "Incorrect timestep size")
 
-  dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = 5.0, increase_tolerance = huge(0.0) * epsilon(0.0))
-  call report_test("[Max timestep size (set via max_dt)]", dt .fne. 5.0, .false., "Incorrect timestep size")
+   dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = 5.0, increase_tolerance = huge(0.0) * epsilon(0.0))
+   call report_test("[Max timestep size (set via max_dt)]", dt .fne. 5.0, .false., "Incorrect timestep size")
 
-  dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = 5.0)
-  call report_test("[Max timestep size (set via increase_tolerance)]", dt .fne. 5.0, .false., "Incorrect timestep size")
+   dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = 5.0)
+   call report_test("[Max timestep size (set via increase_tolerance)]", dt .fne. 5.0, .false., "Incorrect timestep size")
 
-  call set(cflnumber_field, 10.0)
+   call set(cflnumber_field, 10.0)
 
-  dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
-  call report_test("[Correct timestep size (decreasing dt)]", dt .fne. 0.1, .false., "Incorrect timestep size")
+   dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = tiny(0.0), max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
+   call report_test("[Correct timestep size (decreasing dt)]", dt .fne. 0.1, .false., "Incorrect timestep size")
 
-  dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = 0.2, max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
-  call report_test("[Min timestep size]", dt .fne. 0.2, .false., "Incorrect timestep size")
+   dt = cflnumber_field_based_dt(cflnumber_field, current_dt = 1.0, max_cfl_requested = 1.0, min_dt = 0.2, max_dt = huge(0.0), increase_tolerance = huge(0.0) * epsilon(0.0))
+   call report_test("[Min timestep size]", dt .fne. 0.2, .false., "Incorrect timestep size")
 
-  call deallocate(cflnumber_field)
-  call deallocate(mesh_field)
+   call deallocate(cflnumber_field)
+   call deallocate(mesh_field)
 
 end subroutine test_adaptive_timestepping

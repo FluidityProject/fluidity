@@ -29,33 +29,33 @@
 
 module assemble_CMC
 
-  use fldebug
-  use spud
-  use global_parameters, only: OPTION_PATH_LEN
-  use sparse_tools
-  use linked_lists
-  use elements
-  use transform_elements
-  use fetools, only: shape_shape
-  use fields
-  use sparse_tools_petsc
-  use state_module
-  use boundary_conditions
-  use sparse_matrices_fields
-  use field_options
-  use fefields
+   use fldebug
+   use spud
+   use global_parameters, only: OPTION_PATH_LEN
+   use sparse_tools
+   use linked_lists
+   use elements
+   use transform_elements
+   use fetools, only: shape_shape
+   use fields
+   use sparse_tools_petsc
+   use state_module
+   use boundary_conditions
+   use sparse_matrices_fields
+   use field_options
+   use fefields
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: assemble_cmc_dg, assemble_masslumped_cmc, &
-            assemble_masslumped_ctm, repair_stiff_nodes, zero_stiff_nodes, &
-            assemble_diagonal_schur, assemble_scaled_pressure_mass_matrix
+   public :: assemble_cmc_dg, assemble_masslumped_cmc, &
+      assemble_masslumped_ctm, repair_stiff_nodes, zero_stiff_nodes, &
+      assemble_diagonal_schur, assemble_scaled_pressure_mass_matrix
 
 contains
 
-    subroutine assemble_cmc_dg(CMC, CTP, CT, inverse_mass)
+   subroutine assemble_cmc_dg(CMC, CTP, CT, inverse_mass)
       !!< Assemble the pressure matrix C^T M^{-1} C for a DG mesh.
       !!< This currently does not support rotations.
       type(csr_matrix), intent(inout) :: CMC
@@ -114,9 +114,9 @@ contains
 
       ewrite_minmax(cmc)
 
-    end subroutine assemble_cmc_dg
+   end subroutine assemble_cmc_dg
 
-    subroutine assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump, ct_m)
+   subroutine assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump, ct_m)
       !!< Assemble the pressure matrix C_P^T M_l^{-1} C.
       !!< This currently does not support rotations.
 
@@ -132,9 +132,9 @@ contains
 
       ewrite_minmax(cmc_m)
 
-    end subroutine assemble_masslumped_cmc
+   end subroutine assemble_masslumped_cmc
 
-    subroutine assemble_diagonal_schur(schur_diagonal_matrix,u,inner_m,ctp_m,ct_m)
+   subroutine assemble_diagonal_schur(schur_diagonal_matrix,u,inner_m,ctp_m,ct_m)
       !!< Assemble the matrix C_P^T * [(Big_m)_diagonal]^-1 * C.
       !!< This is used as a preconditioner for the full projection solve
       !!< when using the full momentum matrix.
@@ -160,8 +160,8 @@ contains
 
       ewrite_minmax(inner_m_diagonal)
       if(any(inner_m_diagonal%val < 0)) then
-        ewrite(-1,*) 'Inner_m_diagonal has negative values'
-        FLExit("Negative values in the diagonal schur complement preconditioner")
+         ewrite(-1,*) 'Inner_m_diagonal has negative values'
+         FLExit("Negative values in the diagonal schur complement preconditioner")
 
       end if
 
@@ -171,9 +171,9 @@ contains
       ewrite_minmax(schur_diagonal_matrix)
       call deallocate(inner_m_diagonal)
 
-    end subroutine assemble_diagonal_schur
+   end subroutine assemble_diagonal_schur
 
-    subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh, dt)
+   subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh, dt)
 
       ! This routine assembles the scaled_pressure_mass_matrix at the
       ! quadrature points. It is scaled by the inverse of viscosity.
@@ -213,27 +213,27 @@ contains
 
       ! Initialise and assemble scaled pressure mass matrix:
       allocate(detwei(ele_ngi(p_mesh, 1)), &
-               mass_matrix(ele_loc(p_mesh, 1), ele_loc(p_mesh, 1)), &
-               mu_gi(ele_ngi(viscosity_component, 1)))
+         mass_matrix(ele_loc(p_mesh, 1), ele_loc(p_mesh, 1)), &
+         mu_gi(ele_ngi(viscosity_component, 1)))
 
       call zero(scaled_pressure_mass_matrix)
 
       do ele = 1, ele_count(p_mesh)
-        p_shape => ele_shape(p_mesh, ele)
-        mu_gi = ele_val_at_quad(viscosity_component, ele)
-        call transform_to_physical(positions, ele, detwei=detwei)
-        mass_matrix = shape_shape(p_shape, p_shape, detwei/(mu_gi*dt))
-        call addto(scaled_pressure_mass_matrix, ele_nodes(p_mesh, ele),&
-             ele_nodes(p_mesh, ele), mass_matrix)
+         p_shape => ele_shape(p_mesh, ele)
+         mu_gi = ele_val_at_quad(viscosity_component, ele)
+         call transform_to_physical(positions, ele, detwei=detwei)
+         mass_matrix = shape_shape(p_shape, p_shape, detwei/(mu_gi*dt))
+         call addto(scaled_pressure_mass_matrix, ele_nodes(p_mesh, ele),&
+            ele_nodes(p_mesh, ele), mass_matrix)
       end do
 
       ewrite_minmax(scaled_pressure_mass_matrix)
 
       deallocate(detwei, mass_matrix, mu_gi)
 
-    end subroutine assemble_scaled_pressure_mass_matrix
+   end subroutine assemble_scaled_pressure_mass_matrix
 
-    subroutine repair_stiff_nodes(cmc_m, stiff_nodes_list)
+   subroutine repair_stiff_nodes(cmc_m, stiff_nodes_list)
 
       type(csr_matrix), intent(inout) :: cmc_m
       type(ilist), intent(inout) :: stiff_nodes_list
@@ -252,23 +252,23 @@ contains
       call flush_list(stiff_nodes_list)
 
       do row = 1, size(cmc_m, 1)
-        row_diag=>diag_val_ptr(cmc_m, row)
-        row_m=>row_m_ptr(cmc_m, row)
-        row_val=>row_val_ptr(cmc_m, row)
-        if(row_diag<tolerance) then
-          ewrite(2,*) 'before, row, row_diag, sum(row_val) = ', row, row_diag, sum(abs(row_val))
-          where(cmc_m%sparsity%colm==row) cmc_m%val = 0.0
-          call zero_row(cmc_m, row)
-          call addto_diag(cmc_m, row, 1.0)
-          call insert(stiff_nodes_list, row)
-        end if
+         row_diag=>diag_val_ptr(cmc_m, row)
+         row_m=>row_m_ptr(cmc_m, row)
+         row_val=>row_val_ptr(cmc_m, row)
+         if(row_diag<tolerance) then
+            ewrite(2,*) 'before, row, row_diag, sum(row_val) = ', row, row_diag, sum(abs(row_val))
+            where(cmc_m%sparsity%colm==row) cmc_m%val = 0.0
+            call zero_row(cmc_m, row)
+            call addto_diag(cmc_m, row, 1.0)
+            call insert(stiff_nodes_list, row)
+         end if
       end do
 
       call print_list(stiff_nodes_list, 2)
 
-    end subroutine repair_stiff_nodes
+   end subroutine repair_stiff_nodes
 
-    subroutine zero_stiff_nodes(rhs, stiff_nodes_list)
+   subroutine zero_stiff_nodes(rhs, stiff_nodes_list)
 
       type(scalar_field), intent(inout) :: rhs
       type(ilist), intent(in) :: stiff_nodes_list
@@ -278,13 +278,13 @@ contains
       ewrite(1,*) 'in zero_stiff_nodes()'
 
       if(stiff_nodes_list%length>0) then
-        ewrite(2,*) 'before node_val = ', node_val(rhs, list2vector(stiff_nodes_list))
-        call set(rhs, list2vector(stiff_nodes_list), spread(0.0, 1, stiff_nodes_list%length))
+         ewrite(2,*) 'before node_val = ', node_val(rhs, list2vector(stiff_nodes_list))
+         call set(rhs, list2vector(stiff_nodes_list), spread(0.0, 1, stiff_nodes_list%length))
       end if
 
-    end subroutine zero_stiff_nodes
+   end subroutine zero_stiff_nodes
 
-    subroutine assemble_masslumped_ctm(ctm_m, ctp_m, masslump)
+   subroutine assemble_masslumped_ctm(ctm_m, ctp_m, masslump)
       !!< Assemble the matrix C_P^T M_l^{-1}
       !!< This currently does not support rotations.
 
@@ -304,19 +304,19 @@ contains
 
       do dim = 1, ctm_m%blocks(2)
 
-        lctm_m_block = block(ctm_m, 1, dim)
+         lctm_m_block = block(ctm_m, 1, dim)
 
-        do row = 1, size(ctp_m, 1)
-          row_indices=>row_m_ptr(ctp_m, row)
-          row_val=>row_val_ptr(ctp_m, 1, dim, row)
-          call set(lctm_m_block, (/row/), row_indices, &
-                  spread((row_val/node_val(masslump, row_indices)), 1, 1))
-        end do
+         do row = 1, size(ctp_m, 1)
+            row_indices=>row_m_ptr(ctp_m, row)
+            row_val=>row_val_ptr(ctp_m, 1, dim, row)
+            call set(lctm_m_block, (/row/), row_indices, &
+               spread((row_val/node_val(masslump, row_indices)), 1, 1))
+         end do
 
       end do
 
       ewrite_minmax(ctm_m)
 
-    end subroutine assemble_masslumped_ctm
+   end subroutine assemble_masslumped_ctm
 
 end module assemble_cmc

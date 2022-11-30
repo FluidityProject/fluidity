@@ -32,9 +32,9 @@ subroutine test_tensor_inner_product
    implicit none
 
    interface
-     function solution()
-        real, dimension(1) :: solution
-     end function
+      function solution()
+         real, dimension(1) :: solution
+      end function
    end interface
 
    ! The two input matrices, A and B.
@@ -56,6 +56,6 @@ subroutine test_tensor_inner_product
 end subroutine test_tensor_inner_product
 
 function solution()
-  real, dimension(1) :: solution
-  solution = (/570.0/)
+   real, dimension(1) :: solution
+   solution = (/570.0/)
 end function solution

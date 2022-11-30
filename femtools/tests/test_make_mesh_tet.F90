@@ -29,105 +29,105 @@
 
 subroutine test_make_mesh_tet
 
-  use futils, only: int2str
-  use element_numbering, only: FAMILY_SIMPLEX, te
-  use elements
-  use fields
-  use fldebug
-  use mesh_files
-  use unittest_tools
+   use futils, only: int2str
+   use element_numbering, only: FAMILY_SIMPLEX, te
+   use elements
+   use fields
+   use fldebug
+   use mesh_files
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  integer :: degree, ele, node
-  integer, parameter :: min_degree = 1, max_degree = 3
-  logical :: fail
-  real, dimension(:, :), allocatable :: l_coords, otn_l_coords
-  type(element_type) :: derived_shape
-  type(element_type), pointer :: base_shape
-  type(mesh_type) :: derived_mesh
-  type(mesh_type), pointer :: base_mesh
-  type(vector_field) :: positions_remap
-  type(vector_field), target :: positions
+   integer :: degree, ele, node
+   integer, parameter :: min_degree = 1, max_degree = 3
+   logical :: fail
+   real, dimension(:, :), allocatable :: l_coords, otn_l_coords
+   type(element_type) :: derived_shape
+   type(element_type), pointer :: base_shape
+   type(mesh_type) :: derived_mesh
+   type(mesh_type), pointer :: base_mesh
+   type(vector_field) :: positions_remap
+   type(vector_field), target :: positions
 
-  positions = read_mesh_files("data/cube.3", quad_degree = 1, format="gmsh")
-  base_mesh => positions%mesh
-  base_shape => ele_shape(base_mesh, 1)
-  call report_test("[Linear tet input mesh]", &
-    & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 3, .false., &
-    & "Input mesh not composed of linear tets")
+   positions = read_mesh_files("data/cube.3", quad_degree = 1, format="gmsh")
+   base_mesh => positions%mesh
+   base_shape => ele_shape(base_mesh, 1)
+   call report_test("[Linear tet input mesh]", &
+   & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 3, .false., &
+   & "Input mesh not composed of linear tets")
 
-  do degree = min_degree, max_degree
-    print "(a,i0)", "Degree = ", degree
+   do degree = min_degree, max_degree
+      print "(a,i0)", "Degree = ", degree
 
-    derived_shape = make_element_shape(base_shape, degree = degree)
-    call report_test("[Derived loc]", &
+      derived_shape = make_element_shape(base_shape, degree = degree)
+      call report_test("[Derived loc]", &
       & derived_shape%loc /= te(degree + 1), .false., &
       & "Incorrect local node count")
 
-    derived_mesh = make_mesh(base_mesh, derived_shape)
-    call report_test("[Derived ele_count]", &
+      derived_mesh = make_mesh(base_mesh, derived_shape)
+      call report_test("[Derived ele_count]", &
       & ele_count(derived_mesh) /= ele_count(base_mesh), .false., &
       & "Incorrect element count")
 
-    call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
-    call remap_field(positions, positions_remap)
-    allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
-    otn_l_coords = tet_otn_local_coords(degree)
-    allocate(l_coords(base_shape%loc, derived_shape%loc))
-    fail = .false.
-    ele_loop: do ele = 1, ele_count(derived_mesh)
-      fail = ele_loc(derived_mesh, ele) /= derived_shape%loc
-      if(fail) exit ele_loop
+      call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
+      call remap_field(positions, positions_remap)
+      allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
+      otn_l_coords = tet_otn_local_coords(degree)
+      allocate(l_coords(base_shape%loc, derived_shape%loc))
+      fail = .false.
+      ele_loop: do ele = 1, ele_count(derived_mesh)
+         fail = ele_loc(derived_mesh, ele) /= derived_shape%loc
+         if(fail) exit ele_loop
 
-      l_coords = local_coords(positions, ele, ele_val(positions_remap, ele))
-      fail = fnequals(l_coords, otn_l_coords, tol = 1.0e3 * epsilon(0.0))
-      if(fail) then
-        do node = 1, size(l_coords, 2)
-          print *, node, l_coords(:, node)
-          print *, node, otn_l_coords(:, node)
-        end do
-        exit ele_loop
-      end if
-    end do ele_loop
-    deallocate(l_coords)
-    deallocate(otn_l_coords)
-    call deallocate(positions_remap)
+         l_coords = local_coords(positions, ele, ele_val(positions_remap, ele))
+         fail = fnequals(l_coords, otn_l_coords, tol = 1.0e3 * epsilon(0.0))
+         if(fail) then
+            do node = 1, size(l_coords, 2)
+               print *, node, l_coords(:, node)
+               print *, node, otn_l_coords(:, node)
+            end do
+            exit ele_loop
+         end if
+      end do ele_loop
+      deallocate(l_coords)
+      deallocate(otn_l_coords)
+      call deallocate(positions_remap)
 
-    call report_test("[Derived mesh numbering]", fail, .false., "Invalid derived mesh numbering, failed on element " // int2str(ele))
+      call report_test("[Derived mesh numbering]", fail, .false., "Invalid derived mesh numbering, failed on element " // int2str(ele))
 
-    call deallocate(derived_shape)
-    call deallocate(derived_mesh)
-  end do
+      call deallocate(derived_shape)
+      call deallocate(derived_mesh)
+   end do
 
-  call deallocate(positions)
-  call report_test_no_references()
+   call deallocate(positions)
+   call report_test_no_references()
 
 contains
 
-  function tet_otn_local_coords(degree) result(l_coords)
-    !!< Return the node local coords according to the One True Element Numbering
+   function tet_otn_local_coords(degree) result(l_coords)
+      !!< Return the node local coords according to the One True Element Numbering
 
-    integer, intent(in) :: degree
+      integer, intent(in) :: degree
 
-    integer :: i, index, j, k
-    real, dimension(4, te(degree + 1)) :: l_coords
+      integer :: i, index, j, k
+      real, dimension(4, te(degree + 1)) :: l_coords
 
-    index = 1
-    do i = 0, degree
-      do j = 0, degree - i
-        do k = 0, degree - (i + j)
-          assert(index <= size(l_coords, 2))
-          l_coords(2, index) = float(k) / float(degree)
-          l_coords(3, index) = float(j) / float(degree)
-          l_coords(4, index) = float(i) / float(degree)
-          l_coords(1, index) = 1.0 - sum(l_coords(2:4, index))
-          index = index + 1
-        end do
+      index = 1
+      do i = 0, degree
+         do j = 0, degree - i
+            do k = 0, degree - (i + j)
+               assert(index <= size(l_coords, 2))
+               l_coords(2, index) = float(k) / float(degree)
+               l_coords(3, index) = float(j) / float(degree)
+               l_coords(4, index) = float(i) / float(degree)
+               l_coords(1, index) = 1.0 - sum(l_coords(2:4, index))
+               index = index + 1
+            end do
+         end do
       end do
-    end do
-    assert(index == size(l_coords, 2) + 1)
+      assert(index == size(l_coords, 2) + 1)
 
-  end function tet_otn_local_coords
+   end function tet_otn_local_coords
 
 end subroutine test_make_mesh_tet

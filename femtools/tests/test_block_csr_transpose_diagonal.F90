@@ -28,38 +28,38 @@
 
 subroutine test_block_csr_transpose_diagonal
 
-  use Sparse_Tools
-  use unittest_tools
+   use Sparse_Tools
+   use unittest_tools
 
-  type(csr_sparsity) :: sparsity
-  type(csr_matrix) :: A
-  type(block_csr_matrix) :: block_mat, block_mat_T, block_mat_TT
-  integer :: i, j
+   type(csr_sparsity) :: sparsity
+   type(csr_matrix) :: A
+   type(block_csr_matrix) :: block_mat, block_mat_T, block_mat_TT
+   integer :: i, j
 
-  call allocate(sparsity, 2, 2, nnz = (/ 1, 1 /), name="Sparsity", diag=.true.)
-  sparsity%colm = (/ 1, 2 /)
-  sparsity%sorted_rows = .true.
+   call allocate(sparsity, 2, 2, nnz = (/ 1, 1 /), name="Sparsity", diag=.true.)
+   sparsity%colm = (/ 1, 2 /)
+   sparsity%sorted_rows = .true.
 
-  call allocate(A, sparsity, name="A")
-  call set(A, (/ 1 /) , (/ 1 /) , reshape( (/ 1.0 /), (/ 1, 1/) ) )
-  call set(A, (/ 2 /) , (/ 2 /) , reshape( (/ 2.0 /), (/ 1, 1/) ) )
+   call allocate(A, sparsity, name="A")
+   call set(A, (/ 1 /) , (/ 1 /) , reshape( (/ 1.0 /), (/ 1, 1/) ) )
+   call set(A, (/ 2 /) , (/ 2 /) , reshape( (/ 2.0 /), (/ 1, 1/) ) )
 
-  call allocate(block_mat, sparsity, (/ 1, 3 /), name="BlockMat")
-  call set(block_mat, 1, 1, A)
-  call set(block_mat, 1, 2, A)
-  call set(block_mat, 1, 3, A)
+   call allocate(block_mat, sparsity, (/ 1, 3 /), name="BlockMat")
+   call set(block_mat, 1, 1, A)
+   call set(block_mat, 1, 2, A)
+   call set(block_mat, 1, 3, A)
 
-  block_mat_T = transpose(block_mat, symmetric_sparsity=.true.)
-  block_mat_TT = transpose(block_mat_T, symmetric_sparsity=.true.)
+   block_mat_T = transpose(block_mat, symmetric_sparsity=.true.)
+   block_mat_TT = transpose(block_mat_T, symmetric_sparsity=.true.)
 
-  call report_test("[blocks are the same]", .not. all(block_mat%blocks == block_mat_TT%blocks), .false., "the blocks do not match")
-  do i=1,block_mat%blocks(1)
-    do j=1,block_mat%blocks(2)
-    call report_test("[values are the same]", .not. all(block_mat%val(i,j)%ptr == block_mat_TT%val(i, j)%ptr), .false., "the values do not match")
-    end do
-  end do
+   call report_test("[blocks are the same]", .not. all(block_mat%blocks == block_mat_TT%blocks), .false., "the blocks do not match")
+   do i=1,block_mat%blocks(1)
+      do j=1,block_mat%blocks(2)
+         call report_test("[values are the same]", .not. all(block_mat%val(i,j)%ptr == block_mat_TT%val(i, j)%ptr), .false., "the values do not match")
+      end do
+   end do
 
-  call deallocate(block_mat_T)
-  call deallocate(block_mat)
+   call deallocate(block_mat_T)
+   call deallocate(block_mat)
 
 end subroutine test_block_csr_transpose_diagonal

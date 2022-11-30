@@ -26,59 +26,59 @@
 !    USA
 
 module quadrature_test
-  !!< Support module for all unit tests related to quadrature.
-  !!< Provides auxiliary routines needed by these tests and separates these
-  !!< from the actual module, thereby reducing dependencies.
-  use quadrature
-  implicit none
+   !!< Support module for all unit tests related to quadrature.
+   !!< Provides auxiliary routines needed by these tests and separates these
+   !!< from the actual module, thereby reducing dependencies.
+   use quadrature
+   implicit none
 
-  ! Power is used by the test functions.
-  integer, save :: power=0
+   ! Power is used by the test functions.
+   integer, save :: power=0
 
-  contains
+contains
 
-  !------------------------------------------------------------------------
-  ! Test procedures
-  !------------------------------------------------------------------------
+   !------------------------------------------------------------------------
+   ! Test procedures
+   !------------------------------------------------------------------------
 
-  function quad_integrate(integrand, quad) result (integral)
-    ! Integrate the function integrand over an element using the
-    ! specified quadrature.
-    real :: integral
-    interface
-       function integrand(coords)
-         real :: integrand
-         real, dimension(:), intent(in) :: coords
-       end function integrand
-    end interface
-    type(quadrature_type) :: quad
+   function quad_integrate(integrand, quad) result (integral)
+      ! Integrate the function integrand over an element using the
+      ! specified quadrature.
+      real :: integral
+      interface
+         function integrand(coords)
+            real :: integrand
+            real, dimension(:), intent(in) :: coords
+         end function integrand
+      end interface
+      type(quadrature_type) :: quad
 
-    integer :: i
+      integer :: i
 
-    integral=0
+      integral=0
 
-    do i=1, size(quad%weight)
-       integral=integral+quad%weight(i)*integrand(quad%l(i,:))
-    end do
+      do i=1, size(quad%weight)
+         integral=integral+quad%weight(i)*integrand(quad%l(i,:))
+      end do
 
-  end function quad_integrate
+   end function quad_integrate
 
-  function monic(coords)
-    ! Calculate x^n
-    real :: monic
-    real, dimension(:), intent(in) :: coords
+   function monic(coords)
+      ! Calculate x^n
+      real :: monic
+      real, dimension(:), intent(in) :: coords
 
-    monic=coords(1)**power
+      monic=coords(1)**power
 
-  end function monic
+   end function monic
 
-  function cube_monic(coords)
-    ! Calculate.
-    real :: cube_monic
-    real, dimension(:), intent(in) :: coords
+   function cube_monic(coords)
+      ! Calculate.
+      real :: cube_monic
+      real, dimension(:), intent(in) :: coords
 
-    cube_monic=((1-coords(1))/2.0)**power
+      cube_monic=((1-coords(1))/2.0)**power
 
-  end function cube_monic
+   end function cube_monic
 
 end module quadrature_test

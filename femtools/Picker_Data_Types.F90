@@ -29,31 +29,31 @@
 
 module picker_data_types
 
-  use fldebug
-  use global_parameters, only : FIELD_NAME_LEN
-  use reference_counting
+   use fldebug
+   use global_parameters, only : FIELD_NAME_LEN
+   use reference_counting
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: picker_type, picker_ptr
+   public :: picker_type, picker_ptr
 
-  !! Picker (spatial index interface) information
-  type picker_type
-    !! Name of this picker
-    character(len = FIELD_NAME_LEN) :: name
-    !! Reference count for picker
-    type(refcount_type), pointer :: refcount => null()
-    !! Node owner finder ID for this picker
-    integer :: picker_id = 0
-    !! Last mesh movement event - used to keep track of when a new picker must
-    !! be generated
-    integer :: last_mesh_movement = 0
-  end type picker_type
+   !! Picker (spatial index interface) information
+   type picker_type
+      !! Name of this picker
+      character(len = FIELD_NAME_LEN) :: name
+      !! Reference count for picker
+      type(refcount_type), pointer :: refcount => null()
+      !! Node owner finder ID for this picker
+      integer :: picker_id = 0
+      !! Last mesh movement event - used to keep track of when a new picker must
+      !! be generated
+      integer :: last_mesh_movement = 0
+   end type picker_type
 
-  type picker_ptr
-    type(picker_type), pointer :: ptr => null()
-  end type picker_ptr
+   type picker_ptr
+      type(picker_type), pointer :: ptr => null()
+   end type picker_ptr
 
 end module picker_data_types

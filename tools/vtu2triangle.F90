@@ -26,33 +26,33 @@
 !    USA
 
 subroutine vtu2triangle(filename_, filename_len) bind(c)
-  !!< Read in a triangle mesh and output a vtu mesh.
+   !!< Read in a triangle mesh and output a vtu mesh.
 
-  use fields
-  use state_module
-  use write_triangle
-  use vtk_interfaces
-  use iso_c_binding
+   use fields
+   use state_module
+   use write_triangle
+   use vtk_interfaces
+   use iso_c_binding
 
-  implicit none
+   implicit none
 
-  character(kind=c_char, len=1) :: filename_(*)
-  integer(kind=c_size_t), value :: filename_len
+   character(kind=c_char, len=1) :: filename_(*)
+   integer(kind=c_size_t), value :: filename_len
 
-  character(len = filename_len) :: filename
-  type(vector_field), pointer :: positions
-  type(state_type) :: state
-  integer :: i
+   character(len = filename_len) :: filename
+   type(vector_field), pointer :: positions
+   type(state_type) :: state
+   integer :: i
 
-  do i=1, filename_len
-    filename(i:i)=filename_(i)
-  end do
+   do i=1, filename_len
+      filename(i:i)=filename_(i)
+   end do
 
-  call vtk_read_state(filename // ".vtu", state)
-  positions => extract_vector_field(state, "Coordinate")
-  call add_faces(positions%mesh)
-  call write_triangle_files(filename, positions, print_internal_faces=.true.)
+   call vtk_read_state(filename // ".vtu", state)
+   positions => extract_vector_field(state, "Coordinate")
+   call add_faces(positions%mesh)
+   call write_triangle_files(filename, positions, print_internal_faces=.true.)
 
-  call deallocate(state)
+   call deallocate(state)
 
 end subroutine vtu2triangle

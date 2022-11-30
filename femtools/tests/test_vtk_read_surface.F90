@@ -30,33 +30,33 @@
 
 subroutine test_vtk_read_surface
 
-  use fields
-  use fldebug
-  use state_module
-  use unittest_tools
-  use vtk_interfaces
+   use fields
+   use fldebug
+   use state_module
+   use unittest_tools
+   use vtk_interfaces
 
-  !use mesh_files
+   !use mesh_files
 
-  implicit none
+   implicit none
 
-  type(mesh_type), pointer :: mesh
-  type(state_type) :: state
+   type(mesh_type), pointer :: mesh
+   type(state_type) :: state
 
-  !type(vector_field), target :: coordinate
+   !type(vector_field), target :: coordinate
 
-  call vtk_read_state("data/tet.vtu", state = state)
-  mesh => extract_mesh(state, "Mesh")
-  !coordinate = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
-  !mesh => coordinate%mesh
+   call vtk_read_state("data/tet.vtu", state = state)
+   mesh => extract_mesh(state, "Mesh")
+   !coordinate = read_mesh_files("data/tet", quad_degree = 1, format="gmsh")
+   !mesh => coordinate%mesh
 
-  call report_test("[node_count]", node_count(mesh) /= 4, .false., "Incorrect element count")
-  call report_test("[ele_count]", ele_count(mesh) /= 1, .false., "Incorrect element count")
-  call report_test("[surface_element_count]", surface_element_count(mesh) /= 4, .false., "Incorrect element count")
+   call report_test("[node_count]", node_count(mesh) /= 4, .false., "Incorrect element count")
+   call report_test("[ele_count]", ele_count(mesh) /= 1, .false., "Incorrect element count")
+   call report_test("[surface_element_count]", surface_element_count(mesh) /= 4, .false., "Incorrect element count")
 
-  call deallocate(state)
-  !call deallocate(coordinate)
+   call deallocate(state)
+   !call deallocate(coordinate)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
 end subroutine test_vtk_read_surface

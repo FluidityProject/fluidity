@@ -26,17 +26,17 @@
 !    USA
 
 module signal_vars
-  ! This module provides a safe storage place for signal flags. Module
-  ! inheritance rules prevent this being combined with Signals.
-  implicit none
+   ! This module provides a safe storage place for signal flags. Module
+   ! inheritance rules prevent this being combined with Signals.
+   implicit none
 
-  ! SIGHUP is not yet used in fluidity.
-  logical, save :: sig_hup=.false.
-  logical, save :: sig_int=.false.
+   ! SIGHUP is not yet used in fluidity.
+   logical, save :: sig_hup=.false.
+   logical, save :: sig_int=.false.
 
-  ! Hopefully these values are fairly portable:
-  integer, parameter :: SIGHUP=1
-  integer, parameter :: SIGINT=2
-  integer, parameter :: SIGFPE=8
-  integer, parameter :: SIGTERM=15
+   ! Hopefully these values are fairly portable:
+   integer, parameter :: SIGHUP=1
+   integer, parameter :: SIGINT=2
+   integer, parameter :: SIGFPE=8
+   integer, parameter :: SIGTERM=15
 end module signal_vars

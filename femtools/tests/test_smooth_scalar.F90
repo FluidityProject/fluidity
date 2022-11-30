@@ -29,61 +29,61 @@
 
 subroutine test_smooth_scalar
 
-  use fields
-  use fldebug
-  use mesh_files
-  use solvers
-  use smoothing_module
-  use unittest_tools
+   use fields
+   use fldebug
+   use mesh_files
+   use solvers
+   use smoothing_module
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  character(len = *), parameter :: path = "/dummy"
-  integer :: i
-  integer, parameter :: quad_degree = 2
-  logical :: fail
-  real, dimension(2) :: minmax
-  real :: alpha
-  type(scalar_field) :: s_field, smoothed_s_field
-  type(vector_field) :: positions
+   character(len = *), parameter :: path = "/dummy"
+   integer :: i
+   integer, parameter :: quad_degree = 2
+   logical :: fail
+   real, dimension(2) :: minmax
+   real :: alpha
+   type(scalar_field) :: s_field, smoothed_s_field
+   type(vector_field) :: positions
 
-  positions = read_mesh_files("data/square-2d_A", quad_degree = quad_degree, format="gmsh")
+   positions = read_mesh_files("data/square-2d_A", quad_degree = quad_degree, format="gmsh")
 
-  call allocate(s_field, positions%mesh, "Scalar")
-  do i = 1, node_count(s_field)
-    call set(s_field, i, node_val(positions, 1, i) ** 3)
-  end do
+   call allocate(s_field, positions%mesh, "Scalar")
+   do i = 1, node_count(s_field)
+      call set(s_field, i, node_val(positions, 1, i) ** 3)
+   end do
 
-  alpha = 0.0
+   alpha = 0.0
 
-  call allocate(smoothed_s_field, positions%mesh, "SmoothedScalar")
+   call allocate(smoothed_s_field, positions%mesh, "SmoothedScalar")
 
-  call set_solver_options(path, ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
-  call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
+   call set_solver_options(path, ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
+   call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
 
-  fail = .false.
-  do i = 1, node_count(s_field)
-    fail = fnequals(node_val(s_field, i), node_val(smoothed_s_field, i))
-    if(fail) exit
-  end do
-  call report_test("[Not smoothed]", fail, .false., "Smoothed")
+   fail = .false.
+   do i = 1, node_count(s_field)
+      fail = fnequals(node_val(s_field, i), node_val(smoothed_s_field, i))
+      if(fail) exit
+   end do
+   call report_test("[Not smoothed]", fail, .false., "Smoothed")
 
-  alpha = 1.0e10
+   alpha = 1.0e10
 
-  call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
+   call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
 
-  minmax = (/huge(0.0), -huge(0.0)/)
-  do i = 1, node_count(smoothed_s_field)
-    minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
-    minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
-  end do
+   minmax = (/huge(0.0), -huge(0.0)/)
+   do i = 1, node_count(smoothed_s_field)
+      minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
+      minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
+   end do
 
-  call report_test("[Smoothed]", fnequals(minmax(2), minmax(1), tol = 1.0e-6), .false., "Not smoothed")
+   call report_test("[Smoothed]", fnequals(minmax(2), minmax(1), tol = 1.0e-6), .false., "Not smoothed")
 
-  call deallocate(smoothed_s_field)
-  call deallocate(s_field)
-  call deallocate(positions)
+   call deallocate(smoothed_s_field)
+   call deallocate(s_field)
+   call deallocate(positions)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
 end subroutine test_smooth_scalar
