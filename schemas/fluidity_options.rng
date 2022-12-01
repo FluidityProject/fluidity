@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0"
-  xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <include href="spud_base.rng"/>
   <include href="adaptivity_options.rng"/>
   <include href="diagnostic_algorithms.rng"/>
@@ -74,7 +73,7 @@ A value of 0.0 indicates that there would be a dump at every timestep.</a:docume
     # Function code
     return # Return value
 
-                </a:documentation>
+</a:documentation>
                 <ref name="python_code"/>
               </element>
             </choice>
@@ -95,7 +94,7 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
     # Function code
     return # Return value
 
-                </a:documentation>
+</a:documentation>
                 <ref name="python_code"/>
               </element>
             </choice>
@@ -314,7 +313,7 @@ Note that the main option to control the log output is given on the command line
 -v1  also give "navigational information", to indicate where in the code we currently are
 
 -v2  also give any additional information (mins and maxes of fields, etc.)
-            </a:documentation>
+</a:documentation>
             <optional>
               <element name="memory_diagnostics">
                 <a:documentation>Log all allocates and deallocates done for meshes, fields, sparsities and matrices.
@@ -360,7 +359,7 @@ calculations and spawning and deleting options.</a:documentation>
  def val(t):
     # Function code
     return # Return value
-                              </a:documentation>
+</a:documentation>
                               <ref name="python_code"/>
                             </element>
                           </choice>
@@ -377,7 +376,7 @@ calculations and spawning and deleting options.</a:documentation>
  def val(t):
     # Function code
     return # Return value
-                              </a:documentation>
+</a:documentation>
                               <ref name="python_code"/>
                             </element>
                           </choice>
@@ -3444,7 +3443,9 @@ parts.</a:documentation>
         </element>
       </choice>
       <element name="conservative_advection">
-        <a:documentation>Conservative discretisation of field advection equation TBETA=1. -- conservative (divergence form) TBETA=0. -- non-conservative
+        <a:documentation>Conservative discretisation of field advection equation
+ TBETA=1. -- conservative (divergence form)
+ TBETA=0. -- non-conservative
  0. &lt; TBETA &lt; 1.</a:documentation>
         <ref name="real"/>
       </element>
@@ -4277,7 +4278,8 @@ this requires a Density field!</a:documentation>
           <optional>
             <element name="external_density">
               <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
-using the specified density, i.e. instead of applying p=0 (resp. normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
+using the specified density, i.e. instead of applying p=0 (resp.
+normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
               <ref name="input_choice_real_plus_field"/>
             </element>
           </optional>
@@ -6707,7 +6709,7 @@ Uses the gravity field direction to determine the horizontal plane.</a:documenta
         <a:documentation>Velocity divergence:
 
 div velocity
-        </a:documentation>
+</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -7240,68 +7242,64 @@ Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u
             <element name="test_with_cv_dual">
               <a:documentation>Test the divergence operator with the CV dual function space.
 This is useful if the pressure is solved with a CV discretisation
-                <<<<<<< HEAD
 or with a CG but with the continuity tested with the CV dual.</a:documentation>
-=======
-or with a CG but with the continuity tested with the CV dual. </a:documentation>
->>>>>>> 3751673df (ENH: Allow for independent particle attribute values on spawn and advection; Update particle tests accordingly.)
               <ref name="comment"/>
-              </element>
-            </optional>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-            <element name="solver">
-              <ref name="linear_solver_options_sym"/>
             </element>
+          </optional>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
           </element>
         </element>
-        <element name="scalar_field">
-          <a:documentation>CompressibleContinuityResidual
+      </element>
+      <element name="scalar_field">
+        <a:documentation>CompressibleContinuityResidual
 
 Computes the residual of the continuity equation used in compressible multiphase flow simulations
 i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
 where _c and _i denote the compressible and incompressible phases respectively.</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>CompressibleContinuityResidual</value>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="internal_algorithm"/>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-            <element name="solver">
-              <ref name="linear_solver_options_sym"/>
-            </element>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>CompressibleContinuityResidual</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="internal_algorithm"/>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
           </element>
         </element>
-        <element name="scalar_field">
-          <a:documentation>DGLESScalarEddyViscosity
+      </element>
+      <element name="scalar_field">
+        <a:documentation>DGLESScalarEddyViscosity
 
 Outputs the calculated (isotropic) eddy viscosity term
 for a discontinuous velocity field. The subgridscale viscosity
 follows that of the Smagorinsky–Lilly model. Requires that both a discontinous
 representation of velocity and an les model have been selected.</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>DGLESScalarEddyViscosity</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_scalar_field"/>
-            </element>
-            <element name="prescribed">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prescribed_scalar_field"/>
-            </element>
-          </choice>
-        </element>
-      </choice>
-      <!--
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DGLESScalarEddyViscosity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+    </choice>
+    <!--
       Insert new diagnostic scalar fields here using the template:
              element scalar_field {
                  attribute rank { "0" },
@@ -7318,97 +7316,97 @@ representation of velocity and an les model have been selected.</a:documentation
                  )
              }
     -->
-    </define>
-    <!-- This is the choice of additional vector field to be solved for -->
-    <define name="vector_field_choice">
-      <!--
+  </define>
+  <!-- This is the choice of additional vector field to be solved for -->
+  <define name="vector_field_choice">
+    <!--
       The first is a generic field, which may be used for any user-defined field
       that FLUIDITY knows nothing about, or a generic diagnostic
       Prognostic vector fields are not possible (other than velocity and those known fields below).
     -->
-      <choice>
-        <element name="vector_field">
-          <a:documentation>Generic field variable (vector)</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <choice>
-            <a:documentation>Field type</a:documentation>
-            <element name="prescribed">
-              <ref name="mesh_choice"/>
-              <ref name="prescribed_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-            <element name="diagnostic">
-              <ref name="vector_diagnostic_algorithms"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-          </choice>
-        </element>
-        <!--
+    <choice>
+      <element name="vector_field">
+        <a:documentation>Generic field variable (vector)</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <a:documentation>Field type</a:documentation>
+          <element name="prescribed">
+            <ref name="mesh_choice"/>
+            <ref name="prescribed_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="vector_diagnostic_algorithms"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+      </element>
+      <!--
 
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
 
       -->
-        <element name="___Prognostic_fields_below___">
-          <a:documentation>Prescribed vector fields below this</a:documentation>
-          <empty/>
-        </element>
-        <element name="vector_field">
-          <a:documentation>As HydrostaticPressure, but solves for the gradient of the pressure
+      <element name="___Prognostic_fields_below___">
+        <a:documentation>Prescribed vector fields below this</a:documentation>
+        <empty/>
+      </element>
+      <element name="vector_field">
+        <a:documentation>As HydrostaticPressure, but solves for the gradient of the pressure
 associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>HydrostaticPressureGradient</value>
-          </attribute>
-          <element name="prognostic">
-            <ref name="mesh_choice"/>
-            <ref name="prognostic_hydrostatic_pressure_gradient_field"/>
-          </element>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>HydrostaticPressureGradient</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice"/>
+          <ref name="prognostic_hydrostatic_pressure_gradient_field"/>
         </element>
-        <!--
+      </element>
+      <!--
 
         - - List of fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
 
       -->
-        <element name="___Prescribed_fields_below___">
-          <a:documentation>Prescribed vector fields below this</a:documentation>
-          <empty/>
-        </element>
-        <element name="vector_field">
-          <a:documentation>MaterialVelocity field.  Used to impose a velocity on a material
+      <element name="___Prescribed_fields_below___">
+        <a:documentation>Prescribed vector fields below this</a:documentation>
+        <empty/>
+      </element>
+      <element name="vector_field">
+        <a:documentation>MaterialVelocity field.  Used to impose a velocity on a material
 in combination with the imposed_material_velocity_absorption_algorithm
 for VelocityAbsorption and imposed_material_velocity_source_algorithm
 for VelocitySource.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>MaterialVelocity</value>
-          </attribute>
-          <choice>
-            <element name="prescribed">
-              <ref name="mesh_choice"/>
-              <ref name="prescribed_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <!--
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>MaterialVelocity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="mesh_choice"/>
+            <ref name="prescribed_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <!--
 
         Insert new prescribed vector fields here using the template:
                element vector_field {
@@ -7430,439 +7428,439 @@ for VelocitySource.</a:documentation>
         - - The list is in order of most frequently used.
 
       -->
-        <element name="___Diagnostic_Fields_Below___">
-          <a:documentation>Diagnostic vector fields below this</a:documentation>
-          <empty/>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Gradient of a scalar field evaluated using the C gradient
+      <element name="___Diagnostic_Fields_Below___">
+        <a:documentation>Diagnostic vector fields below this</a:documentation>
+        <empty/>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Gradient of a scalar field evaluated using the C gradient
 matrix constructed using finite elements.
 Field must be in this material_phase.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>FiniteElementGradient</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <attribute name="field_name">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <ref name="mesh_choice"/>
-              <optional>
-                <element name="integrate_gradient_by_parts">
-                  <empty/>
-                </element>
-              </optional>
-              <ref name="diagnostic_gradient_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Gradient of a scalar field evaluated using the transpose
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FiniteElementGradient</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <attribute name="field_name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <ref name="mesh_choice"/>
+            <optional>
+              <element name="integrate_gradient_by_parts">
+                <empty/>
+              </element>
+            </optional>
+            <ref name="diagnostic_gradient_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Gradient of a scalar field evaluated using the transpose
 of the C^T divergence matrix constructed using finite
 elements.
 Field must be in this material_phase.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>FiniteElementDivergenceTransposed</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="legacy_internal_algorithm"/>
-              <attribute name="field_name">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <ref name="mesh_choice"/>
-              <optional>
-                <element name="integrate_divergence_by_parts">
-                  <empty/>
-                </element>
-              </optional>
-              <ref name="diagnostic_gradient_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Foam Velocity field.
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FiniteElementDivergenceTransposed</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="legacy_internal_algorithm"/>
+            <attribute name="field_name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <ref name="mesh_choice"/>
+            <optional>
+              <element name="integrate_divergence_by_parts">
+                <empty/>
+              </element>
+            </optional>
+            <ref name="diagnostic_gradient_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Foam Velocity field.
 Required for simulations of foam flow and liquid drainage in foams.
 If diagnostic, a FoamVelocityPotential field is required,
 and the Foam Velocity is obtained by taking its gradient.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>FoamVelocity</value>
-          </attribute>
-          <choice>
-            <element name="prescribed">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prescribed_vector_field_no_adapt"/>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FoamVelocity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
+            <element name="solver">
+              <ref name="linear_solver_options_sym"/>
             </element>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="mesh_choice"/>
-              <element name="solver">
-                <ref name="linear_solver_options_sym"/>
-              </element>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Foam Liquid Content times Velocity field.
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Foam Liquid Content times Velocity field.
 Its surface integral gives the liquid
 volumetric flow in the flowing foam</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>FoamLiquidContentVelocity</value>
-          </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FoamLiquidContentVelocity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Relative vorticity field - curl of the velocity field</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>Vorticity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="vorticity_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Planetary vorticity
+
+Limitations:
+ - Requires geometry dimension of 3.</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>PlanetaryVorticity</value>
+        </attribute>
+        <choice>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field"/>
           </element>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Relative vorticity field - curl of the velocity field</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>Vorticity</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="vorticity_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Planetary vorticity
-
-Limitations:
- - Requires geometry dimension of 3.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>PlanetaryVorticity</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Absolute vorticity:
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Absolute vorticity:
 
   f + curl u
 
 Limitations:
  - Requires a geometry dimension of 3.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>AbsoluteVorticity</value>
-          </attribute>
-          <attribute name="depends">
-            <value>Velocity</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Gradient of a scalar field evaluated using the transpose
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>AbsoluteVorticity</value>
+        </attribute>
+        <attribute name="depends">
+          <value>Velocity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Gradient of a scalar field evaluated using the transpose
 of the C^T matrix constructed using control volumes.
 Field must be in this material_phase.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>ControlVolumeDivergenceTransposed</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <attribute name="field_name">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_cv_gradient_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>LinearMomentum field.
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>ControlVolumeDivergenceTransposed</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <attribute name="field_name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_cv_gradient_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>LinearMomentum field.
  p = \rho*u
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>LinearMomentum</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Absolute Difference between two vector fields.
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>LinearMomentum</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
 Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>AbsoluteDifference</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <attribute name="field_name_a">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <attribute name="field_name_b">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <ref name="mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-              <optional>
-                <element name="relative_to_average">
-                  <a:documentation>Evaluate the absolute difference once the average difference has been removed?</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Absolute Difference between two vector fields.
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>AbsoluteDifference</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <attribute name="field_name_a">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <attribute name="field_name_b">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <ref name="mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+            <optional>
+              <element name="relative_to_average">
+                <a:documentation>Evaluate the absolute difference once the average difference has been removed?</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
 Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>VectorAbsoluteDifference</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <attribute name="field_name_a">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <attribute name="field_name_b">
-                <data type="string" datatypeLibrary=""/>
-              </attribute>
-              <ref name="mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-              <optional>
-                <element name="relative_to_average">
-                  <a:documentation>Evaluate the absolute difference once the average difference has been removed?</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Bed Shear Stress
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VectorAbsoluteDifference</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <attribute name="field_name_a">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <attribute name="field_name_b">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <ref name="mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+            <optional>
+              <element name="relative_to_average">
+                <a:documentation>Evaluate the absolute difference once the average difference has been removed?</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Bed Shear Stress
 
 This diagnostic vector field is only calculated over surface elements/nodes,
 interior nodes will have zero value.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>BedShearStress</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_vector_field_bed_shear_stress"/>
-            </element>
-            <element name="prescribed">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prescribed_vector_field_no_adapt"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Max Bed Shear Stress.
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>BedShearStress</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_vector_field_bed_shear_stress"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Max Bed Shear Stress.
 
 Note that you need BedShearStress turned on for this to work.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>MaxBedShearStress</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <group>
-                <ref name="internal_algorithm"/>
-                <ref name="velocity_mesh_choice"/>
-              </group>
-              <!-- diagnostic_vector_field_max_bed_shear_stress -->
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-          <element name="spin_up_time">
-            <a:documentation>This is the time after which the max operator is
-applied to the bed shear stress.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Coordinate field remapped to the mesh of your choice.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>DiagnosticCoordinate</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>MaxBedShearStress</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <group>
               <ref name="internal_algorithm"/>
-              <ref name="mesh_choice"/>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
+              <ref name="velocity_mesh_choice"/>
+            </group>
+            <!-- diagnostic_vector_field_max_bed_shear_stress -->
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+        <element name="spin_up_time">
+          <a:documentation>This is the time after which the max operator is
+applied to the bed shear stress.</a:documentation>
+          <ref name="real"/>
         </element>
-        <element name="vector_field">
-          <a:documentation>Galerkin projection of one field onto another mesh.
+      </element>
+      <element name="vector_field">
+        <a:documentation>Coordinate field remapped to the mesh of your choice.</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>DiagnosticCoordinate</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="mesh_choice"/>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Galerkin projection of one field onto another mesh.
 
 The field must be in this material_phase.
 
 NOTE: you need the solver options if the mesh
 of this field is continuous.</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>GalerkinProjection</value>
-          </attribute>
-          <choice>
-            <element name="diagnostic">
-              <ref name="legacy_internal_algorithm"/>
-              <element name="source_field_name">
-                <data type="string" datatypeLibrary=""/>
-              </element>
-              <ref name="mesh_choice"/>
-              <optional>
-                <element name="lump_mass">
-                  <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-              <optional>
-                <element name="solver">
-                  <ref name="linear_solver_options_sym"/>
-                </element>
-              </optional>
-              <ref name="diagnostic_vector_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <element name="vector_field">
-          <a:documentation>Computes the buoyancy term</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>Buoyancy</value>
-          </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>GalerkinProjection</value>
+        </attribute>
+        <choice>
           <element name="diagnostic">
-            <ref name="buoyancy_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
+            <ref name="legacy_internal_algorithm"/>
+            <element name="source_field_name">
+              <data type="string" datatypeLibrary=""/>
+            </element>
+            <ref name="mesh_choice"/>
+            <optional>
+              <element name="lump_mass">
+                <a:documentation>Lump the mass matrix of the galerkin projection
+less accurate but faster and might give smoother result.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="solver">
+                <ref name="linear_solver_options_sym"/>
+              </element>
+            </optional>
             <ref name="diagnostic_vector_field"/>
           </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Computes the buoyancy term</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>Buoyancy</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="buoyancy_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
         </element>
-        <element name="vector_field">
-          <a:documentation>Projects the Coriolis term onto the mesh of this diagnostic field.
+      </element>
+      <element name="vector_field">
+        <a:documentation>Projects the Coriolis term onto the mesh of this diagnostic field.
 Note that multiple projection methods are available (under the
 algorithm option).</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>Coriolis</value>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="coriolis_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>Coriolis</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="coriolis_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
         </element>
-      </choice>
-      <!--
+      </element>
+    </choice>
+    <!--
       Insert new diagnostic vector field here using the template:
              element vector_field {
                  attribute rank { "1" },
@@ -7879,78 +7877,78 @@ algorithm option).</a:documentation>
                  )
              }
     -->
-    </define>
-    <!-- This is the choice of additional tensor fields -->
-    <define name="tensor_field_choice">
-      <!--
+  </define>
+  <!-- This is the choice of additional tensor fields -->
+  <define name="tensor_field_choice">
+    <!--
       The first is a generic field, which may be used for any user-defined field
       that FLUIDITY knows nothing about, or a generic diagnostic
       Prognostic tensor fields are not possible.
     -->
-      <choice>
-        <element name="tensor_field">
-          <a:documentation>Generic field variable (tensor)</a:documentation>
-          <attribute name="rank">
-            <value>2</value>
-          </attribute>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <choice>
-            <a:documentation>Field type</a:documentation>
-            <element name="prescribed">
-              <ref name="mesh_choice"/>
-              <ref name="prescribed_tensor_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-            <element name="diagnostic">
-              <ref name="tensor_diagnostic_algorithms"/>
-              <ref name="velocity_mesh_choice"/>
-              <ref name="diagnostic_tensor_field"/>
-            </element>
-          </choice>
-        </element>
-        <!--
+    <choice>
+      <element name="tensor_field">
+        <a:documentation>Generic field variable (tensor)</a:documentation>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <a:documentation>Field type</a:documentation>
+          <element name="prescribed">
+            <ref name="mesh_choice"/>
+            <ref name="prescribed_tensor_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="tensor_diagnostic_algorithms"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+        </choice>
+      </element>
+      <!--
 
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
 
       -->
-        <element name="___Prescribed_fields_below___">
-          <a:documentation>Prescribed scalar fields below this</a:documentation>
-          <empty/>
-        </element>
-        <element name="tensor_field">
-          <a:documentation>MaterialViscosity field:
+      <element name="___Prescribed_fields_below___">
+        <a:documentation>Prescribed scalar fields below this</a:documentation>
+        <empty/>
+      </element>
+      <element name="tensor_field">
+        <a:documentation>MaterialViscosity field:
 
 Field for the viscosity of this material.
 Required if using a diagnostic bulk viscosity
 in a multimaterial simulation.</a:documentation>
-          <attribute name="rank">
-            <value>2</value>
-          </attribute>
-          <attribute name="name">
-            <value>MaterialViscosity</value>
-          </attribute>
-          <choice>
-            <element name="prescribed">
-              <ref name="mesh_choice"/>
-              <ref name="prescribed_tensor_field"/>
-            </element>
-            <element name="diagnostic">
-              <ref name="mesh_choice"/>
-              <ref name="tensor_python_diagnostic_algorithm"/>
-              <ref name="diagnostic_tensor_field"/>
-            </element>
-            <element name="aliased">
-              <ref name="generic_aliased_field"/>
-            </element>
-          </choice>
-        </element>
-        <!--
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <attribute name="name">
+          <value>MaterialViscosity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="mesh_choice"/>
+            <ref name="prescribed_tensor_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice"/>
+            <ref name="tensor_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <!--
 
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
@@ -7972,12 +7970,12 @@ in a multimaterial simulation.</a:documentation>
         - - The list is in order of most frequently used.
 
       -->
-        <element name="___Diagnostic_Fields_Below___">
-          <a:documentation>Diagnostic tensor fields below this</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-      <!--
+      <element name="___Diagnostic_Fields_Below___">
+        <a:documentation>Diagnostic tensor fields below this</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+    <!--
       Insert new diagnostic tensor field here using the template:
              element tensor_field {
                  attribute name { "NewFieldName" },
@@ -7993,130 +7991,130 @@ in a multimaterial simulation.</a:documentation>
                  )
              }
     -->
-    </define>
-    <define name="cap_option">
-      <element name="cap_values">
-        <a:documentation>Cap the min and max values of this field when using
+  </define>
+  <define name="cap_option">
+    <element name="cap_values">
+      <a:documentation>Cap the min and max values of this field when using
 it as a volume fraction to work out bulk material
 properties.
 No capping used if not selected.</a:documentation>
-        <optional>
-          <element name="upper_cap">
-            <a:documentation>Set the upper bound on the field.
+      <optional>
+        <element name="upper_cap">
+          <a:documentation>Set the upper bound on the field.
 Defaults to huge(0.0)*epsilon(0.0) if not set.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="lower_cap">
-            <a:documentation>Set the lower bound on the field.
-Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-      </element>
-    </define>
-    <define name="surface_tension_option">
-      <element name="surface_tension">
-        <element name="surface_tension_coefficient">
-          <a:documentation>Surface tension coefficient</a:documentation>
           <ref name="real"/>
         </element>
-        <optional>
-          <element name="equilibrium_contact_angle">
-            <a:documentation>The equilibrium contact angle (in radians) with the boundaries identified by the surface ids</a:documentation>
-            <ref name="real"/>
-            <element name="surface_ids">
-              <a:documentation>Surface ids:</a:documentation>
-              <ref name="integer_vector"/>
-            </element>
-          </element>
-        </optional>
+      </optional>
+      <optional>
+        <element name="lower_cap">
+          <a:documentation>Set the lower bound on the field.
+Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="surface_tension_option">
+    <element name="surface_tension">
+      <element name="surface_tension_coefficient">
+        <a:documentation>Surface tension coefficient</a:documentation>
+        <ref name="real"/>
       </element>
-    </define>
-    <define name="limiter_options">
-      <choice>
-        <element name="limit_face_value">
-          <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-          <choice>
-            <ref name="sweby_limiter"/>
-            <ref name="ultimate_limiter"/>
-          </choice>
+      <optional>
+        <element name="equilibrium_contact_angle">
+          <a:documentation>The equilibrium contact angle (in radians) with the boundaries identified by the surface ids</a:documentation>
+          <ref name="real"/>
+          <element name="surface_ids">
+            <a:documentation>Surface ids:</a:documentation>
+            <ref name="integer_vector"/>
+          </element>
         </element>
-        <element name="do_not_limit_face_value">
-          <a:documentation>Do not limit the face value</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-    </define>
-    <!--
+      </optional>
+    </element>
+  </define>
+  <define name="limiter_options">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <choice>
+          <ref name="sweby_limiter"/>
+          <ref name="ultimate_limiter"/>
+        </choice>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <!--
     cv limiter options that
     have NO reliance on any CFL field.
   -->
-    <define name="limiter_options_excluding_cfl">
-      <choice>
-        <element name="limit_face_value">
-          <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-          <ref name="sweby_limiter"/>
-        </element>
-        <element name="do_not_limit_face_value">
-          <a:documentation>Do not limit the face value</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-    </define>
-    <define name="sweby_limiter">
-      <element name="limiter">
-        <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
+  <define name="limiter_options_excluding_cfl">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <ref name="sweby_limiter"/>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="sweby_limiter">
+    <element name="limiter">
+      <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
 Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
 Journal on Numerical Analysis, 21, 995-1011</a:documentation>
-        <attribute name="name">
-          <value>Sweby</value>
-        </attribute>
-        <optional>
-          <ref name="slope_options"/>
-        </optional>
-        <optional>
-          <ref name="upwind_value_options"/>
-        </optional>
-      </element>
-    </define>
-    <define name="ultimate_limiter">
-      <element name="limiter">
-        <a:documentation>See "The Ultimate Conservative Difference Scheme Applied
+      <attribute name="name">
+        <value>Sweby</value>
+      </attribute>
+      <optional>
+        <ref name="slope_options"/>
+      </optional>
+      <optional>
+        <ref name="upwind_value_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="ultimate_limiter">
+    <element name="limiter">
+      <a:documentation>See "The Ultimate Conservative Difference Scheme Applied
 to Unsteady One-Dimensional Advection", B. P. Leonard,
 1991, Computer Methods in Applied Mechanics and
 Engineering, 88, 17-74</a:documentation>
-        <attribute name="name">
-          <value>Ultimate</value>
-        </attribute>
-        <ref name="field_based_cfl_number_options"/>
-        <optional>
-          <ref name="upwind_value_options"/>
-        </optional>
-      </element>
-    </define>
-    <define name="slope_options">
-      <element name="slopes">
-        <a:documentation>Control the upper and lower slopes of the NVD limiter</a:documentation>
-        <optional>
-          <element name="lower">
-            <a:documentation>Defaults to Sweby, 1984 limiter (= 1.0) if unselected</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="upper">
-            <a:documentation>Defaults to Sweby, 1984 limiter (= 2.0) if unselected</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-      </element>
-    </define>
-    <define name="upwind_value_options">
-      <choice>
-        <element name="project_upwind_value_from_point">
-          <a:documentation>Select the method to be used for calculating the upwind value.
+      <attribute name="name">
+        <value>Ultimate</value>
+      </attribute>
+      <ref name="field_based_cfl_number_options"/>
+      <optional>
+        <ref name="upwind_value_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="slope_options">
+    <element name="slopes">
+      <a:documentation>Control the upper and lower slopes of the NVD limiter</a:documentation>
+      <optional>
+        <element name="lower">
+          <a:documentation>Defaults to Sweby, 1984 limiter (= 1.0) if unselected</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="upper">
+          <a:documentation>Defaults to Sweby, 1984 limiter (= 2.0) if unselected</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="upwind_value_options">
+    <choice>
+      <element name="project_upwind_value_from_point">
+        <a:documentation>Select the method to be used for calculating the upwind value.
 If not selected will default to project_upwind_value_from_point for
 simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
@@ -8126,30 +8124,30 @@ upwind of the node pair straddling the face.  It is otherwise known as
 anisotropic limiting.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
-          <optional>
-            <element name="reflect_off_domain_boundaries">
-              <a:documentation>When the donor node is on a domain boundary reflect the projection
+        <optional>
+          <element name="reflect_off_domain_boundaries">
+            <a:documentation>When the donor node is on a domain boundary reflect the projection
 back into the mesh.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="bound_projected_value_locally">
-              <a:documentation>Constrain the projected value to be between the min and max of the
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="bound_projected_value_locally">
+            <a:documentation>Constrain the projected value to be between the min and max of the
 element values which it was found from.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="store_upwind_elements">
-              <a:documentation>Store the locations of the elements where the upwind values
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="store_upwind_elements">
+            <a:documentation>Store the locations of the elements where the upwind values
 are projected from for each node pair.
 This inserts an integer csr matrix into state so is memory expensive but
 saves a significant amount of time (searching around the neighbouring elements).
 This is unsafe for moving meshes but should be ok for adaptive meshes.</a:documentation>
-              <optional>
-                <element name="store_upwind_quadrature">
-                  <a:documentation>Store the quadrature locations within the elements
+            <optional>
+              <element name="store_upwind_quadrature">
+                <a:documentation>Store the quadrature locations within the elements
 where the upwind values
 are projected from for each node pair.
 This inserts a real block csr matrix into state so is even more memory
@@ -8158,14 +8156,14 @@ only saves a comparitively
 marginal amount of time (as actually searching the
 neighbouring elements is the
 slowest bit, finding the quadrature is relatively easy).</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-          </optional>
-        </element>
-        <element name="project_upwind_value_from_gradient">
-          <a:documentation>Select the method to be used for calculating the upwind value.
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+      <element name="project_upwind_value_from_gradient">
+        <a:documentation>Select the method to be used for calculating the upwind value.
 If not selected will default to project_upwind_value_from_point for
 simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
@@ -8175,49 +8173,49 @@ using the interpolated gradient at the donor node in the
 direction of the vector
 connecting the node pair straddling the face.
 This is available on all meshes (except if bounding the values).</a:documentation>
-          <choice>
-            <element name="project_from_downwind_value">
-              <a:documentation>Select which node to project from:
+        <choice>
+          <element name="project_from_downwind_value">
+            <a:documentation>Select which node to project from:
 Project from the downwind node (Jasak et al., 1999) so that:
 upwind_value = downwind_value - 2*gradient.vector</a:documentation>
-              <ref name="comment"/>
-            </element>
-            <element name="project_from_donor_value">
-              <a:documentation>Select which node to project from:
+            <ref name="comment"/>
+          </element>
+          <element name="project_from_donor_value">
+            <a:documentation>Select which node to project from:
 Project from the donor node so that:
 upwind_value = donor_value - gradient.vector</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </choice>
-          <optional>
-            <element name="reflect_off_domain_boundaries">
-              <a:documentation>When the donor node is on a domain boundary reflect the projection
+            <ref name="comment"/>
+          </element>
+        </choice>
+        <optional>
+          <element name="reflect_off_domain_boundaries">
+            <a:documentation>When the donor node is on a domain boundary reflect the projection
 back into the mesh.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="bound_projected_value_locally">
-              <a:documentation>Constrain the projected value to be between the min and max of the
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="bound_projected_value_locally">
+            <a:documentation>Constrain the projected value to be between the min and max of the
 element values which surround it.
 This is only available on simplex meshes as it involes a search around
 the donor node to find the upwind element.</a:documentation>
-              <optional>
-                <element name="store_upwind_elements">
-                  <a:documentation>Store the locations of the elements closest to the project value.
+            <optional>
+              <element name="store_upwind_elements">
+                <a:documentation>Store the locations of the elements closest to the project value.
 This inserts an integer csr matrix into state so is
 memory expensive but
 saves a significant amount of time (searching around
 the neighbouring elements).
 This is unsafe for moving meshes but should be ok for adaptive meshes.</a:documentation>
-                  <ref name="comment"/>
-                </element>
-              </optional>
-            </element>
-          </optional>
-        </element>
-        <element name="locally_bound_upwind_value">
-          <a:documentation>Select the method to be used for calculating the upwind value.
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+      <element name="locally_bound_upwind_value">
+        <a:documentation>Select the method to be used for calculating the upwind value.
 If not selected will default to project_upwind_value_from_point for
 simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
@@ -8226,10 +8224,10 @@ Chooses an upwind value by selecting the maximum or minimum of the neighbouring
 nodes depending on the local slope of the donor and downwind values.
 Otherwise known as isotropic limiting.
 This is available on all meshes except periodic domains.</a:documentation>
-          <empty/>
-        </element>
-        <element name="pseudo_structured_upwind_value">
-          <a:documentation>Select the method to be used for calculating the upwind value.
+        <empty/>
+      </element>
+      <element name="pseudo_structured_upwind_value">
+        <a:documentation>Select the method to be used for calculating the upwind value.
 If not selected will default to project_upwind_value_from_point for
 simplex element meshes and to a locally_bound_upwind_value for cube
 element meshes.
@@ -8237,770 +8235,767 @@ element meshes.
 Chooses an upwind value by selecting the value at the node most directy
 upwind from the vector connecting the donor and downwind nodes.
 This is available on all meshes.</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-    </define>
-    <define name="field_based_cfl_number_options">
-      <choice>
-        <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used.
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="field_based_cfl_number_options">
+    <choice>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used.
 
 This uses the control volume definition of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>ControlVolumeCFLNumber</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>***UNDER TESTING***
+        <attribute name="name">
+          <value>ControlVolumeCFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used.
 
 This uses the control volume definition of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>CVMaterialDensityCFLNumber</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used.
+        <attribute name="name">
+          <value>CVMaterialDensityCFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used.
 
 This uses the finite element approximation of the CFL Number.</a:documentation>
+        <attribute name="name">
+          <value>CFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="dg_field_based_cfl_number_options">
+    <optional>
+      <choice>
+        <element name="courant_number">
+          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+
+Select the Courant Number definition to be used.
+
+This uses the DG finite element approximation of the CFL Number.</a:documentation>
           <attribute name="name">
-            <value>CFLNumber</value>
+            <value>DG_CourantNumber</value>
           </attribute>
           <empty/>
         </element>
         <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used.</a:documentation>
+          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+
+Select the Courant Number definition to be used.</a:documentation>
           <attribute name="name">
             <data type="string" datatypeLibrary=""/>
           </attribute>
           <empty/>
         </element>
       </choice>
-    </define>
-    <define name="dg_field_based_cfl_number_options">
-      <optional>
-        <choice>
-          <element name="courant_number">
-            <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
-
-Select the Courant Number definition to be used.
-
-This uses the DG finite element approximation of the CFL Number.</a:documentation>
-            <attribute name="name">
-              <value>DG_CourantNumber</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="courant_number">
-            <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
-
-Select the Courant Number definition to be used.</a:documentation>
-            <attribute name="name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <empty/>
-          </element>
-        </choice>
-      </optional>
-    </define>
-    <define name="cv_face_cfl_number_options">
-      <choice>
-        <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used in the slope of
+    </optional>
+  </define>
+  <define name="cv_face_cfl_number_options">
+    <choice>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used in the slope of
 the NVD diagram upper bound.
 This uses the control volume definition of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>ControlVolumeCFLNumber</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>***UNDER TESTING***
+        <attribute name="name">
+          <value>ControlVolumeCFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
 the NVD diagram upper bound.
 This uses a control volume definition of the CFL Number
 that incorporates the MaterialDensity.
 Requires a MaterialDensity field in this material_phase!</a:documentation>
-          <attribute name="name">
-            <value>CVMaterialDensityCFLNumber</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>***UNDER TESTING***
+        <attribute name="name">
+          <value>CVMaterialDensityCFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
 the NVD diagram upper bound.
 This uses the finite element approximation of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>CFLNumber</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="courant_number">
-          <a:documentation>***UNDER TESTING***
+        <attribute name="name">
+          <value>CFLNumber</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
 the NVD diagram upper bound.</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <empty/>
-        </element>
-      </choice>
-    </define>
-    <define name="timestep_cfl_number_options">
-      <choice>
-        <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="timestep_cfl_number_options">
+    <choice>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
 This uses the finite element approximation of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>CFLNumber</value>
-          </attribute>
-          <ref name="velocity_mesh_choice">
-            <a:documentation>Select the mesh on which you wish to evaluate the CFLNumber.</a:documentation>
-          </ref>
-        </element>
-        <element name="courant_number">
-          <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
+        <attribute name="name">
+          <value>CFLNumber</value>
+        </attribute>
+        <ref name="velocity_mesh_choice">
+          <a:documentation>Select the mesh on which you wish to evaluate the CFLNumber.</a:documentation>
+        </ref>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
 This uses the control volume definition of the CFL Number.</a:documentation>
-          <attribute name="name">
-            <value>ControlVolumeCFLNumber</value>
-          </attribute>
-          <ref name="velocity_mesh_choice">
-            <a:documentation>Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.</a:documentation>
-          </ref>
-        </element>
-      </choice>
-    </define>
-    <define name="mixing_stats">
-      <element name="include_mixing_stats">
-        <a:documentation>Enable to include in the .stat file the fractions of the
+        <attribute name="name">
+          <value>ControlVolumeCFLNumber</value>
+        </attribute>
+        <ref name="velocity_mesh_choice">
+          <a:documentation>Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.</a:documentation>
+        </ref>
+      </element>
+    </choice>
+  </define>
+  <define name="mixing_stats">
+    <element name="include_mixing_stats">
+      <a:documentation>Enable to include in the .stat file the fractions of the
 scalar field contained in
 bins specified by the user. This allows mixing of the field to be quantified.
 Replaces and expands upon the old heaviside.dat file</a:documentation>
-        <attribute name="name">
-          <data type="string"/>
-        </attribute>
-        <choice>
-          <element name="continuous_galerkin">
-            <a:documentation>Select whether to evaluate the volume fraction over the finite element
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <choice>
+        <element name="continuous_galerkin">
+          <a:documentation>Select whether to evaluate the volume fraction over the finite element
 (continuous galerkin) or within the control volume (control_volumes).
 
 NOTE: continuous_galerkin only works with linear tets
 
 NOTE: continuous_galerkin is not fully validated yet</a:documentation>
-            <optional>
-              <element name="normalise">
-                <a:documentation>if select normalise the volume fractions will be
+          <optional>
+            <element name="normalise">
+              <a:documentation>if select normalise the volume fractions will be
 divided by the total volume of the domain</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-          <element name="control_volumes">
-            <a:documentation>Select whether to evaluate the volume fraction over the finite element
-(continuous galerkin) or within the control volume (control_volumes).</a:documentation>
-            <optional>
-              <element name="normalise">
-                <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </choice>
-        <element name="mixing_bin_bounds">
-          <a:documentation>The values of the bounds of the bins
-e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins
-and the fraction of the field in each bin with, -1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field,
-            <<<<<<< HEAD
-will be calculated.</a:documentation>
-=======
-will be calculated.  </a:documentation>
->>>>>>> 3751673df (ENH: Allow for independent particle attribute values on spawn and advection; Update particle tests accordingly.)
-        <choice>
-<element name="constant">
-              <a:documentation>list of bin bounds</a:documentation>
-              <ref name="real_vector"/>
+              <empty/>
             </element>
-            <element name="python">
-              <a:documentation>Python function prescribing bin bounds. Functions should be of the form:
+          </optional>
+        </element>
+        <element name="control_volumes">
+          <a:documentation>Select whether to evaluate the volume fraction over the finite element
+(continuous galerkin) or within the control volume (control_volumes).</a:documentation>
+          <optional>
+            <element name="normalise">
+              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+      <element name="mixing_bin_bounds">
+        <a:documentation>The values of the bounds of the bins
+e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins
+and the fraction of the field in each bin with,
+-1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field,
+will be calculated.</a:documentation>
+        <choice>
+          <element name="constant">
+            <a:documentation>list of bin bounds</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+          <element name="python">
+            <a:documentation>Python function prescribing bin bounds. Functions should be of the form:
 
  def val(t):
     # Function code
     return # Return value that should be an array of reals
 
-              </a:documentation>
-              <ref name="python_code"/>
-            </element>
-          </choice>
-        </element>
-        <optional>
-          <element name="tolerance">
-            <a:documentation>Define the tolerance beneath the specified bins that should be included.
-Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documentation>
-            <ref name="real"/>
+</a:documentation>
+            <ref name="python_code"/>
           </element>
-        </optional>
+        </choice>
       </element>
-    </define>
-    <define name="cv_stats">
-      <element name="include_cv_stats">
-        <a:documentation>Include statistics evaluated on the control volume mesh.</a:documentation>
-        <empty/>
-      </element>
-    </define>
-    <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
-    <define name="surface_integral_stats_base.surface_integral">
-      <attribute name="name">
-        <data type="string"/>
-      </attribute>
       <optional>
-        <element name="surface_ids">
-          <a:documentation>Surface IDs defining the surface over which to integrate. If disabled, integrates over the whole surface.</a:documentation>
-          <ref name="integer_vector"/>
+        <element name="tolerance">
+          <a:documentation>Define the tolerance beneath the specified bins that should be included.
+Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documentation>
+          <ref name="real"/>
         </element>
       </optional>
-      <optional>
-        <element name="normalise">
-          <a:documentation>Enable to normalise the integral by dividing by the surface area</a:documentation>
-          <ref name="comment"/>
-        </element>
-      </optional>
-    </define>
-    <define name="surface_integral_stats_scalar">
-      <element name="surface_integral">
-        <a:documentation>Surface integral calculations. The following integral types are available:
+    </element>
+  </define>
+  <define name="cv_stats">
+    <element name="include_cv_stats">
+      <a:documentation>Include statistics evaluated on the control volume mesh.</a:documentation>
+      <empty/>
+    </element>
+  </define>
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
+  <define name="surface_integral_stats_base.surface_integral">
+    <attribute name="name">
+      <data type="string"/>
+    </attribute>
+    <optional>
+      <element name="surface_ids">
+        <a:documentation>Surface IDs defining the surface over which to integrate. If disabled, integrates over the whole surface.</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="normalise">
+        <a:documentation>Enable to normalise the integral by dividing by the surface area</a:documentation>
+        <ref name="comment"/>
+      </element>
+    </optional>
+  </define>
+  <define name="surface_integral_stats_scalar">
+    <element name="surface_integral">
+      <a:documentation>Surface integral calculations. The following integral types are available:
  value: Integrates the field
  gradient_normal: Integrates the normal component of the gradient of the field</a:documentation>
-        <ref name="surface_integral_stats_scalar.surface_integral"/>
-      </element>
-    </define>
-    <define name="surface_integral_stats_scalar.surface_integral">
-      <ref name="surface_integral_stats_base.surface_integral"/>
-    </define>
-    <define name="surface_integral_stats_scalar.surface_integral" combine="interleave">
-      <attribute name="type">
-        <choice>
-          <value>value</value>
-          <value>gradient_normal</value>
-        </choice>
-      </attribute>
-    </define>
-    <define name="surface_integral_stats_vector">
-      <element name="surface_integral">
-        <a:documentation>Surface integral calculations. The following integral types are available:
+      <ref name="surface_integral_stats_scalar.surface_integral"/>
+    </element>
+  </define>
+  <define name="surface_integral_stats_scalar.surface_integral">
+    <ref name="surface_integral_stats_base.surface_integral"/>
+  </define>
+  <define name="surface_integral_stats_scalar.surface_integral" combine="interleave">
+    <attribute name="type">
+      <choice>
+        <value>value</value>
+        <value>gradient_normal</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="surface_integral_stats_vector">
+    <element name="surface_integral">
+      <a:documentation>Surface integral calculations. The following integral types are available:
  normal: Integrates the normal component of the field</a:documentation>
-        <ref name="surface_integral_stats_vector.surface_integral"/>
-      </element>
-    </define>
-    <define name="surface_integral_stats_vector.surface_integral">
+      <ref name="surface_integral_stats_vector.surface_integral"/>
+    </element>
+  </define>
+  <define name="surface_integral_stats_vector.surface_integral">
+    <ref name="surface_integral_stats_base.surface_integral"/>
+  </define>
+  <define name="surface_integral_stats_vector.surface_integral" combine="interleave">
+    <attribute name="type">
+      <value>normal</value>
+    </attribute>
+  </define>
+  <define name="surface_l2norm_stats">
+    <element name="surface_l2norm">
+      <a:documentation>Calculate L2-norm of field over the specified surface</a:documentation>
       <ref name="surface_integral_stats_base.surface_integral"/>
-    </define>
-    <define name="surface_integral_stats_vector.surface_integral" combine="interleave">
-      <attribute name="type">
-        <value>normal</value>
-      </attribute>
-    </define>
-    <define name="surface_l2norm_stats">
-      <element name="surface_l2norm">
-        <a:documentation>Calculate L2-norm of field over the specified surface</a:documentation>
-        <ref name="surface_integral_stats_base.surface_integral"/>
-      </element>
-    </define>
-    <define name="forcing">
-      <element name="ocean_forcing">
-        <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
-        <optional>
-          <element name="iceshelf_meltrate">
-            <optional>
-              <element name="Holland08">
-                <a:documentation>The type of parameterisation</a:documentation>
-                <element name="c0">
-                  <a:documentation>Specific heat capacity of water [Jkg^{-1}]. Default value 3974.</a:documentation>
-                  <ref name="real"/>
+    </element>
+  </define>
+  <define name="forcing">
+    <element name="ocean_forcing">
+      <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
+      <optional>
+        <element name="iceshelf_meltrate">
+          <optional>
+            <element name="Holland08">
+              <a:documentation>The type of parameterisation</a:documentation>
+              <element name="c0">
+                <a:documentation>Specific heat capacity of water [Jkg^{-1}]. Default value 3974.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="cI">
+                <a:documentation>Specific heat capacity of ice [Jkg^{-1}] Default value 2009.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="L">
+                <a:documentation>Transfer of heat and salt through the boundary layer [Jkg^{-1}]. Default value 3.35e5</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="TI">
+                <a:documentation>Temperature of ice [C]. Default value -25, pretty cold</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="a">
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="b">
+                <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="Cd">
+                <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd.</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="melt_surfaceID">
+                  <a:documentation>Surface ID for the ice</a:documentation>
+                  <ref name="integer_vector"/>
                 </element>
-                <element name="cI">
-                  <a:documentation>Specific heat capacity of ice [Jkg^{-1}] Default value 2009.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="L">
-                  <a:documentation>Transfer of heat and salt through the boundary layer [Jkg^{-1}]. Default value 3.35e5</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="TI">
-                  <a:documentation>Temperature of ice [C]. Default value -25, pretty cold</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="a">
-                  <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value -0.0573C.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="b">
-                  <a:documentation>Tb=aSb+b+cB, See equation (4) of Holland08. Default value 0.0832C.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <element name="Cd">
-                  <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd.</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <optional>
-                  <element name="melt_surfaceID">
-                    <a:documentation>Surface ID for the ice</a:documentation>
-                    <ref name="integer_vector"/>
+              </optional>
+              <element name="melt_LayerLength">
+                <a:documentation>Distance for the far field</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Meltrate, calculated from the three equations.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>MeltRate</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <element name="melt_LayerLength">
-                  <a:documentation>Distance for the far field</a:documentation>
-                  <ref name="real"/>
                 </element>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Meltrate, calculated from the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>MeltRate</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Temperature of the ice-ocean interface, calculated from the three equations.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Tb</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Temperature of the ice-ocean interface, calculated from the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Tb</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Salinity of the ice-ocean interface, calculated from the three equations.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Sb</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Salinity of the ice-ocean interface, calculated from the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Sb</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Heat flux at the ice-ocean interface.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Heat_flux</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Heat flux at the ice-ocean interface.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Heat_flux</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Salt flux at the ice-ocean interface.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Salt_flux</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Salt flux at the ice-ocean interface.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Salt_flux</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice.
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Temperature of the far field, which is "melt_LayerLength" away from the ice.
 This variable feeds into the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Tloc</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Tloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Salinity of the far field, which is "melt_LayerLength" away from the ice.
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Salinity of the far field, which is "melt_LayerLength" away from the ice.
 This variable feeds into the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Sloc</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Sloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Pressure used in the three equations.
+                </element>
+              </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Pressure used in the three equations.
 We need to use the pressure at the ice-ocean interface.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Ploc</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Ploc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="vector_field">
-                    <a:documentation>Velocity of the far field, which is "melt_LayerLength" away from the ice.
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <a:documentation>Velocity of the far field, which is "melt_LayerLength" away from the ice.
 This variable feeds into the three equations.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Vloc</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Vloc</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="vector_field">
-                    <a:documentation>Location of your far field, which is "melt_LayerLength" away from the ice.
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <a:documentation>Location of your far field, which is "melt_LayerLength" away from the ice.
 Location should be perpendicular to the ice-ocean boundary.
 melt_LayerLength = ||Location - Location_org||</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Location</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Location</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="vector_field">
-                    <a:documentation>Location of your ice-ocean boundary.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Location_org</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_vector_field"/>
-                    </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="vector_field">
+                  <a:documentation>Location of your ice-ocean boundary.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Location_org</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_vector_field"/>
                   </element>
-                </optional>
-                <optional>
-                  <element name="calculate_boundaries">
-                    <a:documentation>Boundary stuff</a:documentation>
-                    <element name="string_value">
-                      <choice>
-                        <value>neumann</value>
-                        <value>dirichlet</value>
-                      </choice>
-                    </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="calculate_boundaries">
+                  <a:documentation>Boundary stuff</a:documentation>
+                  <element name="string_value">
+                    <choice>
+                      <value>neumann</value>
+                      <value>dirichlet</value>
+                    </choice>
                   </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-        </optional>
-        <optional>
-          <element name="shelf">
-            <optional>
-              <element name="amplitude">
-                <a:documentation>Multiplying factor on equilibrium pressure</a:documentation>
-                <ref name="real"/>
-              </element>
-            </optional>
-            <optional>
-              <element name="y_sign">
-                <a:documentation>Change sign of depth / perturbation from original eta_0</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="calculate_only">
-                <a:documentation>Only calculate the field, don't add to pressure (RHS of Momentum)</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="salinity_change_constant">
-                <a:documentation>DeltaS for constant change over ocean,
-or the difference between min and max for a linear variation in S</a:documentation>
-                <ref name="real"/>
-              </element>
-            </optional>
-            <optional>
-              <element name="add_pressure_from_ice">
-                <a:documentation>If the ice shelf is not included in the original mesh and a free-surface initial condition is used to generate the shelf, the hydrostatic pressure where the shelf now exists needs to be included</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="include_density_change_of_ice">
-                <a:documentation>If using a linear variation in S, include the associated change in density of the ice shelf
-NOT arranged to work with add_pressure_from_ice - TODO</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-        <optional>
-          <element name="external_data_boundary_conditions">
-            <a:documentation>Check this option to use an external data set for the t(0)
-and in/out boundary conditions. This sets up NEMO-type forcing.</a:documentation>
-            <element name="input_file">
-              <a:documentation>Path of the file containing the external data set</a:documentation>
-              <attribute name="file_name">
-                <data type="string"/>
-              </attribute>
+                </element>
+              </optional>
             </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="shelf">
+          <optional>
+            <element name="amplitude">
+              <a:documentation>Multiplying factor on equilibrium pressure</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="y_sign">
+              <a:documentation>Change sign of depth / perturbation from original eta_0</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="calculate_only">
+              <a:documentation>Only calculate the field, don't add to pressure (RHS of Momentum)</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="salinity_change_constant">
+              <a:documentation>DeltaS for constant change over ocean,
+or the difference between min and max for a linear variation in S</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="add_pressure_from_ice">
+              <a:documentation>If the ice shelf is not included in the original mesh and a free-surface initial condition is used to generate the shelf, the hydrostatic pressure where the shelf now exists needs to be included</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="include_density_change_of_ice">
+              <a:documentation>If using a linear variation in S, include the associated change in density of the ice shelf
+NOT arranged to work with add_pressure_from_ice - TODO</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="external_data_boundary_conditions">
+          <a:documentation>Check this option to use an external data set for the t(0)
+and in/out boundary conditions. This sets up NEMO-type forcing.</a:documentation>
+          <element name="input_file">
+            <a:documentation>Path of the file containing the external data set</a:documentation>
+            <attribute name="file_name">
+              <data type="string"/>
+            </attribute>
           </element>
-        </optional>
-        <optional>
-          <element name="bulk_formulae">
-            <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
+        </element>
+      </optional>
+      <optional>
+        <element name="bulk_formulae">
+          <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
 and photosynthetic radiation to be set using data obtained from
 the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)</a:documentation>
-            <optional>
-              <element name="bulk_formulae">
-                <a:documentation>The type of bulk formulae to use. Default is NCAR if no selection is made.</a:documentation>
-                <choice>
-                  <element name="type">
-                    <a:documentation>Bulk formulae from Large and Yeager (2004)
+          <optional>
+            <element name="bulk_formulae">
+              <a:documentation>The type of bulk formulae to use. Default is NCAR if no selection is made.</a:documentation>
+              <choice>
+                <element name="type">
+                  <a:documentation>Bulk formulae from Large and Yeager (2004)
 Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing
 for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:documentation>
-                    <attribute name="name">
-                      <value>NCAR</value>
-                    </attribute>
-                    <empty/>
-                  </element>
-                  <element name="type">
-                    <a:documentation>Bulk formulae from Fairall et al (2003).
+                  <attribute name="name">
+                    <value>NCAR</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <a:documentation>Bulk formulae from Fairall et al (2003).
 Bulk Parameterization of Air–Sea Fluxes: Updates and
 Verification for the COARE Algorithm Journal of Climate, 2003, 16, 571-591</a:documentation>
-                    <attribute name="name">
-                      <value>COARE</value>
-                    </attribute>
-                    <empty/>
-                  </element>
-                  <element name="type">
-                    <a:documentation>Bulk formulae from Kara et al (2005).
+                  <attribute name="name">
+                    <value>COARE</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <a:documentation>Bulk formulae from Kara et al (2005).
 Stability-Dependent Exchange Coefficients for Air–Sea Fluxes
 Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentation>
-                    <attribute name="name">
-                      <value>Kara</value>
-                    </attribute>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
-            </optional>
-            <element name="input_file">
-              <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis website
-(see above)</a:documentation>
-              <attribute name="file_name">
-                <data type="string"/>
-              </attribute>
+                  <attribute name="name">
+                    <value>Kara</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
-            <optional>
-              <element name="input_file_type">
-                <choice>
-                  <element name="type">
-                    <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
-                    <attribute name="name">
-                      <value>ERA40</value>
-                    </attribute>
-                    <optional>
-                      <element name="no_accumulation">
-                        <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+          </optional>
+          <element name="input_file">
+            <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis website
+(see above)</a:documentation>
+            <attribute name="file_name">
+              <data type="string"/>
+            </attribute>
+          </element>
+          <optional>
+            <element name="input_file_type">
+              <choice>
+                <element name="type">
+                  <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
+                  <attribute name="name">
+                    <value>ERA40</value>
+                  </attribute>
+                  <optional>
+                    <element name="no_accumulation">
+                      <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
 If these values have been already ammended to instantaneous values, then switch this
 flag on and the accumulation correction will not be applied.</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                  <element name="type">
-                    <attribute name="name">
-                      <value>NSEP</value>
-                    </attribute>
-                    <empty/>
-                  </element>
-                  <element name="type">
-                    <attribute name="name">
-                      <value>ICOM</value>
-                    </attribute>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
-            </optional>
-            <optional>
-              <element name="position">
-                <a:documentation>Adding a latitude and longitude here (specified as two real numbers)
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="position">
+              <a:documentation>Adding a latitude and longitude here (specified as two real numbers)
 will obtain data from the forcing file at that location. The
 mesh is not translated nor is the mesh put on the sphere, instead the
 specified lat/long is translated into cartesian coordinates and this is simply
 added to the surface mesh node coordinates when fluxes are calculated.</a:documentation>
-                <ref name="real_vector"/>
-                <optional>
-                  <element name="single_location">
-                    <a:documentation>Turning on this option will cause all nodes on the surface mesh to
+              <ref name="real_vector"/>
+              <optional>
+                <element name="single_location">
+                  <a:documentation>Turning on this option will cause all nodes on the surface mesh to
 experience the same forcing, regardless of position. Only really
 useful for psuedo-1D simulations.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <element name="output_fluxes_diagnostics">
-              <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
-These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
-              <optional>
-                <element name="vector_field">
-                  <attribute name="rank">
-                    <value>1</value>
-                  </attribute>
-                  <attribute name="name">
-                    <value>MomentumFlux</value>
-                  </attribute>
-                  <choice>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                    <element name="aliased">
-                      <ref name="generic_aliased_field"/>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-              <optional>
-                <element name="scalar_field">
-                  <attribute name="rank">
-                    <value>0</value>
-                  </attribute>
-                  <attribute name="name">
-                    <value>HeatFlux</value>
-                  </attribute>
-                  <choice>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                    <element name="aliased">
-                      <ref name="generic_aliased_field"/>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-              <optional>
-                <element name="scalar_field">
-                  <attribute name="rank">
-                    <value>0</value>
-                  </attribute>
-                  <attribute name="name">
-                    <value>SalinityFlux</value>
-                  </attribute>
-                  <choice>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                    <element name="aliased">
-                      <ref name="generic_aliased_field"/>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-              <optional>
-                <element name="scalar_field">
-                  <attribute name="rank">
-                    <value>0</value>
-                  </attribute>
-                  <attribute name="name">
-                    <value>PhotosyntheticRadiationDownward</value>
-                  </attribute>
-                  <choice>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                    <element name="aliased">
-                      <ref name="generic_aliased_field"/>
-                    </element>
-                  </choice>
+                  <empty/>
                 </element>
               </optional>
             </element>
-          </element>
-        </optional>
-        <optional>
-          <element name="tidal_forcing">
-            <a:documentation>Tidal forcing options</a:documentation>
+          </optional>
+          <element name="output_fluxes_diagnostics">
+            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
             <optional>
-              <element name="M2">
-                <a:documentation>M2</a:documentation>
-                <optional>
-                  <element name="frequency">
-                    <a:documentation>Ancient frequencies:
+              <element name="vector_field">
+                <attribute name="rank">
+                  <value>1</value>
+                </attribute>
+                <attribute name="name">
+                  <value>MomentumFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>HeatFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>SalinityFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>PhotosyntheticRadiationDownward</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+          </element>
+        </element>
+      </optional>
+      <optional>
+        <element name="tidal_forcing">
+          <a:documentation>Tidal forcing options</a:documentation>
+          <optional>
+            <element name="M2">
+              <a:documentation>M2</a:documentation>
+              <optional>
+                <element name="frequency">
+                  <a:documentation>Ancient frequencies:
 
 Ma     Frequency
 
@@ -9027,12 +9022,12 @@ Ma     Frequency
 570    1.469e-4
 
 From Poliakow,2005</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="amplitude">
-                    <a:documentation>Ma     Amplitude
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="amplitude">
+                  <a:documentation>Ma     Amplitude
 
 0        0.2423
 
@@ -9057,124 +9052,169 @@ From Poliakow,2005</a:documentation>
 570    0.2560
 
 From Poliakow,2005</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <optional>
-              <element name="S2">
-                <a:documentation>S2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="N2">
-                <a:documentation>N2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="K2">
-                <a:documentation>K2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="K1">
-                <a:documentation>K1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="O1">
-                <a:documentation>O1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="P1">
-                <a:documentation>P1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="Q1">
-                <a:documentation>Q1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="Mf">
-                <a:documentation>Mf</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="Mm">
-                <a:documentation>Mm</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="Ssa">
-                <a:documentation>Ssa</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="all_tidal_components">
-                <a:documentation>Switch on all tidal components</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="love_number">
-                <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="S2">
+              <a:documentation>S2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="N2">
+              <a:documentation>N2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K2">
+              <a:documentation>K2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K1">
+              <a:documentation>K1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="O1">
+              <a:documentation>O1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="P1">
+              <a:documentation>P1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Q1">
+              <a:documentation>Q1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Mf">
+              <a:documentation>Mf</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Mm">
+              <a:documentation>Mm</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Ssa">
+              <a:documentation>Ssa</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="all_tidal_components">
+              <a:documentation>Switch on all tidal components</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="love_number">
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
 Recommended value is 0.693</a:documentation>
-                <element name="value">
-                  <ref name="real"/>
-                </element>
+              <element name="value">
+                <ref name="real"/>
               </element>
-            </optional>
-            <optional>
-              <element name="sal">
-                <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
+            </element>
+          </optional>
+          <optional>
+            <element name="sal">
+              <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
 that uses a constant beta value</a:documentation>
-                <element name="beta">
-                  <ref name="real"/>
-                </element>
+              <element name="beta">
+                <ref name="real"/>
               </element>
-            </optional>
-            <optional>
-              <element name="chi">
-                <a:documentation>Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-      </element>
-    </define>
-    <define name="biology">
-      <element name="ocean_biology">
-        <a:documentation>Model of biological processes in the ocean.</a:documentation>
-        <choice>
-          <element name="pznd">
-            <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus.</a:documentation>
-            <choice>
-              <element name="source_and_sink_algorithm">
-                <a:documentation>Python code specifying the source and sink relationships
+            </element>
+          </optional>
+          <optional>
+            <element name="chi">
+              <a:documentation>Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="biology">
+    <element name="ocean_biology">
+      <a:documentation>Model of biological processes in the ocean.</a:documentation>
+      <choice>
+        <element name="pznd">
+          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus.</a:documentation>
+          <choice>
+            <element name="source_and_sink_algorithm">
+              <a:documentation>Python code specifying the source and sink relationships
 between the biological tracers. This is usually achieved by
 importing fluidity.ocean_biology and calling a scheme from there.</a:documentation>
-                <ref name="python_code"/>
-              </element>
-              <element name="disable_sources_and_sinks">
-                <a:documentation>Do not calculate sources and sinks.
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_sources_and_sinks">
+              <a:documentation>Do not calculate sources and sinks.
 This option is generally only useful for testing.</a:documentation>
-                <empty/>
+              <empty/>
+            </element>
+          </choice>
+          <element name="scalar_field">
+            <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>PhotosyntheticRadiation</value>
+            </attribute>
+            <choice>
+              <element name="prognostic">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prognostic_photosynthetic_radiation"/>
+              </element>
+              <element name="prescribed">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
               </element>
             </choice>
+          </element>
+        </element>
+        <element name="six_component">
+          <a:documentation>6 component biology model, which models Nitrates, Ammonium,
+Phytoplankton, Zooplankton, Detritus and Chlorophyll.
+
+These fields must be enabled in the material phase
+
+Based on the equations in
+Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R.
+Mechanisms controlling primary and new production in a global ecosystem model - Part I:
+Validation of the biological simulation Ocean Science, 2006, 2, 249-266.
+DOI: 10.5194/os-2-249-2006</a:documentation>
+          <choice>
+            <element name="source_and_sink_algorithm">
+              <a:documentation>Python code specifying the biology model. This takes
+in velocity and light and outputs Phytoplankton, if
+those fields exist.</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_sources_and_sinks">
+              <a:documentation>Do not calculate biology
+This option is generally only useful for testing.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
             <element name="scalar_field">
               <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
               <attribute name="rank">
@@ -9194,165 +9234,120 @@ This option is generally only useful for testing.</a:documentation>
                 </element>
               </choice>
             </element>
-          </element>
-          <element name="six_component">
-            <a:documentation>6 component biology model, which models Nitrates, Ammonium,
-Phytoplankton, Zooplankton, Detritus and Chlorophyll.
-
-These fields must be enabled in the material phase
-
-Based on the equations in
-Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R.
-Mechanisms controlling primary and new production in a global ecosystem model - Part I:
-Validation of the biological simulation Ocean Science, 2006, 2, 249-266.
-DOI: 10.5194/os-2-249-2006</a:documentation>
-            <choice>
-              <element name="source_and_sink_algorithm">
-                <a:documentation>Python code specifying the biology model. This takes
-in velocity and light and outputs Phytoplankton, if
-those fields exist.</a:documentation>
-                <ref name="python_code"/>
-              </element>
-              <element name="disable_sources_and_sinks">
-                <a:documentation>Do not calculate biology
-This option is generally only useful for testing.</a:documentation>
-                <empty/>
-              </element>
-            </choice>
-            <optional>
-              <element name="scalar_field">
-                <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
-                <attribute name="rank">
-                  <value>0</value>
-                </attribute>
-                <attribute name="name">
-                  <value>PhotosyntheticRadiation</value>
-                </attribute>
-                <choice>
-                  <element name="prognostic">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="prognostic_photosynthetic_radiation"/>
-                  </element>
-                  <element name="prescribed">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="prescribed_scalar_field"/>
-                  </element>
-                </choice>
-              </element>
-            </optional>
-          </element>
-        </choice>
-      </element>
-    </define>
-    <define name="prognostic_photosynthetic_radiation">
-      <element name="equation">
-        <a:documentation>PAR equation.</a:documentation>
-        <attribute name="name">
-          <value>PhotosyntheticRadiation</value>
-        </attribute>
-      </element>
-      <element name="spatial_discretisation">
-        <a:documentation>Spatial discretisation options</a:documentation>
-        <element name="discontinuous_galerkin">
-          <a:documentation>Discontinuous galerkin formulation. You can also use this
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="prognostic_photosynthetic_radiation">
+    <element name="equation">
+      <a:documentation>PAR equation.</a:documentation>
+      <attribute name="name">
+        <value>PhotosyntheticRadiation</value>
+      </attribute>
+    </element>
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <element name="discontinuous_galerkin">
+        <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
 galerkin formulation will result.</a:documentation>
-          <empty/>
-        </element>
+        <empty/>
       </element>
-      <element name="solver">
-        <a:documentation>Solver</a:documentation>
-        <ref name="linear_solver_options_asym_scalar"/>
-      </element>
-      <!-- Alas, no initial_condition either, so we'd better not checkpoint it... -->
-      <element name="exclude_from_checkpointing">
-        <a:documentation>Disables checkpointing of this field</a:documentation>
-        <ref name="comment"/>
-      </element>
-      <element name="absorption_coefficients">
-        <a:documentation>Coefficients of absorption of photosynthetically active
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym_scalar"/>
+    </element>
+    <!-- Alas, no initial_condition either, so we'd better not checkpoint it... -->
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <element name="absorption_coefficients">
+      <a:documentation>Coefficients of absorption of photosynthetically active
 radiation for water and phytoplankton.</a:documentation>
-        <element name="water">
-          <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
-          <ref name="real"/>
-        </element>
-        <element name="phytoplankton">
-          <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
-          <ref name="real"/>
-        </element>
+      <element name="water">
+        <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
+        <ref name="real"/>
       </element>
-      <optional>
-        <element name="boundary_conditions">
-          <a:documentation>Boundary conditions</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <element name="surface_ids">
-            <a:documentation>Surface id:</a:documentation>
-            <ref name="integer_vector"/>
-          </element>
-          <choice>
-            <a:documentation>Type</a:documentation>
-            <element name="type">
-              <attribute name="name">
-                <value>dirichlet</value>
-              </attribute>
-              <element name="apply_weakly">
-                <a:documentation>Apply the dirichlet bc weakly.  Only available with
+      <element name="phytoplankton">
+        <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+    <optional>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <element name="apply_weakly">
+              <a:documentation>Apply the dirichlet bc weakly.  Only available with
 discontinuous_galerkin and control_volume
 spatial_discretisations.
 
 If not selected boundary conditions are applied strongly.</a:documentation>
-                <empty/>
-              </element>
-              <ref name="input_choice_real"/>
-            </element>
-            <element name="type">
-              <attribute name="name">
-                <value>bulk_formulae</value>
-              </attribute>
               <empty/>
             </element>
-            <element name="type">
-              <attribute name="name">
-                <value>neumann</value>
-              </attribute>
-              <ref name="input_choice_real"/>
-            </element>
-          </choice>
-        </element>
-      </optional>
-      <ref name="prognostic_scalar_output_options"/>
-      <ref name="prognostic_scalar_stat_options"/>
-      <ref name="scalar_convergence_options"/>
-      <ref name="prognostic_detector_options"/>
-      <ref name="scalar_steady_state_options"/>
-      <ref name="adaptivity_options_scalar_field"/>
-      <optional>
-        <element name="priority">
-          <a:documentation>Set the priority of this field
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>bulk_formulae</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>neumann</value>
+            </attribute>
+            <ref name="input_choice_real"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_scalar_field"/>
+    <optional>
+      <element name="priority">
+        <a:documentation>Set the priority of this field
 This determines the order in which scalar_fields are solved for:
  - higher numbers have the highest priority
  - lower numbers (including negative) have the lowest priority
  - default if not set is 0</a:documentation>
-          <ref name="integer"/>
-        </element>
-      </optional>
-    </define>
-    <define name="recalculation_options">
-      <element name="do_not_recalculate">
-        <a:documentation>Prevent this field from being recalculated at every timestep.
-This is cheaper especially if you are enforcing discrete properties on the field.</a:documentation>
-        <empty/>
+        <ref name="integer"/>
       </element>
-    </define>
-    <define name="discrete_properties_algorithm_scalar">
-      <element name="enforce_discrete_properties">
-        <a:documentation>Select discrete properties to enforce on the field
+    </optional>
+  </define>
+  <define name="recalculation_options">
+    <element name="do_not_recalculate">
+      <a:documentation>Prevent this field from being recalculated at every timestep.
+This is cheaper especially if you are enforcing discrete properties on the field.</a:documentation>
+      <empty/>
+    </element>
+  </define>
+  <define name="discrete_properties_algorithm_scalar">
+    <element name="enforce_discrete_properties">
+      <a:documentation>Select discrete properties to enforce on the field
 either after being prescribed or interpolated</a:documentation>
-        <optional>
-          <element name="solenoidal_lagrange_update">
-            <a:documentation>Update this field using the lagrangian multiplier
+      <optional>
+        <element name="solenoidal_lagrange_update">
+          <a:documentation>Update this field using the lagrangian multiplier
 calculated in the solenoidal projection of a
 scalar field.
 
@@ -9361,23 +9356,23 @@ underneath that vector field too.
 
 Note also this only really makes sense for coupled
 fields like velocity and pressure.</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-      </element>
-    </define>
-    <define name="discrete_properties_algorithm_vector">
-      <element name="enforce_discrete_properties">
-        <a:documentation>Select discrete properties to enforce on the field
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="discrete_properties_algorithm_vector">
+    <element name="enforce_discrete_properties">
+      <a:documentation>Select discrete properties to enforce on the field
 either after being prescribed or interpolated</a:documentation>
-        <optional>
-          <ref name="solenoidal_options"/>
-        </optional>
-      </element>
-    </define>
-    <define name="solenoidal_options">
-      <element name="solenoidal">
-        <a:documentation>Constrained divergence-free projection.
+      <optional>
+        <ref name="solenoidal_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="solenoidal_options">
+    <element name="solenoidal">
+      <a:documentation>Constrained divergence-free projection.
 This adds an additional constraint that ensures that the field
 is solenoidal, i.e. divergence-free.
 This is equivalent in cost to a pressure solve.
@@ -9386,94 +9381,108 @@ needed.
 
 Note well: this only makes sense for nondivergent
 vector fields, such as incompressible velocity!</a:documentation>
-        <element name="interpolated_field">
-          <a:documentation>Options for the mass matrix of the field being interpolated</a:documentation>
-          <choice>
-            <element name="continuous">
-              <element name="lump_mass_matrix">
-                <a:documentation>Lump the mass matrix for the assembly of the projection matrix
+      <element name="interpolated_field">
+        <a:documentation>Options for the mass matrix of the field being interpolated</a:documentation>
+        <choice>
+          <element name="continuous">
+            <element name="lump_mass_matrix">
+              <a:documentation>Lump the mass matrix for the assembly of the projection matrix
 (not for the initial galerkin projection)
 
 Required when using interpolating continuous fields</a:documentation>
-                <optional>
-                  <element name="use_submesh">
-                    <a:documentation>Lump on the submesh.
+              <optional>
+                <element name="use_submesh">
+                  <a:documentation>Lump on the submesh.
 This only works for simplex meshes and is only
 strictly valid on 2d meshes.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </element>
-            <element name="discontinuous">
-              <optional>
-                <element name="lump_mass_matrix">
-                  <a:documentation>Lump the mass matrix for the assembly of the projection matrix
-(not for the initial galerkin projection)</a:documentation>
                   <empty/>
                 </element>
               </optional>
             </element>
-          </choice>
-        </element>
-        <element name="lagrange_multiplier">
-          <a:documentation>Options for the lagrange multiplier
+          </element>
+          <element name="discontinuous">
+            <optional>
+              <element name="lump_mass_matrix">
+                <a:documentation>Lump the mass matrix for the assembly of the projection matrix
+(not for the initial galerkin projection)</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="lagrange_multiplier">
+        <a:documentation>Options for the lagrange multiplier
 
 Must be on a continuous mesh!</a:documentation>
-          <ref name="pressure_mesh_choice"/>
-          <element name="spatial_discretisation">
-            <choice>
-              <element name="continuous_galerkin">
-                <optional>
-                  <element name="remove_stabilisation_term">
-                    <a:documentation>Remove the stabilisation term from the projection operator.
+        <ref name="pressure_mesh_choice"/>
+        <element name="spatial_discretisation">
+          <choice>
+            <element name="continuous_galerkin">
+              <optional>
+                <element name="remove_stabilisation_term">
+                  <a:documentation>Remove the stabilisation term from the projection operator.
 
 Automatic when not using P1P1.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="integrate_divergence_by_parts">
-                    <a:documentation>Integrate the divergence operator by parts.
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="integrate_divergence_by_parts">
+                  <a:documentation>Integrate the divergence operator by parts.
 
 Automatic when projecting a discontinuous field</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="test_divergence_with_cv_dual">
-                    <a:documentation>Test the divergence equation with the control volume dual mesh
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="test_divergence_with_cv_dual">
+                  <a:documentation>Test the divergence equation with the control volume dual mesh
 of the finite element lagrange multiplier mesh.
 This will make the lagrange multiplier matrix non symmetric which must be
 considered when selecting the lagrange multiplier  solver options.</a:documentation>
-                    <ref name="comment"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="control_volumes">
-                <empty/>
-              </element>
-            </choice>
-          </element>
-          <optional>
-            <element name="reference_node">
-              <ref name="integer"/>
+                  <ref name="comment"/>
+                </element>
+              </optional>
             </element>
-          </optional>
-          <optional>
-            <element name="repair_stiff_nodes">
-              <a:documentation>**UNDER DEVELOPMENT**
+            <element name="control_volumes">
+              <empty/>
+            </element>
+          </choice>
+        </element>
+        <optional>
+          <element name="reference_node">
+            <ref name="integer"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="repair_stiff_nodes">
+            <a:documentation>**UNDER DEVELOPMENT**
 This searches the CMC matrix diagonal looking for nodes that are less than the maximum value time epsilon(0.0) (i.e. nodes that are effectively zero).
 It then zeros that row and column and places a one on the diagonal and a zero on the rhs.
 At a debug level of 2 it also prints out the value and the sum of the row values.
 This is useful as a debugging tool if PETSc complains about zeros on the diagonal (i.e. if you have a stiff node in your mesh) but doesn't necessary produce nice answers at the end.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <choice>
+            <element name="update_scalar_field">
+              <a:documentation>Update a scalar field using the lagrange multiplier from
+the divergence free projection of this field.  The selected
+scalar field must have solenoidal selected in its interpolation
+options too and it must be on the same mesh as used for the
+solenoidal projection above.
+
+Note well: this only really makes sense for scalar fields linked to nondivergent
+vector fields, such as pressure to incompressible velocity!</a:documentation>
+              <attribute name="name">
+                <value>Pressure</value>
+              </attribute>
               <empty/>
             </element>
-          </optional>
-          <optional>
-            <choice>
-              <element name="update_scalar_field">
-                <a:documentation>Update a scalar field using the lagrange multiplier from
+            <element name="update_scalar_field">
+              <a:documentation>Update a scalar field using the lagrange multiplier from
 the divergence free projection of this field.  The selected
 scalar field must have solenoidal selected in its interpolation
 options too and it must be on the same mesh as used for the
@@ -9481,41 +9490,27 @@ solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
 vector fields, such as pressure to incompressible velocity!</a:documentation>
-                <attribute name="name">
-                  <value>Pressure</value>
-                </attribute>
-                <empty/>
-              </element>
-              <element name="update_scalar_field">
-                <a:documentation>Update a scalar field using the lagrange multiplier from
-the divergence free projection of this field.  The selected
-scalar field must have solenoidal selected in its interpolation
-options too and it must be on the same mesh as used for the
-solenoidal projection above.
-
-Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!</a:documentation>
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
-                </attribute>
-                <empty/>
-              </element>
-            </choice>
-          </optional>
-          <element name="solver">
-            <a:documentation>Solver options for the linear solve.
+              <attribute name="name">
+                <data type="string" datatypeLibrary=""/>
+              </attribute>
+              <empty/>
+            </element>
+          </choice>
+        </optional>
+        <element name="solver">
+          <a:documentation>Solver options for the linear solve.
 This method requires the inversion of a projection matrix.</a:documentation>
-            <ref name="linear_solver_options_sym"/>
-          </element>
+          <ref name="linear_solver_options_sym"/>
         </element>
       </element>
-    </define>
-    <define name="represcribe_before_interpolation">
-      <element name="represcribe_before_interpolation">
-        <a:documentation>Represcribe the field before interpolation.
+    </element>
+  </define>
+  <define name="represcribe_before_interpolation">
+    <element name="represcribe_before_interpolation">
+      <a:documentation>Represcribe the field before interpolation.
 
 This means the interpolation will not be conservative from the previous mesh so be careful what you're trying to achieve!</a:documentation>
-        <empty/>
-      </element>
-    </define>
-  </grammar>
+      <empty/>
+    </element>
+  </define>
+</grammar>
