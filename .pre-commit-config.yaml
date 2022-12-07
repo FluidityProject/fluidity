@@ -3,7 +3,7 @@
 exclude: configure|\.*.msh|\.*.rng|^h5hut/\.*|^libjudy\.*|^libmba2d\.*|^libmba3d\.*|^libspud\.*|^spatialindex-1.8.0\.*
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     -   id: check-ast
     -   id: check-builtin-literals
@@ -29,11 +29,11 @@ repos:
     -   id: isort
         args: ["--profile", "black", "--filter-files"]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.1.0
+    rev: v3.3.0
     hooks:
     -   id: pyupgrade
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
     -   id: flake8
         args: ["--max-line-length", "88", "--extend-ignore", "E203,E722"]
