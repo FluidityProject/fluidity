@@ -27,2464 +27,241 @@
 
 #include "fdebug.h"
 module transform_elements
-  ! Module to calculate element transformations from local to physical
-  ! coordinates.
-  use fldebug
-  use futils, only: present_and_true
-  use vector_tools
-  use quadrature
-  use element_numbering
-  use elements
-  use parallel_tools, only: abort_if_in_parallel_region
-  use memory_diagnostics
-  use fields_data_types
-  use fields_base
-  use cv_faces, only: cv_faces_type
-  use eventcounter
+   ! Module to calculate element transformations from local to physical
+   ! coordinates.
+   use fldebug
+   use futils, only: present_and_true
+   use vector_tools
+   use quadrature
+   use element_numbering
+   use elements
+   use parallel_tools, only: abort_if_in_parallel_region
+   use memory_diagnostics
+   use fields_data_types
+   use fields_base
+   use cv_faces, only: cv_faces_type
+   use eventcounter
 
-  implicit none
+   implicit none
 
-  interface transform_to_physical
-    module procedure transform_to_physical_full, transform_to_physical_detwei
-  end interface
+   interface transform_to_physical
+      module procedure transform_to_physical_full, transform_to_physical_detwei
+   end interface
 
-  interface transform_facet_to_physical
-    module procedure transform_facet_to_physical_full, &
-      transform_facet_to_physical_detwei, transform_full_facet_to_physical_full
-  end interface transform_facet_to_physical
+   interface transform_facet_to_physical
+      module procedure transform_facet_to_physical_full, &
+         transform_facet_to_physical_detwei, transform_full_facet_to_physical_full
+   end interface transform_facet_to_physical
 
-  interface retrieve_cached_transform
-     module procedure retrieve_cached_transform_full, &
-          retrieve_cached_transform_det
-  end interface
+   interface retrieve_cached_transform
+      module procedure retrieve_cached_transform_full, &
+         retrieve_cached_transform_det
+   end interface
 
-  interface retrieve_cached_face_transform
-     module procedure retrieve_cached_face_transform_full, retrieve_cached_full_face_transform_full
-  end interface
+   interface retrieve_cached_face_transform
+      module procedure retrieve_cached_face_transform_full, retrieve_cached_full_face_transform_full
+   end interface
 
-  interface local_coords
-    module procedure local_coords_interpolation
-  end interface
+   interface local_coords
+      module procedure local_coords_interpolation
+   end interface
 
-  private
-  public :: transform_to_physical, transform_facet_to_physical, &
-            transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
-            transform_superconvergent_to_physical, transform_horizontal_to_physical, &
-            compute_jacobian, compute_inverse_jacobian, &
-            compute_facet_full_inverse_jacobian, element_volume,&
-            cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache, set_analytical_spherical_mapping, &
-            local_coords, local_coords_interpolation
+   private
+   public :: transform_to_physical, transform_facet_to_physical, &
+      transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
+      transform_superconvergent_to_physical, transform_horizontal_to_physical, &
+      compute_jacobian, compute_inverse_jacobian, &
+      compute_facet_full_inverse_jacobian, element_volume,&
+      cache_transform_elements, deallocate_transform_cache, &
+      prepopulate_transform_cache, set_analytical_spherical_mapping, &
+      local_coords, local_coords_interpolation
 
-  integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)
+   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)
 
-  logical, save :: cache_transform_elements=.true.
-  real, dimension(:,:,:), allocatable, save :: invJ_cache
-  real, dimension(:,:,:), allocatable, save :: J_T_cache
-  real, dimension(:), allocatable, save :: detJ_cache
+   logical, save :: cache_transform_elements=.true.
+   real, dimension(:,:,:), allocatable, save :: invJ_cache
+   real, dimension(:,:,:), allocatable, save :: J_T_cache
+   real, dimension(:), allocatable, save :: detJ_cache
 
-  real, dimension(:,:), allocatable, save :: face_normal_cache
-  real, dimension(:), allocatable, save :: face_detJ_cache
-  real, dimension(:,:,:), allocatable, save :: face_invJ_cache
-  real, dimension(:,:,:), allocatable, save :: face_J_T_cache
-  ! Record which element is on the other side of the last n/2 elements.
-  integer, dimension(:), allocatable, save :: face_cache
+   real, dimension(:,:), allocatable, save :: face_normal_cache
+   real, dimension(:), allocatable, save :: face_detJ_cache
+   real, dimension(:,:,:), allocatable, save :: face_invJ_cache
+   real, dimension(:,:,:), allocatable, save :: face_J_T_cache
+   ! Record which element is on the other side of the last n/2 elements.
+   integer, dimension(:), allocatable, save :: face_cache
 
 
-  ! The reference count id of the positions mesh being cached.
-  integer, save :: position_id=-1
-  integer, save :: last_mesh_movement=-1
-  integer, save :: face_position_id=-1
-  integer, save :: face_last_mesh_movement=-1
-  integer, save :: full_face_position_id=-1
-  integer, save :: full_face_last_mesh_movement=-1
+   ! The reference count id of the positions mesh being cached.
+   integer, save :: position_id=-1
+   integer, save :: last_mesh_movement=-1
+   integer, save :: face_position_id=-1
+   integer, save :: face_last_mesh_movement=-1
+   integer, save :: full_face_position_id=-1
+   integer, save :: full_face_last_mesh_movement=-1
 
-  integer, save :: analytical_spherical_position_id=-1
-  logical, save :: analytical_spherical_mapping=.false.
+   integer, save :: analytical_spherical_position_id=-1
+   logical, save :: analytical_spherical_mapping=.false.
 
 contains
 
-  subroutine set_analytical_spherical_mapping()
-    !!< Set the global analytical spherical mapping flag
-    analytical_spherical_mapping = .true.
-  end subroutine
+   subroutine set_analytical_spherical_mapping()
+      !!< Set the global analytical spherical mapping flag
+      analytical_spherical_mapping = .true.
+   end subroutine
 
-  function use_analytical_spherical_mapping(X)
-    !!< Determine whether we are using analytical spherical mapping for this positions field
-    type(vector_field), intent(in) :: X
-    logical use_analytical_spherical_mapping
+   function use_analytical_spherical_mapping(X)
+      !!< Determine whether we are using analytical spherical mapping for this positions field
+      type(vector_field), intent(in) :: X
+      logical use_analytical_spherical_mapping
 
-    use_analytical_spherical_mapping=.false.
-    if (analytical_spherical_mapping) then
-      if (X%refcount%id==analytical_spherical_position_id) then
-        use_analytical_spherical_mapping = .true.
-      else
-        if (X%name=="Coordinate") then
-          analytical_spherical_position_id = X%refcount%id
-          use_analytical_spherical_mapping = .true.
-        end if
+      use_analytical_spherical_mapping=.false.
+      if (analytical_spherical_mapping) then
+         if (X%refcount%id==analytical_spherical_position_id) then
+            use_analytical_spherical_mapping = .true.
+         else
+            if (X%name=="Coordinate") then
+               analytical_spherical_position_id = X%refcount%id
+               use_analytical_spherical_mapping = .true.
+            end if
+         end if
       end if
-    end if
 
-  end function
+   end function
 
-  function is_cache_valid(X) result (cache_valid)
-    !!< Is the cache (still) valid for the given coordinate field
-    !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
-    !!< If *not*, reconstruct the cache, and then return .true.
-    !!< For nonlinear coordinates this always returns .false.
-    type(vector_field), intent(in) :: X
-    logical :: cache_valid
+   function is_cache_valid(X) result (cache_valid)
+      !!< Is the cache (still) valid for the given coordinate field
+      !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
+      !!< If *not*, reconstruct the cache, and then return .true.
+      !!< For nonlinear coordinates this always returns .false.
+      type(vector_field), intent(in) :: X
+      logical :: cache_valid
 
-    logical :: x_spherical, x_nonlinear
+      logical :: x_spherical, x_nonlinear
 
-    cache_valid=.true.
+      cache_valid=.true.
 
-    if (X%refcount%id/=position_id) then
-       cache_valid=.false.
-       if (X%name/="Coordinate") then
-          ! If Someone is not calling this on the main Coordinate field
-          ! then we're screwed anyway.
-          return
-       end if
+      if (X%refcount%id/=position_id) then
+         cache_valid=.false.
+         if (X%name/="Coordinate") then
+            ! If Someone is not calling this on the main Coordinate field
+            ! then we're screwed anyway.
+            return
+         end if
 
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
-       cache_valid=.false.
-    end if
+      else if(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
+         cache_valid=.false.
+      end if
 
-    x_spherical = use_analytical_spherical_mapping(X)
+      x_spherical = use_analytical_spherical_mapping(X)
 
-    x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    if (x_nonlinear) then
-      cache_valid=.false.
-      return
-    end if
+      x_nonlinear = x_spherical .or. .not.(X%mesh%shape%degree==1 .and. X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+      if (x_nonlinear) then
+         cache_valid=.false.
+         return
+      end if
 
-    if (.not.cache_valid) then
-       call construct_cache(X)
-       cache_valid=.true.
-    end if
+      if (.not.cache_valid) then
+         call construct_cache(X)
+         cache_valid=.true.
+      end if
 
-  end function is_cache_valid
+   end function is_cache_valid
 
-  function retrieve_cached_transform_full(X, ele, J_local_T, invJ_local,&
-       & detJ_local) result (cache_valid)
-    !!< Determine whether the transform cache is valid for this operation.
-    !!<
-    !!< If caching is applicable and the cache is not ready, set up the
-    !!< cache and then return true.
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele
-    !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
-    real, dimension(:,:), intent(out) :: J_local_T, invJ_local
-    !! Local version of the determinant of J
-    real, intent(out) :: detJ_local
-    logical :: cache_valid
+   function retrieve_cached_transform_full(X, ele, J_local_T, invJ_local,&
+   & detJ_local) result (cache_valid)
+      !!< Determine whether the transform cache is valid for this operation.
+      !!<
+      !!< If caching is applicable and the cache is not ready, set up the
+      !!< cache and then return true.
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
+      real, dimension(:,:), intent(out) :: J_local_T, invJ_local
+      !! Local version of the determinant of J
+      real, intent(out) :: detJ_local
+      logical :: cache_valid
 
-    cache_valid = is_cache_valid(X)
-    if (.not. cache_valid) return
+      cache_valid = is_cache_valid(X)
+      if (.not. cache_valid) return
 
 
-    J_local_T=J_T_cache(:, :, ele)
-    invJ_local=invJ_cache(:, :, ele)
-    detJ_local=detJ_cache(ele)
+      J_local_T=J_T_cache(:, :, ele)
+      invJ_local=invJ_cache(:, :, ele)
+      detJ_local=detJ_cache(ele)
 
-  end function retrieve_cached_transform_full
+   end function retrieve_cached_transform_full
 
-  function retrieve_cached_transform_det(X, ele, detJ_local) &
-       result (cache_valid)
-    !!< Determine whether the transform cache is valid for this operation.
-    !!<
-    !!< If caching is applicable and the cache is not ready, set up the
-    !!< cache and then return true.
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele
-    !! Local version of the determinant of J
-    real, intent(out) :: detJ_local
-    logical :: cache_valid
+   function retrieve_cached_transform_det(X, ele, detJ_local) &
+      result (cache_valid)
+      !!< Determine whether the transform cache is valid for this operation.
+      !!<
+      !!< If caching is applicable and the cache is not ready, set up the
+      !!< cache and then return true.
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      !! Local version of the determinant of J
+      real, intent(out) :: detJ_local
+      logical :: cache_valid
 
-    cache_valid = is_cache_valid(X)
-    if (.not. cache_valid) return
+      cache_valid = is_cache_valid(X)
+      if (.not. cache_valid) return
 
-    detJ_local=detJ_cache(ele)
+      detJ_local=detJ_cache(ele)
 
-  end function retrieve_cached_transform_det
+   end function retrieve_cached_transform_det
 
-  function prepopulate_transform_cache(X) result (cache_valid)
-    !!< Prepopulate the caches for transform_to_physical and
-    !!< transform_face_to_physical
-    !!
-    !!< If you're going to call transform_to_physical on a coordinate
-    !!< field inside a threaded region, you need to call this on the
-    !!< same field before entering the region.
-    type(vector_field), intent(in) :: X
-    logical :: cache_valid
+   function prepopulate_transform_cache(X) result (cache_valid)
+      !!< Prepopulate the caches for transform_to_physical and
+      !!< transform_face_to_physical
+      !!
+      !!< If you're going to call transform_to_physical on a coordinate
+      !!< field inside a threaded region, you need to call this on the
+      !!< same field before entering the region.
+      type(vector_field), intent(in) :: X
+      logical :: cache_valid
 
-    cache_valid = is_cache_valid(X) .and. is_face_cache_valid(X)
+      cache_valid = is_cache_valid(X) .and. is_face_cache_valid(X)
 
-  end function prepopulate_transform_cache
+   end function prepopulate_transform_cache
 
-  subroutine construct_cache(X)
-    !!< The cache is invalid so make a new one.
-    type(vector_field), intent(in) :: X
+   subroutine construct_cache(X)
+      !!< The cache is invalid so make a new one.
+      type(vector_field), intent(in) :: X
 
-    integer :: elements, ele, i, k
-    !! Note that if X is not all linear simplices we are screwed.
-    real, dimension(X%dim, ele_loc(X,1)) :: X_val
-    type(element_type), pointer :: X_shape
+      integer :: elements, ele, i, k
+      !! Note that if X is not all linear simplices we are screwed.
+      real, dimension(X%dim, ele_loc(X,1)) :: X_val
+      type(element_type), pointer :: X_shape
 
 !    ewrite(1,*) "Reconstructing element geometry cache."
 
-    call abort_if_in_parallel_region
+      call abort_if_in_parallel_region
 
-    position_id=X%refcount%id
-    last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
+      position_id=X%refcount%id
+      last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
 
-    if (allocated(invJ_cache)) then
+      if (allocated(invJ_cache)) then
 #ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", &
+         call register_deallocation("transform_cache", &
             "real", size(invJ_cache)+size(J_T_cache)+size(detJ_cache))
 #endif
-       deallocate(invJ_cache, J_T_cache, detJ_cache)
-    end if
+         deallocate(invJ_cache, J_T_cache, detJ_cache)
+      end if
 
-    elements=element_count(X)
+      elements=element_count(X)
 
-    allocate(invJ_cache(X%dim,X%dim,elements), &
+      allocate(invJ_cache(X%dim,X%dim,elements), &
          J_T_cache(X%dim,X%dim,elements), &
          detJ_cache(elements))
 #ifdef HAVE_MEMORY_STATS
-    call register_allocation("transform_cache", &
+      call register_allocation("transform_cache", &
          "real", size(invJ_cache)+size(J_T_cache)+size(detJ_cache))
 #endif
 
-    x_shape=>ele_shape(X,1)
+      x_shape=>ele_shape(X,1)
 
-    do ele=1,elements
-       X_val=ele_val(X, ele)
-       !     |- dx  dx  dx  -|
-       !     |  dL1 dL2 dL3  |
-       !     |               |
-       !     |  dy  dy  dy   |
-       ! J = |  dL1 dL2 dL3  |
-       !     |               |
-       !     |  dz  dz  dz   |
-       !     |- dL1 dL2 dL3 -|
-
-       ! Form Jacobian.
-       ! Since X is linear we need only do this at quadrature point 1.
-       J_T_cache(:,:,ele)=matmul(X_val(:,:), x_shape%dn(:, 1, :))
-
-       select case (X%dim)
-       case(1)
-          invJ_cache(:,:,ele)=1.0
-       case(2)
-          invJ_cache(:,:,ele)=reshape(&
-               (/ J_T_cache(2,2,ele),-J_T_cache(1,2,ele),&
-               & -J_T_cache(2,1,ele), J_T_cache(1,1,ele)/),(/2,2/))
-       case(3)
-          ! Calculate (scaled) inverse using recursive determinants.
-          forall (i=1:3,k=1:3)
-             invJ_cache(i, k, ele)= &
-                  J_T_cache(cyc3(i+1),cyc3(k+1),ele)&
-                  &          *J_T_cache(cyc3(i+2),cyc3(k+2),ele) &
-                  -J_T_cache(cyc3(i+2),cyc3(k+1),ele)&
-                  &          *J_T_cache(cyc3(i+1),cyc3(k+2),ele)
-          end forall
-       case default
-          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-       end select
-
-       ! Form determinant by expanding minors.
-       detJ_cache(ele)=dot_product(J_T_cache(:,1,ele),invJ_cache(:,1,ele))
-
-       ! Scale inverse by determinant.
-       invJ_cache(:,:,ele)=invJ_cache(:,:,ele)/detJ_cache(ele)
-
-    end do
-
-  end subroutine construct_cache
-
-  function is_face_cache_valid(X) result (cache_valid)
-    !!< Is the face cache (still) valid for the given coordinate field
-    !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
-    !!< If *not*, reconstruct the face cache, and then return .true.
-    !!< For nonlinear coordinates and the coordinates of an embedded manifold,
-    !!< X%dim/=mesh_dim, this always returns .false.
-    type(vector_field), intent(in) :: X
-    logical :: cache_valid
-
-    logical :: x_spherical, xf_nonlinear
-
-    cache_valid=.true.
-
-    if (X%refcount%id/=face_position_id) then
-       cache_valid=.false.
-       if (X%name/="Coordinate") then
-          !!< If Someone is not calling this on the main Coordinate field
-          !!< then we're screwed anyway.
-          return
-       end if
-    else if(eventcount(EVENT_MESH_MOVEMENT)/=face_last_mesh_movement) then
-       cache_valid=.false.
-    end if
-
-    if (X%dim/=mesh_dim(X)) then
-      ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
-      ! tranform_facet_to_physical_full() hopefully does?
-      cache_valid = .false.
-      return
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
-    if (xf_nonlinear) then
-      cache_valid=.false.
-      return
-    end if
-
-    if (.not.cache_valid) then
-       call construct_face_cache(X)
-       cache_valid=.true.
-    end if
-
-  end function is_face_cache_valid
-
-  function retrieve_cached_face_transform_full(X, face, &
-       & normal_local, detJ_local) result (cache_valid)
-    !!< Determine whether the transform cache is valid for this operation.
-    !!<
-    !!< If caching is applicable and the cache is not ready, set up the
-    !!< cache and then return true.
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: face
-    !! Face determinant
-    real, intent(out) :: detJ_local
-    !! Face normal
-    real, dimension(X%dim), intent(out) :: normal_local
-    logical :: cache_valid
-
-    cache_valid = is_face_cache_valid(X)
-    if (.not. cache_valid) return
-
-    detJ_local=face_detJ_cache(abs(face_cache(face)))
-    normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
-
-  end function retrieve_cached_face_transform_full
-
-  function retrieve_cached_full_face_transform_full(X, face, &
-       & normal_local, detJ_local, J_local_T, invJ_local) result (cache_valid)
-    !!< Determine whether the transform cache is valid for this operation.
-    !!<
-    !!< If caching is applicable and the cache is not ready, set up the
-    !!< cache and then return true.
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: face
-    !! Face determinant
-    real, intent(out) :: detJ_local
-    !! Face normal
-    real, dimension(X%dim), intent(out) :: normal_local
-    !! invJ
-    real, intent(out), dimension(:,:) :: J_local_T, invJ_local
-    logical :: cache_valid
-
-    cache_valid = is_face_cache_valid(X)
-    if (.not. cache_valid) return
-
-    ! if the face cache is valid, we should always be able to construct the full_face_cache as well
-    ! just need to check whether it is still up-to-date
-    if (X%refcount%id/=full_face_position_id .or. eventcount(EVENT_MESH_MOVEMENT)/=full_face_last_mesh_movement) then
-       call construct_full_face_cache(X)
-    end if
-
-    detJ_local=face_detJ_cache(abs(face_cache(face)))
-    normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
-    invJ_local = face_invJ_cache(:,:,face)
-    J_local_T = face_J_T_cache(:,:,face)
-
-  end function retrieve_cached_full_face_transform_full
-
-  subroutine construct_face_cache(X)
-    !!< The cache is invalid so make a new one.
-    type(vector_field), intent(in) :: X
-
-    integer :: elements, ele, i, current_face, face, face2, faces, n,&
-         & unique_faces
-    !! Note that if X is not all linear simplices we are screwed.
-    real, dimension(X%dim, ele_loc(X,1)) :: X_val
-    real, dimension(X%dim, face_loc(X,1)) :: X_f
-    real, dimension(X%dim) :: X_centroid_ele, X_centroid_face
-    real, dimension(X%dim, X%dim-1) :: J
-    type(element_type), pointer :: X_shape_f
-    real :: detJ
-    integer, dimension(:), pointer :: neigh
-
-!    ewrite(1,*) "Reconstructing element geometry cache."
-
-    call abort_if_in_parallel_region
-
-    face_position_id=X%refcount%id
-    face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
-
-    if (allocated(face_detJ_cache)) then
-#ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", "real", &
-            & size(face_detJ_cache)+size(face_normal_cache))
-       call register_deallocation("transform_cache", "integer", &
-            & size(face_cache))
-#endif
-       deallocate(face_detJ_cache, face_normal_cache, face_cache)
-    end if
-
-    elements=element_count(X)
-    faces=face_count(X)
-    !! This counts 1/2 for each interior face and 1 for each surface face.
-    unique_faces=unique_face_count(X%mesh)
-
-    allocate(face_detJ_cache(unique_faces), &
-         face_normal_cache(X%dim,unique_faces), &
-         face_cache(faces))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("transform_cache", "real", &
-         & size(face_detJ_cache)+size(face_normal_cache))
-    call register_allocation("transform_cache", "integer", &
-         & size(face_cache))
-#endif
-
-    current_face=0
-    do ele=1,elements
-       neigh=>ele_neigh(X, ele)
-       X_val=ele_val(X,ele)
-
-       X_centroid_ele = sum(X_val, 2)/size(X_val, 2)
-
-       do n=1,size(neigh)
-
-          if (neigh(n)<0) then
-             face=ele_face(X, ele, neigh(n))
-
-             current_face=current_face+1
-             face_cache(face)=current_face
-
-          else
-
-             face=ele_face(X, ele, neigh(n))
-             face2=ele_face(X, neigh(n), ele)
-
-             ! Only do this once for each face pairl
-             if (face>face2) then
-                cycle
-             end if
-
-             current_face=current_face+1
-
-             face_cache(face)=current_face
-             face_cache(face2)=-current_face
-
-          end if
-
-
-          X_f=face_val(X,face)
-          X_centroid_face = sum(X_f, 2)/size(X_f, 2)
-          X_shape_f=>face_shape(X,face)
-
-          !     |- dx  dx  -|
-          !     |  dL1 dL2  |
-          !     |           |
-          !     |  dy  dy   |
-          ! J = |  dL1 dL2  |
-          !     |           |
-          !     |  dz  dz   |
-          !     |- dL1 dL2 -|
-
-          ! Form Jacobian.
-          J=matmul(X_f(:,:), x_shape_f%dn(:, 1, :))
-
-          detJ=0.0
-          ! Calculate determinant.
-          select case (X%dim)
-          case(1)
-             detJ=1.0
-          case(2)
-             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
-          case(3)
-             do i=1,3
-                detJ=detJ+ &
-                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-             end do
-             detJ=sqrt(detJ)
-          case default
-             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-
-          ! Calculate normal.
-          face_normal_cache(:,current_face)=facet_normal(J, X_centroid_face-X_centroid_ele)
-          face_detJ_cache(current_face)=detJ
-
-       end do
-    end do
-    assert(current_face==unique_faces)
-
-  end subroutine construct_face_cache
-
-  subroutine construct_full_face_cache(X)
-    !!< The cache is invalid so make a new one.
-    type(vector_field), intent(in) :: X
-
-    integer :: elements, ele, i, k, current_face, face, faces, n
-    !! Note that if X is not all linear simplices we are screwed.
-    real, dimension(X%dim, ele_loc(X,1)) :: X_val
-    type(element_type), pointer :: X_shape
-    integer, dimension(:), pointer :: neigh
-    real, dimension(:,:,:), allocatable :: dn_s
-    !! Local version of the determinant of J
-    real :: detJ_local
-
-!    ewrite(1,*) "Reconstructing element geometry cache."
-
-    assert(associated(X%mesh%shape%surface_quadrature))
-    assert(associated(X%mesh%shape%dn_s))
-    allocate(dn_s(size(X%mesh%shape%dn_s,1), size(X%mesh%shape%dn_s,2), size(X%mesh%shape%dn_s,3)))
-
-    call abort_if_in_parallel_region
-
-    full_face_position_id=X%refcount%id
-    full_face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
-
-    if (allocated(face_invJ_cache)) then
-#ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", "real", &
-            & size(face_invJ_cache)+size(face_J_T_cache))
-#endif
-       deallocate(face_invJ_cache, face_J_T_cache)
-    end if
-
-    elements=element_count(X)
-    faces=face_count(X)
-
-    allocate(face_invJ_cache(X%dim,X%dim,faces), &
-         face_J_T_cache(X%dim,X%dim,faces))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("transform_cache", "real", &
-            & size(face_invJ_cache)+size(face_J_T_cache))
-#endif
-
-    current_face=0
-    do ele=1,elements
-       neigh=>ele_neigh(X, ele)
-       X_val=ele_val(X,ele)
-
-       do n=1,size(neigh)
-
-          face=ele_face(X, ele, neigh(n))
-          current_face = current_face + 1
-          X_shape => ele_shape(X, ele)
-          dn_s = face_dn_s(X_shape, X%mesh, face)
-
-          !     |- dx  dx  dx  -|
-          !     |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dy  dy  dy   |
-          ! J = |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dz  dz  dz   |
-          !     |- dL1 dL2 dL3 -|
-
-          ! Form Jacobian.
-          face_J_T_cache(:,:,face)=matmul(X_val(:,:), dn_s(:,1,:))
-
-          select case (X%dim)
-          case(1)
-             face_invJ_cache(:,:,face)=1.0
-          case(2)
-             face_invJ_cache(:,:,face)=reshape(&
-                  (/ face_J_T_cache(2,2,face),-face_J_T_cache(1,2,face),&
-                  & -face_J_T_cache(2,1,face), face_J_T_cache(1,1,face)/),(/2,2/))
-          case(3)
-             ! Calculate (scaled) inverse using recursive determinants.
-             forall (i=1:3,k=1:3)
-                face_invJ_cache(i, k, face)= &
-                     face_J_T_cache(cyc3(i+1),cyc3(k+1),face)&
-                     &          *face_J_T_cache(cyc3(i+2),cyc3(k+2),face) &
-                     -face_J_T_cache(cyc3(i+2),cyc3(k+1),face)&
-                     &          *face_J_T_cache(cyc3(i+1),cyc3(k+2),face)
-             end forall
-          case default
-             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-          ! Form determinant by expanding minors.
-          detJ_local=dot_product(face_J_T_cache(:,1,face),face_invJ_cache(:,1,face))
-
-          ! Form determinant by expanding minors.
-          face_J_T_cache(:,:,face)=dot_product(face_J_T_cache(:,1,face),face_invJ_cache(:,1,face))
-
-          ! Scale inverse by determinant.
-          face_invJ_cache(:,:,face)=face_invJ_cache(:,:,face)/detJ_local
-
-       end do
-    end do
-    assert(current_face==faces)
-    deallocate(dn_s)
-
-  end subroutine construct_full_face_cache
-
-  function unique_face_count(mesh) result (face_count)
-    !!< Count the number of geometrically unique faces in mesh,
-    type(mesh_type), intent(in) :: mesh
-    integer :: face_count
-
-    integer :: ele
-    integer, dimension(:), pointer :: neigh
-
-    face_count=0
-
-    do ele=1,element_count(mesh)
-       neigh=>ele_neigh(mesh, ele)
-
-       ! Count 1 for interior and 2 for surface.
-       face_count=face_count+sum(merge(1,2,neigh>0))
-
-    end do
-
-    face_count=(face_count+1)/2
-
-  end function unique_face_count
-
-  subroutine deallocate_transform_cache
-
-    if (allocated(invJ_cache)) then
-#ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", "real",&
-            & size(invJ_cache)+size(J_T_cache)+size(detJ_cache))
-#endif
-       deallocate(invJ_cache, J_T_cache, detJ_cache)
-    end if
-
-    if (allocated(face_detJ_cache)) then
-#ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", "real", &
-            & size(face_detJ_cache)+size(face_normal_cache))
-       call register_deallocation("transform_cache", "integer", &
-            & size(face_cache))
-#endif
-       deallocate(face_detJ_cache, face_normal_cache, face_cache)
-    end if
-
-    if (allocated(face_invJ_cache)) then
-#ifdef HAVE_MEMORY_STATS
-       call register_deallocation("transform_cache", "real", &
-            & size(face_invJ_cache)+size(face_J_T_cache))
-#endif
-       deallocate(face_invJ_cache, face_J_T_cache)
-    end if
-
-    position_id=-1
-    last_mesh_movement=-1
-    face_position_id=-1
-    face_last_mesh_movement=-1
-    full_face_position_id=-1
-    full_face_last_mesh_movement=-1
-
-  end subroutine deallocate_transform_cache
-
-  subroutine transform_to_physical_full(X, ele, shape, dshape, detwei, J,&
-       & invJ, detJ, x_shape)
-    !!< Calculate the derivatives of a shape function shape in physical
-    !!< space using the positions x. Calculate the transformed quadrature
-    !!< weights as a side bonus.
-    !!<
-    !!< Do this by calculating the Jacobian of the transform and inverting it.
-
-    !! X is the positions field.
-    type(vector_field), intent(in) :: X
-    !! The index of the current element
-    integer :: ele
-    !! Reference element of which the derivatives are to be transformed
-    type(element_type), intent(in) :: shape
-    !! Derivatives of this shape function transformed to physical space (loc x ngi x dim)
-    real, dimension(:,:,:), intent(out) ::  dshape
-
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), intent(out), optional :: detwei(:)
-    !! Jacobian matrix and its inverse at each quadrature point (dim x dim x x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:,:,:), intent(out), optional :: J, invJ
-    !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:), intent(out), optional :: detJ
-    !! Shape function to use for the coordinate field. ONLY SUPPLY THIS IF
-    !! YOU DO NOT WANT TO USE THE SHAPE FUNCTION IN THE COORDINATE FIELD.
-    !! This is mostly useful for control volumes.
-    type(element_type), intent(in), optional, target :: X_shape
-
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_val
-    !! radius (l2norm) of X_val at the nodes (used for spherical positions)
-    real, dimension(ele_loc(X,ele)) :: r_val
-    !! Shape function to be used for coordinate interpolation.
-    type(element_type), pointer :: lx_shape
-
-    !! Local copy of element gradients. This is an attempt to induce a
-    !! prefetch.
-    real, dimension(size(shape%dn,1), size(shape%dn,3)) :: dn_local
-
-    !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
-    real, dimension(X%dim, X%dim) :: J_local_T, invJ_local
-    !! Local version of the determinant of J
-    real :: detJ_local
-
-    integer :: gi, i, k, dim
-    logical :: x_nonlinear, m_nonlinear, cache_valid, x_spherical
-
-    if (present(X_shape)) then
-       lx_shape=>X_shape
-    else
-       lx_shape=>ele_shape(X,ele)
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= x_spherical .or. .not.(lx_shape%degree==1 .and. lx_shape%numbering%family==FAMILY_SIMPLEX)
-    m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX .and. shape%numbering%type==ELEMENT_LAGRANGIAN)
-
-    dim=X%dim
-
-#ifdef DDEBUG
-    if (present(detwei)) then
-       assert(size(detwei)==lx_shape%ngi)
-    end if
-    !if (present(dshape)) then
-       assert(size(dshape,1)==shape%loc)
-       assert(size(dshape,2)==shape%ngi)
-       assert(size(dshape,3)==dim)
-    !end if
-#endif
-
-    if ((.not.x_nonlinear).and.cache_transform_elements) then
-       cache_valid=retrieve_cached_transform(X, ele, J_local_T, invJ_local,&
-            & detJ_local)
-
-       if (cache_valid) then
-          if (m_nonlinear) then
-             do gi=1,lx_shape%ngi
-                dshape(:,gi,:)&
-                     =matmul(shape%dn(:,gi,:),transpose(invJ_local))
-             end do
-          else
-             dn_local=matmul(shape%dn(:,1,:),transpose(invJ_local))
-             forall(gi=1:lx_shape%ngi)
-                dshape(:,gi,:)=dn_local
-             end forall
-          end if
-
-          if (present(J)) then
-             J_local_T=transpose(J_local_T)
-             forall(gi=1:lx_shape%ngi)
-                J(:,:,gi)=J_local_T
-             end forall
-          end if
-          if (present(invJ)) then
-             forall(gi=1:lx_shape%ngi)
-                invJ(:,:,gi)=invJ_local
-             end forall
-          end if
-          if(present(detJ)) then
-             detJ=detJ_local
-          end if
-          if (present(detwei)) then
-             detwei=abs(detJ_local)*lx_shape%quadrature%weight
-          end if
-
-          return
-       end if
-    else
-      cache_valid = .false.
-    end if
-
-    X_val=ele_val(X, ele)
-    if (x_spherical) then
-      r_val = sqrt(sum(X_val**2, dim=1))
-    end if
-
-    ! Loop over quadrature points.
-    quad_loop: do gi=1,lx_shape%ngi
-
-       if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
-          ! For linear space elements only calculate Jacobian once.
-
-          !     |- dx  dx  dx  -|
-          !     |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dy  dy  dy   |
-          ! J = |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dz  dz  dz   |
-          !     |- dL1 dL2 dL3 -|
-
-          ! Form Jacobian.
-          J_local_T=matmul(X_val(:,:), lx_shape%dn(:, gi, :))
-
-          if (x_spherical) then
-            J_local_T = jacobian_on_sphere(lx_shape, gi, X_val, r_val, J_local_T)
-          end if
-
-
-          select case (dim)
-          case(1)
-             invJ_local=1.0
-          case(2)
-             invJ_local=reshape((/ J_local_T(2,2),-J_local_T(1,2),&
-                  &               -J_local_T(2,1), J_local_T(1,1)/),(/2,2/))
-          case(3)
-             ! Calculate (scaled) inverse using recursive determinants.
-             forall (i=1:3,k=1:3)
-                invJ_local(i, k)= &
-                     J_local_T(cyc3(i+1),cyc3(k+1))*J_local_T(cyc3(i+2),cyc3(k+2)) &
-                  -J_local_T(cyc3(i+2),cyc3(k+1))*J_local_T(cyc3(i+1),cyc3(k+2))
-             end forall
-          case default
-             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-
-          ! Form determinant by expanding minors.
-          detJ_local=dot_product(J_local_T(:,1),invJ_local(:,1))
-
-          ! Scale inverse by determinant.
-          invJ_local=invJ_local/detJ_local
-
-       end if
-
-       ! Evaluate derivatives in physical space.
-       ! If both space and the derivatives are linear then we only need
-       ! to do this once.
-       if (x_nonlinear.or.m_nonlinear.or.gi==1) then
-          do i=1,shape%loc
-             dshape(i,gi,:)=matmul(invJ_local, shape%dn(i,gi,:))
-          end do
-       else
-          dshape(:,gi,:)=dshape(:,1,:)
-       end if
-
-       ! Calculate transformed quadrature weights.
-       if (present(detwei)) then
-          detwei(gi)=abs(detJ_local)*lx_shape%quadrature%weight(gi)
-       end if
-
-       ! Copy the Jacobian and related variables to externally accessible memory
-       if (present(J)) then
-          if (x_nonlinear.or.gi==1) then
-             J(:,:,gi)    = transpose(J_local_T(:,:))
-          else
-             J(:,:,gi)    = J(:,:,1)
-          end if
-       end if
-       if (present(invJ))  invJ(:,:,gi) = invJ_local(:,:)
-       if (present(detJ))  detJ(gi)     = detJ_local
-
-    end do quad_loop
-
-  end subroutine transform_to_physical_full
-
-  subroutine transform_to_physical_detwei(X, ele, detwei)
-    !!< Fast version of transform_to_physical that only calculates detwei
-
-    !! Coordinate field
-    type(vector_field), intent(in) :: X
-    !! Current element
-    integer :: ele
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), intent(out):: detwei(:)
-
-    !! Shape function used for coordinate interpolation
-    type(element_type), pointer :: x_shape
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_val
-    !! radius (l2norm) of X_val at the nodes (used for spherical positions)
-    real, dimension(ele_loc(X,ele)) :: r_val
-
-    real :: J(X%dim, mesh_dim(X)), det
-    integer :: gi, dim, ldim
-    logical :: x_nonlinear, cache_valid, x_spherical
-
-    x_shape=>ele_shape(X, ele)
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
-
-    dim=X%dim ! dimension of space (n/o real coordinates)
-    ldim=size(x_shape%dn,3) ! dimension of element (n/o local coordinates)
-    if (dim==ldim) then
-
-       if ((.not.x_nonlinear).and.cache_transform_elements) then
-          cache_valid=retrieve_cached_transform(X, ele, det)
-
-          if (cache_valid) then
-             detwei=abs(det)*x_shape%quadrature%weight
-             return
-          end if
-
-       end if
-
-!#ifdef DDEBUG
-!       if (ele==1) then
-!          ewrite(2,*) "Element geometry cache not used."
-!       end if
-!#endif
-
-       X_val=ele_val(X, ele)
-       if (x_spherical) then
-         r_val = sqrt(sum(X_val**2, dim=1))
-       end if
-
-       select case (dim)
-       case (1)
-         do gi=1, x_shape%ngi
-           J(1,1)=dot_product(X_val(1,:), x_shape%dn(:,gi,1))
-           detwei(gi)=abs(J(1,1))*x_shape%quadrature%weight(gi)
-         end do
-       case (2)
-         do gi=1, x_shape%ngi
-            if (x_nonlinear.or.gi==1) then
-               ! the Jacobian is the transpose of this
-               J=matmul(X_val(:,:), x_shape%dn(:, gi, :))
-               if (x_spherical) then
-                 J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
-               end if
-               ! but that doesn't matter for determinant:
-               det=abs(J(1,1)*J(2,2)-J(1,2)*J(2,1))
-            end if
-           detwei(gi)=det*x_shape%quadrature%weight(gi)
-         end do
-       case (3)
-         do gi=1, x_shape%ngi
-            if (x_nonlinear.or.gi==1) then
-               ! the Jacobian is the transpose of this
-               J=matmul(X_val(:,:), x_shape%dn(:, gi, :))
-               if (x_spherical) then
-                 J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
-               end if
-               ! but that doesn't matter for determinant:
-               det=abs( &
-                    J(1,1)*(J(2,2)*J(3,3)-J(2,3)*J(3,2)) &
-                    -J(1,2)*(J(2,1)*J(3,3)-J(2,3)*J(3,1)) &
-                    +J(1,3)*(J(2,1)*J(3,2)-J(2,2)*J(3,1)) &
-                    )
-            end if
-            detwei(gi)= det *x_shape%quadrature%weight(gi)
-         end do
-       case default
-          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-       end select
-    else if (ldim<dim) then
-
-       X_val=ele_val(X, ele)
-       if (x_spherical) then
-         r_val = sqrt(sum(X_val**2, dim=1))
-       end if
-
-       ! lower dimensional element (ldim) embedded in higher dimensional space (dim)
-       select case (ldim)
-       case (1)
-          ! 1-dim element embedded in 'dim'-dimensional space:
-          do gi=1, x_shape%ngi
-             if (x_nonlinear.or.gi==1) then
-                ! J is 'dim'-dimensional vector:
-                J(:,1)=matmul(X_val(:,:), x_shape%dn(:,gi,1))
-                ! length of that
-                det=norm2(J(:,1))
-             end if
-             ! length of that times quad. weight
-             detwei(gi)=det*x_shape%quadrature%weight(gi)
-          end do
-       case (2)
-          ! 2-dim element embedded in 'dim'-dimensional space:
-          do gi=1, x_shape%ngi
-             if (x_nonlinear.or.gi==1) then
-                ! J is 2 columns of 2 'dim'-dimensional vectors:
-                J=matmul(X_val(:,:), x_shape%dn(:,gi,:))
-                if (x_spherical) then
-                  J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
-                end if
-                ! outer product
-                det=sqrt( &
-                      (J(2,1)*J(3,2)-J(3,1)*J(2,2))**2 &
-                     +(J(3,1)*J(1,2)-J(1,1)*J(3,2))**2 &
-                     +(J(1,1)*J(2,2)-J(2,1)*J(1,2))**2)
-             end if
-             ! outer product times quad. weight
-             detwei(gi)=det *x_shape%quadrature%weight(gi)
-          end do
-       end select
-
-    else
-       FLAbort("Don't know how to compute higher-dimensional elements in a lower-dimensional space.")
-
-    end if
-
-  end subroutine transform_to_physical_detwei
-
-  subroutine compute_inverse_jacobian(X, ele, invJ, detwei, detJ)
-    !!< Fast version of transform_to_physical that only calculates detwei and invJ
-
-    !! positions field and element to compute inv. jacobian for
-    type(vector_field), intent(in):: X
-    integer, intent(in):: ele
-    !! Inverse of the jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:,:,:), intent(out) :: invJ
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), optional, intent(out) :: detwei (:)
-    !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:), intent(out), optional :: detJ
-
-    !! coordinates of the nodes
-    real, dimension(X%dim, ele_loc(X,ele)):: x_val
-    !! radius (l2norm) of x_val at the nodes (used for spherical positions)
-    real, dimension(size(x_val,2)) :: r_val
-
-    !! Shape function to be used for coordinate interpolation.
-    type(element_type), pointer :: x_shape
-    !! Local versions of the Jacobian matrix
-    real, dimension(size(invJ,1),size(invJ,1)) :: J_local
-    !! Local version of the determinant of J
-    real, dimension(size(invJ,3)) :: detJ_local
-    logical :: x_spherical
-
-    integer gi, i, k, compute_ngi
-
-    x_shape => ele_shape(X, ele)
-
-    assert(size(invJ,1)==X%dim)
-    assert(size(invJ,2)==X%dim)
-    assert(size(invJ,3)==x_shape%ngi)
-    assert(X%dim==mesh_dim(X)) ! this routine doesn't work for embedded coordinates
-    if (present(detwei)) then
-      assert(size(detwei)==x_shape%ngi)
-    end if
-    if (present(detJ)) then
-      assert(size(detJ)==x_shape%ngi)
-    end if
-
-    if (is_cache_valid(X)) then
-      do gi=1, size(invJ, 3)
-        invJ(:,:,gi) = invJ_cache(:, :, ele)
-      end do
-      if (present(detJ)) then
-        detJ = detJ_cache(ele)
-      end if
-      if (present(detwei)) then
-        detwei = abs(detJ_cache(ele)) * x_shape%quadrature%weight
-      end if
-      return
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
-      ! for non-linear compute on all gauss points
-      compute_ngi=x_shape%ngi
-    else
-      ! for linear: compute only the first and copy the rest
-      compute_ngi=1
-    end if
-
-    x_val = ele_val(X, ele)
-    if (x_spherical) then
-      r_val = sqrt(sum(x_val**2, dim=1))
-    end if
-
-    select case (X%dim)
-    case(1)
-
-      do gi=1,compute_ngi
-        J_local(1,1)=dot_product(x_val(1,:), x_shape%dn(:, gi, 1))
-        detJ_local(gi)=J_local(1,1)
-        invJ(1,1,gi)=1.0/detJ_local(gi)
-      end do
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(1,1,gi)=invJ(1,1,1)
-      end do
-
-    case(2)
-
-      do gi=1, compute_ngi
-
-        J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
-        if (x_spherical) then
-          J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-        end if
-
-        ! Form determinant by expanding minors.
-        detJ_local(gi)=J_local(1,1)*J_local(2,2)-J_local(2,1)*J_local(1,2)
-        ! take inverse *and* transpose
-        invJ(:,:,gi)=reshape((/ J_local(2,2),-J_local(1,2), &
-           &               -J_local(2,1), J_local(1,1)/),(/2,2/)) &
-                      / detJ_local(gi)
-      end do
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(:,:,gi)=invJ(:,:,1)
-      end do
-
-    case(3)
-
-      do gi=1, compute_ngi
-
-        J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
-        if (x_spherical) then
-          J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-        end if
-        ! Calculate (scaled) inverse (of the transpose of J_local) using recursive determinants.
-        forall (i=1:X%dim,k=1:X%dim)
-          invJ(i,k,gi)=J_local(cyc3(i+1),cyc3(k+1))*J_local(cyc3(i+2),cyc3(k+2)) &
-              -J_local(cyc3(i+2),cyc3(k+1))*J_local(cyc3(i+1),cyc3(k+2))
-        end forall
-        ! Form determinant by expanding minors.
-        detJ_local(gi)=dot_product(J_local(:,1), invJ(:,1,gi))
-
-        ! Scale inverse by determinant.
-        invJ(:,:,gi)=invJ(:,:,gi)/detJ_local(gi)
-
-      end do
-
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(:,:,gi)=invJ(:,:,1)
-      end do
-
-    case default
-      FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-    end select
-
-    if (present(detJ)) then
-      detJ = detJ_local
-    end if
-
-    if (present(detwei)) then
-      detwei = abs(detJ_local)*x_shape%quadrature%weight
-    end if
-
-  end subroutine compute_inverse_jacobian
-
-  subroutine compute_jacobian(X, ele, J, detwei, detJ, facet)
-    !!< Fast version of transform_to_physical that only calculates detwei and J
-
-    !! positions field and element to compute inv. jacobian for
-    type(vector_field), intent(in):: X
-    integer, intent(in):: ele
-    !! Jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:,:,:), intent(out) :: J
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), optional, intent(out) :: detwei (:)
-    !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:), intent(out), optional :: detJ
-    !! if present and true, compute the jacobian of a facet, ele then refers to the facet number
-    logical, optional, intent(in):: facet
-
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(X%dim,ele_loc(X,ele)), target :: ele_X_val
-    !! radius (l2norm) of X_val at the nodes (used for spherical positions)
-    real, dimension(size(ele_X_val,2)), target :: ele_r_val
-    real, dimension(:,:), pointer :: x_val
-    real, dimension(:), pointer :: r_val
-    !! Shape function to be used for coordinate interpolation.
-    type(element_type), pointer :: x_shape
-    !! transpose of J in one gauss point
-    real, dimension(size(J,2), size(J,1)):: J_local
-    !! Local version of the determinant of J
-    real, dimension(size(J,3)) :: detJ_local
-
-    integer gi, dim, ldim, compute_ngi
-    logical:: x_spherical
-
-    if (present_and_true(facet)) then
-      x_shape => face_shape(X, ele)
-      ele_x_val(:,1:face_loc(X,ele)) = face_val(X, ele)
-      x_val => ele_x_val(:,1:face_loc(X,ele))
-    else
-      x_shape => ele_shape(X, ele)
-      ele_x_val = ele_val(X, ele)
-      x_val => ele_x_val
-    end if
-    dim=X%dim ! dimension of space
-    ldim=x_shape%dim ! dimension of element
-
-    assert(size(J,1)==ldim)
-    assert(size(J,2)==dim)
-    assert(size(J,3)==x_shape%ngi)
-    if (present(detwei)) then
-      assert(size(detwei)==x_shape%ngi)
-    end if
-    if (present(detJ)) then
-      assert(size(detJ)==x_shape%ngi)
-    end if
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
-      ! for non-linear compute on all gauss points
-      compute_ngi=x_shape%ngi
-    else
-      ! for linear: compute only the first and copy the rest
-      compute_ngi=1
-    end if
-
-    if (x_spherical) then
-      r_val => ele_r_val(1:size(x_val,2))
-      r_val = sqrt(sum(x_val**2, dim=1))
-    end if
-
-    select case (dim)
-    case(1)
-
-      do gi=1,compute_ngi
-        J(1,1,gi)=dot_product(x_val(1,:), x_shape%dn(:, gi, 1))
-        detJ_local(gi)=J(1,1,gi)
-      end do
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        J(1,1,gi)=J(1,1,1)
-        detJ_local(gi)=detJ_local(1)
-      end do
-
-    case(2)
-
-      select case(ldim)
-      case(1)
-         do gi=1,compute_ngi
-            J_local(:,1)=matmul(x_val(:,:), x_shape%dn(:, gi, 1))
-            if (x_spherical) then
-              J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-            end if
-            J(1,:,gi)=J_local(:,1)
-            detJ_local(gi)=sum(sqrt(abs(J(:,:,gi))))
-         end do
-      case(2)
-         do gi=1, compute_ngi
-            J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
-            if (x_spherical) then
-              J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-            end if
-            J(:,:,gi)=transpose(J_local)
-            ! Form determinant by expanding minors.
-            detJ_local(gi)=J(1,1,gi)*J(2,2,gi)-J(2,1,gi)*J(1,2,gi)
-         end do
-      case default
-         FLAbort("oh dear, dimension of element > spatial dimension")
-      end select
-
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        J(:,:,gi)=J(:,:,1)
-        detJ_local(gi)=detJ_local(1)
-      end do
-
-   case(3)
-
-      select case(ldim)
-      case(1)
-         do gi=1,compute_ngi
-            J_local(:,1)=matmul(x_val(:,:), x_shape%dn(:, gi, 1))
-            if (x_spherical) then
-              J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-            end if
-            J(1,:,gi)=J_local(:,1)
-            detJ_local(gi)=sqrt(sum(J(:, :, gi)**2))
-         end do
-      case(2)
-         do gi=1,compute_ngi
-            J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
-            if (x_spherical) then
-              J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-            end if
-            J(:,:,gi)=transpose(J_local)
-            detJ_local(gi)=sqrt((J(1,2,gi)*J(2,3,gi)-J(1,3,gi)*J(2,2,gi))**2+ &
-                           (J(1,3,gi)*J(2,1,gi)-J(1,1,gi)*J(2,3,gi))**2+ &
-                           (J(1,1,gi)*J(2,2,gi)-J(1,2,gi)*J(2,1,gi))**2)
-
-         end do
-      case(3)
-         do gi=1,compute_ngi
-            J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
-            if (x_spherical) then
-              J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
-            end if
-            J(:,:,gi)=transpose(J_local)
-            detJ_local(gi)=det_3(J_local)
-         end do
-      case default
-         FLAbort("oh dear, dimension of element > spatial dimension")
-      end select
-
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%ngi
-        J(:,:,gi)=J(:,:,1)
-        detJ_local(gi)=detJ_local(1)
-      end do
-
-    case default
-      FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-    end select
-
-    if (present(detJ)) then
-      detJ=detJ_local
-    end if
-
-    if (present(detwei)) then
-      detwei = abs(detJ_local)*x_shape%quadrature%weight
-    end if
-
-  end subroutine compute_jacobian
-
-  subroutine transform_facet_to_physical_full(X, face, detwei_f, normal)
-
-    ! Coordinate transformations for facet integrals.
-    ! Calculate the transformed quadrature
-    ! weights as a side bonus.
-    !
-    ! For facet integrals, we also need to know the facet outward
-    ! pointing normal.
-    !
-    ! In this case it is only the determinant of the Jacobian which is
-    ! required.
-
-    ! Column n of X is the position of the nth node of the adjacent element
-    ! (this is only used to work out the orientation of the boundary)
-    type(vector_field), intent(in) :: X
-    ! The face to transform.
-    integer, intent(in) :: face
-    ! Quadrature weights for physical coordinates for integration over the boundary.
-    real, dimension(:), intent(out), optional :: detwei_f
-    ! Outward normal vector. (dim x x_shape_f%ngi)
-    real, dimension(:,:), intent(out) :: normal
-
-    ! Column n of X_f is the position of the nth node on the facet.
-    real, dimension(X%dim,face_loc(X,face)) :: X_f
-    ! Column n of X_f is the position of the nth node on the facet.
-    real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
-    ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
-    real, dimension(size(X_f,2)) :: r_f
-    ! shape function coordinate interpolation on the boundary
-    type(element_type), pointer :: x_shape_f
-    ! element shape functions derivatives evaluated at the facet:
-    real, dimension(size(X_val,2), X%mesh%faces%shape%ngi, X%mesh%shape%dim) :: dn_s
-    ! vector pointing outward (from element to outside facet)
-    real, dimension(X%dim) :: outward_vector
-
-
-    ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,mesh_dim(X)-1) :: J
-    ! Determinant of J
-    real :: detJ
-    ! Whether the cache can be used
-    logical :: cache_valid, x_spherical
-
-
-    integer :: gi, i, compute_ngi
-
-    x_shape_f=>face_shape(X,face)
-
-#ifdef DDEBUG
-    assert(size(normal,1)==X%dim)
-#endif
-#ifdef DDEBUG
-    if (present(detwei_f)) then
-       assert(size(detwei_f)==x_shape_f%ngi)
-    end if
-#endif
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
-      ! for non-linear compute on all gauss points
-      compute_ngi=x_shape_f%ngi
-      cache_valid=.false.
-    else
-      ! for linear: compute only the first and copy the rest
-      if (cache_transform_elements) then
-         cache_valid=retrieve_cached_face_transform(X, face, normal(:,1),&
-              & detJ)
-      else
-         cache_valid=.false.
-      end if
-      if (cache_valid) then
-         compute_ngi=0
-      else
-         compute_ngi=1
-      end if
-
-    end if
-
-    if (.not.cache_valid) then
-       X_val=ele_val(X, face_ele(X,face))
-       X_f=face_val(X, face)
-       if (x_spherical) then
-          r_f = sqrt(sum(X_f**2, dim=1))
-       end if
-       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
-         assert(x_shape_f%numbering%family==FAMILY_SIMPLEX)
-         assert(associated(X%mesh%shape%surface_quadrature))
-         assert(associated(X%mesh%shape%dn_s))
-         dn_s = face_dn_s(X%mesh%shape, X%mesh, face)
-       else
-         ! linear element, an outward vector is found between the element and face centroid
-         outward_vector = sum(X_f,2)/size(X_f,2) - sum(X_val, 2)/size(X_val,2)
-       end if
-    end if
-
-    ! Loop over quadrature points.
-    quad_loop: do gi=1, compute_ngi
-
-       !     |- dx  dx  -|
-       !     |  dL1 dL2  |
-       !     |           |
-       !     |  dy  dy   |
-       ! J = |  dL1 dL2  |
-       !     |           |
-       !     |  dz  dz   |
-       !     |- dL1 dL2 -|
-
-       ! Form Jacobian.
-       J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
-       if (x_spherical) then
-         J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
-       end if
-
-       detJ=0.0
-       ! Calculate determinant.
-       select case (mesh_dim(X))
-       case(1)
-          detJ=1.0
-       case(2)
-          select case (X%dim)
-          case(2)
-             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
-          case(3)
-             detJ = sqrt(sum(J(:,1)**2))
-          case default
-             FLAbort("Unsupported dimension specified")
-          end select
-       case(3)
-          select case (X%dim)
-          case(3)
-             do i=1,3
-                detJ=detJ+ &
-                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
-                     &+1),1))**2
-             end do
-             detJ=sqrt(detJ)
-          case default
-             FLAbort("Unsupported dimension specified")
-          end select
-       case default
-          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-       end select
-
-       ! Calculate transformed quadrature weights.
-       if(present(detwei_f)) then
-          detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
-       end if
-
-       ! Calculate normal.
-       if (x_spherical .or. .not. (x_shape_f%degree==1)) then
-         ! the 1st local coordinate L_1 in dn_s is the one associated
-         ! with the vertex opposite the facet. The outward_vector
-         ! is chosen as -dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
-         outward_vector = -matmul(X_val, dn_s(:, gi, 1))
-       end if
-       normal(:,gi) = facet_normal(J, outward_vector)
-
-    end do quad_loop
-
-    ! copy the value at gi==1 to the rest of the gauss points
-    if(present(detwei_f)) then
-      do gi=compute_ngi+1, x_shape_f%ngi
-         ! uses detJ from above
-         detwei_f=detJ*x_shape_f%quadrature%weight
-      end do
-    end if
-
-    do gi=compute_ngi+1, x_shape_f%ngi
-       normal(:,gi)=normal(:,1)
-    end do
-
-  end subroutine transform_facet_to_physical_full
-
-  function facet_normal(J, outward_vector)
-    ! Calculate the normal at a point on a facet
-    ! facet Jacobian J_ij = dX_i/dL_j where L_j are local coords of the facet
-    real, dimension(:,:), intent(in) :: J
-    ! Since we don't know the orientation of the facet, the sign of the normal
-    ! will be such that dot(normal, outward_vector)>0
-    real, dimension(:), intent(in) :: outward_vector
-    real, dimension(size(J,1)) :: facet_normal
-
-    select case (size(J,1))
-    case(1)
-       facet_normal = 1.0
-    case (2)
-       facet_normal = (/ -J(2,1), J(1,1) /)
-    case (3)
-       facet_normal = cross_product(J(:,1),J(:,2))
-    case default
-       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-    end select
-
-    ! Set correct orientation.
-    facet_normal=facet_normal*dot_product(facet_normal, outward_vector)
-
-    ! normalise
-    facet_normal=facet_normal/sqrt(sum(facet_normal**2))
-
-  end function facet_normal
-
-  subroutine transform_facet_to_physical_detwei(X, face, detwei_f)
-
-    ! Coordinate transformed quadrature weights for facet integrals.
-    !
-    type(vector_field), intent(in) :: X
-    ! The face to transform.
-    integer, intent(in) :: face
-    ! Quadrature weights for physical coordinates for integration over the boundary.
-    real, dimension(:), intent(out), optional :: detwei_f
-
-    ! Column n of X_f is the position of the nth node on the facet.
-    real, dimension(X%dim,face_loc(X,face)) :: X_f
-    ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
-    real, dimension(size(X_f,2)) :: r_f
-    ! Column n of X_f is the position of the nth node on the facet.
-    real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
-    ! shape function coordinate interpolation on the boundary
-    type(element_type), pointer :: x_shape_f
-
-
-    ! Jacobian matrix and its inverse.
-    real, dimension(X%dim, mesh_dim(X)-1) :: J
-    ! Determinant of J
-    real :: detJ
-    ! Whether the cache can be used
-    logical :: cache_valid
-    ! Outward normal vector. This is a dummy.
-    real, dimension(X%dim) :: lnormal
-    logical :: x_spherical
-
-
-    integer :: gi, i, compute_ngi
-
-    x_shape_f=>face_shape(X,face)
-
-#ifdef DDEBUG
-    if (present(detwei_f)) then
-       assert(size(detwei_f)==x_shape_f%ngi)
-    end if
-#endif
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
-      ! for non-linear compute on all gauss points
-      compute_ngi=x_shape_f%ngi
-      cache_valid=.false.
-    else
-      ! for linear: compute only the first and copy the rest
-      if (cache_transform_elements) then
-         cache_valid=retrieve_cached_face_transform(X, face, lnormal(:),&
-              & detJ)
-      else
-         cache_valid=.false.
-      end if
-      if (cache_valid) then
-         compute_ngi=0
-      else
-         compute_ngi=1
-      end if
-
-    end if
-
-    if (.not.cache_valid) then
-       X_val=ele_val(X, face_ele(X,face))
-       X_f=face_val(X, face)
-       if (x_spherical) then
-          r_f = sqrt(sum(X_f**2, dim=1))
-       end if
-    end if
-
-    ! Loop over quadrature points.
-    quad_loop: do gi=1, compute_ngi
-
-       !     |- dx  dx  -|
-       !     |  dL1 dL2  |
-       !     |           |
-       !     |  dy  dy   |
-       ! J = |  dL1 dL2  |
-       !     |           |
-       !     |  dz  dz   |
-       !     |- dL1 dL2 -|
-
-       ! Form Jacobian.
-       J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
-       if (x_spherical) then
-         J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
-       end if
-
-       detJ=0.0
-       ! Calculate determinant.
-       select case (mesh_dim(X))
-       case(1)
-          detJ=1.0
-       case(2)
-          select case (X%dim)
-          case(2)
-             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
-          case(3)
-             detJ = sqrt(sum(J(:,1)**2))
-          case default
-             FLAbort("Unsupported dimension specified")
-          end select
-       case(3)
-          select case (X%dim)
-          case(3)
-             do i=1,3
-                detJ=detJ+ &
-                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
-                     &+1),1))**2
-             end do
-             detJ=sqrt(detJ)
-          case default
-             FLAbort("Unsupported dimension specified")
-          end select
-       case default
-          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-       end select
-
-       ! Calculate transformed quadrature weights.
-       if(present(detwei_f)) then
-          detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
-       end if
-
-    end do quad_loop
-
-    ! copy the value at gi==1 to the rest of the gauss points
-    if(present(detwei_f)) then
-      do gi=compute_ngi+1, x_shape_f%ngi
-         ! uses detJ from above
-         detwei_f=detJ*x_shape_f%quadrature%weight
-      end do
-    end if
-
-  end subroutine transform_facet_to_physical_detwei
-
-  subroutine transform_full_facet_to_physical_full(X, face, shape, dshape, detwei_f, normal, J,&
-       & invJ, detJ)
-    !!< Calculate the derivatives of a shape function shape in physical
-    !!< space using the positions x on face face. Calculate the transformed quadrature
-    !!< weights as a side bonus.
-    !!<
-    !!< Do this by calculating the Jacobian of the transform and inverting it.
-
-    !! X is the positions field.
-    type(vector_field), intent(in) :: X
-    !! The index of the current face
-    integer, intent(in) :: face
-    !! Reference element of which the derivatives are to be transformed
-    type(element_type), intent(in) :: shape
-    !! Derivatives of this shape function transformed to physical space (ele_loc x sngi x dim)
-    real, dimension(:,:,:), intent(out) ::  dshape
-
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), intent(out), optional :: detwei_f
-    ! Outward normal vector. (dim x sngi)
-    real, dimension(:,:), intent(out), optional :: normal
-    !! Jacobian matrix and its inverse at each quadrature point (dim x dim x sngi)
-    !! Facilitates access to this information externally
-    real, dimension(:,:,:), intent(out), optional :: J, invJ
-    !! Determinant of the Jacobian at each quadrature point (sngi)
-    !! Facilitates access to this information externally
-    real, dimension(:), intent(out), optional :: detJ
-
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(X%dim,X%mesh%shape%loc) :: X_val
-    real, dimension(X%dim,X%mesh%faces%shape%loc) :: X_f
-    !! radius (l2norm) of X_val at the nodes (used for spherical positions)
-    real, dimension(size(X_val,2)) :: r_val
-    !! Shape function to be used for coordinate interpolation.
-    type(element_type), pointer :: x_shape
-
-    !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
-    real, dimension(X%dim, X%dim) :: J_local_T, invJ_local
-    !! Local version of the determinant of J
-    real :: detJ_local, detJ_local_full
-    !! reorientated shape functions
-    real, dimension(size(X_val,2),size(dshape,2)) :: n_s
-    ! element shape functions derivatives evaluated at the facet:
-    real, dimension(size(X_val,2),size(dshape,2),mesh_dim(X)) :: dn_s
-    real, dimension(shape%loc,size(dshape,2),mesh_dim(X)) :: dm_s
-    real, dimension(X%dim) :: lnormal
-
-    integer :: gi, i, k, dim, ele
-    logical :: x_nonlinear, m_nonlinear, cache_valid, x_spherical
-
-    ele = face_ele(X, face)
-    x_shape=>ele_shape(X,ele)
-
-#ifdef DDEBUG
-    assert(associated(x_shape%surface_quadrature))
-    if(present(detwei_f)) then
-      assert(size(detwei_f) == x_shape%surface_quadrature%ngi)
-    end if
-    if(present(normal)) then
-      assert(size(normal,1) == x_shape%dim)
-      assert(size(normal,2) == x_shape%surface_quadrature%ngi)
-    end if
-    if(present(invJ)) then
-      assert(size(invJ, 1) == x_shape%dim)
-      assert(size(invJ, 2) == x_shape%dim)
-      assert(size(invJ, 3) == x_shape%surface_quadrature%ngi)
-    end if
-    if(present(J)) then
-      assert(size(J, 1) == x_shape%dim)
-      assert(size(J, 2) == x_shape%dim)
-      assert(size(J, 3) == x_shape%surface_quadrature%ngi)
-    end if
-    if(present(detJ)) then
-      assert(size(detJ) == x_shape%surface_quadrature%ngi)
-    end if
-
-    assert(associated(x_shape%n_s))
-    assert(x_shape%loc == size(x_shape%n_s, 1))
-    assert(x_shape%surface_quadrature%ngi == size(x_shape%n_s, 2))
-    assert(size(n_s,1) == size(x_shape%n_s, 1))
-    assert(size(n_s,2) == size(x_shape%n_s, 2))
-
-    assert(associated(x_shape%dn_s))
-    assert(x_shape%loc == size(x_shape%dn_s, 1))
-    assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
-    assert(x_shape%dim == size(x_shape%dn_s, 3))
-    assert(size(dn_s,1) == size(x_shape%dn_s, 1))
-    assert(size(dn_s,2) == size(x_shape%dn_s, 2))
-    assert(size(dn_s,3) == size(x_shape%dn_s, 3))
-
-    assert(associated(shape%surface_quadrature))
-    assert(shape%surface_quadrature%ngi==x_shape%surface_quadrature%ngi)
-    assert(size(dshape, 1) == shape%loc)
-    assert(size(dshape, 2) == shape%surface_quadrature%ngi)
-    assert(size(dshape, 3) == X%dim)
-
-    assert(associated(shape%dn_s))
-    assert(shape%loc == size(shape%dn_s, 1))
-    assert(shape%surface_quadrature%ngi == size(shape%dn_s, 2))
-    assert(X%dim == size(shape%dn_s, 3))
-    assert(size(dm_s,1) == size(shape%dn_s, 1))
-    assert(size(dm_s,2) == size(shape%dn_s, 2))
-    assert(size(dm_s,3) == size(shape%dn_s, 3))
-#endif
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    dn_s = face_dn_s(x_shape, X%mesh, face)
-    dm_s = face_dn_s(shape, X%mesh, face)  ! this should be safe to call even if X%mesh and shape aren't the same degree/continuity
-    if(x_spherical) then
-      n_s  = face_n_s(x_shape, X%mesh, face)
-    end if
-
-    ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
-    m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX .and. shape%numbering%type==ELEMENT_LAGRANGIAN)
-
-    dim=X%dim
-
-    if ((.not.x_nonlinear).and.cache_transform_elements) then
-       cache_valid=retrieve_cached_face_transform(X, face, lnormal(:),&
-              & detJ_local, J_local_T, invJ_local)
-       if (cache_valid.and.present(normal)) then
-         normal(:,1) = lnormal(:)
-       end if
-    else
-      cache_valid = .false.
-    end if
-
-    if (.not.cache_valid) then
-      X_val=ele_val(X, ele)
-      if (x_spherical) then
-        r_val = sqrt(sum(X_val**2, dim=1))
-      end if
-      if (present(normal)) then
-        X_f=face_val(X,face)
-      end if
-    end if
-
-    ! Loop over quadrature points.
-    quad_loop: do gi=1,x_shape%surface_quadrature%ngi
-
-       if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
-          ! For linear space elements only calculate Jacobian once.
-
-          !     |- dx  dx  dx  -|
-          !     |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dy  dy  dy   |
-          ! J = |  dL1 dL2 dL3  |
-          !     |               |
-          !     |  dz  dz  dz   |
-          !     |- dL1 dL2 dL3 -|
-
-          ! Form Jacobian.
-          J_local_T=matmul(X_val(:,:), dn_s(:, gi, :))
-
-          if (x_spherical) then
-            J_local_T = facet_full_jacobian_on_sphere(n_s, dn_s, gi, X_val, r_val, J_local_T)
-          end if
-
-          select case (dim)
-          case(1)
-             invJ_local=1.0
-          case(2)
-             invJ_local=reshape((/ J_local_T(2,2),-J_local_T(1,2),&
-                  &               -J_local_T(2,1), J_local_T(1,1)/),(/2,2/))
-          case(3)
-             ! Calculate (scaled) inverse using recursive determinants.
-             forall (i=1:3,k=1:3)
-                invJ_local(i, k)= &
-                     J_local_T(cyc3(i+1),cyc3(k+1))*J_local_T(cyc3(i+2),cyc3(k+2)) &
-                  -J_local_T(cyc3(i+2),cyc3(k+1))*J_local_T(cyc3(i+1),cyc3(k+2))
-             end forall
-          case default
-             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-
-          ! Form determinant by expanding minors.
-          detJ_local_full=dot_product(J_local_T(:,1),invJ_local(:,1))
-
-          ! Scale inverse by determinant.
-          invJ_local=invJ_local/detJ_local_full
-
-          detJ_local=0.0
-          ! Calculate facet determinant.
-          select case (dim)
-          case(1)
-             detJ_local=1.0
-          case(2)
-             detJ_local = sqrt(J_local_T(1,2)**2 + J_local_T(2,2)**2)
-          case(3)
-             do i=1,3
-                detJ_local=detJ_local+ &
-                     (J_local_T(cyc3(i+2),2)*J_local_T(cyc3(i+1),3)&
-                     -J_local_T(cyc3(i+2),3)*J_local_T(cyc3(i+1),2))**2
-             end do
-             detJ_local=sqrt(detJ_local)
-          case default
-             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-
-       end if
-
-       ! Evaluate derivatives in physical space.
-       ! If both space and the derivatives are linear then we only need
-       ! to do this once.
-       if (x_nonlinear.or.m_nonlinear.or.gi==1) then
-          do i=1,shape%loc
-             dshape(i,gi,:)=matmul(invJ_local, dm_s(i,gi,:))
-          end do
-       else
-          dshape(:,gi,:)=dshape(:,1,:)
-       end if
-
-       ! Calculate transformed quadrature weights.
-       if (present(detwei_f)) then
-          detwei_f(gi)=abs(detJ_local)*x_shape%surface_quadrature%weight(gi)
-       end if
-
-       ! Copy the Jacobian and related variables to externally accessible memory
-       if (present(J)) then
-          if (x_nonlinear.or.gi==1) then
-             J(:,:,gi)    = transpose(J_local_T(:,:))
-          else
-             J(:,:,gi)    = J(:,:,1)
-          end if
-       end if
-       if (present(invJ))  invJ(:,:,gi) = invJ_local(:,:)
-       if (present(detJ))  detJ(gi)     = detJ_local
-       if (present(normal)) then
-         if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
-             ! Calculate normal.
-             ! the 1st local coordinate L_1 in dn_s is the one associated
-             ! with the vertex opposite the facet. The outward_vector
-             ! is chosen as J(:,1)=-dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
-             normal(:,gi) = facet_normal(J_local_T(:,2:), -J_local_T(:,1))
-         else
-             normal(:,gi)=normal(:,1)
-         end if
-       end if
-
-    end do quad_loop
-
-  end subroutine transform_full_facet_to_physical_full
-
-  subroutine compute_facet_full_inverse_jacobian(X, face, invJ, detwei, detJ)
-    !!< Fast version of transform_to_physical that only calculates detwei and full invJ on a facet.
-    !!< NOTE: the detJ and detwei that this (optionally) returns is based on
-    !!< the determinant of the full facet Jacobian.  This is different to the
-    !!< detJ and detwei returned by transform_facet_to_physical, which is lower
-    !!< dimensional and only based on the facet.
-
-    !! positions field and element to compute inv. jacobian for
-    type(vector_field), intent(in):: X
-    integer, intent(in):: face
-    !! Inverse of the jacobian matrix at each quadrature point (dim x dim x x_shape%surface_quadrature%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:,:,:), intent(out) :: invJ
-    !! Quadrature weights for physical coordinates.
-    real, dimension(:), optional, intent(out) :: detwei (:)
-    !! Determinant of the Jacobian at each quadrature point (x_shape%surface_quadrature%ngi)
-    !! Facilitates access to this information externally
-    real, dimension(:), intent(out), optional :: detJ
-
-    !! coordinates of the nodes
-    real, dimension(X%dim, ele_loc(X,face_ele(X, face))):: x_val
-    !! radius (l2norm) of x_val at the nodes (used for spherical positions)
-    real, dimension(size(x_val,2)) :: r_val
-
-    !! Shape function to be used for coordinate interpolation.
-    type(element_type), pointer :: x_shape
-    !! Local versions of the Jacobian matrix
-    real, dimension(size(invJ,1),size(invJ,1)) :: J_local
-    !! Local version of the determinant of J
-    real, dimension(size(invJ,3)) :: detJ_local
-    logical :: x_spherical
-
-    integer gi, i, k, compute_ngi, ele
-    real, dimension(size(x_val,2),size(invJ,3)) :: n_s
-    real, dimension(size(x_val,2),size(invJ,3),X%dim) :: dn_s
-
-    ele = face_ele(X, face)
-    x_shape => ele_shape(X, ele)
-
-    assert(associated(x_shape%surface_quadrature))
-    assert(size(invJ, 1) == x_shape%dim)
-    assert(size(invJ, 2) == x_shape%dim)
-    assert(size(invJ, 3) == x_shape%surface_quadrature%ngi)
-
-    assert(associated(x_shape%n_s))
-    assert(x_shape%loc == size(x_shape%n_s, 1))
-    assert(x_shape%surface_quadrature%ngi == size(x_shape%n_s, 2))
-    assert(size(n_s,1) == size(x_shape%n_s, 1))
-    assert(size(n_s,2) == size(x_shape%n_s, 2))
-
-    assert(associated(x_shape%dn_s))
-    assert(x_shape%loc == size(x_shape%dn_s, 1))
-    assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
-    assert(x_shape%dim == size(x_shape%dn_s, 3))
-    assert(size(dn_s,1) == size(x_shape%dn_s, 1))
-    assert(size(dn_s,2) == size(x_shape%dn_s, 2))
-    assert(size(dn_s,3) == size(x_shape%dn_s, 3))
-
-    assert(X%dim==mesh_dim(X)) ! this routine doesn't work for embedded coordinates
-
-    if (present(detwei)) then
-      assert(size(detwei)==x_shape%surface_quadrature%ngi)
-    end if
-    if (present(detJ)) then
-      assert(size(detJ)==x_shape%surface_quadrature%ngi)
-    end if
-
-    n_s  = face_n_s(x_shape, X%mesh, face)
-    dn_s = face_dn_s(x_shape, X%mesh, face)
-
-    x_spherical = use_analytical_spherical_mapping(X)
-
-    if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
-      ! for non-linear compute on all gauss points
-      compute_ngi=x_shape%surface_quadrature%ngi
-    else
-      ! for linear: compute only the first and copy the rest
-      compute_ngi=1
-    end if
-
-    x_val = ele_val(X, ele)
-    if (x_spherical) then
-      r_val = sqrt(sum(x_val**2, dim=1))
-    end if
-
-    select case (X%dim)
-    case(1)
-
-      do gi=1,compute_ngi
-        J_local(1,1)=dot_product(x_val(1,:), dn_s(:, gi, 1))
-        detJ_local(gi)=J_local(1,1)
-        invJ(1,1,gi)=1.0/detJ_local(gi)
-      end do
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(1,1,gi)=invJ(1,1,1)
-      end do
-
-    case(2)
-
-      do gi=1, compute_ngi
-
-        J_local=matmul(x_val(:,:), dn_s(:, gi, :))
-        if (x_spherical) then
-          J_local = facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, J_local)
-        end if
-
-        ! Form determinant by expanding minors.
-        detJ_local(gi)=J_local(1,1)*J_local(2,2)-J_local(2,1)*J_local(1,2)
-        ! take inverse *and* transpose
-        invJ(:,:,gi)=reshape((/ J_local(2,2),-J_local(1,2), &
-           &               -J_local(2,1), J_local(1,1)/),(/2,2/)) &
-                      / detJ_local(gi)
-      end do
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(:,:,gi)=invJ(:,:,1)
-      end do
-
-    case(3)
-
-      do gi=1, compute_ngi
-
-        J_local=matmul(x_val(:,:), dn_s(:, gi, :))
-        if (x_spherical) then
-          J_local = facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, J_local)
-        end if
-        ! Calculate (scaled) inverse (of the transpose of J_local) using recursive determinants.
-        forall (i=1:X%dim,k=1:X%dim)
-          invJ(i,k,gi)=J_local(cyc3(i+1),cyc3(k+1))*J_local(cyc3(i+2),cyc3(k+2)) &
-              -J_local(cyc3(i+2),cyc3(k+1))*J_local(cyc3(i+1),cyc3(k+2))
-        end forall
-        ! Form determinant by expanding minors.
-        detJ_local(gi)=dot_product(J_local(:,1), invJ(:,1,gi))
-
-        ! Scale inverse by determinant.
-        invJ(:,:,gi)=invJ(:,:,gi)/detJ_local(gi)
-
-      end do
-
-      ! copy the rest
-      do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
-        detJ_local(gi) = detJ_local(1)
-        invJ(:,:,gi)=invJ(:,:,1)
-      end do
-
-    case default
-      FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-    end select
-
-    if (present(detJ)) then
-      detJ = detJ_local
-    end if
-
-    if (present(detwei)) then
-      detwei = abs(detJ_local)*x_shape%surface_quadrature%weight
-    end if
-
-  end subroutine compute_facet_full_inverse_jacobian
-
-  function jacobian_on_sphere(x_shape, gi, x_val, r_val, Jt) result (Jsphere)
-    type(element_type), intent(in):: x_shape
-    integer, intent(in):: gi ! which gauss point are we computing?
-    real, dimension(:,:), intent(in):: x_val ! coordinates of the nodes (xdim x nloc)
-    real, dimension(:), intent(in):: r_val ! radius (l2norm) of x_val at the nodes
-    real, dimension(:,:), intent(in):: Jt ! dX/dxi of linearly interpolated X
-    real, dimension(size(Jt,1),size(Jt,2)):: Jsphere
-
-    real, dimension(size(x_val,1)) :: xgi, xhat
-    real, dimension(size(x_shape%dn,3)) :: drdxi
-    real, dimension(size(xgi),size(xgi)) :: dxhatdx
-    real :: normx, rgi
-    integer :: i, j
-
-    xgi = matmul(x_val, x_shape%n(:,gi))
-    normx = sqrt(sum(xgi**2))
-    xhat = xgi/normx
-    rgi = dot_product(r_val, x_shape%n(:,gi))
-    drdxi = matmul(r_val, x_shape%dn(:,gi,:))
-
-    do i=1, size(xhat)
-      do j=1, size(xhat)
-        dxhatdx(i,j) = -xhat(i)*xhat(j)
-      end do
-    end do
-    do i=1, size(xhat)
-      dxhatdx(i,i) = dxhatdx(i,i) + 1.0
-    end do
-    dxhatdx = dxhatdx/normx
-
-    Jsphere = matmul(dxhatdx, Jt)*rgi
-
-    do i=1, size(xhat)
-      do j=1, size(drdxi)
-        Jsphere(i,j) = Jsphere(i,j) + xhat(i)*drdxi(j)
-      end do
-    end do
-
-  end function jacobian_on_sphere
-
-  function facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, Jt) result (Jsphere)
-    real, dimension(:,:) :: n_s
-    real, dimension(:,:,:) :: dn_s
-    integer, intent(in):: gi ! which gauss point are we computing?
-    real, dimension(:,:), intent(in):: x_val ! coordinates of the nodes (xdim x nloc)
-    real, dimension(:), intent(in):: r_val ! radius (l2norm) of x_val at the nodes
-    real, dimension(:,:), intent(in):: Jt ! dX/dxi of linearly interpolated X
-    real, dimension(size(Jt,1),size(Jt,2)):: Jsphere
-
-    real, dimension(size(x_val,1)) :: xgi, xhat
-    real, dimension(size(dn_s,3)) :: drdxi
-    real, dimension(size(xgi),size(xgi)) :: dxhatdx
-    real :: normx, rgi
-    integer :: i, j
-
-    xgi = matmul(x_val, n_s(:,gi))
-    normx = sqrt(sum(xgi**2))
-    xhat = xgi/normx
-    rgi = dot_product(r_val, n_s(:,gi))
-    drdxi = matmul(r_val, dn_s(:,gi,:))
-
-    do i=1, size(xhat)
-      do j=1, size(xhat)
-        dxhatdx(i,j) = -xhat(i)*xhat(j)
-      end do
-    end do
-    do i=1, size(xhat)
-      dxhatdx(i,i) = dxhatdx(i,i) + 1.0
-    end do
-    dxhatdx = dxhatdx/normx
-
-    Jsphere = matmul(dxhatdx, Jt)*rgi
-
-    do i=1, size(xhat)
-      do j=1, size(drdxi)
-        Jsphere(i,j) = Jsphere(i,j) + xhat(i)*drdxi(j)
-      end do
-    end do
-
-  end function facet_full_jacobian_on_sphere
-
-  subroutine transform_cvsurf_to_physical(X, x_shape, detwei, normal, cvfaces)
-    !!< Coordinate transformations for control volume surface integrals.
-    !!< Calculates the quadrature weights and unorientated face normals as a side bonus.
-
-    ! Column n of X is the position of the nth node on the facet.
-    real, dimension(:,:), intent(in) :: X
-    ! Reference coordinate control volume surface element:
-    type(element_type), intent(in) :: x_shape
-    ! Quadrature weights for physical coordinates.
-    real, dimension(:), intent(out) :: detwei
-    ! face normals - not necessarily correctly orientated
-    real, dimension(:,:), intent(out) :: normal
-    ! control volume face information - allows optimisation
-    type(cv_faces_type), intent(in) :: cvfaces
-
-    ! Jacobian matrix
-    real, dimension(size(X,1), size(x_shape%dn, 3)) :: J
-
-    ! Determinant of J
-    real :: detJ
-
-    integer :: gi, i, dim, ggi, face
-    logical :: x_nonlinear
-
-    dim=size(X,1)
-
-    assert(size(detwei)==x_shape%ngi)
-
-    ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= .not.(x_shape%degree==1.and.x_shape%numbering%family==FAMILY_SIMPLEX)
-
-    face_loop: do face = 1, cvfaces%faces
-
-      quad_loop: do gi = 1, cvfaces%shape%ngi
-
-        ! global gauss pt index
-        ggi = (face-1)*cvfaces%shape%ngi + gi
-
-        ! assemble the jacobian...
-        ! this needs to be done at every gauss point if space is nonlinear
-        ! but if space is linear then it only needs to be done at the
-        ! first gauss point of each cv face
-        if(x_nonlinear.or.(gi==1)) then
-
-          !     |- dx  dx  -|
-          !     |  dL1 dL2  |
-          !     |           |
-          !     |  dy  dy   |
-          ! J = |  dL1 dL2  |
-          !     |           |
-          !     |  dz  dz   |
-          !     |- dL1 dL2 -|
-
-          ! Form Jacobian.
-          J=matmul(X(:,:), x_shape%dn(:, ggi, :))
-
-          detJ=0.0
-          ! Calculate determinant.
-          select case (dim)
-          case(1)
-              detJ=1.0
-          case(2)
-              detJ = sqrt(J(1,1)**2 + J(2,1)**2)
-          case(3)
-              do i=1,3
-                detJ=detJ+ &
-                      (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-              end do
-              detJ=sqrt(detJ)
-          case default
-              FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-        end if
-
-        ! Calculate transformed quadrature weights.
-        detwei(ggi)=detJ*x_shape%quadrature%weight(ggi)
-
-        ! find the normal...
-        ! this needs to be done at every gauss point if space is nonlinear
-        ! otherwise it only needs to be done for the first gauss point on each
-        ! cv face - other faces have their normals set to that of the first gauss
-        ! point of the same face
-        if(x_nonlinear.or.(gi==1)) then
-          normal(:,ggi)=normgi(J)
-        else
-          normal(:,ggi)=normal(:,(face-1)*cvfaces%shape%ngi+1)
-        end if
-
-      end do quad_loop
-
-    end do face_loop
-
-    contains
-
-    function normgi(J)
-      ! Calculate the normal at a given quadrature point,
-      ! Control volume surface Jacobian.
-      real, dimension(:,:), intent(in) :: J
-      real, dimension(size(J,1)) :: normgi
-
-      select case (dim)
-      case(1)
-         normgi = 1.0
-      case (2)
-         normgi = (/ -J(2,1), J(1,1) /)
-      case (3)
-         normgi=cross_product(J(:,1),J(:,2))
-      case default
-         FLAbort('Unsupported dimension selected.')
-      end select
-
-    end function normgi
-
-    pure function cross_product(vector1,vector2)
-      real, dimension(3) :: cross_product
-      real, dimension(3), intent(in) :: vector1, vector2
-
-      integer :: i
-
-      forall(i=1:3)
-         cross_product(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
-                         -vector1(cyc3(i+2))*vector2(cyc3(i+1))
-      end forall
-
-    end function cross_product
-
-  end subroutine transform_cvsurf_to_physical
-
-  subroutine transform_cvsurf_facet_to_physical(X, X_f, x_shape_f, &
-       normal, detwei)
-
-    ! Coordinate transformations for facet integrals around control volumes.
-    ! Calculate the transformed quadrature
-    ! weights as a side bonus.
-    !
-    ! For facet integrals, we also need to know the facet outward
-    ! pointing normal.
-    !
-    ! In this case it is only the determinant of the Jacobian which is
-    ! required.
-
-    ! Coordinate facet element:
-    type(element_type), intent(in) :: x_shape_f
-    ! Column n of X is the position of the nth node.
-    real, dimension(:,:), intent(in) :: X
-    ! Column n of X_f is the position of the nth node on the facet.
-    real, dimension(:,:), intent(in) :: X_f
-    ! Quadrature weights for physical coordinates.
-    real, dimension(:), intent(out), optional :: detwei
-    ! Outward normal vector. (dim x x_shape_f%ngi)
-    real, dimension(:,:), intent(out) :: normal
-
-    ! Jacobian matrix and its inverse.
-    real, dimension(size(X,1),x_shape_f%numbering%dimension) :: J
-    ! Determinant of J
-    real :: detJ
-
-    integer :: gi, i, dim
-
-    logical :: x_nonlinear
-
-    dim=size(X,1)
-    assert(size(X_f,1)==dim)
-    assert(size(X_f,2)==x_shape_f%loc)
-
-    assert(size(normal,1)==dim)
-
-    if(present(detwei)) then
-      assert(size(detwei)==x_shape_f%ngi)
-    end if
-
-    ! Optimisation checks. Optimisations apply to linear space elements.
-    x_nonlinear= .not.(x_shape_f%degree==1.and.x_shape_f%numbering%family==FAMILY_SIMPLEX)
-
-    ! Loop over quadrature points.
-    quad_loop: do gi=1,x_shape_f%ngi
-
-       if (x_nonlinear.or.gi==1) then
-          ! For linear space elements only calculate Jacobian once.
-        !     |- dx  dx  -|
-        !     |  dL1 dL2  |
-        !     |           |
-        !     |  dy  dy   |
-        ! J = |  dL1 dL2  |
-        !     |           |
-        !     |  dz  dz   |
-        !     |- dL1 dL2 -|
-
-        ! Form Jacobian.
-        J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
-
-          detJ=0.0
-          ! Calculate determinant.
-          select case (dim)
-          case(1)
-              detJ=1.0
-          case(2)
-              detJ = sqrt(J(1,1)**2 + J(2,1)**2)
-          case(3)
-              do i=1,3
-                detJ=detJ+ &
-                      (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-              end do
-              detJ=sqrt(detJ)
-          case default
-              FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
-          end select
-       end if
-
-       ! Calculate transformed quadrature weights.
-       if(present(detwei)) then
-         detwei(gi)=detJ*x_shape_f%quadrature%weight(gi)
-       end if
-
-       if (x_nonlinear.or.gi==1) then
-          ! Calculate normal.
-          normal(:,gi)=normgi(X,X_f,J)
-       else
-          normal(:,gi)=normal(:,1)
-       end if
-
-    end do quad_loop
-
-  contains
-
-    function normgi(X, X_f, J)
-      ! Calculate the normal at a given quadrature point,
-      real, dimension(:,:), intent(in) :: J
-      real, dimension(size(J,1)) :: normgi
-      ! Element and normal node locations respectively.
-      real, dimension (:,:), intent(in) :: X, X_f
-      ! Facet Jacobian.
-
-      ! Outward pointing not necessarily normal vector.
-      real, dimension(3) :: outv
-
-      integer :: ldim
-
-      ldim = size(J,1)
-
-      ! Outv is the vector from the element centroid to the facet centroid.
-      outv(1:ldim) = sum(X_f,2)/size(X_f,2)-sum(X,2)/size(X,2)
-
-      select case (dim)
-      case(1)
-         normgi = 1.0
-      case (2)
-         normgi = (/ -J(2,1), J(1,1) /)
-      case (3)
-         normgi=cross_product(J(:,1),J(:,2))
-      case default
-         FLAbort('Unsupported dimension selected.')
-      end select
-
-      ! Set correct orientation.
-      normgi=normgi*dot_product(normgi, outv(1:ldim) )
-
-      ! normalise
-      normgi=normgi/sqrt(sum(normgi**2))
-
-    end function normgi
-
-    function cross_product(vector1,vector2) result (prod)
-      real, dimension(3) :: prod
-      real, dimension(3), intent(in) :: vector1, vector2
-
-      integer :: i
-
-      forall(i=1:3)
-         prod(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
-              -vector1(cyc3(i+2))*vector2(cyc3(i+1))
-      end forall
-
-    end function cross_product
-
-  end subroutine transform_cvsurf_facet_to_physical
-
-  subroutine transform_superconvergent_to_physical(X, x_shape, n_shape, dnsp_t)
-    !!< Given a positions shape function and node positions return the
-    !!< return the transformed derivatives of X at the superconvergent
-    !!< points.
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(:,:), intent(in) :: X
-    !! Shape function used for coordinate interpolation
-    type(element_type), intent(in) :: x_shape, n_shape
-    !! Derivatives at superconvergent points in physical coordinates.
-    !! (x_shape%loc x x_shape%superconvergence%nsp x dim)
-    real, dimension(:,:,:), intent(out) ::  dnsp_t
-
-    ! Jacobian matrix and its inverse. (dim x dim)
-    real :: detJ
-    real, dimension(size(X,1),size(X,1)) :: J, invJ
-
-    integer :: sp, i, k, dim
-
-    dim=size(X,1)
-
-    assert(size(X,2)==x_shape%loc)
-    assert(size(dnsp_t,1)==n_shape%loc)
-    assert(size(dnsp_t,2)==n_shape%superconvergence%nsp)
-    assert(size(dnsp_t,3)==dim)
-
-    ! Loop over superconvergent points.
-    super_point_loop: do sp=1,n_shape%superconvergence%nsp
-
-       if ((sp==1).or.(x_shape%degree>1)) then
+      do ele=1,elements
+         X_val=ele_val(X, ele)
          !     |- dx  dx  dx  -|
          !     |  dL1 dL2 dL3  |
          !     |               |
@@ -2495,221 +272,2444 @@ contains
          !     |- dL1 dL2 dL3 -|
 
          ! Form Jacobian.
-         J=transpose(matmul(X, x_shape%superconvergence%dn(:, sp, :)))
+         ! Since X is linear we need only do this at quadrature point 1.
+         J_T_cache(:,:,ele)=matmul(X_val(:,:), x_shape%dn(:, 1, :))
 
-         select case (dim)
-         case(1)
-            invJ=1.0
-         case(2)
-            invJ=reshape((/J(2,2),-J(2,1),-J(1,2),J(1,1)/),(/2,2/))
-         case(3)
+         select case (X%dim)
+          case(1)
+            invJ_cache(:,:,ele)=1.0
+          case(2)
+            invJ_cache(:,:,ele)=reshape(&
+               (/ J_T_cache(2,2,ele),-J_T_cache(1,2,ele),&
+            & -J_T_cache(2,1,ele), J_T_cache(1,1,ele)/),(/2,2/))
+          case(3)
             ! Calculate (scaled) inverse using recursive determinants.
-            forall (i=1:dim,k=1:dim)
-               invJ(k,i)=J(cyc3(i+1),cyc3(k+1))*J(cyc3(i+2),cyc3(k+2)) &
-                    -J(cyc3(i+2),cyc3(k+1))*J(cyc3(i+1),cyc3(k+2))
+            forall (i=1:3,k=1:3)
+               invJ_cache(i, k, ele)= &
+                  J_T_cache(cyc3(i+1),cyc3(k+1),ele)&
+               &          *J_T_cache(cyc3(i+2),cyc3(k+2),ele) &
+                  -J_T_cache(cyc3(i+2),cyc3(k+1),ele)&
+               &          *J_T_cache(cyc3(i+1),cyc3(k+2),ele)
             end forall
-         case default
+          case default
             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
          end select
 
-         detJ=dot_product(J(1,:),invJ(:,1))
-         invJ=invJ/detJ
-       end if
+         ! Form determinant by expanding minors.
+         detJ_cache(ele)=dot_product(J_T_cache(:,1,ele),invJ_cache(:,1,ele))
 
-       ! Evaluate derivatives in physical space.
-       do i=1,n_shape%loc
-          dnsp_t(i,sp,:)=matmul(invJ, n_shape%superconvergence%dn(i,sp,:))
-       end do
+         ! Scale inverse by determinant.
+         invJ_cache(:,:,ele)=invJ_cache(:,:,ele)/detJ_cache(ele)
 
-    end do super_point_loop
+      end do
 
-  end subroutine transform_superconvergent_to_physical
+   end subroutine construct_cache
 
-  subroutine transform_horizontal_to_physical(X_f, X_face_shape, vertical_normal, &
-    m_f, dm_hor, detwei_hor)
-    !!< Given the 'dim+1'-dimensional coordinates of a 'dim'-dimensional face
-    !!< and its shape function on that face, return the inverse Jacobian
-    !!< associated with the transformation between the local 'dim' coordinates
-    !!< on the face augmented with an auxiliary local vertical coordinate,
-    !!< and the 'dim+1' physical coordinates.
-    !!< This can be used to transform derivatives of fields defined on the face
-    !!< to a horizontal derivative.
-    !!< Also returned is detwei_hor which can be used to perform an integration
-    !!< of fields defined on the face integrated over the face projected in
-    !!< the horizontal plane.
-    !! NOTE: in the following nloc are the number of nodes, and ngi
-    !! the number of gausspoints on the FACE
-    !! positions of the nodes on the face (dim+1 x nloc)
-    real, dimension(:,:):: X_f
-    !! element shape used to interpolate these positions
-    type(element_type), intent(in):: X_face_shape
-    !! vertical normal vector at the gauss points of the face (dim+1 x ngi)
-    real, dimension(:,:):: vertical_normal
-    !! element shape of field on the face, you wish to transform
-    type(element_type), optional, intent(in):: m_f
-    !! transformed derivatives (nloc x ngi x dim+1):
-    real, dimension(:,:,:), optional, intent(out):: dm_hor
-    !! integration weights at gausspoint for horizontal integration (ngi):
-    real, dimension(:), optional, intent(out):: detwei_hor
+   function is_face_cache_valid(X) result (cache_valid)
+      !!< Is the face cache (still) valid for the given coordinate field
+      !!< (e.g. has it been initialised at all, have we adapted, moved the mesh etc.)
+      !!< If *not*, reconstruct the face cache, and then return .true.
+      !!< For nonlinear coordinates and the coordinates of an embedded manifold,
+      !!< X%dim/=mesh_dim, this always returns .false.
+      type(vector_field), intent(in) :: X
+      logical :: cache_valid
 
-    real, dimension(size(X_f,1),size(X_f,1)):: J, invJ
-    real det
-    logical x_nonlinear
-    integer i, gi, dim, cdim
+      logical :: x_spherical, xf_nonlinear
 
-    dim=X_face_shape%dim
-    cdim=size(X_f,1)
+      cache_valid=.true.
 
-    ! make sure everything is the right size:
-    assert(cdim==dim+1)
-    assert(size(vertical_normal,1)==cdim)
-    assert(X_face_shape%quadrature%ngi==size(vertical_normal,2))
-    if (present(dm_hor)) then
-      assert(size(X_f,2)==size(dm_hor,1))
-      assert(size(vertical_normal,2)==size(dm_hor,2))
-      assert(m_f%quadrature%ngi==size(dm_hor,2))
-      assert(size(dm_hor,3)==cdim)
-    end if
-    if (present(detwei_hor)) then
-      assert(size(vertical_normal,2)==size(detwei_hor))
-    end if
+      if (X%refcount%id/=face_position_id) then
+         cache_valid=.false.
+         if (X%name/="Coordinate") then
+            !!< If Someone is not calling this on the main Coordinate field
+            !!< then we're screwed anyway.
+            return
+         end if
+      else if(eventcount(EVENT_MESH_MOVEMENT)/=face_last_mesh_movement) then
+         cache_valid=.false.
+      end if
 
-    ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= .not. (X_face_shape%degree==1 .and. X_face_shape%numbering%family==FAMILY_SIMPLEX)
+      if (X%dim/=mesh_dim(X)) then
+         ! this is an embedded (manifold) mesh - construct_face_cache() does not handle this
+         ! tranform_facet_to_physical_full() hopefully does?
+         cache_valid = .false.
+         return
+      end if
 
-    do gi=1, X_face_shape%ngi
+      x_spherical = use_analytical_spherical_mapping(X)
 
-       ! in 3 dimensions:
-       !     |- dx  dx  dx  -|
-       !     |  dL1 dL2 dL3  |
-       !     |               |
-       !     |  dy  dy  dy   |
-       ! J = |  dL1 dL2 dL3  |
-       !     |               |
-       !     |  dz  dz  dz   |
-       !     |- dL1 dL2 dL3 -|
-       ! where L1 and L2 are the 2 local coordinates of the face
-       ! and L3 is an auxillary vertical local coordinate.
-       if (gi==1 .or. x_nonlinear) then
-          ! we do follow the definition of J as above
-          ! (as opposed to tranform_to_physical where J is defined as its transpose)
-          J(:,1:dim)=matmul(X_f, x_face_shape%dn(:, gi, :))
-          ! make extra local coordinate (L_3) in the vertical direction
-          J(:,cdim)=vertical_normal(:,gi)
+      xf_nonlinear = x_spherical .or. .not.(X%mesh%faces%shape%degree==1 .and. X%mesh%faces%shape%numbering%family==FAMILY_SIMPLEX)
+      if (xf_nonlinear) then
+         cache_valid=.false.
+         return
+      end if
 
-          if (cdim==3) then
-             ! Cross product gives area spanned by local coordinate unit vectors
-             ! times the surface normal. Taking dot_product with vertical normal
-             ! then gives the area in the projected in the horizontal direction.
-             det=abs(dot_product( J(:,3), cross_product( J(:,1), J(:,2) ) ))
-          else
-             ! cross product of the local coordinate unit vector and
-             ! the vertical normal gives projection of the unit vector
-             ! in horizontal direction.
-             det=abs(J(1,1)*J(2,2)-J(1,2)*J(2,1))
-          end if
+      if (.not.cache_valid) then
+         call construct_face_cache(X)
+         cache_valid=.true.
+      end if
 
-       end if
+   end function is_face_cache_valid
 
-       if (present(detwei_hor)) then
-          detwei_hor(gi)=det*X_face_shape%quadrature%weight(gi)
-       end if
+   function retrieve_cached_face_transform_full(X, face, &
+   & normal_local, detJ_local) result (cache_valid)
+      !!< Determine whether the transform cache is valid for this operation.
+      !!<
+      !!< If caching is applicable and the cache is not ready, set up the
+      !!< cache and then return true.
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: face
+      !! Face determinant
+      real, intent(out) :: detJ_local
+      !! Face normal
+      real, dimension(X%dim), intent(out) :: normal_local
+      logical :: cache_valid
 
-       if (present(m_f)) then
+      cache_valid = is_face_cache_valid(X)
+      if (.not. cache_valid) return
 
-          assert(present(dm_hor))
+      detJ_local=face_detJ_cache(abs(face_cache(face)))
+      normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
 
-          invJ=inverse(J)
+   end function retrieve_cached_face_transform_full
 
-          do i=1, size(dm_hor,1)
-             dm_hor(i,gi,:)=matmul( m_f%dn(i,gi,:), invJ(1:dim,:) )
-             ! assume no change of in-field in vertical direction (L_3)
-             ! thereby effectively taking horizontal derivative
-          end do
-       end if
+   function retrieve_cached_full_face_transform_full(X, face, &
+   & normal_local, detJ_local, J_local_T, invJ_local) result (cache_valid)
+      !!< Determine whether the transform cache is valid for this operation.
+      !!<
+      !!< If caching is applicable and the cache is not ready, set up the
+      !!< cache and then return true.
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: face
+      !! Face determinant
+      real, intent(out) :: detJ_local
+      !! Face normal
+      real, dimension(X%dim), intent(out) :: normal_local
+      !! invJ
+      real, intent(out), dimension(:,:) :: J_local_T, invJ_local
+      logical :: cache_valid
 
-    end do
+      cache_valid = is_face_cache_valid(X)
+      if (.not. cache_valid) return
 
-  end subroutine transform_horizontal_to_physical
+      ! if the face cache is valid, we should always be able to construct the full_face_cache as well
+      ! just need to check whether it is still up-to-date
+      if (X%refcount%id/=full_face_position_id .or. eventcount(EVENT_MESH_MOVEMENT)/=full_face_last_mesh_movement) then
+         call construct_full_face_cache(X)
+      end if
 
-  function element_volume(position, ele)
-    !!< Return the volume of element in the positions field.
-    real :: element_volume
-    type(vector_field), intent(in) :: position
-    integer, intent(in) :: ele
+      detJ_local=face_detJ_cache(abs(face_cache(face)))
+      normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
+      invJ_local = face_invJ_cache(:,:,face)
+      J_local_T = face_J_T_cache(:,:,face)
 
-    real, dimension(ele_ngi(position, ele)) :: detwei
+   end function retrieve_cached_full_face_transform_full
 
-    call transform_to_physical_detwei(position, ele, detwei)
+   subroutine construct_face_cache(X)
+      !!< The cache is invalid so make a new one.
+      type(vector_field), intent(in) :: X
 
-    element_volume=sum(detwei)
+      integer :: elements, ele, i, current_face, face, face2, faces, n,&
+      & unique_faces
+      !! Note that if X is not all linear simplices we are screwed.
+      real, dimension(X%dim, ele_loc(X,1)) :: X_val
+      real, dimension(X%dim, face_loc(X,1)) :: X_f
+      real, dimension(X%dim) :: X_centroid_ele, X_centroid_face
+      real, dimension(X%dim, X%dim-1) :: J
+      type(element_type), pointer :: X_shape_f
+      real :: detJ
+      integer, dimension(:), pointer :: neigh
 
-  end function element_volume
+!    ewrite(1,*) "Reconstructing element geometry cache."
 
-  function local_coords_interpolation(X, ele, position) result(local_coords)
-    !!< Given a position field, this returns the local coordinates of
-    !!< position with respect to element "ele".
-    !!<
-    !!< This assumes the position field is linear. For higher order
-    !!< only the coordinates of the vertices are considered
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele
-    real, dimension(:), intent(in) :: position
-    real, dimension(size(position) + 1) :: local_coords
+      call abort_if_in_parallel_region
 
-    integer, dimension(:), pointer:: nodes
-    integer :: dim
+      face_position_id=X%refcount%id
+      face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
 
-    dim = size(position)
+      if (allocated(face_detJ_cache)) then
+#ifdef HAVE_MEMORY_STATS
+         call register_deallocation("transform_cache", "real", &
+         & size(face_detJ_cache)+size(face_normal_cache))
+         call register_deallocation("transform_cache", "integer", &
+         & size(face_cache))
+#endif
+         deallocate(face_detJ_cache, face_normal_cache, face_cache)
+      end if
 
-    assert(dim == mesh_dim(X))
-    assert(X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
-    assert(X%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
+      elements=element_count(X)
+      faces=face_count(X)
+      !! This counts 1/2 for each interior face and 1 for each surface face.
+      unique_faces=unique_face_count(X%mesh)
 
-    if (is_cache_valid(X)) then
-      ! currently we only cache linear meshes
-      assert(X%mesh%shape%degree==1)
-      nodes => ele_nodes(X, ele)
+      allocate(face_detJ_cache(unique_faces), &
+         face_normal_cache(X%dim,unique_faces), &
+         face_cache(faces))
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("transform_cache", "real", &
+      & size(face_detJ_cache)+size(face_normal_cache))
+      call register_allocation("transform_cache", "integer", &
+      & size(face_cache))
+#endif
 
-      ! we seek local coords xi[1:dim+1] s.t. \sum_i X_i xi_i = X
-      ! (where X_i are the vertex locations and X is the location we search for)
-      ! the last local coordinate can be expressed as  xi_{dim+1} = 1 - \sum_{i=1}^dim xi_i
-      ! so that we can write X as a function of the first 1:dim local coordinates xi only:
-      ! X(xi[1:dim]) = \sum_{i=1}^dim X_i xi_i + X_dim  (1 - \sum_{i=1}^dim xi_i)
-      !              = [X_i - X_dim] xi[1:dim] + X_dim
-      ! where [X_i-X_dim] is a dim X dim matrix that we can obtain from J = dX/dxi (seeing X as a function
-      ! of the first 1:dim local coordinates only). Therefore:
-      !   xi = J^{-1} X-X_dim
+      current_face=0
+      do ele=1,elements
+         neigh=>ele_neigh(X, ele)
+         X_val=ele_val(X,ele)
 
-      ! the Js and invJ used above are actually the transpose, so we use invJ^T * (X-X_dim) = (X-X_dim)^T invJ
-      local_coords(1:dim) = matmul(position-node_val(X, nodes(dim+1)), invJ_cache(:, :, ele))
-      ! and the final local coordinate, using \sum_i xi_i=1
-      local_coords(dim+1) = 1.0 - sum(local_coords(1:dim))
-    else
-      call local_coords_slow
-    end if
+         X_centroid_ele = sum(X_val, 2)/size(X_val, 2)
 
-    contains
+         do n=1,size(neigh)
+
+            if (neigh(n)<0) then
+               face=ele_face(X, ele, neigh(n))
+
+               current_face=current_face+1
+               face_cache(face)=current_face
+
+            else
+
+               face=ele_face(X, ele, neigh(n))
+               face2=ele_face(X, neigh(n), ele)
+
+               ! Only do this once for each face pairl
+               if (face>face2) then
+                  cycle
+               end if
+
+               current_face=current_face+1
+
+               face_cache(face)=current_face
+               face_cache(face2)=-current_face
+
+            end if
+
+
+            X_f=face_val(X,face)
+            X_centroid_face = sum(X_f, 2)/size(X_f, 2)
+            X_shape_f=>face_shape(X,face)
+
+            !     |- dx  dx  -|
+            !     |  dL1 dL2  |
+            !     |           |
+            !     |  dy  dy   |
+            ! J = |  dL1 dL2  |
+            !     |           |
+            !     |  dz  dz   |
+            !     |- dL1 dL2 -|
+
+            ! Form Jacobian.
+            J=matmul(X_f(:,:), x_shape_f%dn(:, 1, :))
+
+            detJ=0.0
+            ! Calculate determinant.
+            select case (X%dim)
+             case(1)
+               detJ=1.0
+             case(2)
+               detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             case(3)
+               do i=1,3
+                  detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
+               end do
+               detJ=sqrt(detJ)
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+
+            ! Calculate normal.
+            face_normal_cache(:,current_face)=facet_normal(J, X_centroid_face-X_centroid_ele)
+            face_detJ_cache(current_face)=detJ
+
+         end do
+      end do
+      assert(current_face==unique_faces)
+
+   end subroutine construct_face_cache
+
+   subroutine construct_full_face_cache(X)
+      !!< The cache is invalid so make a new one.
+      type(vector_field), intent(in) :: X
+
+      integer :: elements, ele, i, k, current_face, face, faces, n
+      !! Note that if X is not all linear simplices we are screwed.
+      real, dimension(X%dim, ele_loc(X,1)) :: X_val
+      type(element_type), pointer :: X_shape
+      integer, dimension(:), pointer :: neigh
+      real, dimension(:,:,:), allocatable :: dn_s
+      !! Local version of the determinant of J
+      real :: detJ_local
+
+!    ewrite(1,*) "Reconstructing element geometry cache."
+
+      assert(associated(X%mesh%shape%surface_quadrature))
+      assert(associated(X%mesh%shape%dn_s))
+      allocate(dn_s(size(X%mesh%shape%dn_s,1), size(X%mesh%shape%dn_s,2), size(X%mesh%shape%dn_s,3)))
+
+      call abort_if_in_parallel_region
+
+      full_face_position_id=X%refcount%id
+      full_face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
+
+      if (allocated(face_invJ_cache)) then
+#ifdef HAVE_MEMORY_STATS
+         call register_deallocation("transform_cache", "real", &
+         & size(face_invJ_cache)+size(face_J_T_cache))
+#endif
+         deallocate(face_invJ_cache, face_J_T_cache)
+      end if
+
+      elements=element_count(X)
+      faces=face_count(X)
+
+      allocate(face_invJ_cache(X%dim,X%dim,faces), &
+         face_J_T_cache(X%dim,X%dim,faces))
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("transform_cache", "real", &
+      & size(face_invJ_cache)+size(face_J_T_cache))
+#endif
+
+      current_face=0
+      do ele=1,elements
+         neigh=>ele_neigh(X, ele)
+         X_val=ele_val(X,ele)
+
+         do n=1,size(neigh)
+
+            face=ele_face(X, ele, neigh(n))
+            current_face = current_face + 1
+            X_shape => ele_shape(X, ele)
+            dn_s = face_dn_s(X_shape, X%mesh, face)
+
+            !     |- dx  dx  dx  -|
+            !     |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dy  dy  dy   |
+            ! J = |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dz  dz  dz   |
+            !     |- dL1 dL2 dL3 -|
+
+            ! Form Jacobian.
+            face_J_T_cache(:,:,face)=matmul(X_val(:,:), dn_s(:,1,:))
+
+            select case (X%dim)
+             case(1)
+               face_invJ_cache(:,:,face)=1.0
+             case(2)
+               face_invJ_cache(:,:,face)=reshape(&
+                  (/ face_J_T_cache(2,2,face),-face_J_T_cache(1,2,face),&
+               & -face_J_T_cache(2,1,face), face_J_T_cache(1,1,face)/),(/2,2/))
+             case(3)
+               ! Calculate (scaled) inverse using recursive determinants.
+               forall (i=1:3,k=1:3)
+                  face_invJ_cache(i, k, face)= &
+                     face_J_T_cache(cyc3(i+1),cyc3(k+1),face)&
+                  &          *face_J_T_cache(cyc3(i+2),cyc3(k+2),face) &
+                     -face_J_T_cache(cyc3(i+2),cyc3(k+1),face)&
+                  &          *face_J_T_cache(cyc3(i+1),cyc3(k+2),face)
+               end forall
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+            ! Form determinant by expanding minors.
+            detJ_local=dot_product(face_J_T_cache(:,1,face),face_invJ_cache(:,1,face))
+
+            ! Form determinant by expanding minors.
+            face_J_T_cache(:,:,face)=dot_product(face_J_T_cache(:,1,face),face_invJ_cache(:,1,face))
+
+            ! Scale inverse by determinant.
+            face_invJ_cache(:,:,face)=face_invJ_cache(:,:,face)/detJ_local
+
+         end do
+      end do
+      assert(current_face==faces)
+      deallocate(dn_s)
+
+   end subroutine construct_full_face_cache
+
+   function unique_face_count(mesh) result (face_count)
+      !!< Count the number of geometrically unique faces in mesh,
+      type(mesh_type), intent(in) :: mesh
+      integer :: face_count
+
+      integer :: ele
+      integer, dimension(:), pointer :: neigh
+
+      face_count=0
+
+      do ele=1,element_count(mesh)
+         neigh=>ele_neigh(mesh, ele)
+
+         ! Count 1 for interior and 2 for surface.
+         face_count=face_count+sum(merge(1,2,neigh>0))
+
+      end do
+
+      face_count=(face_count+1)/2
+
+   end function unique_face_count
+
+   subroutine deallocate_transform_cache
+
+      if (allocated(invJ_cache)) then
+#ifdef HAVE_MEMORY_STATS
+         call register_deallocation("transform_cache", "real",&
+         & size(invJ_cache)+size(J_T_cache)+size(detJ_cache))
+#endif
+         deallocate(invJ_cache, J_T_cache, detJ_cache)
+      end if
+
+      if (allocated(face_detJ_cache)) then
+#ifdef HAVE_MEMORY_STATS
+         call register_deallocation("transform_cache", "real", &
+         & size(face_detJ_cache)+size(face_normal_cache))
+         call register_deallocation("transform_cache", "integer", &
+         & size(face_cache))
+#endif
+         deallocate(face_detJ_cache, face_normal_cache, face_cache)
+      end if
+
+      if (allocated(face_invJ_cache)) then
+#ifdef HAVE_MEMORY_STATS
+         call register_deallocation("transform_cache", "real", &
+         & size(face_invJ_cache)+size(face_J_T_cache))
+#endif
+         deallocate(face_invJ_cache, face_J_T_cache)
+      end if
+
+      position_id=-1
+      last_mesh_movement=-1
+      face_position_id=-1
+      face_last_mesh_movement=-1
+      full_face_position_id=-1
+      full_face_last_mesh_movement=-1
+
+   end subroutine deallocate_transform_cache
+
+   subroutine transform_to_physical_full(X, ele, shape, dshape, detwei, J,&
+   & invJ, detJ, x_shape)
+      !!< Calculate the derivatives of a shape function shape in physical
+      !!< space using the positions x. Calculate the transformed quadrature
+      !!< weights as a side bonus.
+      !!<
+      !!< Do this by calculating the Jacobian of the transform and inverting it.
+
+      !! X is the positions field.
+      type(vector_field), intent(in) :: X
+      !! The index of the current element
+      integer :: ele
+      !! Reference element of which the derivatives are to be transformed
+      type(element_type), intent(in) :: shape
+      !! Derivatives of this shape function transformed to physical space (loc x ngi x dim)
+      real, dimension(:,:,:), intent(out) ::  dshape
+
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), intent(out), optional :: detwei(:)
+      !! Jacobian matrix and its inverse at each quadrature point (dim x dim x x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:,:,:), intent(out), optional :: J, invJ
+      !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:), intent(out), optional :: detJ
+      !! Shape function to use for the coordinate field. ONLY SUPPLY THIS IF
+      !! YOU DO NOT WANT TO USE THE SHAPE FUNCTION IN THE COORDINATE FIELD.
+      !! This is mostly useful for control volumes.
+      type(element_type), intent(in), optional, target :: X_shape
+
+      !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+      !! only need position of n nodes since Jacobian is only calculated once
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_val
+      !! radius (l2norm) of X_val at the nodes (used for spherical positions)
+      real, dimension(ele_loc(X,ele)) :: r_val
+      !! Shape function to be used for coordinate interpolation.
+      type(element_type), pointer :: lx_shape
+
+      !! Local copy of element gradients. This is an attempt to induce a
+      !! prefetch.
+      real, dimension(size(shape%dn,1), size(shape%dn,3)) :: dn_local
+
+      !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
+      real, dimension(X%dim, X%dim) :: J_local_T, invJ_local
+      !! Local version of the determinant of J
+      real :: detJ_local
+
+      integer :: gi, i, k, dim
+      logical :: x_nonlinear, m_nonlinear, cache_valid, x_spherical
+
+      if (present(X_shape)) then
+         lx_shape=>X_shape
+      else
+         lx_shape=>ele_shape(X,ele)
+      end if
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      ! Optimisation checks. Optimisations apply to linear elements.
+      x_nonlinear= x_spherical .or. .not.(lx_shape%degree==1 .and. lx_shape%numbering%family==FAMILY_SIMPLEX)
+      m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX .and. shape%numbering%type==ELEMENT_LAGRANGIAN)
+
+      dim=X%dim
+
+#ifdef DDEBUG
+      if (present(detwei)) then
+         assert(size(detwei)==lx_shape%ngi)
+      end if
+      !if (present(dshape)) then
+      assert(size(dshape,1)==shape%loc)
+      assert(size(dshape,2)==shape%ngi)
+      assert(size(dshape,3)==dim)
+      !end if
+#endif
+
+      if ((.not.x_nonlinear).and.cache_transform_elements) then
+         cache_valid=retrieve_cached_transform(X, ele, J_local_T, invJ_local,&
+         & detJ_local)
+
+         if (cache_valid) then
+            if (m_nonlinear) then
+               do gi=1,lx_shape%ngi
+                  dshape(:,gi,:)&
+                     =matmul(shape%dn(:,gi,:),transpose(invJ_local))
+               end do
+            else
+               dn_local=matmul(shape%dn(:,1,:),transpose(invJ_local))
+               forall(gi=1:lx_shape%ngi)
+                  dshape(:,gi,:)=dn_local
+               end forall
+            end if
+
+            if (present(J)) then
+               J_local_T=transpose(J_local_T)
+               forall(gi=1:lx_shape%ngi)
+                  J(:,:,gi)=J_local_T
+               end forall
+            end if
+            if (present(invJ)) then
+               forall(gi=1:lx_shape%ngi)
+                  invJ(:,:,gi)=invJ_local
+               end forall
+            end if
+            if(present(detJ)) then
+               detJ=detJ_local
+            end if
+            if (present(detwei)) then
+               detwei=abs(detJ_local)*lx_shape%quadrature%weight
+            end if
+
+            return
+         end if
+      else
+         cache_valid = .false.
+      end if
+
+      X_val=ele_val(X, ele)
+      if (x_spherical) then
+         r_val = sqrt(sum(X_val**2, dim=1))
+      end if
+
+      ! Loop over quadrature points.
+      quad_loop: do gi=1,lx_shape%ngi
+
+         if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
+            ! For linear space elements only calculate Jacobian once.
+
+            !     |- dx  dx  dx  -|
+            !     |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dy  dy  dy   |
+            ! J = |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dz  dz  dz   |
+            !     |- dL1 dL2 dL3 -|
+
+            ! Form Jacobian.
+            J_local_T=matmul(X_val(:,:), lx_shape%dn(:, gi, :))
+
+            if (x_spherical) then
+               J_local_T = jacobian_on_sphere(lx_shape, gi, X_val, r_val, J_local_T)
+            end if
+
+
+            select case (dim)
+             case(1)
+               invJ_local=1.0
+             case(2)
+               invJ_local=reshape((/ J_local_T(2,2),-J_local_T(1,2),&
+               &               -J_local_T(2,1), J_local_T(1,1)/),(/2,2/))
+             case(3)
+               ! Calculate (scaled) inverse using recursive determinants.
+               forall (i=1:3,k=1:3)
+                  invJ_local(i, k)= &
+                     J_local_T(cyc3(i+1),cyc3(k+1))*J_local_T(cyc3(i+2),cyc3(k+2)) &
+                     -J_local_T(cyc3(i+2),cyc3(k+1))*J_local_T(cyc3(i+1),cyc3(k+2))
+               end forall
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+
+            ! Form determinant by expanding minors.
+            detJ_local=dot_product(J_local_T(:,1),invJ_local(:,1))
+
+            ! Scale inverse by determinant.
+            invJ_local=invJ_local/detJ_local
+
+         end if
+
+         ! Evaluate derivatives in physical space.
+         ! If both space and the derivatives are linear then we only need
+         ! to do this once.
+         if (x_nonlinear.or.m_nonlinear.or.gi==1) then
+            do i=1,shape%loc
+               dshape(i,gi,:)=matmul(invJ_local, shape%dn(i,gi,:))
+            end do
+         else
+            dshape(:,gi,:)=dshape(:,1,:)
+         end if
+
+         ! Calculate transformed quadrature weights.
+         if (present(detwei)) then
+            detwei(gi)=abs(detJ_local)*lx_shape%quadrature%weight(gi)
+         end if
+
+         ! Copy the Jacobian and related variables to externally accessible memory
+         if (present(J)) then
+            if (x_nonlinear.or.gi==1) then
+               J(:,:,gi)    = transpose(J_local_T(:,:))
+            else
+               J(:,:,gi)    = J(:,:,1)
+            end if
+         end if
+         if (present(invJ))  invJ(:,:,gi) = invJ_local(:,:)
+         if (present(detJ))  detJ(gi)     = detJ_local
+
+      end do quad_loop
+
+   end subroutine transform_to_physical_full
+
+   subroutine transform_to_physical_detwei(X, ele, detwei)
+      !!< Fast version of transform_to_physical that only calculates detwei
+
+      !! Coordinate field
+      type(vector_field), intent(in) :: X
+      !! Current element
+      integer :: ele
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), intent(out):: detwei(:)
+
+      !! Shape function used for coordinate interpolation
+      type(element_type), pointer :: x_shape
+      !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+      !! only need position of n nodes since Jacobian is only calculated once
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_val
+      !! radius (l2norm) of X_val at the nodes (used for spherical positions)
+      real, dimension(ele_loc(X,ele)) :: r_val
+
+      real :: J(X%dim, mesh_dim(X)), det
+      integer :: gi, dim, ldim
+      logical :: x_nonlinear, cache_valid, x_spherical
+
+      x_shape=>ele_shape(X, ele)
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      ! Optimisation checks. Optimisations apply to linear elements.
+      x_nonlinear= x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
+
+      dim=X%dim ! dimension of space (n/o real coordinates)
+      ldim=size(x_shape%dn,3) ! dimension of element (n/o local coordinates)
+      if (dim==ldim) then
+
+         if ((.not.x_nonlinear).and.cache_transform_elements) then
+            cache_valid=retrieve_cached_transform(X, ele, det)
+
+            if (cache_valid) then
+               detwei=abs(det)*x_shape%quadrature%weight
+               return
+            end if
+
+         end if
+
+!#ifdef DDEBUG
+!       if (ele==1) then
+!          ewrite(2,*) "Element geometry cache not used."
+!       end if
+!#endif
+
+         X_val=ele_val(X, ele)
+         if (x_spherical) then
+            r_val = sqrt(sum(X_val**2, dim=1))
+         end if
+
+         select case (dim)
+          case (1)
+            do gi=1, x_shape%ngi
+               J(1,1)=dot_product(X_val(1,:), x_shape%dn(:,gi,1))
+               detwei(gi)=abs(J(1,1))*x_shape%quadrature%weight(gi)
+            end do
+          case (2)
+            do gi=1, x_shape%ngi
+               if (x_nonlinear.or.gi==1) then
+                  ! the Jacobian is the transpose of this
+                  J=matmul(X_val(:,:), x_shape%dn(:, gi, :))
+                  if (x_spherical) then
+                     J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
+                  end if
+                  ! but that doesn't matter for determinant:
+                  det=abs(J(1,1)*J(2,2)-J(1,2)*J(2,1))
+               end if
+               detwei(gi)=det*x_shape%quadrature%weight(gi)
+            end do
+          case (3)
+            do gi=1, x_shape%ngi
+               if (x_nonlinear.or.gi==1) then
+                  ! the Jacobian is the transpose of this
+                  J=matmul(X_val(:,:), x_shape%dn(:, gi, :))
+                  if (x_spherical) then
+                     J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
+                  end if
+                  ! but that doesn't matter for determinant:
+                  det=abs( &
+                     J(1,1)*(J(2,2)*J(3,3)-J(2,3)*J(3,2)) &
+                     -J(1,2)*(J(2,1)*J(3,3)-J(2,3)*J(3,1)) &
+                     +J(1,3)*(J(2,1)*J(3,2)-J(2,2)*J(3,1)) &
+                     )
+               end if
+               detwei(gi)= det *x_shape%quadrature%weight(gi)
+            end do
+          case default
+            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+         end select
+      else if (ldim<dim) then
+
+         X_val=ele_val(X, ele)
+         if (x_spherical) then
+            r_val = sqrt(sum(X_val**2, dim=1))
+         end if
+
+         ! lower dimensional element (ldim) embedded in higher dimensional space (dim)
+         select case (ldim)
+          case (1)
+            ! 1-dim element embedded in 'dim'-dimensional space:
+            do gi=1, x_shape%ngi
+               if (x_nonlinear.or.gi==1) then
+                  ! J is 'dim'-dimensional vector:
+                  J(:,1)=matmul(X_val(:,:), x_shape%dn(:,gi,1))
+                  ! length of that
+                  det=norm2(J(:,1))
+               end if
+               ! length of that times quad. weight
+               detwei(gi)=det*x_shape%quadrature%weight(gi)
+            end do
+          case (2)
+            ! 2-dim element embedded in 'dim'-dimensional space:
+            do gi=1, x_shape%ngi
+               if (x_nonlinear.or.gi==1) then
+                  ! J is 2 columns of 2 'dim'-dimensional vectors:
+                  J=matmul(X_val(:,:), x_shape%dn(:,gi,:))
+                  if (x_spherical) then
+                     J = jacobian_on_sphere(x_shape, gi, X_val, r_val, J)
+                  end if
+                  ! outer product
+                  det=sqrt( &
+                     (J(2,1)*J(3,2)-J(3,1)*J(2,2))**2 &
+                     +(J(3,1)*J(1,2)-J(1,1)*J(3,2))**2 &
+                     +(J(1,1)*J(2,2)-J(2,1)*J(1,2))**2)
+               end if
+               ! outer product times quad. weight
+               detwei(gi)=det *x_shape%quadrature%weight(gi)
+            end do
+         end select
+
+      else
+         FLAbort("Don't know how to compute higher-dimensional elements in a lower-dimensional space.")
+
+      end if
+
+   end subroutine transform_to_physical_detwei
+
+   subroutine compute_inverse_jacobian(X, ele, invJ, detwei, detJ)
+      !!< Fast version of transform_to_physical that only calculates detwei and invJ
+
+      !! positions field and element to compute inv. jacobian for
+      type(vector_field), intent(in):: X
+      integer, intent(in):: ele
+      !! Inverse of the jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:,:,:), intent(out) :: invJ
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), optional, intent(out) :: detwei (:)
+      !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:), intent(out), optional :: detJ
+
+      !! coordinates of the nodes
+      real, dimension(X%dim, ele_loc(X,ele)):: x_val
+      !! radius (l2norm) of x_val at the nodes (used for spherical positions)
+      real, dimension(size(x_val,2)) :: r_val
+
+      !! Shape function to be used for coordinate interpolation.
+      type(element_type), pointer :: x_shape
+      !! Local versions of the Jacobian matrix
+      real, dimension(size(invJ,1),size(invJ,1)) :: J_local
+      !! Local version of the determinant of J
+      real, dimension(size(invJ,3)) :: detJ_local
+      logical :: x_spherical
+
+      integer gi, i, k, compute_ngi
+
+      x_shape => ele_shape(X, ele)
+
+      assert(size(invJ,1)==X%dim)
+      assert(size(invJ,2)==X%dim)
+      assert(size(invJ,3)==x_shape%ngi)
+      assert(X%dim==mesh_dim(X)) ! this routine doesn't work for embedded coordinates
+      if (present(detwei)) then
+         assert(size(detwei)==x_shape%ngi)
+      end if
+      if (present(detJ)) then
+         assert(size(detJ)==x_shape%ngi)
+      end if
+
+      if (is_cache_valid(X)) then
+         do gi=1, size(invJ, 3)
+            invJ(:,:,gi) = invJ_cache(:, :, ele)
+         end do
+         if (present(detJ)) then
+            detJ = detJ_cache(ele)
+         end if
+         if (present(detwei)) then
+            detwei = abs(detJ_cache(ele)) * x_shape%quadrature%weight
+         end if
+         return
+      end if
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
+         ! for non-linear compute on all gauss points
+         compute_ngi=x_shape%ngi
+      else
+         ! for linear: compute only the first and copy the rest
+         compute_ngi=1
+      end if
+
+      x_val = ele_val(X, ele)
+      if (x_spherical) then
+         r_val = sqrt(sum(x_val**2, dim=1))
+      end if
+
+      select case (X%dim)
+       case(1)
+
+         do gi=1,compute_ngi
+            J_local(1,1)=dot_product(x_val(1,:), x_shape%dn(:, gi, 1))
+            detJ_local(gi)=J_local(1,1)
+            invJ(1,1,gi)=1.0/detJ_local(gi)
+         end do
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(1,1,gi)=invJ(1,1,1)
+         end do
+
+       case(2)
+
+         do gi=1, compute_ngi
+
+            J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
+            if (x_spherical) then
+               J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+            end if
+
+            ! Form determinant by expanding minors.
+            detJ_local(gi)=J_local(1,1)*J_local(2,2)-J_local(2,1)*J_local(1,2)
+            ! take inverse *and* transpose
+            invJ(:,:,gi)=reshape((/ J_local(2,2),-J_local(1,2), &
+            &               -J_local(2,1), J_local(1,1)/),(/2,2/)) &
+               / detJ_local(gi)
+         end do
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(:,:,gi)=invJ(:,:,1)
+         end do
+
+       case(3)
+
+         do gi=1, compute_ngi
+
+            J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
+            if (x_spherical) then
+               J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+            end if
+            ! Calculate (scaled) inverse (of the transpose of J_local) using recursive determinants.
+            forall (i=1:X%dim,k=1:X%dim)
+               invJ(i,k,gi)=J_local(cyc3(i+1),cyc3(k+1))*J_local(cyc3(i+2),cyc3(k+2)) &
+                  -J_local(cyc3(i+2),cyc3(k+1))*J_local(cyc3(i+1),cyc3(k+2))
+            end forall
+            ! Form determinant by expanding minors.
+            detJ_local(gi)=dot_product(J_local(:,1), invJ(:,1,gi))
+
+            ! Scale inverse by determinant.
+            invJ(:,:,gi)=invJ(:,:,gi)/detJ_local(gi)
+
+         end do
+
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(:,:,gi)=invJ(:,:,1)
+         end do
+
+       case default
+         FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+      end select
+
+      if (present(detJ)) then
+         detJ = detJ_local
+      end if
+
+      if (present(detwei)) then
+         detwei = abs(detJ_local)*x_shape%quadrature%weight
+      end if
+
+   end subroutine compute_inverse_jacobian
+
+   subroutine compute_jacobian(X, ele, J, detwei, detJ, facet)
+      !!< Fast version of transform_to_physical that only calculates detwei and J
+
+      !! positions field and element to compute inv. jacobian for
+      type(vector_field), intent(in):: X
+      integer, intent(in):: ele
+      !! Jacobian matrix at each quadrature point (dim x dim x x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:,:,:), intent(out) :: J
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), optional, intent(out) :: detwei (:)
+      !! Determinant of the Jacobian at each quadrature point (x_shape%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:), intent(out), optional :: detJ
+      !! if present and true, compute the jacobian of a facet, ele then refers to the facet number
+      logical, optional, intent(in):: facet
+
+      !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+      !! only need position of n nodes since Jacobian is only calculated once
+      real, dimension(X%dim,ele_loc(X,ele)), target :: ele_X_val
+      !! radius (l2norm) of X_val at the nodes (used for spherical positions)
+      real, dimension(size(ele_X_val,2)), target :: ele_r_val
+      real, dimension(:,:), pointer :: x_val
+      real, dimension(:), pointer :: r_val
+      !! Shape function to be used for coordinate interpolation.
+      type(element_type), pointer :: x_shape
+      !! transpose of J in one gauss point
+      real, dimension(size(J,2), size(J,1)):: J_local
+      !! Local version of the determinant of J
+      real, dimension(size(J,3)) :: detJ_local
+
+      integer gi, dim, ldim, compute_ngi
+      logical:: x_spherical
+
+      if (present_and_true(facet)) then
+         x_shape => face_shape(X, ele)
+         ele_x_val(:,1:face_loc(X,ele)) = face_val(X, ele)
+         x_val => ele_x_val(:,1:face_loc(X,ele))
+      else
+         x_shape => ele_shape(X, ele)
+         ele_x_val = ele_val(X, ele)
+         x_val => ele_x_val
+      end if
+      dim=X%dim ! dimension of space
+      ldim=x_shape%dim ! dimension of element
+
+      assert(size(J,1)==ldim)
+      assert(size(J,2)==dim)
+      assert(size(J,3)==x_shape%ngi)
+      if (present(detwei)) then
+         assert(size(detwei)==x_shape%ngi)
+      end if
+      if (present(detJ)) then
+         assert(size(detJ)==x_shape%ngi)
+      end if
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
+         ! for non-linear compute on all gauss points
+         compute_ngi=x_shape%ngi
+      else
+         ! for linear: compute only the first and copy the rest
+         compute_ngi=1
+      end if
+
+      if (x_spherical) then
+         r_val => ele_r_val(1:size(x_val,2))
+         r_val = sqrt(sum(x_val**2, dim=1))
+      end if
+
+      select case (dim)
+       case(1)
+
+         do gi=1,compute_ngi
+            J(1,1,gi)=dot_product(x_val(1,:), x_shape%dn(:, gi, 1))
+            detJ_local(gi)=J(1,1,gi)
+         end do
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            J(1,1,gi)=J(1,1,1)
+            detJ_local(gi)=detJ_local(1)
+         end do
+
+       case(2)
+
+         select case(ldim)
+          case(1)
+            do gi=1,compute_ngi
+               J_local(:,1)=matmul(x_val(:,:), x_shape%dn(:, gi, 1))
+               if (x_spherical) then
+                  J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+               end if
+               J(1,:,gi)=J_local(:,1)
+               detJ_local(gi)=sum(sqrt(abs(J(:,:,gi))))
+            end do
+          case(2)
+            do gi=1, compute_ngi
+               J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
+               if (x_spherical) then
+                  J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+               end if
+               J(:,:,gi)=transpose(J_local)
+               ! Form determinant by expanding minors.
+               detJ_local(gi)=J(1,1,gi)*J(2,2,gi)-J(2,1,gi)*J(1,2,gi)
+            end do
+          case default
+            FLAbort("oh dear, dimension of element > spatial dimension")
+         end select
+
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            J(:,:,gi)=J(:,:,1)
+            detJ_local(gi)=detJ_local(1)
+         end do
+
+       case(3)
+
+         select case(ldim)
+          case(1)
+            do gi=1,compute_ngi
+               J_local(:,1)=matmul(x_val(:,:), x_shape%dn(:, gi, 1))
+               if (x_spherical) then
+                  J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+               end if
+               J(1,:,gi)=J_local(:,1)
+               detJ_local(gi)=sqrt(sum(J(:, :, gi)**2))
+            end do
+          case(2)
+            do gi=1,compute_ngi
+               J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
+               if (x_spherical) then
+                  J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+               end if
+               J(:,:,gi)=transpose(J_local)
+               detJ_local(gi)=sqrt((J(1,2,gi)*J(2,3,gi)-J(1,3,gi)*J(2,2,gi))**2+ &
+                  (J(1,3,gi)*J(2,1,gi)-J(1,1,gi)*J(2,3,gi))**2+ &
+                  (J(1,1,gi)*J(2,2,gi)-J(1,2,gi)*J(2,1,gi))**2)
+
+            end do
+          case(3)
+            do gi=1,compute_ngi
+               J_local=matmul(x_val(:,:), x_shape%dn(:, gi, :))
+               if (x_spherical) then
+                  J_local = jacobian_on_sphere(x_shape, gi, x_val, r_val, J_local)
+               end if
+               J(:,:,gi)=transpose(J_local)
+               detJ_local(gi)=det_3(J_local)
+            end do
+          case default
+            FLAbort("oh dear, dimension of element > spatial dimension")
+         end select
+
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%ngi
+            J(:,:,gi)=J(:,:,1)
+            detJ_local(gi)=detJ_local(1)
+         end do
+
+       case default
+         FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+      end select
+
+      if (present(detJ)) then
+         detJ=detJ_local
+      end if
+
+      if (present(detwei)) then
+         detwei = abs(detJ_local)*x_shape%quadrature%weight
+      end if
+
+   end subroutine compute_jacobian
+
+   subroutine transform_facet_to_physical_full(X, face, detwei_f, normal)
+
+      ! Coordinate transformations for facet integrals.
+      ! Calculate the transformed quadrature
+      ! weights as a side bonus.
+      !
+      ! For facet integrals, we also need to know the facet outward
+      ! pointing normal.
+      !
+      ! In this case it is only the determinant of the Jacobian which is
+      ! required.
+
+      ! Column n of X is the position of the nth node of the adjacent element
+      ! (this is only used to work out the orientation of the boundary)
+      type(vector_field), intent(in) :: X
+      ! The face to transform.
+      integer, intent(in) :: face
+      ! Quadrature weights for physical coordinates for integration over the boundary.
+      real, dimension(:), intent(out), optional :: detwei_f
+      ! Outward normal vector. (dim x x_shape_f%ngi)
+      real, dimension(:,:), intent(out) :: normal
+
+      ! Column n of X_f is the position of the nth node on the facet.
+      real, dimension(X%dim,face_loc(X,face)) :: X_f
+      ! Column n of X_f is the position of the nth node on the facet.
+      real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
+      ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
+      real, dimension(size(X_f,2)) :: r_f
+      ! shape function coordinate interpolation on the boundary
+      type(element_type), pointer :: x_shape_f
+      ! element shape functions derivatives evaluated at the facet:
+      real, dimension(size(X_val,2), X%mesh%faces%shape%ngi, X%mesh%shape%dim) :: dn_s
+      ! vector pointing outward (from element to outside facet)
+      real, dimension(X%dim) :: outward_vector
+
+
+      ! Jacobian matrix and its inverse.
+      real, dimension(X%dim,mesh_dim(X)-1) :: J
+      ! Determinant of J
+      real :: detJ
+      ! Whether the cache can be used
+      logical :: cache_valid, x_spherical
+
+
+      integer :: gi, i, compute_ngi
+
+      x_shape_f=>face_shape(X,face)
+
+#ifdef DDEBUG
+      assert(size(normal,1)==X%dim)
+#endif
+#ifdef DDEBUG
+      if (present(detwei_f)) then
+         assert(size(detwei_f)==x_shape_f%ngi)
+      end if
+#endif
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
+         ! for non-linear compute on all gauss points
+         compute_ngi=x_shape_f%ngi
+         cache_valid=.false.
+      else
+         ! for linear: compute only the first and copy the rest
+         if (cache_transform_elements) then
+            cache_valid=retrieve_cached_face_transform(X, face, normal(:,1),&
+            & detJ)
+         else
+            cache_valid=.false.
+         end if
+         if (cache_valid) then
+            compute_ngi=0
+         else
+            compute_ngi=1
+         end if
+
+      end if
+
+      if (.not.cache_valid) then
+         X_val=ele_val(X, face_ele(X,face))
+         X_f=face_val(X, face)
+         if (x_spherical) then
+            r_f = sqrt(sum(X_f**2, dim=1))
+         end if
+         if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+            assert(x_shape_f%numbering%family==FAMILY_SIMPLEX)
+            assert(associated(X%mesh%shape%surface_quadrature))
+            assert(associated(X%mesh%shape%dn_s))
+            dn_s = face_dn_s(X%mesh%shape, X%mesh, face)
+         else
+            ! linear element, an outward vector is found between the element and face centroid
+            outward_vector = sum(X_f,2)/size(X_f,2) - sum(X_val, 2)/size(X_val,2)
+         end if
+      end if
+
+      ! Loop over quadrature points.
+      quad_loop: do gi=1, compute_ngi
+
+         !     |- dx  dx  -|
+         !     |  dL1 dL2  |
+         !     |           |
+         !     |  dy  dy   |
+         ! J = |  dL1 dL2  |
+         !     |           |
+         !     |  dz  dz   |
+         !     |- dL1 dL2 -|
+
+         ! Form Jacobian.
+         J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
+         if (x_spherical) then
+            J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
+         end if
+
+         detJ=0.0
+         ! Calculate determinant.
+         select case (mesh_dim(X))
+          case(1)
+            detJ=1.0
+          case(2)
+            select case (X%dim)
+             case(2)
+               detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             case(3)
+               detJ = sqrt(sum(J(:,1)**2))
+             case default
+               FLAbort("Unsupported dimension specified")
+            end select
+          case(3)
+            select case (X%dim)
+             case(3)
+               do i=1,3
+                  detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                  &+1),1))**2
+               end do
+               detJ=sqrt(detJ)
+             case default
+               FLAbort("Unsupported dimension specified")
+            end select
+          case default
+            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+         end select
+
+         ! Calculate transformed quadrature weights.
+         if(present(detwei_f)) then
+            detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
+         end if
+
+         ! Calculate normal.
+         if (x_spherical .or. .not. (x_shape_f%degree==1)) then
+            ! the 1st local coordinate L_1 in dn_s is the one associated
+            ! with the vertex opposite the facet. The outward_vector
+            ! is chosen as -dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+            outward_vector = -matmul(X_val, dn_s(:, gi, 1))
+         end if
+         normal(:,gi) = facet_normal(J, outward_vector)
+
+      end do quad_loop
+
+      ! copy the value at gi==1 to the rest of the gauss points
+      if(present(detwei_f)) then
+         do gi=compute_ngi+1, x_shape_f%ngi
+            ! uses detJ from above
+            detwei_f=detJ*x_shape_f%quadrature%weight
+         end do
+      end if
+
+      do gi=compute_ngi+1, x_shape_f%ngi
+         normal(:,gi)=normal(:,1)
+      end do
+
+   end subroutine transform_facet_to_physical_full
+
+   function facet_normal(J, outward_vector)
+      ! Calculate the normal at a point on a facet
+      ! facet Jacobian J_ij = dX_i/dL_j where L_j are local coords of the facet
+      real, dimension(:,:), intent(in) :: J
+      ! Since we don't know the orientation of the facet, the sign of the normal
+      ! will be such that dot(normal, outward_vector)>0
+      real, dimension(:), intent(in) :: outward_vector
+      real, dimension(size(J,1)) :: facet_normal
+
+      select case (size(J,1))
+       case(1)
+         facet_normal = 1.0
+       case (2)
+         facet_normal = (/ -J(2,1), J(1,1) /)
+       case (3)
+         facet_normal = cross_product(J(:,1),J(:,2))
+       case default
+         FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+      end select
+
+      ! Set correct orientation.
+      facet_normal=facet_normal*dot_product(facet_normal, outward_vector)
+
+      ! normalise
+      facet_normal=facet_normal/sqrt(sum(facet_normal**2))
+
+   end function facet_normal
+
+   subroutine transform_facet_to_physical_detwei(X, face, detwei_f)
+
+      ! Coordinate transformed quadrature weights for facet integrals.
+      !
+      type(vector_field), intent(in) :: X
+      ! The face to transform.
+      integer, intent(in) :: face
+      ! Quadrature weights for physical coordinates for integration over the boundary.
+      real, dimension(:), intent(out), optional :: detwei_f
+
+      ! Column n of X_f is the position of the nth node on the facet.
+      real, dimension(X%dim,face_loc(X,face)) :: X_f
+      ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
+      real, dimension(size(X_f,2)) :: r_f
+      ! Column n of X_f is the position of the nth node on the facet.
+      real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
+      ! shape function coordinate interpolation on the boundary
+      type(element_type), pointer :: x_shape_f
+
+
+      ! Jacobian matrix and its inverse.
+      real, dimension(X%dim, mesh_dim(X)-1) :: J
+      ! Determinant of J
+      real :: detJ
+      ! Whether the cache can be used
+      logical :: cache_valid
+      ! Outward normal vector. This is a dummy.
+      real, dimension(X%dim) :: lnormal
+      logical :: x_spherical
+
+
+      integer :: gi, i, compute_ngi
+
+      x_shape_f=>face_shape(X,face)
+
+#ifdef DDEBUG
+      if (present(detwei_f)) then
+         assert(size(detwei_f)==x_shape_f%ngi)
+      end if
+#endif
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
+         ! for non-linear compute on all gauss points
+         compute_ngi=x_shape_f%ngi
+         cache_valid=.false.
+      else
+         ! for linear: compute only the first and copy the rest
+         if (cache_transform_elements) then
+            cache_valid=retrieve_cached_face_transform(X, face, lnormal(:),&
+            & detJ)
+         else
+            cache_valid=.false.
+         end if
+         if (cache_valid) then
+            compute_ngi=0
+         else
+            compute_ngi=1
+         end if
+
+      end if
+
+      if (.not.cache_valid) then
+         X_val=ele_val(X, face_ele(X,face))
+         X_f=face_val(X, face)
+         if (x_spherical) then
+            r_f = sqrt(sum(X_f**2, dim=1))
+         end if
+      end if
+
+      ! Loop over quadrature points.
+      quad_loop: do gi=1, compute_ngi
+
+         !     |- dx  dx  -|
+         !     |  dL1 dL2  |
+         !     |           |
+         !     |  dy  dy   |
+         ! J = |  dL1 dL2  |
+         !     |           |
+         !     |  dz  dz   |
+         !     |- dL1 dL2 -|
+
+         ! Form Jacobian.
+         J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
+         if (x_spherical) then
+            J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
+         end if
+
+         detJ=0.0
+         ! Calculate determinant.
+         select case (mesh_dim(X))
+          case(1)
+            detJ=1.0
+          case(2)
+            select case (X%dim)
+             case(2)
+               detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             case(3)
+               detJ = sqrt(sum(J(:,1)**2))
+             case default
+               FLAbort("Unsupported dimension specified")
+            end select
+          case(3)
+            select case (X%dim)
+             case(3)
+               do i=1,3
+                  detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                  &+1),1))**2
+               end do
+               detJ=sqrt(detJ)
+             case default
+               FLAbort("Unsupported dimension specified")
+            end select
+          case default
+            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+         end select
+
+         ! Calculate transformed quadrature weights.
+         if(present(detwei_f)) then
+            detwei_f(gi)=detJ*x_shape_f%quadrature%weight(gi)
+         end if
+
+      end do quad_loop
+
+      ! copy the value at gi==1 to the rest of the gauss points
+      if(present(detwei_f)) then
+         do gi=compute_ngi+1, x_shape_f%ngi
+            ! uses detJ from above
+            detwei_f=detJ*x_shape_f%quadrature%weight
+         end do
+      end if
+
+   end subroutine transform_facet_to_physical_detwei
+
+   subroutine transform_full_facet_to_physical_full(X, face, shape, dshape, detwei_f, normal, J,&
+   & invJ, detJ)
+      !!< Calculate the derivatives of a shape function shape in physical
+      !!< space using the positions x on face face. Calculate the transformed quadrature
+      !!< weights as a side bonus.
+      !!<
+      !!< Do this by calculating the Jacobian of the transform and inverting it.
+
+      !! X is the positions field.
+      type(vector_field), intent(in) :: X
+      !! The index of the current face
+      integer, intent(in) :: face
+      !! Reference element of which the derivatives are to be transformed
+      type(element_type), intent(in) :: shape
+      !! Derivatives of this shape function transformed to physical space (ele_loc x sngi x dim)
+      real, dimension(:,:,:), intent(out) ::  dshape
+
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), intent(out), optional :: detwei_f
+      ! Outward normal vector. (dim x sngi)
+      real, dimension(:,:), intent(out), optional :: normal
+      !! Jacobian matrix and its inverse at each quadrature point (dim x dim x sngi)
+      !! Facilitates access to this information externally
+      real, dimension(:,:,:), intent(out), optional :: J, invJ
+      !! Determinant of the Jacobian at each quadrature point (sngi)
+      !! Facilitates access to this information externally
+      real, dimension(:), intent(out), optional :: detJ
+
+      !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+      !! only need position of n nodes since Jacobian is only calculated once
+      real, dimension(X%dim,X%mesh%shape%loc) :: X_val
+      real, dimension(X%dim,X%mesh%faces%shape%loc) :: X_f
+      !! radius (l2norm) of X_val at the nodes (used for spherical positions)
+      real, dimension(size(X_val,2)) :: r_val
+      !! Shape function to be used for coordinate interpolation.
+      type(element_type), pointer :: x_shape
+
+      !! Local versions of the Jacobian matrix and its inverse. (dim x dim)
+      real, dimension(X%dim, X%dim) :: J_local_T, invJ_local
+      !! Local version of the determinant of J
+      real :: detJ_local, detJ_local_full
+      !! reorientated shape functions
+      real, dimension(size(X_val,2),size(dshape,2)) :: n_s
+      ! element shape functions derivatives evaluated at the facet:
+      real, dimension(size(X_val,2),size(dshape,2),mesh_dim(X)) :: dn_s
+      real, dimension(shape%loc,size(dshape,2),mesh_dim(X)) :: dm_s
+      real, dimension(X%dim) :: lnormal
+
+      integer :: gi, i, k, dim, ele
+      logical :: x_nonlinear, m_nonlinear, cache_valid, x_spherical
+
+      ele = face_ele(X, face)
+      x_shape=>ele_shape(X,ele)
+
+#ifdef DDEBUG
+      assert(associated(x_shape%surface_quadrature))
+      if(present(detwei_f)) then
+         assert(size(detwei_f) == x_shape%surface_quadrature%ngi)
+      end if
+      if(present(normal)) then
+         assert(size(normal,1) == x_shape%dim)
+         assert(size(normal,2) == x_shape%surface_quadrature%ngi)
+      end if
+      if(present(invJ)) then
+         assert(size(invJ, 1) == x_shape%dim)
+         assert(size(invJ, 2) == x_shape%dim)
+         assert(size(invJ, 3) == x_shape%surface_quadrature%ngi)
+      end if
+      if(present(J)) then
+         assert(size(J, 1) == x_shape%dim)
+         assert(size(J, 2) == x_shape%dim)
+         assert(size(J, 3) == x_shape%surface_quadrature%ngi)
+      end if
+      if(present(detJ)) then
+         assert(size(detJ) == x_shape%surface_quadrature%ngi)
+      end if
+
+      assert(associated(x_shape%n_s))
+      assert(x_shape%loc == size(x_shape%n_s, 1))
+      assert(x_shape%surface_quadrature%ngi == size(x_shape%n_s, 2))
+      assert(size(n_s,1) == size(x_shape%n_s, 1))
+      assert(size(n_s,2) == size(x_shape%n_s, 2))
+
+      assert(associated(x_shape%dn_s))
+      assert(x_shape%loc == size(x_shape%dn_s, 1))
+      assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
+      assert(x_shape%dim == size(x_shape%dn_s, 3))
+      assert(size(dn_s,1) == size(x_shape%dn_s, 1))
+      assert(size(dn_s,2) == size(x_shape%dn_s, 2))
+      assert(size(dn_s,3) == size(x_shape%dn_s, 3))
+
+      assert(associated(shape%surface_quadrature))
+      assert(shape%surface_quadrature%ngi==x_shape%surface_quadrature%ngi)
+      assert(size(dshape, 1) == shape%loc)
+      assert(size(dshape, 2) == shape%surface_quadrature%ngi)
+      assert(size(dshape, 3) == X%dim)
+
+      assert(associated(shape%dn_s))
+      assert(shape%loc == size(shape%dn_s, 1))
+      assert(shape%surface_quadrature%ngi == size(shape%dn_s, 2))
+      assert(X%dim == size(shape%dn_s, 3))
+      assert(size(dm_s,1) == size(shape%dn_s, 1))
+      assert(size(dm_s,2) == size(shape%dn_s, 2))
+      assert(size(dm_s,3) == size(shape%dn_s, 3))
+#endif
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      dn_s = face_dn_s(x_shape, X%mesh, face)
+      dm_s = face_dn_s(shape, X%mesh, face)  ! this should be safe to call even if X%mesh and shape aren't the same degree/continuity
+      if(x_spherical) then
+         n_s  = face_n_s(x_shape, X%mesh, face)
+      end if
+
+      ! Optimisation checks. Optimisations apply to linear elements.
+      x_nonlinear= x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
+      m_nonlinear= .not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX .and. shape%numbering%type==ELEMENT_LAGRANGIAN)
+
+      dim=X%dim
+
+      if ((.not.x_nonlinear).and.cache_transform_elements) then
+         cache_valid=retrieve_cached_face_transform(X, face, lnormal(:),&
+         & detJ_local, J_local_T, invJ_local)
+         if (cache_valid.and.present(normal)) then
+            normal(:,1) = lnormal(:)
+         end if
+      else
+         cache_valid = .false.
+      end if
+
+      if (.not.cache_valid) then
+         X_val=ele_val(X, ele)
+         if (x_spherical) then
+            r_val = sqrt(sum(X_val**2, dim=1))
+         end if
+         if (present(normal)) then
+            X_f=face_val(X,face)
+         end if
+      end if
+
+      ! Loop over quadrature points.
+      quad_loop: do gi=1,x_shape%surface_quadrature%ngi
+
+         if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
+            ! For linear space elements only calculate Jacobian once.
+
+            !     |- dx  dx  dx  -|
+            !     |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dy  dy  dy   |
+            ! J = |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dz  dz  dz   |
+            !     |- dL1 dL2 dL3 -|
+
+            ! Form Jacobian.
+            J_local_T=matmul(X_val(:,:), dn_s(:, gi, :))
+
+            if (x_spherical) then
+               J_local_T = facet_full_jacobian_on_sphere(n_s, dn_s, gi, X_val, r_val, J_local_T)
+            end if
+
+            select case (dim)
+             case(1)
+               invJ_local=1.0
+             case(2)
+               invJ_local=reshape((/ J_local_T(2,2),-J_local_T(1,2),&
+               &               -J_local_T(2,1), J_local_T(1,1)/),(/2,2/))
+             case(3)
+               ! Calculate (scaled) inverse using recursive determinants.
+               forall (i=1:3,k=1:3)
+                  invJ_local(i, k)= &
+                     J_local_T(cyc3(i+1),cyc3(k+1))*J_local_T(cyc3(i+2),cyc3(k+2)) &
+                     -J_local_T(cyc3(i+2),cyc3(k+1))*J_local_T(cyc3(i+1),cyc3(k+2))
+               end forall
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+
+            ! Form determinant by expanding minors.
+            detJ_local_full=dot_product(J_local_T(:,1),invJ_local(:,1))
+
+            ! Scale inverse by determinant.
+            invJ_local=invJ_local/detJ_local_full
+
+            detJ_local=0.0
+            ! Calculate facet determinant.
+            select case (dim)
+             case(1)
+               detJ_local=1.0
+             case(2)
+               detJ_local = sqrt(J_local_T(1,2)**2 + J_local_T(2,2)**2)
+             case(3)
+               do i=1,3
+                  detJ_local=detJ_local+ &
+                     (J_local_T(cyc3(i+2),2)*J_local_T(cyc3(i+1),3)&
+                     -J_local_T(cyc3(i+2),3)*J_local_T(cyc3(i+1),2))**2
+               end do
+               detJ_local=sqrt(detJ_local)
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+
+         end if
+
+         ! Evaluate derivatives in physical space.
+         ! If both space and the derivatives are linear then we only need
+         ! to do this once.
+         if (x_nonlinear.or.m_nonlinear.or.gi==1) then
+            do i=1,shape%loc
+               dshape(i,gi,:)=matmul(invJ_local, dm_s(i,gi,:))
+            end do
+         else
+            dshape(:,gi,:)=dshape(:,1,:)
+         end if
+
+         ! Calculate transformed quadrature weights.
+         if (present(detwei_f)) then
+            detwei_f(gi)=abs(detJ_local)*x_shape%surface_quadrature%weight(gi)
+         end if
+
+         ! Copy the Jacobian and related variables to externally accessible memory
+         if (present(J)) then
+            if (x_nonlinear.or.gi==1) then
+               J(:,:,gi)    = transpose(J_local_T(:,:))
+            else
+               J(:,:,gi)    = J(:,:,1)
+            end if
+         end if
+         if (present(invJ))  invJ(:,:,gi) = invJ_local(:,:)
+         if (present(detJ))  detJ(gi)     = detJ_local
+         if (present(normal)) then
+            if ((x_nonlinear.or.gi==1).and..not.cache_valid) then
+               ! Calculate normal.
+               ! the 1st local coordinate L_1 in dn_s is the one associated
+               ! with the vertex opposite the facet. The outward_vector
+               ! is chosen as J(:,1)=-dX/dL_1 (NOTE: it is not yet orthogonal to the facet)
+               normal(:,gi) = facet_normal(J_local_T(:,2:), -J_local_T(:,1))
+            else
+               normal(:,gi)=normal(:,1)
+            end if
+         end if
+
+      end do quad_loop
+
+   end subroutine transform_full_facet_to_physical_full
+
+   subroutine compute_facet_full_inverse_jacobian(X, face, invJ, detwei, detJ)
+      !!< Fast version of transform_to_physical that only calculates detwei and full invJ on a facet.
+      !!< NOTE: the detJ and detwei that this (optionally) returns is based on
+      !!< the determinant of the full facet Jacobian.  This is different to the
+      !!< detJ and detwei returned by transform_facet_to_physical, which is lower
+      !!< dimensional and only based on the facet.
+
+      !! positions field and element to compute inv. jacobian for
+      type(vector_field), intent(in):: X
+      integer, intent(in):: face
+      !! Inverse of the jacobian matrix at each quadrature point (dim x dim x x_shape%surface_quadrature%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:,:,:), intent(out) :: invJ
+      !! Quadrature weights for physical coordinates.
+      real, dimension(:), optional, intent(out) :: detwei (:)
+      !! Determinant of the Jacobian at each quadrature point (x_shape%surface_quadrature%ngi)
+      !! Facilitates access to this information externally
+      real, dimension(:), intent(out), optional :: detJ
+
+      !! coordinates of the nodes
+      real, dimension(X%dim, ele_loc(X,face_ele(X, face))):: x_val
+      !! radius (l2norm) of x_val at the nodes (used for spherical positions)
+      real, dimension(size(x_val,2)) :: r_val
+
+      !! Shape function to be used for coordinate interpolation.
+      type(element_type), pointer :: x_shape
+      !! Local versions of the Jacobian matrix
+      real, dimension(size(invJ,1),size(invJ,1)) :: J_local
+      !! Local version of the determinant of J
+      real, dimension(size(invJ,3)) :: detJ_local
+      logical :: x_spherical
+
+      integer gi, i, k, compute_ngi, ele
+      real, dimension(size(x_val,2),size(invJ,3)) :: n_s
+      real, dimension(size(x_val,2),size(invJ,3),X%dim) :: dn_s
+
+      ele = face_ele(X, face)
+      x_shape => ele_shape(X, ele)
+
+      assert(associated(x_shape%surface_quadrature))
+      assert(size(invJ, 1) == x_shape%dim)
+      assert(size(invJ, 2) == x_shape%dim)
+      assert(size(invJ, 3) == x_shape%surface_quadrature%ngi)
+
+      assert(associated(x_shape%n_s))
+      assert(x_shape%loc == size(x_shape%n_s, 1))
+      assert(x_shape%surface_quadrature%ngi == size(x_shape%n_s, 2))
+      assert(size(n_s,1) == size(x_shape%n_s, 1))
+      assert(size(n_s,2) == size(x_shape%n_s, 2))
+
+      assert(associated(x_shape%dn_s))
+      assert(x_shape%loc == size(x_shape%dn_s, 1))
+      assert(x_shape%surface_quadrature%ngi == size(x_shape%dn_s, 2))
+      assert(x_shape%dim == size(x_shape%dn_s, 3))
+      assert(size(dn_s,1) == size(x_shape%dn_s, 1))
+      assert(size(dn_s,2) == size(x_shape%dn_s, 2))
+      assert(size(dn_s,3) == size(x_shape%dn_s, 3))
+
+      assert(X%dim==mesh_dim(X)) ! this routine doesn't work for embedded coordinates
+
+      if (present(detwei)) then
+         assert(size(detwei)==x_shape%surface_quadrature%ngi)
+      end if
+      if (present(detJ)) then
+         assert(size(detJ)==x_shape%surface_quadrature%ngi)
+      end if
+
+      n_s  = face_n_s(x_shape, X%mesh, face)
+      dn_s = face_dn_s(x_shape, X%mesh, face)
+
+      x_spherical = use_analytical_spherical_mapping(X)
+
+      if (x_spherical .or. .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
+         ! for non-linear compute on all gauss points
+         compute_ngi=x_shape%surface_quadrature%ngi
+      else
+         ! for linear: compute only the first and copy the rest
+         compute_ngi=1
+      end if
+
+      x_val = ele_val(X, ele)
+      if (x_spherical) then
+         r_val = sqrt(sum(x_val**2, dim=1))
+      end if
+
+      select case (X%dim)
+       case(1)
+
+         do gi=1,compute_ngi
+            J_local(1,1)=dot_product(x_val(1,:), dn_s(:, gi, 1))
+            detJ_local(gi)=J_local(1,1)
+            invJ(1,1,gi)=1.0/detJ_local(gi)
+         end do
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(1,1,gi)=invJ(1,1,1)
+         end do
+
+       case(2)
+
+         do gi=1, compute_ngi
+
+            J_local=matmul(x_val(:,:), dn_s(:, gi, :))
+            if (x_spherical) then
+               J_local = facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, J_local)
+            end if
+
+            ! Form determinant by expanding minors.
+            detJ_local(gi)=J_local(1,1)*J_local(2,2)-J_local(2,1)*J_local(1,2)
+            ! take inverse *and* transpose
+            invJ(:,:,gi)=reshape((/ J_local(2,2),-J_local(1,2), &
+            &               -J_local(2,1), J_local(1,1)/),(/2,2/)) &
+               / detJ_local(gi)
+         end do
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(:,:,gi)=invJ(:,:,1)
+         end do
+
+       case(3)
+
+         do gi=1, compute_ngi
+
+            J_local=matmul(x_val(:,:), dn_s(:, gi, :))
+            if (x_spherical) then
+               J_local = facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, J_local)
+            end if
+            ! Calculate (scaled) inverse (of the transpose of J_local) using recursive determinants.
+            forall (i=1:X%dim,k=1:X%dim)
+               invJ(i,k,gi)=J_local(cyc3(i+1),cyc3(k+1))*J_local(cyc3(i+2),cyc3(k+2)) &
+                  -J_local(cyc3(i+2),cyc3(k+1))*J_local(cyc3(i+1),cyc3(k+2))
+            end forall
+            ! Form determinant by expanding minors.
+            detJ_local(gi)=dot_product(J_local(:,1), invJ(:,1,gi))
+
+            ! Scale inverse by determinant.
+            invJ(:,:,gi)=invJ(:,:,gi)/detJ_local(gi)
+
+         end do
+
+         ! copy the rest
+         do gi=compute_ngi+1, x_shape%surface_quadrature%ngi
+            detJ_local(gi) = detJ_local(1)
+            invJ(:,:,gi)=invJ(:,:,1)
+         end do
+
+       case default
+         FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+      end select
+
+      if (present(detJ)) then
+         detJ = detJ_local
+      end if
+
+      if (present(detwei)) then
+         detwei = abs(detJ_local)*x_shape%surface_quadrature%weight
+      end if
+
+   end subroutine compute_facet_full_inverse_jacobian
+
+   function jacobian_on_sphere(x_shape, gi, x_val, r_val, Jt) result (Jsphere)
+      type(element_type), intent(in):: x_shape
+      integer, intent(in):: gi ! which gauss point are we computing?
+      real, dimension(:,:), intent(in):: x_val ! coordinates of the nodes (xdim x nloc)
+      real, dimension(:), intent(in):: r_val ! radius (l2norm) of x_val at the nodes
+      real, dimension(:,:), intent(in):: Jt ! dX/dxi of linearly interpolated X
+      real, dimension(size(Jt,1),size(Jt,2)):: Jsphere
+
+      real, dimension(size(x_val,1)) :: xgi, xhat
+      real, dimension(size(x_shape%dn,3)) :: drdxi
+      real, dimension(size(xgi),size(xgi)) :: dxhatdx
+      real :: normx, rgi
+      integer :: i, j
+
+      xgi = matmul(x_val, x_shape%n(:,gi))
+      normx = sqrt(sum(xgi**2))
+      xhat = xgi/normx
+      rgi = dot_product(r_val, x_shape%n(:,gi))
+      drdxi = matmul(r_val, x_shape%dn(:,gi,:))
+
+      do i=1, size(xhat)
+         do j=1, size(xhat)
+            dxhatdx(i,j) = -xhat(i)*xhat(j)
+         end do
+      end do
+      do i=1, size(xhat)
+         dxhatdx(i,i) = dxhatdx(i,i) + 1.0
+      end do
+      dxhatdx = dxhatdx/normx
+
+      Jsphere = matmul(dxhatdx, Jt)*rgi
+
+      do i=1, size(xhat)
+         do j=1, size(drdxi)
+            Jsphere(i,j) = Jsphere(i,j) + xhat(i)*drdxi(j)
+         end do
+      end do
+
+   end function jacobian_on_sphere
+
+   function facet_full_jacobian_on_sphere(n_s, dn_s, gi, x_val, r_val, Jt) result (Jsphere)
+      real, dimension(:,:) :: n_s
+      real, dimension(:,:,:) :: dn_s
+      integer, intent(in):: gi ! which gauss point are we computing?
+      real, dimension(:,:), intent(in):: x_val ! coordinates of the nodes (xdim x nloc)
+      real, dimension(:), intent(in):: r_val ! radius (l2norm) of x_val at the nodes
+      real, dimension(:,:), intent(in):: Jt ! dX/dxi of linearly interpolated X
+      real, dimension(size(Jt,1),size(Jt,2)):: Jsphere
+
+      real, dimension(size(x_val,1)) :: xgi, xhat
+      real, dimension(size(dn_s,3)) :: drdxi
+      real, dimension(size(xgi),size(xgi)) :: dxhatdx
+      real :: normx, rgi
+      integer :: i, j
+
+      xgi = matmul(x_val, n_s(:,gi))
+      normx = sqrt(sum(xgi**2))
+      xhat = xgi/normx
+      rgi = dot_product(r_val, n_s(:,gi))
+      drdxi = matmul(r_val, dn_s(:,gi,:))
+
+      do i=1, size(xhat)
+         do j=1, size(xhat)
+            dxhatdx(i,j) = -xhat(i)*xhat(j)
+         end do
+      end do
+      do i=1, size(xhat)
+         dxhatdx(i,i) = dxhatdx(i,i) + 1.0
+      end do
+      dxhatdx = dxhatdx/normx
+
+      Jsphere = matmul(dxhatdx, Jt)*rgi
+
+      do i=1, size(xhat)
+         do j=1, size(drdxi)
+            Jsphere(i,j) = Jsphere(i,j) + xhat(i)*drdxi(j)
+         end do
+      end do
+
+   end function facet_full_jacobian_on_sphere
+
+   subroutine transform_cvsurf_to_physical(X, x_shape, detwei, normal, cvfaces)
+      !!< Coordinate transformations for control volume surface integrals.
+      !!< Calculates the quadrature weights and unorientated face normals as a side bonus.
+
+      ! Column n of X is the position of the nth node on the facet.
+      real, dimension(:,:), intent(in) :: X
+      ! Reference coordinate control volume surface element:
+      type(element_type), intent(in) :: x_shape
+      ! Quadrature weights for physical coordinates.
+      real, dimension(:), intent(out) :: detwei
+      ! face normals - not necessarily correctly orientated
+      real, dimension(:,:), intent(out) :: normal
+      ! control volume face information - allows optimisation
+      type(cv_faces_type), intent(in) :: cvfaces
+
+      ! Jacobian matrix
+      real, dimension(size(X,1), size(x_shape%dn, 3)) :: J
+
+      ! Determinant of J
+      real :: detJ
+
+      integer :: gi, i, dim, ggi, face
+      logical :: x_nonlinear
+
+      dim=size(X,1)
+
+      assert(size(detwei)==x_shape%ngi)
+
+      ! Optimisation checks. Optimisations apply to linear elements.
+      x_nonlinear= .not.(x_shape%degree==1.and.x_shape%numbering%family==FAMILY_SIMPLEX)
+
+      face_loop: do face = 1, cvfaces%faces
+
+         quad_loop: do gi = 1, cvfaces%shape%ngi
+
+            ! global gauss pt index
+            ggi = (face-1)*cvfaces%shape%ngi + gi
+
+            ! assemble the jacobian...
+            ! this needs to be done at every gauss point if space is nonlinear
+            ! but if space is linear then it only needs to be done at the
+            ! first gauss point of each cv face
+            if(x_nonlinear.or.(gi==1)) then
+
+               !     |- dx  dx  -|
+               !     |  dL1 dL2  |
+               !     |           |
+               !     |  dy  dy   |
+               ! J = |  dL1 dL2  |
+               !     |           |
+               !     |  dz  dz   |
+               !     |- dL1 dL2 -|
+
+               ! Form Jacobian.
+               J=matmul(X(:,:), x_shape%dn(:, ggi, :))
+
+               detJ=0.0
+               ! Calculate determinant.
+               select case (dim)
+                case(1)
+                  detJ=1.0
+                case(2)
+                  detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+                case(3)
+                  do i=1,3
+                     detJ=detJ+ &
+                        (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
+                  end do
+                  detJ=sqrt(detJ)
+                case default
+                  FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+               end select
+            end if
+
+            ! Calculate transformed quadrature weights.
+            detwei(ggi)=detJ*x_shape%quadrature%weight(ggi)
+
+            ! find the normal...
+            ! this needs to be done at every gauss point if space is nonlinear
+            ! otherwise it only needs to be done for the first gauss point on each
+            ! cv face - other faces have their normals set to that of the first gauss
+            ! point of the same face
+            if(x_nonlinear.or.(gi==1)) then
+               normal(:,ggi)=normgi(J)
+            else
+               normal(:,ggi)=normal(:,(face-1)*cvfaces%shape%ngi+1)
+            end if
+
+         end do quad_loop
+
+      end do face_loop
+
+   contains
+
+      function normgi(J)
+         ! Calculate the normal at a given quadrature point,
+         ! Control volume surface Jacobian.
+         real, dimension(:,:), intent(in) :: J
+         real, dimension(size(J,1)) :: normgi
+
+         select case (dim)
+          case(1)
+            normgi = 1.0
+          case (2)
+            normgi = (/ -J(2,1), J(1,1) /)
+          case (3)
+            normgi=cross_product(J(:,1),J(:,2))
+          case default
+            FLAbort('Unsupported dimension selected.')
+         end select
+
+      end function normgi
+
+      pure function cross_product(vector1,vector2)
+         real, dimension(3) :: cross_product
+         real, dimension(3), intent(in) :: vector1, vector2
+
+         integer :: i
+
+         forall(i=1:3)
+            cross_product(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
+               -vector1(cyc3(i+2))*vector2(cyc3(i+1))
+         end forall
+
+      end function cross_product
+
+   end subroutine transform_cvsurf_to_physical
+
+   subroutine transform_cvsurf_facet_to_physical(X, X_f, x_shape_f, &
+      normal, detwei)
+
+      ! Coordinate transformations for facet integrals around control volumes.
+      ! Calculate the transformed quadrature
+      ! weights as a side bonus.
+      !
+      ! For facet integrals, we also need to know the facet outward
+      ! pointing normal.
+      !
+      ! In this case it is only the determinant of the Jacobian which is
+      ! required.
+
+      ! Coordinate facet element:
+      type(element_type), intent(in) :: x_shape_f
+      ! Column n of X is the position of the nth node.
+      real, dimension(:,:), intent(in) :: X
+      ! Column n of X_f is the position of the nth node on the facet.
+      real, dimension(:,:), intent(in) :: X_f
+      ! Quadrature weights for physical coordinates.
+      real, dimension(:), intent(out), optional :: detwei
+      ! Outward normal vector. (dim x x_shape_f%ngi)
+      real, dimension(:,:), intent(out) :: normal
+
+      ! Jacobian matrix and its inverse.
+      real, dimension(size(X,1),x_shape_f%numbering%dimension) :: J
+      ! Determinant of J
+      real :: detJ
+
+      integer :: gi, i, dim
+
+      logical :: x_nonlinear
+
+      dim=size(X,1)
+      assert(size(X_f,1)==dim)
+      assert(size(X_f,2)==x_shape_f%loc)
+
+      assert(size(normal,1)==dim)
+
+      if(present(detwei)) then
+         assert(size(detwei)==x_shape_f%ngi)
+      end if
+
+      ! Optimisation checks. Optimisations apply to linear space elements.
+      x_nonlinear= .not.(x_shape_f%degree==1.and.x_shape_f%numbering%family==FAMILY_SIMPLEX)
+
+      ! Loop over quadrature points.
+      quad_loop: do gi=1,x_shape_f%ngi
+
+         if (x_nonlinear.or.gi==1) then
+            ! For linear space elements only calculate Jacobian once.
+            !     |- dx  dx  -|
+            !     |  dL1 dL2  |
+            !     |           |
+            !     |  dy  dy   |
+            ! J = |  dL1 dL2  |
+            !     |           |
+            !     |  dz  dz   |
+            !     |- dL1 dL2 -|
+
+            ! Form Jacobian.
+            J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
+
+            detJ=0.0
+            ! Calculate determinant.
+            select case (dim)
+             case(1)
+               detJ=1.0
+             case(2)
+               detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             case(3)
+               do i=1,3
+                  detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
+               end do
+               detJ=sqrt(detJ)
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+         end if
+
+         ! Calculate transformed quadrature weights.
+         if(present(detwei)) then
+            detwei(gi)=detJ*x_shape_f%quadrature%weight(gi)
+         end if
+
+         if (x_nonlinear.or.gi==1) then
+            ! Calculate normal.
+            normal(:,gi)=normgi(X,X_f,J)
+         else
+            normal(:,gi)=normal(:,1)
+         end if
+
+      end do quad_loop
+
+   contains
+
+      function normgi(X, X_f, J)
+         ! Calculate the normal at a given quadrature point,
+         real, dimension(:,:), intent(in) :: J
+         real, dimension(size(J,1)) :: normgi
+         ! Element and normal node locations respectively.
+         real, dimension (:,:), intent(in) :: X, X_f
+         ! Facet Jacobian.
+
+         ! Outward pointing not necessarily normal vector.
+         real, dimension(3) :: outv
+
+         integer :: ldim
+
+         ldim = size(J,1)
+
+         ! Outv is the vector from the element centroid to the facet centroid.
+         outv(1:ldim) = sum(X_f,2)/size(X_f,2)-sum(X,2)/size(X,2)
+
+         select case (dim)
+          case(1)
+            normgi = 1.0
+          case (2)
+            normgi = (/ -J(2,1), J(1,1) /)
+          case (3)
+            normgi=cross_product(J(:,1),J(:,2))
+          case default
+            FLAbort('Unsupported dimension selected.')
+         end select
+
+         ! Set correct orientation.
+         normgi=normgi*dot_product(normgi, outv(1:ldim) )
+
+         ! normalise
+         normgi=normgi/sqrt(sum(normgi**2))
+
+      end function normgi
+
+      function cross_product(vector1,vector2) result (prod)
+         real, dimension(3) :: prod
+         real, dimension(3), intent(in) :: vector1, vector2
+
+         integer :: i
+
+         forall(i=1:3)
+            prod(i)=vector1(cyc3(i+1))*vector2(cyc3(i+2))&
+               -vector1(cyc3(i+2))*vector2(cyc3(i+1))
+         end forall
+
+      end function cross_product
+
+   end subroutine transform_cvsurf_facet_to_physical
+
+   subroutine transform_superconvergent_to_physical(X, x_shape, n_shape, dnsp_t)
+      !!< Given a positions shape function and node positions return the
+      !!< return the transformed derivatives of X at the superconvergent
+      !!< points.
+      !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+      !! only need position of n nodes since Jacobian is only calculated once
+      real, dimension(:,:), intent(in) :: X
+      !! Shape function used for coordinate interpolation
+      type(element_type), intent(in) :: x_shape, n_shape
+      !! Derivatives at superconvergent points in physical coordinates.
+      !! (x_shape%loc x x_shape%superconvergence%nsp x dim)
+      real, dimension(:,:,:), intent(out) ::  dnsp_t
+
+      ! Jacobian matrix and its inverse. (dim x dim)
+      real :: detJ
+      real, dimension(size(X,1),size(X,1)) :: J, invJ
+
+      integer :: sp, i, k, dim
+
+      dim=size(X,1)
+
+      assert(size(X,2)==x_shape%loc)
+      assert(size(dnsp_t,1)==n_shape%loc)
+      assert(size(dnsp_t,2)==n_shape%superconvergence%nsp)
+      assert(size(dnsp_t,3)==dim)
+
+      ! Loop over superconvergent points.
+      super_point_loop: do sp=1,n_shape%superconvergence%nsp
+
+         if ((sp==1).or.(x_shape%degree>1)) then
+            !     |- dx  dx  dx  -|
+            !     |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dy  dy  dy   |
+            ! J = |  dL1 dL2 dL3  |
+            !     |               |
+            !     |  dz  dz  dz   |
+            !     |- dL1 dL2 dL3 -|
+
+            ! Form Jacobian.
+            J=transpose(matmul(X, x_shape%superconvergence%dn(:, sp, :)))
+
+            select case (dim)
+             case(1)
+               invJ=1.0
+             case(2)
+               invJ=reshape((/J(2,2),-J(2,1),-J(1,2),J(1,1)/),(/2,2/))
+             case(3)
+               ! Calculate (scaled) inverse using recursive determinants.
+               forall (i=1:dim,k=1:dim)
+                  invJ(k,i)=J(cyc3(i+1),cyc3(k+1))*J(cyc3(i+2),cyc3(k+2)) &
+                     -J(cyc3(i+2),cyc3(k+1))*J(cyc3(i+1),cyc3(k+2))
+               end forall
+             case default
+               FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")
+            end select
+
+            detJ=dot_product(J(1,:),invJ(:,1))
+            invJ=invJ/detJ
+         end if
+
+         ! Evaluate derivatives in physical space.
+         do i=1,n_shape%loc
+            dnsp_t(i,sp,:)=matmul(invJ, n_shape%superconvergence%dn(i,sp,:))
+         end do
+
+      end do super_point_loop
+
+   end subroutine transform_superconvergent_to_physical
+
+   subroutine transform_horizontal_to_physical(X_f, X_face_shape, vertical_normal, &
+      m_f, dm_hor, detwei_hor)
+      !!< Given the 'dim+1'-dimensional coordinates of a 'dim'-dimensional face
+      !!< and its shape function on that face, return the inverse Jacobian
+      !!< associated with the transformation between the local 'dim' coordinates
+      !!< on the face augmented with an auxiliary local vertical coordinate,
+      !!< and the 'dim+1' physical coordinates.
+      !!< This can be used to transform derivatives of fields defined on the face
+      !!< to a horizontal derivative.
+      !!< Also returned is detwei_hor which can be used to perform an integration
+      !!< of fields defined on the face integrated over the face projected in
+      !!< the horizontal plane.
+      !! NOTE: in the following nloc are the number of nodes, and ngi
+      !! the number of gausspoints on the FACE
+      !! positions of the nodes on the face (dim+1 x nloc)
+      real, dimension(:,:):: X_f
+      !! element shape used to interpolate these positions
+      type(element_type), intent(in):: X_face_shape
+      !! vertical normal vector at the gauss points of the face (dim+1 x ngi)
+      real, dimension(:,:):: vertical_normal
+      !! element shape of field on the face, you wish to transform
+      type(element_type), optional, intent(in):: m_f
+      !! transformed derivatives (nloc x ngi x dim+1):
+      real, dimension(:,:,:), optional, intent(out):: dm_hor
+      !! integration weights at gausspoint for horizontal integration (ngi):
+      real, dimension(:), optional, intent(out):: detwei_hor
+
+      real, dimension(size(X_f,1),size(X_f,1)):: J, invJ
+      real det
+      logical x_nonlinear
+      integer i, gi, dim, cdim
+
+      dim=X_face_shape%dim
+      cdim=size(X_f,1)
+
+      ! make sure everything is the right size:
+      assert(cdim==dim+1)
+      assert(size(vertical_normal,1)==cdim)
+      assert(X_face_shape%quadrature%ngi==size(vertical_normal,2))
+      if (present(dm_hor)) then
+         assert(size(X_f,2)==size(dm_hor,1))
+         assert(size(vertical_normal,2)==size(dm_hor,2))
+         assert(m_f%quadrature%ngi==size(dm_hor,2))
+         assert(size(dm_hor,3)==cdim)
+      end if
+      if (present(detwei_hor)) then
+         assert(size(vertical_normal,2)==size(detwei_hor))
+      end if
+
+      ! Optimisation checks. Optimisations apply to linear elements.
+      x_nonlinear= .not. (X_face_shape%degree==1 .and. X_face_shape%numbering%family==FAMILY_SIMPLEX)
+
+      do gi=1, X_face_shape%ngi
+
+         ! in 3 dimensions:
+         !     |- dx  dx  dx  -|
+         !     |  dL1 dL2 dL3  |
+         !     |               |
+         !     |  dy  dy  dy   |
+         ! J = |  dL1 dL2 dL3  |
+         !     |               |
+         !     |  dz  dz  dz   |
+         !     |- dL1 dL2 dL3 -|
+         ! where L1 and L2 are the 2 local coordinates of the face
+         ! and L3 is an auxillary vertical local coordinate.
+         if (gi==1 .or. x_nonlinear) then
+            ! we do follow the definition of J as above
+            ! (as opposed to tranform_to_physical where J is defined as its transpose)
+            J(:,1:dim)=matmul(X_f, x_face_shape%dn(:, gi, :))
+            ! make extra local coordinate (L_3) in the vertical direction
+            J(:,cdim)=vertical_normal(:,gi)
+
+            if (cdim==3) then
+               ! Cross product gives area spanned by local coordinate unit vectors
+               ! times the surface normal. Taking dot_product with vertical normal
+               ! then gives the area in the projected in the horizontal direction.
+               det=abs(dot_product( J(:,3), cross_product( J(:,1), J(:,2) ) ))
+            else
+               ! cross product of the local coordinate unit vector and
+               ! the vertical normal gives projection of the unit vector
+               ! in horizontal direction.
+               det=abs(J(1,1)*J(2,2)-J(1,2)*J(2,1))
+            end if
+
+         end if
+
+         if (present(detwei_hor)) then
+            detwei_hor(gi)=det*X_face_shape%quadrature%weight(gi)
+         end if
+
+         if (present(m_f)) then
+
+            assert(present(dm_hor))
+
+            invJ=inverse(J)
+
+            do i=1, size(dm_hor,1)
+               dm_hor(i,gi,:)=matmul( m_f%dn(i,gi,:), invJ(1:dim,:) )
+               ! assume no change of in-field in vertical direction (L_3)
+               ! thereby effectively taking horizontal derivative
+            end do
+         end if
+
+      end do
+
+   end subroutine transform_horizontal_to_physical
+
+   function element_volume(position, ele)
+      !!< Return the volume of element in the positions field.
+      real :: element_volume
+      type(vector_field), intent(in) :: position
+      integer, intent(in) :: ele
+
+      real, dimension(ele_ngi(position, ele)) :: detwei
+
+      call transform_to_physical_detwei(position, ele, detwei)
+
+      element_volume=sum(detwei)
+
+   end function element_volume
+
+   function local_coords_interpolation(X, ele, position) result(local_coords)
+      !!< Given a position field, this returns the local coordinates of
+      !!< position with respect to element "ele".
+      !!<
+      !!< This assumes the position field is linear. For higher order
+      !!< only the coordinates of the vertices are considered
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      real, dimension(:), intent(in) :: position
+      real, dimension(size(position) + 1) :: local_coords
+
+      integer, dimension(:), pointer:: nodes
+      integer :: dim
+
+      dim = size(position)
+
+      assert(dim == mesh_dim(X))
+      assert(X%mesh%shape%numbering%family==FAMILY_SIMPLEX)
+      assert(X%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)
+
+      if (is_cache_valid(X)) then
+         ! currently we only cache linear meshes
+         assert(X%mesh%shape%degree==1)
+         nodes => ele_nodes(X, ele)
+
+         ! we seek local coords xi[1:dim+1] s.t. \sum_i X_i xi_i = X
+         ! (where X_i are the vertex locations and X is the location we search for)
+         ! the last local coordinate can be expressed as  xi_{dim+1} = 1 - \sum_{i=1}^dim xi_i
+         ! so that we can write X as a function of the first 1:dim local coordinates xi only:
+         ! X(xi[1:dim]) = \sum_{i=1}^dim X_i xi_i + X_dim  (1 - \sum_{i=1}^dim xi_i)
+         !              = [X_i - X_dim] xi[1:dim] + X_dim
+         ! where [X_i-X_dim] is a dim X dim matrix that we can obtain from J = dX/dxi (seeing X as a function
+         ! of the first 1:dim local coordinates only). Therefore:
+         !   xi = J^{-1} X-X_dim
+
+         ! the Js and invJ used above are actually the transpose, so we use invJ^T * (X-X_dim) = (X-X_dim)^T invJ
+         local_coords(1:dim) = matmul(position-node_val(X, nodes(dim+1)), invJ_cache(:, :, ele))
+         ! and the final local coordinate, using \sum_i xi_i=1
+         local_coords(dim+1) = 1.0 - sum(local_coords(1:dim))
+      else
+         call local_coords_slow
+      end if
+
+   contains
 
       subroutine local_coords_slow()
-        real, dimension(mesh_dim(X) + 1, size(position) + 1) :: matrix
-        real, dimension(mesh_dim(X), size(position) + 1) :: tmp_matrix
-        integer, dimension(X%mesh%shape%numbering%vertices):: vertices
+         real, dimension(mesh_dim(X) + 1, size(position) + 1) :: matrix
+         real, dimension(mesh_dim(X), size(position) + 1) :: tmp_matrix
+         integer, dimension(X%mesh%shape%numbering%vertices):: vertices
 
-        ! the slow way: invert a matrix each time
-        ! NOTE that for nonlinear meshes, we linearize using the vertex positions only
-        nodes => ele_nodes(X, ele)
-        vertices=local_vertices(X%mesh%shape%numbering)
-        tmp_matrix = node_val(X, nodes(vertices) )
-        matrix(1:dim, :) = tmp_matrix
-        matrix(dim+1, :) = 1.0
+         ! the slow way: invert a matrix each time
+         ! NOTE that for nonlinear meshes, we linearize using the vertex positions only
+         nodes => ele_nodes(X, ele)
+         vertices=local_vertices(X%mesh%shape%numbering)
+         tmp_matrix = node_val(X, nodes(vertices) )
+         matrix(1:dim, :) = tmp_matrix
+         matrix(dim+1, :) = 1.0
 
-        local_coords(1:dim) = position
-        local_coords(dim+1) = 1.0
-        call solve(matrix, local_coords)
+         local_coords(1:dim) = position
+         local_coords(dim+1) = 1.0
+         call solve(matrix, local_coords)
 
       end subroutine local_coords_slow
 
-  end function local_coords_interpolation
+   end function local_coords_interpolation
 
 end module transform_elements

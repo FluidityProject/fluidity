@@ -3,249 +3,249 @@
 
 module form_metric_field
 
-  use fldebug
-  use vector_tools
-  use global_parameters, only : OPTION_PATH_LEN
-  use futils, only: int2str
-  use spud
-  use unittest_tools
-  use metric_tools
-  use fields
-  use merge_tensors
-  use state_module
-  use vtk_interfaces, only: vtk_write_fields
-  use recovery_estimator
-  use field_options
+   use fldebug
+   use vector_tools
+   use global_parameters, only : OPTION_PATH_LEN
+   use futils, only: int2str
+   use spud
+   use unittest_tools
+   use metric_tools
+   use fields
+   use merge_tensors
+   use state_module
+   use vtk_interfaces, only: vtk_write_fields
+   use recovery_estimator
+   use field_options
 
-  implicit none
+   implicit none
 
-  interface bound_metric
-    module procedure bound_metric_anisotropic, bound_metric_minmax
-  end interface
+   interface bound_metric
+      module procedure bound_metric_anisotropic, bound_metric_minmax
+   end interface
 
-  interface form_metric
-    module procedure form_metric_state, form_metric_weight
-  end interface
+   interface form_metric
+      module procedure form_metric_state, form_metric_weight
+   end interface
 
-  private
-  public :: form_metric, bound_metric, p_norm_scale_metric
+   private
+   public :: form_metric, bound_metric, p_norm_scale_metric
 
-  contains
+contains
 
-  subroutine form_metric_state(state, hessian, field)
-    !!< Form the metric for the field field, storing it in hessian.
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: hessian
-    type(scalar_field), intent(inout) :: field
+   subroutine form_metric_state(state, hessian, field)
+      !!< Form the metric for the field field, storing it in hessian.
+      type(state_type), intent(in) :: state
+      type(tensor_field), intent(inout) :: hessian
+      type(scalar_field), intent(inout) :: field
 
-    type(scalar_field), pointer :: adweit
+      type(scalar_field), pointer :: adweit
 
-    integer :: idx, dim
-    logical :: allocated
+      integer :: idx, dim
+      logical :: allocated
 
-    idx = index(trim(field%name), "%")
-    if (idx == 0) then
-      adweit => extract_scalar_field(state, trim(field%name) // "InterpolationErrorBound")
-      allocated = .false.
-    else
-      read(field%name(idx+1:len_trim(field%name)), *) dim
-      adweit => extract_scalar_field(state, field%name(1:idx-1) // "InterpolationErrorBound%" // int2str(dim), allocated=allocated)
-    end if
-
-    call form_metric(hessian, field, adweit, state)
-
-    if (allocated) then
-      deallocate(adweit)
-    end if
-
-  end subroutine form_metric_state
-
-  subroutine form_metric_weight(hessian, field, adweit, state)
-    !!< Form the metric for the field field, storing it in hessian.
-    type(tensor_field), intent(inout) :: hessian
-    type(scalar_field), intent(inout) :: field
-    type(scalar_field), intent(in) :: adweit
-    type(state_type), intent(in) :: state
-
-    integer :: p, stat
-
-    if (have_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure")) then
-      ewrite(2,*) "Forming relative metric"
-      call relative_metric(hessian, field, adweit)
-    else
-      ewrite(2,*) "Forming absolute metric"
-
-      call get_p_norm(field, p, stat)
-      if(stat == 0) then
-        ewrite(2, *) "Norm degree: ", p
-        call absolute_metric(hessian, adweit, p)
+      idx = index(trim(field%name), "%")
+      if (idx == 0) then
+         adweit => extract_scalar_field(state, trim(field%name) // "InterpolationErrorBound")
+         allocated = .false.
       else
-        ewrite(2, *) "Norm degree: inf"
-        call absolute_metric(hessian, adweit)
+         read(field%name(idx+1:len_trim(field%name)), *) dim
+         adweit => extract_scalar_field(state, field%name(1:idx-1) // "InterpolationErrorBound%" // int2str(dim), allocated=allocated)
       end if
-    end if
 
-    ewrite(2,*) "Bounding metric"
-    call bound_metric(hessian, state)
+      call form_metric(hessian, field, adweit, state)
 
-  contains
+      if (allocated) then
+         deallocate(adweit)
+      end if
 
-    subroutine get_p_norm(field, p, stat)
-      type(scalar_field), intent(in) :: field
-      integer, intent(out) :: p
-      integer, intent(out) :: stat
+   end subroutine form_metric_state
 
-      character(len = OPTION_PATH_LEN) :: option_path
+   subroutine form_metric_weight(hessian, field, adweit, state)
+      !!< Form the metric for the field field, storing it in hessian.
+      type(tensor_field), intent(inout) :: hessian
+      type(scalar_field), intent(inout) :: field
+      type(scalar_field), intent(in) :: adweit
+      type(state_type), intent(in) :: state
 
-      stat = 0
+      integer :: p, stat
 
-      option_path = complete_field_path(field%option_path, stat = stat)
-      if(stat /= 0) return
+      if (have_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure")) then
+         ewrite(2,*) "Forming relative metric"
+         call relative_metric(hessian, field, adweit)
+      else
+         ewrite(2,*) "Forming absolute metric"
 
-      call get_option(trim(option_path) // "/adaptivity_options/absolute_measure/p_norm", p, stat = stat)
+         call get_p_norm(field, p, stat)
+         if(stat == 0) then
+            ewrite(2, *) "Norm degree: ", p
+            call absolute_metric(hessian, adweit, p)
+         else
+            ewrite(2, *) "Norm degree: inf"
+            call absolute_metric(hessian, adweit)
+         end if
+      end if
 
-    end subroutine get_p_norm
+      ewrite(2,*) "Bounding metric"
+      call bound_metric(hessian, state)
 
-  end subroutine form_metric_weight
+   contains
 
-  subroutine absolute_metric(metric, adweit, p)
-    !!< Construct the metric using the absolute error formulation.
-    type(tensor_field), intent(inout) :: metric
-    type(scalar_field), intent(in) :: adweit
-    !! Norm degree. Defaults to inf-norm.
-    integer, optional, intent(in) :: p
+      subroutine get_p_norm(field, p, stat)
+         type(scalar_field), intent(in) :: field
+         integer, intent(out) :: p
+         integer, intent(out) :: stat
 
-    integer :: i
+         character(len = OPTION_PATH_LEN) :: option_path
 
-    if(present(p)) call p_norm_scale_metric(metric, p)
+         stat = 0
 
-    do i = 1, node_count(metric)
-      call set(metric, i, node_val(metric, i) / node_val(adweit, i))
-    end do
+         option_path = complete_field_path(field%option_path, stat = stat)
+         if(stat /= 0) return
 
-  end subroutine absolute_metric
+         call get_option(trim(option_path) // "/adaptivity_options/absolute_measure/p_norm", p, stat = stat)
 
-  subroutine p_norm_scale_metric(metric, p)
-    !!< Apply the p-norm scaling to the metric, as in Chen Sun and Zu,
-    !!< Mathematics of Computation, Volume 76, Number 257, January 2007,
-    !!< pp. 179-204
+      end subroutine get_p_norm
 
-    type(tensor_field), intent(inout) :: metric
-    integer, intent(in) :: p
+   end subroutine form_metric_weight
 
-    real :: m_det
-    real, dimension(mesh_dim(metric), mesh_dim(metric)) :: evecs
-    real, dimension(mesh_dim(metric)) :: evals
-    integer :: i, j, n
+   subroutine absolute_metric(metric, adweit, p)
+      !!< Construct the metric using the absolute error formulation.
+      type(tensor_field), intent(inout) :: metric
+      type(scalar_field), intent(in) :: adweit
+      !! Norm degree. Defaults to inf-norm.
+      integer, optional, intent(in) :: p
 
-    assert(p > 0)
+      integer :: i
 
-    n = mesh_dim(metric)
+      if(present(p)) call p_norm_scale_metric(metric, p)
 
-    do i = 1, node_count(metric)
-      ! We really need det(metric) to be positive here
-      ! This happens again in bound_metric, but it doesn't hurt to do it twice
-      ! (Patrick assures me eigenrecompositions are cheap)
-      call eigendecomposition_symmetric(node_val(metric, i), evecs, evals)
-      do j = 1, n
-        evals(j) = abs(evals(j))
+      do i = 1, node_count(metric)
+         call set(metric, i, node_val(metric, i) / node_val(adweit, i))
       end do
-      call eigenrecomposition(metric%val(:, :, i), evecs, evals)
 
-      m_det = 1.0
-      do j = 1, size(evals)
-        m_det = m_det * evals(j)
+   end subroutine absolute_metric
+
+   subroutine p_norm_scale_metric(metric, p)
+      !!< Apply the p-norm scaling to the metric, as in Chen Sun and Zu,
+      !!< Mathematics of Computation, Volume 76, Number 257, January 2007,
+      !!< pp. 179-204
+
+      type(tensor_field), intent(inout) :: metric
+      integer, intent(in) :: p
+
+      real :: m_det
+      real, dimension(mesh_dim(metric), mesh_dim(metric)) :: evecs
+      real, dimension(mesh_dim(metric)) :: evals
+      integer :: i, j, n
+
+      assert(p > 0)
+
+      n = mesh_dim(metric)
+
+      do i = 1, node_count(metric)
+         ! We really need det(metric) to be positive here
+         ! This happens again in bound_metric, but it doesn't hurt to do it twice
+         ! (Patrick assures me eigenrecompositions are cheap)
+         call eigendecomposition_symmetric(node_val(metric, i), evecs, evals)
+         do j = 1, n
+            evals(j) = abs(evals(j))
+         end do
+         call eigenrecomposition(metric%val(:, :, i), evecs, evals)
+
+         m_det = 1.0
+         do j = 1, size(evals)
+            m_det = m_det * evals(j)
+         end do
+         m_det = max(m_det, epsilon(0.0))
+
+         call set(metric, i, node_val(metric, i) * (m_det ** (-1.0 / (2.0 * p + n))))
       end do
-      m_det = max(m_det, epsilon(0.0))
 
-      call set(metric, i, node_val(metric, i) * (m_det ** (-1.0 / (2.0 * p + n))))
-    end do
+   end subroutine p_norm_scale_metric
 
-  end subroutine p_norm_scale_metric
+   subroutine relative_metric(hessian, field, adweit)
+      !!< Construct the metric using the relative error formulation.
+      type(tensor_field), intent(inout) :: hessian
+      type(scalar_field), intent(in) :: field, adweit
+      integer :: i, idx, dim
+      real :: maxfield, minpsi
+      real, dimension(mesh_dim(field%mesh)) :: minpsi_vector
 
-  subroutine relative_metric(hessian, field, adweit)
-    !!< Construct the metric using the relative error formulation.
-    type(tensor_field), intent(inout) :: hessian
-    type(scalar_field), intent(in) :: field, adweit
-    integer :: i, idx, dim
-    real :: maxfield, minpsi
-    real, dimension(mesh_dim(field%mesh)) :: minpsi_vector
+      idx = index(field%name, "%")
+      if (idx == 0) then
+         call get_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/tolerance", minpsi)
+      else
+         read(field%name(idx+1:len(field%name)), *) dim
+         call get_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/tolerance", minpsi_vector)
+         minpsi = minpsi_vector(dim)
+      end if
 
-    idx = index(field%name, "%")
-    if (idx == 0) then
-      call get_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/tolerance", minpsi)
-    else
-      read(field%name(idx+1:len(field%name)), *) dim
-      call get_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/tolerance", minpsi_vector)
-      minpsi = minpsi_vector(dim)
-    end if
+      if (have_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/use_global_max")) then
+         call field_stats(field, max=maxfield)
+         do i=1,hessian%mesh%nodes
+            hessian%val(:, :, i) = hessian%val(:, :, i) / (node_val(adweit, i) * max(maxfield, minpsi))
+         end do
+      else
+         do i=1,hessian%mesh%nodes
+            hessian%val(:, :, i) = hessian%val(:, :, i) / (node_val(adweit, i) * max(abs(node_val(field, i)), minpsi))
+         end do
+      end if
+   end subroutine relative_metric
 
-    if (have_adapt_opt(trim(field%option_path), "/adaptivity_options/relative_measure/use_global_max")) then
-      call field_stats(field, max=maxfield)
-      do i=1,hessian%mesh%nodes
-        hessian%val(:, :, i) = hessian%val(:, :, i) / (node_val(adweit, i) * max(maxfield, minpsi))
-      end do
-    else
-      do i=1,hessian%mesh%nodes
-        hessian%val(:, :, i) = hessian%val(:, :, i) / (node_val(adweit, i) * max(abs(node_val(field, i)), minpsi))
-      end do
-    end if
-  end subroutine relative_metric
+   subroutine bound_metric_anisotropic(hessian, state, stat)
+      !!< Implement the anisotropic edge length bounds.
+      type(tensor_field), intent(inout) :: hessian
+      type(state_type), intent(in) :: state
+      integer, optional :: stat
 
-  subroutine bound_metric_anisotropic(hessian, state, stat)
-    !!< Implement the anisotropic edge length bounds.
-    type(tensor_field), intent(inout) :: hessian
-    type(state_type), intent(in) :: state
-    integer, optional :: stat
+      type(tensor_field), pointer :: min_bound, max_bound
 
-    type(tensor_field), pointer :: min_bound, max_bound
+      ! min and max refer to edge lengths, not eigenvalues
 
-    ! min and max refer to edge lengths, not eigenvalues
+      if(present(stat)) stat = 0
 
-    if(present(stat)) stat = 0
-
-    min_bound => extract_tensor_field(state, "MaxMetricEigenbound", stat=stat)
-    max_bound => extract_tensor_field(state, "MinMetricEigenbound", stat=stat)
-    if(present(stat)) then
-      if(stat/=0) return
-    end if
-    if(any(min_bound%dim /= hessian%dim).or.any(max_bound%dim /= hessian%dim)) then
+      min_bound => extract_tensor_field(state, "MaxMetricEigenbound", stat=stat)
+      max_bound => extract_tensor_field(state, "MinMetricEigenbound", stat=stat)
       if(present(stat)) then
-        stat = 1
-        return
-      else
-        FLAbort("Incompatible tensor dimensions")
+         if(stat/=0) return
       end if
-    end if
+      if(any(min_bound%dim /= hessian%dim).or.any(max_bound%dim /= hessian%dim)) then
+         if(present(stat)) then
+            stat = 1
+            return
+         else
+            FLAbort("Incompatible tensor dimensions")
+         end if
+      end if
 
-    call bound_metric(hessian, min_bound, max_bound)
+      call bound_metric(hessian, min_bound, max_bound)
 
-  end subroutine bound_metric_anisotropic
+   end subroutine bound_metric_anisotropic
 
-  subroutine bound_metric_minmax(hessian, min_bound, max_bound)
-    !!< Implement the anisotropic edge length bounds.
-    type(tensor_field), intent(inout) :: hessian
-    type(tensor_field), intent(in) :: min_bound, max_bound
+   subroutine bound_metric_minmax(hessian, min_bound, max_bound)
+      !!< Implement the anisotropic edge length bounds.
+      type(tensor_field), intent(inout) :: hessian
+      type(tensor_field), intent(in) :: min_bound, max_bound
 
-    real, dimension(hessian%dim(1), hessian%dim(2)) :: max_tensor, min_tensor, evecs
-    real, dimension(hessian%dim(1)) :: evals
-    integer :: i, j
+      real, dimension(hessian%dim(1), hessian%dim(2)) :: max_tensor, min_tensor, evecs
+      real, dimension(hessian%dim(1)) :: evals
+      integer :: i, j
 
-    ! min and max refer to edge lengths, not eigenvalues
-    do i=1,node_count(hessian)
-      call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
-      do j=1,hessian%dim(1)
-        evals(j) = abs(evals(j))
+      ! min and max refer to edge lengths, not eigenvalues
+      do i=1,node_count(hessian)
+         call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
+         do j=1,hessian%dim(1)
+            evals(j) = abs(evals(j))
+         end do
+         call eigenrecomposition(hessian%val(:, :, i), evecs, evals)
+         assert(all(evals >= 0.0))
+
+         max_tensor = node_val(max_bound, i)
+         min_tensor = node_val(min_bound, i)
+         call merge_tensor(hessian%val(:, :, i), max_tensor)
+         call merge_tensor(hessian%val(:, :, i), min_tensor, aniso_min=.true.)
       end do
-      call eigenrecomposition(hessian%val(:, :, i), evecs, evals)
-      assert(all(evals >= 0.0))
 
-      max_tensor = node_val(max_bound, i)
-      min_tensor = node_val(min_bound, i)
-      call merge_tensor(hessian%val(:, :, i), max_tensor)
-      call merge_tensor(hessian%val(:, :, i), min_tensor, aniso_min=.true.)
-    end do
-
-  end subroutine bound_metric_minmax
+   end subroutine bound_metric_minmax
 
 end module form_metric_field

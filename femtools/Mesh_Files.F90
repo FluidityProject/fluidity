@@ -43,158 +43,158 @@
 
 
 module mesh_files
-  use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use futils
-  use elements
-  use spud
-  use fields
-  use state_module
-  use gmsh_common
-  use read_gmsh
-  use read_triangle
-  use read_exodusii
-  use write_gmsh
-  use write_triangle
+   use fldebug
+   use global_parameters, only : OPTION_PATH_LEN
+   use futils
+   use elements
+   use spud
+   use fields
+   use state_module
+   use gmsh_common
+   use read_gmsh
+   use read_triangle
+   use read_exodusii
+   use write_gmsh
+   use write_triangle
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  interface read_mesh_files
-     module procedure read_mesh_simple
-  end interface
+   interface read_mesh_files
+      module procedure read_mesh_simple
+   end interface
 
-  interface write_mesh_files
-     module procedure write_mesh_to_file, &
-          write_positions_to_file
-  end interface
+   interface write_mesh_files
+      module procedure write_mesh_to_file, &
+         write_positions_to_file
+   end interface
 
-  public :: read_mesh_files, write_mesh_files
+   public :: read_mesh_files, write_mesh_files
 
 
 contains
 
 
-  ! --------------------------------------------------------------------------
-  ! Read routines first
-  ! --------------------------------------------------------------------------
+   ! --------------------------------------------------------------------------
+   ! Read routines first
+   ! --------------------------------------------------------------------------
 
-  function read_mesh_simple(filename, format, quad_degree, &
-       quad_ngi, quad_family, mdim) &
-       result (field)
+   function read_mesh_simple(filename, format, quad_degree, &
+      quad_ngi, quad_family, mdim) &
+      result (field)
 
-    ! A simpler mechanism for reading a mesh file into a field.
-    ! In parallel the filename must *not* include the process number.
+      ! A simpler mechanism for reading a mesh file into a field.
+      ! In parallel the filename must *not* include the process number.
 
-    character(len=*), intent(in) :: filename, format
-    ! The degree of the quadrature.
-    integer, intent(in), optional, target :: quad_degree
-    ! The degree of the quadrature.
-    integer, intent(in), optional, target :: quad_ngi
-    ! What quadrature family to use
-    integer, intent(in), optional :: quad_family
-    ! Dimension of mesh
-    integer, intent(in), optional :: mdim
+      character(len=*), intent(in) :: filename, format
+      ! The degree of the quadrature.
+      integer, intent(in), optional, target :: quad_degree
+      ! The degree of the quadrature.
+      integer, intent(in), optional, target :: quad_ngi
+      ! What quadrature family to use
+      integer, intent(in), optional :: quad_family
+      ! Dimension of mesh
+      integer, intent(in), optional :: mdim
 
-    type(vector_field) :: field
+      type(vector_field) :: field
 
-    select case( trim(format) )
-    case("triangle")
-       ewrite(-1,*) "The Triangle mesh format reader is deprecated."
-       ewrite(-1,*) "Please convert your mesh to the Gmsh format."
-       FLAbort("Triangle mesh format is no longer supported")
+      select case( trim(format) )
+       case("triangle")
+         ewrite(-1,*) "The Triangle mesh format reader is deprecated."
+         ewrite(-1,*) "Please convert your mesh to the Gmsh format."
+         FLAbort("Triangle mesh format is no longer supported")
 
-       ! field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
-       !      quad_family=quad_family, mdim=mdim)
+         ! field = read_triangle_files(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+         !      quad_family=quad_family, mdim=mdim)
 
-    case("gmsh")
-       field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+       case("gmsh")
+         field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family, mdim=mdim)
 
-    case("exodusii")
+       case("exodusii")
 #ifdef HAVE_LIBEXOIIV2C
-       field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+         field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family)
 #else
-  FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusii'!")
+         FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusii'!")
 #endif
 
 
-       ! Additional mesh format subroutines go here
+         ! Additional mesh format subroutines go here
 
-    case default
-       FLExit("Reading mesh type "//format//" not supported within Fluidity")
-    end select
+       case default
+         FLExit("Reading mesh type "//format//" not supported within Fluidity")
+      end select
 
-  end function read_mesh_simple
-
-
-
-  ! --------------------------------------------------------------------------
-  ! Write routines here
-  ! --------------------------------------------------------------------------
+   end function read_mesh_simple
 
 
-  subroutine write_mesh_to_file(filename, format, state, mesh, number_of_partitions)
-    ! Write out the supplied mesh to the specified filename as mesh files.
 
-    character(len = *), intent(in) :: filename
-    character(len = *), intent(in) :: format
-    type(state_type), intent(in) :: state
-    type(mesh_type), intent(in) :: mesh
-    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
-    integer, optional, intent(in):: number_of_partitions
-
-    select case(format)
-    case("triangle")
-       call write_triangle_files(filename, state, mesh, number_of_partitions=number_of_partitions)
-
-    case("gmsh")
-       call write_gmsh_file(filename, state, mesh, number_of_partitions=number_of_partitions)
-
-    ! ExodusII write routines are not implemented at this point.
-    ! Mesh is dumped as gmsh format for now.
-    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
-    ! right after reading in external mesh files
-
-       ! Additional mesh format subroutines go here
-
-    case default
-       FLExit("Writing to mesh type "//format//" not supported within Fluidity")
-    end select
+   ! --------------------------------------------------------------------------
+   ! Write routines here
+   ! --------------------------------------------------------------------------
 
 
-  end subroutine write_mesh_to_file
+   subroutine write_mesh_to_file(filename, format, state, mesh, number_of_partitions)
+      ! Write out the supplied mesh to the specified filename as mesh files.
 
-  ! --------------------------------------------------------------------------
+      character(len = *), intent(in) :: filename
+      character(len = *), intent(in) :: format
+      type(state_type), intent(in) :: state
+      type(mesh_type), intent(in) :: mesh
+      !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+      integer, optional, intent(in):: number_of_partitions
 
-  subroutine write_positions_to_file(filename, format, positions, number_of_partitions)
-    !!< Write out the mesh given by the position field in mesh files
-    !!< In parallel, empty trailing processes are not written.
-    character(len=*), intent(in):: filename, format
-    type(vector_field), intent(in):: positions
-    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
-    integer, optional, intent(in):: number_of_partitions
+      select case(format)
+       case("triangle")
+         call write_triangle_files(filename, state, mesh, number_of_partitions=number_of_partitions)
 
-    select case( trim(format) )
-    case("triangle")
-       call write_triangle_files( trim(filename), positions, number_of_partitions=number_of_partitions)
+       case("gmsh")
+         call write_gmsh_file(filename, state, mesh, number_of_partitions=number_of_partitions)
 
-    case("gmsh")
-       call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions)
+         ! ExodusII write routines are not implemented at this point.
+         ! Mesh is dumped as gmsh format for now.
+         ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+         ! right after reading in external mesh files
 
-    ! ExodusII write routines are not implemented at this point.
-    ! Mesh is dumped as gmsh format for now.
-    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
-    ! right after reading in external mesh files
+         ! Additional mesh format subroutines go here
 
-       ! Additional mesh format subroutines go here
+       case default
+         FLExit("Writing to mesh type "//format//" not supported within Fluidity")
+      end select
 
-    case default
-       FLExit("Writing to mesh type "//format//" not supported within Fluidity")
-    end select
 
-  end subroutine write_positions_to_file
+   end subroutine write_mesh_to_file
+
+   ! --------------------------------------------------------------------------
+
+   subroutine write_positions_to_file(filename, format, positions, number_of_partitions)
+      !!< Write out the mesh given by the position field in mesh files
+      !!< In parallel, empty trailing processes are not written.
+      character(len=*), intent(in):: filename, format
+      type(vector_field), intent(in):: positions
+      !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+      integer, optional, intent(in):: number_of_partitions
+
+      select case( trim(format) )
+       case("triangle")
+         call write_triangle_files( trim(filename), positions, number_of_partitions=number_of_partitions)
+
+       case("gmsh")
+         call write_gmsh_file( trim(filename), positions, number_of_partitions=number_of_partitions)
+
+         ! ExodusII write routines are not implemented at this point.
+         ! Mesh is dumped as gmsh format for now.
+         ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+         ! right after reading in external mesh files
+
+         ! Additional mesh format subroutines go here
+
+       case default
+         FLExit("Writing to mesh type "//format//" not supported within Fluidity")
+      end select
+
+   end subroutine write_positions_to_file
 
 end module mesh_files

@@ -27,67 +27,67 @@
 
 #include "fdebug.h"
 module halos_diagnostics
-  !!< this module contains routines for diagnosing halo problems.
-  use shape_functions
-  use halo_data_types
-  use fields_data_types
-  use fields_base
-  use halos_numbering
-  use fields_allocates
-  use fields_manipulation
-  use vtk_interfaces
-  implicit none
+   !!< this module contains routines for diagnosing halo problems.
+   use shape_functions
+   use halo_data_types
+   use fields_data_types
+   use fields_base
+   use halos_numbering
+   use fields_allocates
+   use fields_manipulation
+   use vtk_interfaces
+   implicit none
 
-  private
-  public write_universal_numbering
+   private
+   public write_universal_numbering
 
 contains
 
-  subroutine write_universal_numbering(halo, mesh, position, name)
-    !!< Dump a vtu file containing the universal numbering of halo on mesh.
-    type(halo_type), intent(in) :: halo
-    type(mesh_type), intent(inout) :: mesh
-    type(vector_field), intent(in) :: position
-    character(len=*), intent(in) :: name
+   subroutine write_universal_numbering(halo, mesh, position, name)
+      !!< Dump a vtu file containing the universal numbering of halo on mesh.
+      type(halo_type), intent(in) :: halo
+      type(mesh_type), intent(inout) :: mesh
+      type(vector_field), intent(in) :: position
+      character(len=*), intent(in) :: name
 
-    type(scalar_field) :: field
-    type(mesh_type) :: lmesh
-    type(element_type) :: shape
-    integer :: node, ele
+      type(scalar_field) :: field
+      type(mesh_type) :: lmesh
+      type(element_type) :: shape
+      integer :: node, ele
 
-    assert(has_global_to_universal_numbering(halo))
+      assert(has_global_to_universal_numbering(halo))
 
-    if (halo%data_type==HALO_TYPE_ELEMENT) then
-       shape=make_element_shape(mesh%shape, degree=0)
-       lmesh=make_mesh(position%mesh, shape=shape, continuity=-1)
-       call allocate(field, lmesh, name="UniversalNumber")
+      if (halo%data_type==HALO_TYPE_ELEMENT) then
+         shape=make_element_shape(mesh%shape, degree=0)
+         lmesh=make_mesh(position%mesh, shape=shape, continuity=-1)
+         call allocate(field, lmesh, name="UniversalNumber")
 
-       ! Drop excess mesh and shape references
-       call deallocate(lmesh)
-       call deallocate(shape)
+         ! Drop excess mesh and shape references
+         call deallocate(lmesh)
+         call deallocate(shape)
 
-       ! Note that for degree 0 shape functions, nodes==elements
-       do ele=1, element_count(field)
-          call set(field, ele, real(halo_universal_number(halo, ele)))
-       end do
+         ! Note that for degree 0 shape functions, nodes==elements
+         do ele=1, element_count(field)
+            call set(field, ele, real(halo_universal_number(halo, ele)))
+         end do
 
-    else
+      else
 
-       lmesh=mesh
-       call allocate(field, mesh, name="UniversalNumber")
+         lmesh=mesh
+         call allocate(field, mesh, name="UniversalNumber")
 
-       ! Note that for degree 0 shape functions, nodes==elements
-       do node=1, node_count(field)
-          call set(field, node, real(halo_universal_number(halo, node)))
-       end do
+         ! Note that for degree 0 shape functions, nodes==elements
+         do node=1, node_count(field)
+            call set(field, node, real(halo_universal_number(halo, node)))
+         end do
 
-    end if
+      end if
 
-    call vtk_write_fields(name, position=position, model=lmesh,&
-         & sfields=(/field/))
+      call vtk_write_fields(name, position=position, model=lmesh,&
+      & sfields=(/field/))
 
-    call deallocate(field)
+      call deallocate(field)
 
-  end subroutine write_universal_numbering
+   end subroutine write_universal_numbering
 
 end module halos_diagnostics

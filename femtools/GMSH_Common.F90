@@ -32,178 +32,178 @@
 
 module gmsh_common
 
-  character(len=3), parameter :: GMSHVersionStr = "2.1"
-  integer, parameter :: asciiFormat = 0
-  integer, parameter :: binaryFormat = 1
-  ! Anyway to automatically calc this in Fortran?
-  integer, parameter :: doubleNumBytes = 8
+   character(len=3), parameter :: GMSHVersionStr = "2.1"
+   integer, parameter :: asciiFormat = 0
+   integer, parameter :: binaryFormat = 1
+   ! Anyway to automatically calc this in Fortran?
+   integer, parameter :: doubleNumBytes = 8
 
-  integer, parameter :: longStringLen = 1000
-  real, parameter :: verySmall = 10e-10
+   integer, parameter :: longStringLen = 1000
+   real, parameter :: verySmall = 10e-10
 
-  ! For each type, the number of nodes. -1 means unsupported
-  integer, dimension(15) :: elementNumNodes = (/ &
-       2, 3, 4, 4, 8, &
-       -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 /)
+   ! For each type, the number of nodes. -1 means unsupported
+   integer, dimension(15) :: elementNumNodes = (/ &
+      2, 3, 4, 4, 8, &
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 /)
 
-  type GMSHnode
-     integer :: nodeID, columnID
-     double precision :: x(3)
-     ! Currently unused
-     ! real, pointer :: properties(:)
-  end type GMSHnode
+   type GMSHnode
+      integer :: nodeID, columnID
+      double precision :: x(3)
+      ! Currently unused
+      ! real, pointer :: properties(:)
+   end type GMSHnode
 
-  type GMSHelement
-     integer :: elementID, type, numTags
-     integer, pointer :: tags(:), nodeIDs(:)
-  end type GMSHelement
+   type GMSHelement
+      integer :: elementID, type, numTags
+      integer, pointer :: tags(:), nodeIDs(:)
+   end type GMSHelement
 
 
 contains
 
-  ! -----------------------------------------------------------------
-  ! Change already-open file to ASCII formatting
-  ! Involves a bit of sneaky code.
+   ! -----------------------------------------------------------------
+   ! Change already-open file to ASCII formatting
+   ! Involves a bit of sneaky code.
 
-  subroutine ascii_formatting(fd, filename, readWriteStr)
-    integer fd
-    character(len=*) :: filename, readWriteStr
+   subroutine ascii_formatting(fd, filename, readWriteStr)
+      integer fd
+      character(len=*) :: filename, readWriteStr
 
-    integer position
+      integer position
 
 
-    inquire(fd, POS=position)
-    close(fd)
+      inquire(fd, POS=position)
+      close(fd)
 
-    select case( trim(readWriteStr) )
+      select case( trim(readWriteStr) )
 
-    case("read")
-       open( fd, file=trim(filename), action="read", form="formatted", &
+       case("read")
+         open( fd, file=trim(filename), action="read", form="formatted", &
             access="stream")
-       read( fd, "(I1)", POS=position, ADVANCE="no" )
+         read( fd, "(I1)", POS=position, ADVANCE="no" )
 
-    case("write")
-       open( fd, file=trim(filename), action="write",  form="formatted", &
+       case("write")
+         open( fd, file=trim(filename), action="write",  form="formatted", &
             access="stream", position="append")
 
-    end select
+      end select
 
 
-  end subroutine ascii_formatting
+   end subroutine ascii_formatting
 
 
-  ! -----------------------------------------------------------------
-  ! Change already-open file to binary formatting
-  ! Sneaky code, as above.
+   ! -----------------------------------------------------------------
+   ! Change already-open file to binary formatting
+   ! Sneaky code, as above.
 
-  subroutine binary_formatting(fd, filename, readWriteStr)
-    integer fd
-    character(len=*) filename, readWriteStr
+   subroutine binary_formatting(fd, filename, readWriteStr)
+      integer fd
+      character(len=*) filename, readWriteStr
 
-    integer position
+      integer position
 
 
-    inquire(fd, POS=position)
-    close(fd)
+      inquire(fd, POS=position)
+      close(fd)
 
-    select case( trim(readWriteStr) )
+      select case( trim(readWriteStr) )
 
-    case("read")
-       open( fd, file=trim(filename), action="read", form="unformatted", &
+       case("read")
+         open( fd, file=trim(filename), action="read", form="unformatted", &
             access="stream")
-       read( fd, POS=position )
+         read( fd, POS=position )
 
-    case("write")
-       open( fd, file=trim(filename), action="write", form="unformatted", &
+       case("write")
+         open( fd, file=trim(filename), action="write", form="unformatted", &
             access="stream", position="append")
 
-    end select
+      end select
 
-  end subroutine binary_formatting
-
-
-  ! -----------------------------------------------------------------
-  ! Reorder to Fluidity node ordering
-
-  subroutine toFluidityElementNodeOrdering( oldList, elemType )
-    integer, pointer :: oldList(:)
-    integer, dimension(size(oldList)) :: nodeOrder, flNodeList
-    integer i, elemType
-
-    numNodes = size(oldList)
-
-    ! Specify node ordering
-    select case( elemType )
-    ! Quads
-    case (3)
-       nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron
-    case (5)
-       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
-    case default
-       do i=1, numNodes
-          nodeOrder(i) = i
-       end do
-    end select
-
-    ! Reorder nodes
-    do i=1, numNodes
-       flNodeList(i) = oldList( nodeOrder(i) )
-    end do
-
-    ! Allocate to original list, and dealloc temp list.
-    oldList(:) = flNodeList(:)
-
-  end subroutine toFluidityElementNodeOrdering
-
-  ! -----------------------------------------------------------------
-  ! Reorder Fluidity node ordering to GMSH
-
-  subroutine toGMSHElementNodeOrdering( oldList, elemType )
-    integer, pointer :: oldList(:)
-    integer, dimension(size(oldList)) :: nodeOrder, gmshNodeList
-    integer i, elemType
-
-    numNodes = size(oldList)
-
-    ! Specify node ordering
-    select case( elemType )
-    ! Quads
-    case (3)
-       nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron
-    case (5)
-       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
-
-    case default
-       do i=1, numNodes
-          nodeOrder(i) = i
-       end do
-    end select
-
-    ! Reorder nodes
-    do i=1, numNodes
-       gmshNodeList(i) = oldList( nodeOrder(i) )
-    end do
-
-    ! Allocate to original list, and dealloc temp list.
-    oldList(:) = gmshNodeList(:)
-
-  end subroutine toGMSHElementNodeOrdering
+   end subroutine binary_formatting
 
 
+   ! -----------------------------------------------------------------
+   ! Reorder to Fluidity node ordering
 
-  subroutine deallocateElementList( elements )
-    type(GMSHelement), pointer :: elements(:)
-    integer i
+   subroutine toFluidityElementNodeOrdering( oldList, elemType )
+      integer, pointer :: oldList(:)
+      integer, dimension(size(oldList)) :: nodeOrder, flNodeList
+      integer i, elemType
 
-    do i = 1, size(elements)
-       deallocate(elements(i)%tags)
-       deallocate(elements(i)%nodeIDs)
-    end do
+      numNodes = size(oldList)
 
-    deallocate( elements )
+      ! Specify node ordering
+      select case( elemType )
+         ! Quads
+       case (3)
+         nodeOrder = (/1, 2, 4, 3/)
+         ! Hexahedron
+       case (5)
+         nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
+       case default
+         do i=1, numNodes
+            nodeOrder(i) = i
+         end do
+      end select
 
-  end subroutine deallocateElementList
+      ! Reorder nodes
+      do i=1, numNodes
+         flNodeList(i) = oldList( nodeOrder(i) )
+      end do
+
+      ! Allocate to original list, and dealloc temp list.
+      oldList(:) = flNodeList(:)
+
+   end subroutine toFluidityElementNodeOrdering
+
+   ! -----------------------------------------------------------------
+   ! Reorder Fluidity node ordering to GMSH
+
+   subroutine toGMSHElementNodeOrdering( oldList, elemType )
+      integer, pointer :: oldList(:)
+      integer, dimension(size(oldList)) :: nodeOrder, gmshNodeList
+      integer i, elemType
+
+      numNodes = size(oldList)
+
+      ! Specify node ordering
+      select case( elemType )
+         ! Quads
+       case (3)
+         nodeOrder = (/1, 2, 4, 3/)
+         ! Hexahedron
+       case (5)
+         nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
+
+       case default
+         do i=1, numNodes
+            nodeOrder(i) = i
+         end do
+      end select
+
+      ! Reorder nodes
+      do i=1, numNodes
+         gmshNodeList(i) = oldList( nodeOrder(i) )
+      end do
+
+      ! Allocate to original list, and dealloc temp list.
+      oldList(:) = gmshNodeList(:)
+
+   end subroutine toGMSHElementNodeOrdering
+
+
+
+   subroutine deallocateElementList( elements )
+      type(GMSHelement), pointer :: elements(:)
+      integer i
+
+      do i = 1, size(elements)
+         deallocate(elements(i)%tags)
+         deallocate(elements(i)%nodeIDs)
+      end do
+
+      deallocate( elements )
+
+   end subroutine deallocateElementList
 
 end module gmsh_common

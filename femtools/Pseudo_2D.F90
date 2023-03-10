@@ -26,14 +26,14 @@
 !    USA
 
 subroutine set_pseudo2d_domain(val)
-  !!< Set the pseudo-2D coordinate
+   !!< Set the pseudo-2D coordinate
 
-  use node_boundary, only: pseudo2d_coord
+   use node_boundary, only: pseudo2d_coord
 
-  implicit none
+   implicit none
 
-  integer, intent(in) :: val
+   integer, intent(in) :: val
 
-  pseudo2d_coord = val
+   pseudo2d_coord = val
 
 end subroutine set_pseudo2d_domain

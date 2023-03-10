@@ -29,47 +29,47 @@
 
 subroutine test_find_node_ownership_af
 
-  use fields
-  use fldebug
-  use node_ownership
-  use mesh_files
-  use unittest_tools
-  use transform_elements
+   use fields
+   use fldebug
+   use node_ownership
+   use mesh_files
+   use unittest_tools
+   use transform_elements
 
-  implicit none
+   implicit none
 
-  integer :: i
-  real, dimension(:), allocatable :: l_coords
-  integer, dimension(:), allocatable :: nodeownership
-  logical :: fail
-  type(vector_field) :: positions1, positions2
+   integer :: i
+   real, dimension(:), allocatable :: l_coords
+   integer, dimension(:), allocatable :: nodeownership
+   logical :: fail
+   type(vector_field) :: positions1, positions2
 
-  positions1 = read_mesh_files("data/rotated_square.1", quad_degree = 1, format="gmsh")
-  positions2 = read_mesh_files("data/rotated_square.2", quad_degree = 1, format="gmsh")
+   positions1 = read_mesh_files("data/rotated_square.1", quad_degree = 1, format="gmsh")
+   positions2 = read_mesh_files("data/rotated_square.2", quad_degree = 1, format="gmsh")
 
-  allocate(nodeownership(node_count(positions2)))
-  call find_node_ownership_af(positions1, positions2, nodeownership)
+   allocate(nodeownership(node_count(positions2)))
+   call find_node_ownership_af(positions1, positions2, nodeownership)
 
-  call report_test("[All node owners found]", any(nodeownership < 0), .false., "Not all node owners found")
+   call report_test("[All node owners found]", any(nodeownership < 0), .false., "Not all node owners found")
 
-  call report_test("[Correct map size]", size(nodeownership) /= node_count(positions2), .false., "Incorrect map size")
-  fail = .false.
-  do i = 1, node_count(positions2)
-    allocate(l_coords(ele_loc(positions1, nodeownership(i))))
-    l_coords = local_coords(positions1, nodeownership(i), node_val(positions2, i))
-    if(any(l_coords < - default_ownership_tolerance)) then
-      fail = .true.
-      exit
-    end if
-    deallocate(l_coords)
-  end do
-  call report_test("[Valid map]", fail, .false., "Invalid map")
+   call report_test("[Correct map size]", size(nodeownership) /= node_count(positions2), .false., "Incorrect map size")
+   fail = .false.
+   do i = 1, node_count(positions2)
+      allocate(l_coords(ele_loc(positions1, nodeownership(i))))
+      l_coords = local_coords(positions1, nodeownership(i), node_val(positions2, i))
+      if(any(l_coords < - default_ownership_tolerance)) then
+         fail = .true.
+         exit
+      end if
+      deallocate(l_coords)
+   end do
+   call report_test("[Valid map]", fail, .false., "Invalid map")
 
-  deallocate(nodeownership)
+   deallocate(nodeownership)
 
-  call deallocate(positions1)
-  call deallocate(positions2)
+   call deallocate(positions1)
+   call deallocate(positions2)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
 end subroutine test_find_node_ownership_af

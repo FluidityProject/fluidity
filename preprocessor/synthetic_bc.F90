@@ -29,42 +29,42 @@
 
 module synthetic_bc
 
-use fldebug
-use spud
-use global_parameters, only: dt, option_path_len
-use elements
-use mpi_interfaces
-use parallel_tools
-use transform_elements
-use fetools
-use fields
-use state_module
+   use fldebug
+   use spud
+   use global_parameters, only: dt, option_path_len
+   use elements
+   use mpi_interfaces
+   use parallel_tools
+   use transform_elements
+   use fetools
+   use fields
+   use state_module
 
-implicit none
+   implicit none
 
-private
-public synthetic_eddy_method, add_sem_bc, initialise_sem_memory
-
-
-type eddy
-   !!< Store eddy info, for synthetic eddy method
-   real, dimension(:),pointer:: xeddy
-   real, dimension(:),pointer:: yeddy
-   real, dimension(:),pointer:: zeddy
-
-   integer, dimension(:),pointer:: eu
-   integer, dimension(:),pointer:: ev
-   integer, dimension(:),pointer:: ew
-end type eddy
+   private
+   public synthetic_eddy_method, add_sem_bc, initialise_sem_memory
 
 
-integer, save:: sem_bc_count=0
-type(eddy),dimension(:),pointer,save:: eddies
+   type eddy
+      !!< Store eddy info, for synthetic eddy method
+      real, dimension(:),pointer:: xeddy
+      real, dimension(:),pointer:: yeddy
+      real, dimension(:),pointer:: zeddy
+
+      integer, dimension(:),pointer:: eu
+      integer, dimension(:),pointer:: ev
+      integer, dimension(:),pointer:: ew
+   end type eddy
+
+
+   integer, save:: sem_bc_count=0
+   type(eddy),dimension(:),pointer,save:: eddies
 
 contains
 
-  subroutine synthetic_eddy_method(surface_field, surface_field1,  &
-       surface_field2, surface_field3, bc_position, bc_path_i, ns)
+   subroutine synthetic_eddy_method(surface_field, surface_field1,  &
+      surface_field2, surface_field3, bc_position, bc_path_i, ns)
 
       ! declarations
       type(vector_field),intent(inout)     :: surface_field
@@ -523,11 +523,11 @@ contains
       deallocate(ufl,vfl,wfl)
 
       ewrite(3,*) 'leaving turbulent inlet boundary conditions routine'
-    end subroutine synthetic_eddy_method
+   end subroutine synthetic_eddy_method
 
-    !----------------------------------------------------------
+   !----------------------------------------------------------
 
-    function esign()
+   function esign()
 
       integer :: esign
       real    :: i
@@ -535,50 +535,50 @@ contains
       call random_number(i)
 
       if (i<0.5) then
-        esign = -1
+         esign = -1
       else
-        esign = +1
+         esign = +1
       endif
 
       return
-     end function esign
+   end function esign
 
-     !----------------------------------------------------------
+   !----------------------------------------------------------
 
-     subroutine initialise_sem_memory(ns,nots)
+   subroutine initialise_sem_memory(ns,nots)
 
-       logical,save::initialise_memory=.false.
-       logical,allocatable,dimension(:),save::initeddymem
-       integer:: ns, nots, nsem
+      logical,save::initialise_memory=.false.
+      logical,allocatable,dimension(:),save::initeddymem
+      integer:: ns, nots, nsem
 
-       nsem=sem_bc_count
+      nsem=sem_bc_count
 
-       if(.not.initialise_memory)then
-          allocate(initeddymem(nsem))
-          initeddymem=.true.
-          allocate(eddies(nsem))
-          initialise_memory=.true.
-       endif
+      if(.not.initialise_memory)then
+         allocate(initeddymem(nsem))
+         initeddymem=.true.
+         allocate(eddies(nsem))
+         initialise_memory=.true.
+      endif
 
-       if(initeddymem(ns))then
-          allocate(eddies(ns)%xeddy(nots));allocate (eddies(ns)%yeddy(nots));allocate(eddies(ns)%zeddy(nots))
-          allocate(eddies(ns)%eu(nots))   ;allocate(eddies(ns)%ev(nots))    ;allocate(eddies(ns)%ew(nots))
-          initeddymem(ns)=.false.
-       endif
+      if(initeddymem(ns))then
+         allocate(eddies(ns)%xeddy(nots));allocate (eddies(ns)%yeddy(nots));allocate(eddies(ns)%zeddy(nots))
+         allocate(eddies(ns)%eu(nots))   ;allocate(eddies(ns)%ev(nots))    ;allocate(eddies(ns)%ew(nots))
+         initeddymem(ns)=.false.
+      endif
 
-     end subroutine initialise_sem_memory
+   end subroutine initialise_sem_memory
 
-     !----------------------------------------------------------
+   !----------------------------------------------------------
 
-     subroutine add_sem_bc(have_sem_bc)
+   subroutine add_sem_bc(have_sem_bc)
 
-       logical:: have_sem_bc
+      logical:: have_sem_bc
 
-       if (have_sem_bc) then
-          sem_bc_count=sem_bc_count+1
-       end if
+      if (have_sem_bc) then
+         sem_bc_count=sem_bc_count+1
+      end if
 
-     end subroutine add_sem_bc
+   end subroutine add_sem_bc
 
 
-   end module synthetic_bc
+end module synthetic_bc

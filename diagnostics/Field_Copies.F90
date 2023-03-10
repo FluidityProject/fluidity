@@ -29,595 +29,595 @@
 
 module field_copies_diagnostics
 
-  use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use spud
-  use fldebug
-  use vector_tools, only: solve
-  use sparse_tools
-  use transform_elements
-  use fetools
-  use fields
-  use state_module
-  use field_options
-  use diagnostic_source_fields
-  use sparse_matrices_fields
-  use solvers
-  use smoothing_module
-  use sparsity_patterns_meshes
-  use state_fields_module
+   use fldebug
+   use global_parameters, only : OPTION_PATH_LEN
+   use spud
+   use fldebug
+   use vector_tools, only: solve
+   use sparse_tools
+   use transform_elements
+   use fetools
+   use fields
+   use state_module
+   use field_options
+   use diagnostic_source_fields
+   use sparse_matrices_fields
+   use solvers
+   use smoothing_module
+   use sparsity_patterns_meshes
+   use state_fields_module
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
-  public :: calculate_extract_scalar_component
-  public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
-  public :: calculate_helmholtz_smoothed_scalar, calculate_helmholtz_smoothed_vector, calculate_helmholtz_smoothed_tensor
-  public :: calculate_lumped_mass_smoothed_scalar, calculate_lumped_mass_smoothed_vector
-  public :: calculate_lumped_mass_smoothed_tensor
-  public :: calculate_helmholtz_anisotropic_smoothed_scalar, calculate_helmholtz_anisotropic_smoothed_vector
-  public :: calculate_helmholtz_anisotropic_smoothed_tensor
+   public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
+   public :: calculate_extract_scalar_component
+   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
+   public :: calculate_helmholtz_smoothed_scalar, calculate_helmholtz_smoothed_vector, calculate_helmholtz_smoothed_tensor
+   public :: calculate_lumped_mass_smoothed_scalar, calculate_lumped_mass_smoothed_vector
+   public :: calculate_lumped_mass_smoothed_tensor
+   public :: calculate_helmholtz_anisotropic_smoothed_scalar, calculate_helmholtz_anisotropic_smoothed_vector
+   public :: calculate_helmholtz_anisotropic_smoothed_tensor
 
 contains
 
-  subroutine calculate_scalar_copy(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
-
-    type(scalar_field), pointer :: source_field
-    integer :: stat
-
-    source_field => scalar_source_field(state, s_field)
-
-    call remap_field(source_field, s_field, stat)
-    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
-        FLExit("In the scalar_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
-        FLExit("In the scalar_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
-        FLExit("In the scalar_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
-      if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
-        FLExit("In the scalar_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
-      end if
-    end if
-
-
-  end subroutine calculate_scalar_copy
-
-  subroutine calculate_vector_copy(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
-
-    type(vector_field), pointer :: source_field
-    integer :: stat
-
-    source_field => vector_source_field(state, v_field)
-
-    call remap_field(source_field, v_field, stat)
-    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
-        FLExit("In the vector_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
-        FLExit("In the vector_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
-        FLExit("In the vector_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
-      if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
-        FLExit("In the vector_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
-      end if
-    end if
-
-  end subroutine calculate_vector_copy
-
-  subroutine calculate_tensor_copy(state, t_field)
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: t_field
-
-    type(tensor_field), pointer :: source_field
-    integer :: stat
-
-    source_field => tensor_source_field(state, t_field)
-
-    call remap_field(source_field, t_field, stat)
-    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
-        FLExit("In the tensor_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
-        FLExit("In the tensor_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
-      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
-        FLExit("In the tensor_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
-      end if
-    else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
-      if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
-        FLExit("In the tensor_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
-      end if
-    end if
-
-  end subroutine calculate_tensor_copy
-
-  subroutine calculate_extract_scalar_component(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
-
-    logical :: allocated
-    type(scalar_field), pointer :: source_field
-
-    source_field => scalar_source_field(state, s_field, allocated = allocated)
-    call remap_field(source_field, s_field)
-    if(allocated) deallocate(source_field)
-
-  end subroutine calculate_extract_scalar_component
-
-  subroutine calculate_scalar_galerkin_projection(state, s_field)
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: s_field
-
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
-
-    source_field => scalar_source_field(state, s_field)
-    positions => extract_vector_field(state, "Coordinate")
-
-    select case(continuity(s_field))
-      case(0)
-        call gp_continuous
-      case(-1)
-        call gp_discontinuous
-      case default
-        ewrite(-1, *) "For mesh continuity", continuity(s_field)
-        FLAbort("Unrecognised mesh continuity")
-    end select
-
-  contains
-
-    subroutine gp_continuous
-      type(csr_matrix) :: mass
-      type(csr_sparsity), pointer :: sparsity
-      type(scalar_field) :: rhs
-
-      integer :: i
-
-      sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, s_field%mesh)
-      call allocate(mass, sparsity, name = "MassMatrix")
-      call allocate(rhs, s_field%mesh, "RHS")
-
-      call zero(mass)
-      call zero(rhs)
-      do i = 1, ele_count(s_field)
-        call assemble_gp_ele(i, s_field, positions, source_field, mass, rhs)
-      end do
-
-      call petsc_solve(s_field, mass, rhs, &
-        & option_path = trim(complete_field_path(s_field%option_path)) // "/algorithm")
-
-      call deallocate(mass)
-      call deallocate(rhs)
-
-    end subroutine gp_continuous
-
-    subroutine assemble_gp_ele(ele, s_field, positions, source_field, mass, rhs)
-      integer, intent(in) :: ele
-      type(scalar_field), intent(in) :: s_field
-      type(vector_field), intent(in) :: positions
-      type(scalar_field), intent(in) :: source_field
-      type(csr_matrix), intent(inout) :: mass
-      type(scalar_field), intent(inout) :: rhs
-
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_ngi(s_field, ele)) :: detwei
-      type(element_type), pointer :: shape
-
-      shape => ele_shape(s_field, ele)
-
-      call transform_to_physical(positions, ele, detwei = detwei)
-
-      nodes => ele_nodes(s_field, ele)
-
-      call addto(mass, nodes, nodes, shape_shape(shape, shape, detwei))
-      call addto(rhs, nodes, shape_rhs(shape, detwei * ele_val_at_quad(source_field, ele)))
-
-    end subroutine assemble_gp_ele
-
-    subroutine gp_discontinuous
-      integer :: i
-
-      do i = 1, ele_count(s_field)
-        call solve_gp_ele(i, s_field, positions, source_field)
-      end do
-
-    end subroutine gp_discontinuous
-
-    subroutine solve_gp_ele(ele, s_field, positions, source_field)
-      integer, intent(in) :: ele
+   subroutine calculate_scalar_copy(state, s_field)
+      type(state_type), intent(in) :: state
       type(scalar_field), intent(inout) :: s_field
-      type(vector_field), intent(in) :: positions
-      type(scalar_field), intent(in) :: source_field
 
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_loc(s_field, ele)) :: little_rhs
-      real, dimension(ele_loc(s_field, ele), ele_loc(s_field, ele)) :: little_mass
-      real, dimension(ele_ngi(s_field, ele)) :: detwei
-      type(element_type), pointer :: shape
+      type(scalar_field), pointer :: source_field
+      integer :: stat
 
-      shape => ele_shape(s_field, ele)
+      source_field => scalar_source_field(state, s_field)
 
-      call transform_to_physical(positions, ele, detwei = detwei)
+      call remap_field(source_field, s_field, stat)
+      if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+            FLExit("In the scalar_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+         if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+            FLExit("In the scalar_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+            FLExit("In the scalar_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+         if(.not.have_option(trim(complete_field_path(s_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+            FLExit("In the scalar_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+         end if
+      end if
 
-      little_mass = shape_shape(shape, shape, detwei)
-      little_rhs = shape_rhs(shape, detwei * ele_val_at_quad(source_field, ele))
-      call solve(little_mass, little_rhs)
 
-      nodes => ele_nodes(s_field, ele)
+   end subroutine calculate_scalar_copy
 
-      call set(s_field, nodes, little_rhs)
-
-    end subroutine solve_gp_ele
-
-  end subroutine calculate_scalar_galerkin_projection
-
-  subroutine calculate_vector_galerkin_projection(state, v_field)
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(inout) :: v_field
-
-    type(vector_field), pointer :: source_field
-    type(vector_field), pointer :: positions
-
-    source_field => vector_source_field(state, v_field)
-    positions => extract_vector_field(state, "Coordinate")
-
-    select case(continuity(v_field))
-      case(0)
-        call gp_continuous
-      case(-1)
-        call gp_discontinuous
-      case default
-        ewrite(-1, *) "For mesh continuity", continuity(v_field)
-        FLAbort("Unrecognised mesh continuity")
-    end select
-
-  contains
-
-    subroutine gp_continuous
-      type(csr_matrix) :: mass
-      type(csr_sparsity), pointer :: sparsity
-      type(vector_field) :: rhs
-
-      integer :: i
-
-      sparsity => get_csr_sparsity_firstorder(state, v_field%mesh, v_field%mesh)
-      call allocate(mass, sparsity, name = "MassMatrix")
-      call allocate(rhs, v_field%dim, v_field%mesh, "RHS")
-
-      call zero(mass)
-      call zero(rhs)
-      do i = 1, ele_count(v_field)
-        call assemble_gp_ele(i, v_field, positions, source_field, mass, rhs)
-      end do
-
-      call petsc_solve(v_field, mass, rhs, &
-        & option_path = trim(complete_field_path(v_field%option_path)) // "/algorithm")
-
-      call deallocate(mass)
-      call deallocate(rhs)
-
-    end subroutine gp_continuous
-
-    subroutine assemble_gp_ele(ele, v_field, positions, source_field, mass, rhs)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: v_field
-      type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: source_field
-      type(csr_matrix), intent(inout) :: mass
-      type(vector_field), intent(inout) :: rhs
-
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_ngi(v_field, ele)) :: detwei
-      type(element_type), pointer :: shape
-
-      shape => ele_shape(v_field, ele)
-
-      call transform_to_physical(positions, ele, detwei = detwei)
-
-      nodes => ele_nodes(v_field, ele)
-
-      call addto(mass, nodes, nodes, shape_shape(shape, shape, detwei))
-      call addto(rhs, nodes, shape_vector_rhs(shape, ele_val_at_quad(source_field, ele), detwei))
-
-    end subroutine assemble_gp_ele
-
-    subroutine gp_discontinuous
-      integer :: i
-
-      do i = 1, ele_count(v_field)
-        call solve_gp_ele(i, v_field, positions, source_field)
-      end do
-
-    end subroutine gp_discontinuous
-
-    subroutine solve_gp_ele(ele, v_field, positions, source_field)
-      integer, intent(in) :: ele
+   subroutine calculate_vector_copy(state, v_field)
+      type(state_type), intent(in) :: state
       type(vector_field), intent(inout) :: v_field
-      type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: source_field
 
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_loc(v_field, ele), source_field%dim) :: little_rhs
-      real, dimension(ele_loc(v_field, ele), ele_loc(v_field, ele)) :: little_mass
-      real, dimension(ele_ngi(v_field, ele)) :: detwei
-      type(element_type), pointer :: shape
+      type(vector_field), pointer :: source_field
+      integer :: stat
+
+      source_field => vector_source_field(state, v_field)
+
+      call remap_field(source_field, v_field, stat)
+      if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+            FLExit("In the vector_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+         if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+            FLExit("In the vector_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+            FLExit("In the vector_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+         if(.not.have_option(trim(complete_field_path(v_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+            FLExit("In the vector_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+         end if
+      end if
+
+   end subroutine calculate_vector_copy
+
+   subroutine calculate_tensor_copy(state, t_field)
+      type(state_type), intent(in) :: state
+      type(tensor_field), intent(inout) :: t_field
+
+      type(tensor_field), pointer :: source_field
+      integer :: stat
+
+      source_field => tensor_source_field(state, t_field)
+
+      call remap_field(source_field, t_field, stat)
+      if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_discontinuous_continuous_remap")) then
+            FLExit("In the tensor_copy diagnostic algorithm: remapping from a discontinuous mesh to a continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+         if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_unperiodic_periodic_remap")) then
+            FLExit("In the tensor_copy diagnostic algorithm: remapping from an unperiodic to a periodic mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+         if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_higher_lower_continuous_remap")) then
+            FLExit("In the tensor_copy diagnostic algorithm: remapping from a higher order continuous mesh to a lower order continuous mesh isn't allowed.")
+         end if
+      else if(stat==REMAP_ERR_BUBBLE_LAGRANGE) then
+         if(.not.have_option(trim(complete_field_path(t_field%option_path))//"/algorithm/allow_bubble_lagrange_remap")) then
+            FLExit("In the tensor_copy diagnostic algorithm: remapping from a bubble mesh to a lagrange mesh isn't allowed.")
+         end if
+      end if
+
+   end subroutine calculate_tensor_copy
+
+   subroutine calculate_extract_scalar_component(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
+
+      logical :: allocated
+      type(scalar_field), pointer :: source_field
+
+      source_field => scalar_source_field(state, s_field, allocated = allocated)
+      call remap_field(source_field, s_field)
+      if(allocated) deallocate(source_field)
+
+   end subroutine calculate_extract_scalar_component
+
+   subroutine calculate_scalar_galerkin_projection(state, s_field)
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(inout) :: s_field
+
+      type(scalar_field), pointer :: source_field
+      type(vector_field), pointer :: positions
 
-      shape => ele_shape(v_field, ele)
+      source_field => scalar_source_field(state, s_field)
+      positions => extract_vector_field(state, "Coordinate")
 
-      call transform_to_physical(positions, ele, detwei = detwei)
+      select case(continuity(s_field))
+       case(0)
+         call gp_continuous
+       case(-1)
+         call gp_discontinuous
+       case default
+         ewrite(-1, *) "For mesh continuity", continuity(s_field)
+         FLAbort("Unrecognised mesh continuity")
+      end select
 
-      little_mass = shape_shape(shape, shape, detwei)
-      little_rhs = transpose(shape_vector_rhs(shape, ele_val_at_quad(source_field, ele), detwei)  )
-      call solve(little_mass, little_rhs)
+   contains
 
-      nodes => ele_nodes(v_field, ele)
+      subroutine gp_continuous
+         type(csr_matrix) :: mass
+         type(csr_sparsity), pointer :: sparsity
+         type(scalar_field) :: rhs
+
+         integer :: i
+
+         sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, s_field%mesh)
+         call allocate(mass, sparsity, name = "MassMatrix")
+         call allocate(rhs, s_field%mesh, "RHS")
 
-      call set(v_field, nodes, transpose(little_rhs))
+         call zero(mass)
+         call zero(rhs)
+         do i = 1, ele_count(s_field)
+            call assemble_gp_ele(i, s_field, positions, source_field, mass, rhs)
+         end do
 
-    end subroutine solve_gp_ele
+         call petsc_solve(s_field, mass, rhs, &
+         & option_path = trim(complete_field_path(s_field%option_path)) // "/algorithm")
 
-  end subroutine calculate_vector_galerkin_projection
+         call deallocate(mass)
+         call deallocate(rhs)
 
-  subroutine calculate_helmholtz_smoothed_scalar(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
+      end subroutine gp_continuous
 
-    character(len = OPTION_PATH_LEN) :: path
-    logical :: allocated
-    real :: alpha
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
+      subroutine assemble_gp_ele(ele, s_field, positions, source_field, mass, rhs)
+         integer, intent(in) :: ele
+         type(scalar_field), intent(in) :: s_field
+         type(vector_field), intent(in) :: positions
+         type(scalar_field), intent(in) :: source_field
+         type(csr_matrix), intent(inout) :: mass
+         type(scalar_field), intent(inout) :: rhs
 
-    ewrite(1, *) "In calculate_helmholtz_smoothed_scalar"
+         integer, dimension(:), pointer :: nodes
+         real, dimension(ele_ngi(s_field, ele)) :: detwei
+         type(element_type), pointer :: shape
 
-    source_field => scalar_source_field(state, s_field, allocated = allocated)
-    positions => extract_vector_field(state, "Coordinate")
+         shape => ele_shape(s_field, ele)
 
-    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
+         call transform_to_physical(positions, ele, detwei = detwei)
 
-    ewrite_minmax(source_field)
-    call smooth_scalar(source_field, positions, s_field, alpha, path)
-    ewrite_minmax(s_field)
+         nodes => ele_nodes(s_field, ele)
 
-    if(allocated) deallocate(source_field)
+         call addto(mass, nodes, nodes, shape_shape(shape, shape, detwei))
+         call addto(rhs, nodes, shape_rhs(shape, detwei * ele_val_at_quad(source_field, ele)))
 
-    ewrite(1, *) "Exiting calculate_helmholtz_smoothed_scalar"
+      end subroutine assemble_gp_ele
 
-  end subroutine calculate_helmholtz_smoothed_scalar
+      subroutine gp_discontinuous
+         integer :: i
 
-  subroutine calculate_helmholtz_smoothed_vector(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
+         do i = 1, ele_count(s_field)
+            call solve_gp_ele(i, s_field, positions, source_field)
+         end do
 
-    character(len = OPTION_PATH_LEN) :: path
-    real :: alpha
-    type(vector_field), pointer :: source_field, positions
+      end subroutine gp_discontinuous
 
-    ewrite(1, *) "In calculate_helmholtz_smoothed_vector"
+      subroutine solve_gp_ele(ele, s_field, positions, source_field)
+         integer, intent(in) :: ele
+         type(scalar_field), intent(inout) :: s_field
+         type(vector_field), intent(in) :: positions
+         type(scalar_field), intent(in) :: source_field
 
-    source_field => vector_source_field(state, v_field)
-    positions => extract_vector_field(state, "Coordinate")
+         integer, dimension(:), pointer :: nodes
+         real, dimension(ele_loc(s_field, ele)) :: little_rhs
+         real, dimension(ele_loc(s_field, ele), ele_loc(s_field, ele)) :: little_mass
+         real, dimension(ele_ngi(s_field, ele)) :: detwei
+         type(element_type), pointer :: shape
 
-    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
+         shape => ele_shape(s_field, ele)
 
-    call smooth_vector(source_field, positions, v_field, alpha, path)
-    ewrite_minmax(v_field)
+         call transform_to_physical(positions, ele, detwei = detwei)
 
-    ewrite(1, *) "Exiting calculate_helmholtz_smoothed_vector"
+         little_mass = shape_shape(shape, shape, detwei)
+         little_rhs = shape_rhs(shape, detwei * ele_val_at_quad(source_field, ele))
+         call solve(little_mass, little_rhs)
 
-  end subroutine calculate_helmholtz_smoothed_vector
+         nodes => ele_nodes(s_field, ele)
 
-  subroutine calculate_helmholtz_smoothed_tensor(state, t_field)
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: t_field
+         call set(s_field, nodes, little_rhs)
 
-    character(len = OPTION_PATH_LEN) :: path
-    real :: alpha
-    type(vector_field), pointer :: positions
-    type(tensor_field), pointer :: source_field
+      end subroutine solve_gp_ele
 
-    ewrite(1, *) "In calculate_helmholtz_smoothed_tensor"
+   end subroutine calculate_scalar_galerkin_projection
 
-    positions => extract_vector_field(state, "Coordinate")
-    source_field => tensor_source_field(state, t_field)
+   subroutine calculate_vector_galerkin_projection(state, v_field)
+      type(state_type), intent(inout) :: state
+      type(vector_field), intent(inout) :: v_field
 
-    path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
-    call smooth_tensor(source_field, positions, t_field, alpha, path)
+      type(vector_field), pointer :: source_field
+      type(vector_field), pointer :: positions
 
-    ewrite_minmax(source_field)
-    ewrite_minmax(t_field)
+      source_field => vector_source_field(state, v_field)
+      positions => extract_vector_field(state, "Coordinate")
 
-    ewrite(1, *) "Exiting calculate_helmholtz_smoothed_tensor"
+      select case(continuity(v_field))
+       case(0)
+         call gp_continuous
+       case(-1)
+         call gp_discontinuous
+       case default
+         ewrite(-1, *) "For mesh continuity", continuity(v_field)
+         FLAbort("Unrecognised mesh continuity")
+      end select
 
-  end subroutine calculate_helmholtz_smoothed_tensor
+   contains
 
-  subroutine calculate_helmholtz_anisotropic_smoothed_scalar(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
+      subroutine gp_continuous
+         type(csr_matrix) :: mass
+         type(csr_sparsity), pointer :: sparsity
+         type(vector_field) :: rhs
 
-    character(len = OPTION_PATH_LEN) :: path
-    logical :: allocated
-    real :: alpha
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
+         integer :: i
 
-    ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_scalar"
+         sparsity => get_csr_sparsity_firstorder(state, v_field%mesh, v_field%mesh)
+         call allocate(mass, sparsity, name = "MassMatrix")
+         call allocate(rhs, v_field%dim, v_field%mesh, "RHS")
 
-    positions => extract_vector_field(state, "Coordinate")
-    source_field => scalar_source_field(state, s_field, allocated = allocated)
+         call zero(mass)
+         call zero(rhs)
+         do i = 1, ele_count(v_field)
+            call assemble_gp_ele(i, v_field, positions, source_field, mass, rhs)
+         end do
 
-    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
-    call anisotropic_smooth_scalar(source_field, positions, s_field, alpha, path)
+         call petsc_solve(v_field, mass, rhs, &
+         & option_path = trim(complete_field_path(v_field%option_path)) // "/algorithm")
 
-    ewrite_minmax(source_field)
-    ewrite_minmax(s_field)
+         call deallocate(mass)
+         call deallocate(rhs)
 
-    if(allocated) deallocate(source_field)
+      end subroutine gp_continuous
 
-    ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_scalar"
+      subroutine assemble_gp_ele(ele, v_field, positions, source_field, mass, rhs)
+         integer, intent(in) :: ele
+         type(vector_field), intent(in) :: v_field
+         type(vector_field), intent(in) :: positions
+         type(vector_field), intent(in) :: source_field
+         type(csr_matrix), intent(inout) :: mass
+         type(vector_field), intent(inout) :: rhs
 
-  end subroutine calculate_helmholtz_anisotropic_smoothed_scalar
+         integer, dimension(:), pointer :: nodes
+         real, dimension(ele_ngi(v_field, ele)) :: detwei
+         type(element_type), pointer :: shape
 
-  subroutine calculate_helmholtz_anisotropic_smoothed_vector(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
+         shape => ele_shape(v_field, ele)
 
-    character(len = OPTION_PATH_LEN) :: path
-    real :: alpha
-    type(vector_field), pointer :: positions, source_field
+         call transform_to_physical(positions, ele, detwei = detwei)
 
-    ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_vector"
+         nodes => ele_nodes(v_field, ele)
 
-    positions       => extract_vector_field(state, "Coordinate")
-    source_field => vector_source_field(state, v_field)
+         call addto(mass, nodes, nodes, shape_shape(shape, shape, detwei))
+         call addto(rhs, nodes, shape_vector_rhs(shape, ele_val_at_quad(source_field, ele), detwei))
 
-    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
-    call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
+      end subroutine assemble_gp_ele
 
-    ewrite_minmax(source_field)
-    ewrite_minmax(v_field)
+      subroutine gp_discontinuous
+         integer :: i
 
-    ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_vector"
+         do i = 1, ele_count(v_field)
+            call solve_gp_ele(i, v_field, positions, source_field)
+         end do
 
-  end subroutine calculate_helmholtz_anisotropic_smoothed_vector
+      end subroutine gp_discontinuous
 
-  subroutine calculate_helmholtz_anisotropic_smoothed_tensor(state, t_field)
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: t_field
+      subroutine solve_gp_ele(ele, v_field, positions, source_field)
+         integer, intent(in) :: ele
+         type(vector_field), intent(inout) :: v_field
+         type(vector_field), intent(in) :: positions
+         type(vector_field), intent(in) :: source_field
 
-    character(len = OPTION_PATH_LEN) :: path
-    real :: alpha
-    type(vector_field), pointer :: positions
-    type(tensor_field), pointer :: source_field
+         integer, dimension(:), pointer :: nodes
+         real, dimension(ele_loc(v_field, ele), source_field%dim) :: little_rhs
+         real, dimension(ele_loc(v_field, ele), ele_loc(v_field, ele)) :: little_mass
+         real, dimension(ele_ngi(v_field, ele)) :: detwei
+         type(element_type), pointer :: shape
 
-    ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_tensor"
+         shape => ele_shape(v_field, ele)
 
-    positions       => extract_vector_field(state, "Coordinate")
-    source_field => tensor_source_field(state, t_field)
+         call transform_to_physical(positions, ele, detwei = detwei)
 
-    path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
-    ewrite(2, *) "alpha = ", alpha
-    call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
+         little_mass = shape_shape(shape, shape, detwei)
+         little_rhs = transpose(shape_vector_rhs(shape, ele_val_at_quad(source_field, ele), detwei)  )
+         call solve(little_mass, little_rhs)
 
-    ewrite_minmax(source_field)
-    ewrite_minmax(t_field)
+         nodes => ele_nodes(v_field, ele)
 
-    ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_tensor"
+         call set(v_field, nodes, transpose(little_rhs))
 
-  end subroutine calculate_helmholtz_anisotropic_smoothed_tensor
+      end subroutine solve_gp_ele
 
-  subroutine calculate_lumped_mass_smoothed_scalar(state, s_field)
+   end subroutine calculate_vector_galerkin_projection
 
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: s_field
-    type(scalar_field), pointer :: source_field, lumpedmass
-    type(scalar_field) :: inverse_lumpedmass
-    type(csr_matrix), pointer :: mass
-    logical :: allocated
+   subroutine calculate_helmholtz_smoothed_scalar(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
 
-    ewrite(1, *) "In calculate_lumped_mass_smoothed_scalar"
+      character(len = OPTION_PATH_LEN) :: path
+      logical :: allocated
+      real :: alpha
+      type(scalar_field), pointer :: source_field
+      type(vector_field), pointer :: positions
 
-    source_field => scalar_source_field(state, s_field, allocated = allocated)
+      ewrite(1, *) "In calculate_helmholtz_smoothed_scalar"
 
-    ! Apply smoothing filter
-    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
-    mass => get_mass_matrix(state, source_field%mesh)
-    lumpedmass => get_lumped_mass(state, source_field%mesh)
-    call invert(lumpedmass, inverse_lumpedmass)
-    call mult( s_field, mass, source_field)
-    call scale(s_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
-    call deallocate(inverse_lumpedmass)
-    if(allocated) deallocate(source_field)
+      source_field => scalar_source_field(state, s_field, allocated = allocated)
+      positions => extract_vector_field(state, "Coordinate")
 
-    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_scalar"
+      path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
 
-  end subroutine calculate_lumped_mass_smoothed_scalar
+      ewrite_minmax(source_field)
+      call smooth_scalar(source_field, positions, s_field, alpha, path)
+      ewrite_minmax(s_field)
 
-  subroutine calculate_lumped_mass_smoothed_vector(state, v_field)
+      if(allocated) deallocate(source_field)
 
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(inout) :: v_field
-    type(vector_field), pointer :: source_field
-    type(scalar_field), pointer :: lumpedmass
-    type(scalar_field) :: inverse_lumpedmass
-    type(csr_matrix), pointer :: mass
+      ewrite(1, *) "Exiting calculate_helmholtz_smoothed_scalar"
 
-    ewrite(1, *) "In calculate_lumped_mass_smoothed_vector"
+   end subroutine calculate_helmholtz_smoothed_scalar
 
-    source_field => vector_source_field(state, v_field)
+   subroutine calculate_helmholtz_smoothed_vector(state, v_field)
+      type(state_type), intent(in) :: state
+      type(vector_field), intent(inout) :: v_field
 
-    ! Apply smoothing filter
-    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
-    mass => get_mass_matrix(state, source_field%mesh)
-    lumpedmass => get_lumped_mass(state, source_field%mesh)
-    call invert(lumpedmass, inverse_lumpedmass)
-    call mult( v_field, mass, source_field)
-    call scale(v_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
-    call deallocate(inverse_lumpedmass)
+      character(len = OPTION_PATH_LEN) :: path
+      real :: alpha
+      type(vector_field), pointer :: source_field, positions
 
-    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_vector"
+      ewrite(1, *) "In calculate_helmholtz_smoothed_vector"
 
-  end subroutine calculate_lumped_mass_smoothed_vector
+      source_field => vector_source_field(state, v_field)
+      positions => extract_vector_field(state, "Coordinate")
 
-  subroutine calculate_lumped_mass_smoothed_tensor(state, t_field)
+      path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
 
-    type(state_type), intent(inout) :: state
-    type(tensor_field), intent(inout) :: t_field
-    type(tensor_field), pointer :: source_field
-    type(scalar_field), pointer :: lumpedmass
-    type(scalar_field) :: inverse_lumpedmass
-    type(csr_matrix), pointer :: mass
+      call smooth_vector(source_field, positions, v_field, alpha, path)
+      ewrite_minmax(v_field)
 
-    ewrite(1, *) "In calculate_lumped_mass_smoothed_tensor"
+      ewrite(1, *) "Exiting calculate_helmholtz_smoothed_vector"
 
-    source_field => tensor_source_field(state, t_field)
+   end subroutine calculate_helmholtz_smoothed_vector
 
-    ! Apply smoothing filter
-    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
-    mass => get_mass_matrix(state, source_field%mesh)
-    lumpedmass => get_lumped_mass(state, source_field%mesh)
-    call invert(lumpedmass, inverse_lumpedmass)
-    ! IS IT POSSIBLE TO MULTIPLY CSR_MATRIX BY TENSOR FIELD?
-    ! SEE Sparse_Matrices_Fields/csr_mult_vector_vector
-    !call mult( t_field, mass, source_field)
-    call scale(t_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
-    call deallocate(inverse_lumpedmass)
+   subroutine calculate_helmholtz_smoothed_tensor(state, t_field)
+      type(state_type), intent(in) :: state
+      type(tensor_field), intent(inout) :: t_field
 
-    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_tensor"
+      character(len = OPTION_PATH_LEN) :: path
+      real :: alpha
+      type(vector_field), pointer :: positions
+      type(tensor_field), pointer :: source_field
 
-  end subroutine calculate_lumped_mass_smoothed_tensor
+      ewrite(1, *) "In calculate_helmholtz_smoothed_tensor"
+
+      positions => extract_vector_field(state, "Coordinate")
+      source_field => tensor_source_field(state, t_field)
+
+      path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
+      call smooth_tensor(source_field, positions, t_field, alpha, path)
+
+      ewrite_minmax(source_field)
+      ewrite_minmax(t_field)
+
+      ewrite(1, *) "Exiting calculate_helmholtz_smoothed_tensor"
+
+   end subroutine calculate_helmholtz_smoothed_tensor
+
+   subroutine calculate_helmholtz_anisotropic_smoothed_scalar(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
+
+      character(len = OPTION_PATH_LEN) :: path
+      logical :: allocated
+      real :: alpha
+      type(scalar_field), pointer :: source_field
+      type(vector_field), pointer :: positions
+
+      ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_scalar"
+
+      positions => extract_vector_field(state, "Coordinate")
+      source_field => scalar_source_field(state, s_field, allocated = allocated)
+
+      path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
+      call anisotropic_smooth_scalar(source_field, positions, s_field, alpha, path)
+
+      ewrite_minmax(source_field)
+      ewrite_minmax(s_field)
+
+      if(allocated) deallocate(source_field)
+
+      ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_scalar"
+
+   end subroutine calculate_helmholtz_anisotropic_smoothed_scalar
+
+   subroutine calculate_helmholtz_anisotropic_smoothed_vector(state, v_field)
+      type(state_type), intent(in) :: state
+      type(vector_field), intent(inout) :: v_field
+
+      character(len = OPTION_PATH_LEN) :: path
+      real :: alpha
+      type(vector_field), pointer :: positions, source_field
+
+      ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_vector"
+
+      positions       => extract_vector_field(state, "Coordinate")
+      source_field => vector_source_field(state, v_field)
+
+      path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
+      call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
+
+      ewrite_minmax(source_field)
+      ewrite_minmax(v_field)
+
+      ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_vector"
+
+   end subroutine calculate_helmholtz_anisotropic_smoothed_vector
+
+   subroutine calculate_helmholtz_anisotropic_smoothed_tensor(state, t_field)
+      type(state_type), intent(in) :: state
+      type(tensor_field), intent(inout) :: t_field
+
+      character(len = OPTION_PATH_LEN) :: path
+      real :: alpha
+      type(vector_field), pointer :: positions
+      type(tensor_field), pointer :: source_field
+
+      ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_tensor"
+
+      positions       => extract_vector_field(state, "Coordinate")
+      source_field => tensor_source_field(state, t_field)
+
+      path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
+      call get_option(trim(path) // "/smoothing_scale_factor", alpha)
+      ewrite(2, *) "alpha = ", alpha
+      call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
+
+      ewrite_minmax(source_field)
+      ewrite_minmax(t_field)
+
+      ewrite(1, *) "Exiting calculate_helmholtz_anisotropic_smoothed_tensor"
+
+   end subroutine calculate_helmholtz_anisotropic_smoothed_tensor
+
+   subroutine calculate_lumped_mass_smoothed_scalar(state, s_field)
+
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(inout) :: s_field
+      type(scalar_field), pointer :: source_field, lumpedmass
+      type(scalar_field) :: inverse_lumpedmass
+      type(csr_matrix), pointer :: mass
+      logical :: allocated
+
+      ewrite(1, *) "In calculate_lumped_mass_smoothed_scalar"
+
+      source_field => scalar_source_field(state, s_field, allocated = allocated)
+
+      ! Apply smoothing filter
+      call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+      mass => get_mass_matrix(state, source_field%mesh)
+      lumpedmass => get_lumped_mass(state, source_field%mesh)
+      call invert(lumpedmass, inverse_lumpedmass)
+      call mult( s_field, mass, source_field)
+      call scale(s_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+      call deallocate(inverse_lumpedmass)
+      if(allocated) deallocate(source_field)
+
+      ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_scalar"
+
+   end subroutine calculate_lumped_mass_smoothed_scalar
+
+   subroutine calculate_lumped_mass_smoothed_vector(state, v_field)
+
+      type(state_type), intent(inout) :: state
+      type(vector_field), intent(inout) :: v_field
+      type(vector_field), pointer :: source_field
+      type(scalar_field), pointer :: lumpedmass
+      type(scalar_field) :: inverse_lumpedmass
+      type(csr_matrix), pointer :: mass
+
+      ewrite(1, *) "In calculate_lumped_mass_smoothed_vector"
+
+      source_field => vector_source_field(state, v_field)
+
+      ! Apply smoothing filter
+      call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+      mass => get_mass_matrix(state, source_field%mesh)
+      lumpedmass => get_lumped_mass(state, source_field%mesh)
+      call invert(lumpedmass, inverse_lumpedmass)
+      call mult( v_field, mass, source_field)
+      call scale(v_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+      call deallocate(inverse_lumpedmass)
+
+      ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_vector"
+
+   end subroutine calculate_lumped_mass_smoothed_vector
+
+   subroutine calculate_lumped_mass_smoothed_tensor(state, t_field)
+
+      type(state_type), intent(inout) :: state
+      type(tensor_field), intent(inout) :: t_field
+      type(tensor_field), pointer :: source_field
+      type(scalar_field), pointer :: lumpedmass
+      type(scalar_field) :: inverse_lumpedmass
+      type(csr_matrix), pointer :: mass
+
+      ewrite(1, *) "In calculate_lumped_mass_smoothed_tensor"
+
+      source_field => tensor_source_field(state, t_field)
+
+      ! Apply smoothing filter
+      call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+      mass => get_mass_matrix(state, source_field%mesh)
+      lumpedmass => get_lumped_mass(state, source_field%mesh)
+      call invert(lumpedmass, inverse_lumpedmass)
+      ! IS IT POSSIBLE TO MULTIPLY CSR_MATRIX BY TENSOR FIELD?
+      ! SEE Sparse_Matrices_Fields/csr_mult_vector_vector
+      !call mult( t_field, mass, source_field)
+      call scale(t_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+      call deallocate(inverse_lumpedmass)
+
+      ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_tensor"
+
+   end subroutine calculate_lumped_mass_smoothed_tensor
 
 end module field_copies_diagnostics

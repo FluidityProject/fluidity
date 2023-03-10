@@ -26,45 +26,45 @@
 !    USA
 
 subroutine test_interpolation
-  !!< Test that we can interpolate from one field to another
-  use fields
-  use mesh_files
-  use unittest_tools
-  use vtk_interfaces
-  use conservative_interpolation
-  implicit none
+   !!< Test that we can interpolate from one field to another
+   use fields
+   use mesh_files
+   use unittest_tools
+   use vtk_interfaces
+   use conservative_interpolation
+   implicit none
 
-  type(vector_field) :: X_in, X_out
-  type(scalar_field) :: T_in, T_out
-  type(interpolator_type) :: interpolator
-  real :: fmin_in, fmax_in, fnorm2_in, fintegral_in
-  real :: fmin_out, fmax_out, fnorm2_out, fintegral_out
-  logical :: fail
+   type(vector_field) :: X_in, X_out
+   type(scalar_field) :: T_in, T_out
+   type(interpolator_type) :: interpolator
+   real :: fmin_in, fmax_in, fnorm2_in, fintegral_in
+   real :: fmin_out, fmax_out, fnorm2_out, fintegral_out
+   logical :: fail
 
-  X_in=read_mesh_files("square.1", quad_degree=4, format="gmsh")
-  X_out=read_mesh_files("square.2", quad_degree=4, format="gmsh")
+   X_in=read_mesh_files("square.1", quad_degree=4, format="gmsh")
+   X_out=read_mesh_files("square.2", quad_degree=4, format="gmsh")
 
-  call allocate(T_in, X_in%mesh, "tracer")
-  call allocate(T_in, X_out%mesh, "tracer")
+   call allocate(T_in, X_in%mesh, "tracer")
+   call allocate(T_in, X_out%mesh, "tracer")
 
-  call set_from_python_function(T_in, &
-       "def val(X,t): import math; return math.cos(X[0])", X, 0.0)
+   call set_from_python_function(T_in, &
+      "def val(X,t): import math; return math.cos(X[0])", X, 0.0)
 
-  interpolator=make_interpolator(X_in, X_out)
+   interpolator=make_interpolator(X_in, X_out)
 
-  call interpolate_field(interpolator, T_in, T_out)
+   call interpolate_field(interpolator, T_in, T_out)
 
-  call field_stats(T_in, X_in, fmin_in, fmax_in, fnorm2_in, fintegral_in)
+   call field_stats(T_in, X_in, fmin_in, fmax_in, fnorm2_in, fintegral_in)
 
-  call field_stats(T_out, X_out, fmin_out, fmax_out, fnorm2_out, fintegral_out)
+   call field_stats(T_out, X_out, fmin_out, fmax_out, fnorm2_out, fintegral_out)
 
-  print '(a10, 2a22)', " ","T_in","T_out"
-  print '(a10, g22.8, g22.8)', "Minimum", fmin_in, fmin_out
-  print '(a10, g22.8, g22.8)', "Maximum", fmax_in, fmax_out
-  print '(a10, g22.8, g22.8)', "2-norm", fnorm2_in, fnorm2_out
-  print '(a10, g22.8, g22.8)', "integral", integral_in, integral_out
+   print '(a10, 2a22)', " ","T_in","T_out"
+   print '(a10, g22.8, g22.8)', "Minimum", fmin_in, fmin_out
+   print '(a10, g22.8, g22.8)', "Maximum", fmax_in, fmax_out
+   print '(a10, g22.8, g22.8)', "2-norm", fnorm2_in, fnorm2_out
+   print '(a10, g22.8, g22.8)', "integral", integral_in, integral_out
 
-  call vtk_write_fields("interpolation_in", 0, X_in, X_in%mesh, (/T_in/))
-  call vtk_write_fields("interpolation_out", 0, X_in, X_in%mesh, (/T_out/))
+   call vtk_write_fields("interpolation_in", 0, X_in, X_in%mesh, (/T_in/))
+   call vtk_write_fields("interpolation_out", 0, X_in, X_in%mesh, (/T_out/))
 
 end subroutine test_interpolation

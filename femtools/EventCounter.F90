@@ -28,62 +28,62 @@
 #include "fdebug.h"
 
 module eventcounter
-  !---------------------------------------------------------------------
-  !
-  !!  This module is used to keep a record of events (eg. how often a task was performed)
-  !
-  !---------------------------------------------------------------------
+   !---------------------------------------------------------------------
+   !
+   !!  This module is used to keep a record of events (eg. how often a task was performed)
+   !
+   !---------------------------------------------------------------------
 
-  use fldebug
+   use fldebug
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  ! List of identifiers
-  integer, parameter, public ::EVENT_ADAPTIVITY=1
-  integer, parameter, public ::EVENT_MESH_MOVEMENT=2
-  integer, parameter :: MAXIMUM_NUMBER_OF_EVENTS=2
-  ! Data arrays
-  integer, save :: events(MAXIMUM_NUMBER_OF_EVENTS) = 0
+   ! List of identifiers
+   integer, parameter, public ::EVENT_ADAPTIVITY=1
+   integer, parameter, public ::EVENT_MESH_MOVEMENT=2
+   integer, parameter :: MAXIMUM_NUMBER_OF_EVENTS=2
+   ! Data arrays
+   integer, save :: events(MAXIMUM_NUMBER_OF_EVENTS) = 0
 
-  public :: incrementeventcounter, geteventcounter, seteventcounter, eventcount
+   public :: incrementeventcounter, geteventcounter, seteventcounter, eventcount
 
 contains
 
-  subroutine incrementeventcounter(event)
-    integer, intent(in)::event
+   subroutine incrementeventcounter(event)
+      integer, intent(in)::event
 
-    assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
-    events(event) = events(event) + 1
+      assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
+      events(event) = events(event) + 1
 
-  end subroutine incrementeventcounter
+   end subroutine incrementeventcounter
 
-  subroutine geteventcounter(event, cnt)
-    integer, intent(in)::event
-    integer, intent(out)::cnt
+   subroutine geteventcounter(event, cnt)
+      integer, intent(in)::event
+      integer, intent(out)::cnt
 
-    assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
-    cnt = events(event)
+      assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
+      cnt = events(event)
 
-  end subroutine geteventcounter
+   end subroutine geteventcounter
 
-  subroutine seteventcounter(event, cnt)
-    integer, intent(in)::event, cnt
+   subroutine seteventcounter(event, cnt)
+      integer, intent(in)::event, cnt
 
-    assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
-    assert(cnt > 0)
-    events(event) = cnt
+      assert(event > 0 .and. event <= MAXIMUM_NUMBER_OF_EVENTS)
+      assert(cnt > 0)
+      events(event) = cnt
 
-  end subroutine seteventcounter
+   end subroutine seteventcounter
 
-  function eventcount(event) result(cnt)
-    integer, intent(in) :: event
+   function eventcount(event) result(cnt)
+      integer, intent(in) :: event
 
-    integer :: cnt
+      integer :: cnt
 
-    call geteventcounter(event, cnt)
+      call geteventcounter(event, cnt)
 
-  end function eventcount
+   end function eventcount
 
 end module eventcounter

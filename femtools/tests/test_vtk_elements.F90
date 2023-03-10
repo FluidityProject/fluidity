@@ -49,7 +49,7 @@ subroutine test_vtk_elements
    mesh_in => extract_mesh(state, "Mesh")
 
    call report_test("[vtk_triangle]", .not. all(mesh%ndglno == mesh_in%ndglno),&
-                    .false., "DOFs are not in Fluidity ordering")
+      .false., "DOFs are not in Fluidity ordering")
 
    call deallocate(quad); call deallocate(ele); call deallocate(mesh)
    call deallocate(pos); call deallocate(sfields(1)); call deallocate(state)
@@ -76,7 +76,7 @@ subroutine test_vtk_elements
    mesh_in => extract_mesh(state, "Mesh")
 
    call report_test("[vtk_quad]", .not. all(mesh%ndglno == mesh_in%ndglno), &
-                    .false., "DOFs are not in Fluidity ordering")
+      .false., "DOFs are not in Fluidity ordering")
 
    call deallocate(quad); call deallocate(ele); call deallocate(mesh)
    call deallocate(pos); call deallocate(sfields(1)); call deallocate(state)
@@ -104,7 +104,7 @@ subroutine test_vtk_elements
    mesh_in => extract_mesh(state, "Mesh")
 
    call report_test("[vtk_tetra]", .not. all(mesh%ndglno == mesh_in%ndglno), &
-                    .false., "DOFs are not in Fluidity ordering")
+      .false., "DOFs are not in Fluidity ordering")
 
    call deallocate(quad); call deallocate(ele); call deallocate(mesh)
    call deallocate(pos); call deallocate(sfields(1)); call deallocate(state)
@@ -120,17 +120,17 @@ subroutine test_vtk_elements
 
    call allocate(pos, 3, mesh, "Pos")
    pos%val(1,:) = [0.5, 0.6, 0.6, 0.5, 0.0, 1.2, 1.2, 0.0, &
-                   0.7, 1.9, 1.9, 0.7, 1.2, 1.3, 1.3, 1.2, &
-                   1.9, 2.0, 2.0, 1.9, 1.4, 2.6, 2.6, 1.4, &
-                   2.1, 3.3, 3.3, 2.1, 2.6, 2.7, 2.7, 2.6 ]
+      0.7, 1.9, 1.9, 0.7, 1.2, 1.3, 1.3, 1.2, &
+      1.9, 2.0, 2.0, 1.9, 1.4, 2.6, 2.6, 1.4, &
+      2.1, 3.3, 3.3, 2.1, 2.6, 2.7, 2.7, 2.6 ]
    pos%val(2,:) = [0.0, 0.0, 1.2, 1.2, 0.5, 0.5, 0.6, 0.6, &
-                   0.5, 0.5, 0.6, 0.6, 0.0, 0.0, 1.2, 1.2, &
-                   0.0, 0.0, 1.2, 1.2, 0.5, 0.5, 0.6, 0.6, &
-                   0.5, 0.5, 0.6, 0.6, 0.0, 0.0, 1.2, 1.2 ]
+      0.5, 0.5, 0.6, 0.6, 0.0, 0.0, 1.2, 1.2, &
+      0.0, 0.0, 1.2, 1.2, 0.5, 0.5, 0.6, 0.6, &
+      0.5, 0.5, 0.6, 0.6, 0.0, 0.0, 1.2, 1.2 ]
    pos%val(3,:) = [0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, &
-                   0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, &
-                   0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, &
-                   0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0 ]
+      0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, &
+      0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, &
+      0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0 ]
 
    call allocate(sfields(1), mesh, "TestField")
    sfields(1)%val = [(i, i=1, n_nodes)]
@@ -140,7 +140,7 @@ subroutine test_vtk_elements
    mesh_in => extract_mesh(state, "Mesh")
 
    call report_test("[vtk_hexahedra]", .not. all(mesh%ndglno == mesh_in%ndglno), &
-                    .false., "DOFs are not in Fluidity ordering")
+      .false., "DOFs are not in Fluidity ordering")
 
    call deallocate(quad); call deallocate(ele); call deallocate(mesh)
    call deallocate(pos); call deallocate(sfields(1)); call deallocate(state)

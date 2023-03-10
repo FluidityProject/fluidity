@@ -1,54 +1,54 @@
 subroutine test_invert_dg_mass_matrix
 
-  use fldebug
-  use quadrature
-  use fields
-  use mesh_files
-  use DGtools
-  use sparse_tools
-  use transform_elements
-  use Unittest_tools
-  use FETOols
+   use fldebug
+   use quadrature
+   use fields
+   use mesh_files
+   use DGtools
+   use sparse_tools
+   use transform_elements
+   use Unittest_tools
+   use FETOols
 
-  type(csr_matrix) :: inverse_mass
-  type(scalar_field), target :: u, rhs, u_check
-  integer :: quad_degree
-  type(quadrature_type), target :: quad
-  type(element_type), target :: X_shape, u_shape
-  type(mesh_type) :: u_mesh
-  type(vector_field) :: positions
+   type(csr_matrix) :: inverse_mass
+   type(scalar_field), target :: u, rhs, u_check
+   integer :: quad_degree
+   type(quadrature_type), target :: quad
+   type(element_type), target :: X_shape, u_shape
+   type(mesh_type) :: u_mesh
+   type(vector_field) :: positions
 
-  logical :: fail, warn
+   logical :: fail, warn
 
-  quad_degree = 4
-  quad=make_quadrature(vertices = 3, dim =2, degree=quad_degree)
-  X_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
-  positions=read_mesh_files('data/square.1', quad_degree=quad_degree, format="gmsh")
-  u_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
-  u_mesh = make_mesh(positions%mesh,u_shape,-1,'u_mesh')
+   quad_degree = 4
+   quad=make_quadrature(vertices = 3, dim =2, degree=quad_degree)
+   X_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
+   positions=read_mesh_files('data/square.1', quad_degree=quad_degree, format="gmsh")
+   u_shape=make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
+   u_mesh = make_mesh(positions%mesh,u_shape,-1,'u_mesh')
 
-  call get_dg_inverse_mass_matrix(inverse_mass,u_mesh,positions)
+   call get_dg_inverse_mass_matrix(inverse_mass,u_mesh,positions)
 
-  call allocate(rhs,u_mesh,'RHS')
-  call allocate(u,u_mesh,'u')
-  call allocate(u_check,u_mesh,'u_check')
+   call allocate(rhs,u_mesh,'RHS')
+   call allocate(u,u_mesh,'u')
+   call allocate(u_check,u_mesh,'u_check')
 
-  u%val = 1.0
+   u%val = 1.0
 
-  call get_rhs(rhs,u,positions)
+   call get_rhs(rhs,u,positions)
 
-  u_check%val = 0.0
-  call mult(u_check%val,inverse_mass,rhs%val)
+   u_check%val = 0.0
+   call mult(u_check%val,inverse_mass,rhs%val)
 
-  warn = maxval(abs(u%val-u_check%val))>1.0e-13
-  fail = maxval(abs(u%val-u_check%val))>1.0e-10
+   warn = maxval(abs(u%val-u_check%val))>1.0e-13
+   fail = maxval(abs(u%val-u_check%val))>1.0e-10
 
-  call report_test("[inverse dg mass matrix formed correctly using dynamic csr matrices]", warn, fail, &
-  "Inverse dg mass matrix not formed correctly")
+   call report_test("[inverse dg mass matrix formed correctly using dynamic csr matrices]", warn, fail, &
+      "Inverse dg mass matrix not formed correctly")
 
-  contains
+contains
 
-    subroutine get_rhs(rhs,u,positions)
+   subroutine get_rhs(rhs,u,positions)
       type(scalar_field), intent(in) :: u
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: positions
@@ -64,9 +64,9 @@ subroutine test_invert_dg_mass_matrix
 
       end do
 
-    end subroutine get_rhs
+   end subroutine get_rhs
 
-    subroutine assemble_rhs(ele,rhs,u,positions)
+   subroutine assemble_rhs(ele,rhs,u,positions)
       integer, intent(in) :: ele
       type(scalar_field), intent(in) :: u
       type(scalar_field), intent(inout) :: rhs
@@ -90,6 +90,6 @@ subroutine test_invert_dg_mass_matrix
 
       call addto(rhs,ele_u,matmul(mass_loc,u%val(ele_u)))
 
-    end subroutine assemble_rhs
+   end subroutine assemble_rhs
 
 end subroutine test_invert_dg_mass_matrix

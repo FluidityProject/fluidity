@@ -26,40 +26,40 @@
 !    USA
 #include "fdebug.h"
 
-  module Full_Projection
-    use fldebug
-    use global_parameters
-    use elements
-    use spud
-    use petsc
-    use parallel_tools
-    use data_structures
-    use sparse_tools
-    use fields
-    use petsc_tools
-    use signal_vars
-    use sparse_tools_petsc
-    use sparse_matrices_fields
-    use state_module
-    use halos
-    use multigrid
-    use solvers
-    use boundary_conditions
-    use petsc_solve_state_module
-    use boundary_conditions_from_options
+module Full_Projection
+   use fldebug
+   use global_parameters
+   use elements
+   use spud
+   use petsc
+   use parallel_tools
+   use data_structures
+   use sparse_tools
+   use fields
+   use petsc_tools
+   use signal_vars
+   use sparse_tools_petsc
+   use sparse_matrices_fields
+   use state_module
+   use halos
+   use multigrid
+   use solvers
+   use boundary_conditions
+   use petsc_solve_state_module
+   use boundary_conditions_from_options
 
-    implicit none
+   implicit none
 
 #include "petsc_legacy.h"
 
-    private
+   private
 
-    public petsc_solve_full_projection
+   public petsc_solve_full_projection
 
-  contains
+contains
 
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
+   subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
       state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
@@ -103,8 +103,8 @@
       ! Build Schur complement and set KSP.
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
-           lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, velocity, state, inner_mesh, auxiliary_matrix)
+         lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
+         rhs, velocity, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -120,7 +120,7 @@
       ewrite(2,*) 'Entering Core PETSc Solve'
       ! Solve Ay = b using KSP and PC. Also check convergence. We call this the inner solve.
       call petsc_solve_core(y, A, b, ksp, petsc_numbering, solver_option_path, lstartfromzero, &
-           literations, sfield=x, x0=x%val, nomatrixdump=.true.)
+         literations, sfield=x, x0=x%val, nomatrixdump=.true.)
 
       ewrite(2,*) 'Copying PETSc solution vector into designated Fluidity array'
       ! Copy back the result into the fluidity solution array (x) using the PETSc numbering:
@@ -132,12 +132,12 @@
 
       ewrite(2,*) 'Leaving PETSc_solve_full_projection'
 
-    end subroutine petsc_solve_full_projection
+   end subroutine petsc_solve_full_projection
 
 !--------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
-         lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         velocity, state, inner_mesh, auxiliary_matrix)
+   subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
+      lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
+      velocity, state, inner_mesh, auxiliary_matrix)
 
 !--------------------------------------------------------------------------------------------------------
 
@@ -212,8 +212,8 @@
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
       inner_option_path= trim(option_path)//&
-              "/prognostic/scheme/use_projection_method&
-              &/full_schur_complement/inner_matrix[0]"
+         "/prognostic/scheme/use_projection_method&
+      &/full_schur_complement/inner_matrix[0]"
 
       if (have_option(trim(option_path)//'/name')) then
          call get_option(trim(option_path)//'/name', name)
@@ -225,15 +225,15 @@
 
       ! Are we applying a reference pressure node?
       apply_reference_node = have_option(trim(option_path)//&
-                 '/prognostic/reference_node')
+         '/prognostic/reference_node')
       apply_reference_node_from_coordinates = have_option(trim(option_path)//&
-                 '/prognostic/reference_coordinates')
+         '/prognostic/reference_coordinates')
 
       ! If so, impose reference pressure node:
       if(apply_reference_node) then
 
          call get_option(trim(option_path)//&
-              '/prognostic/reference_node', reference_node)
+            '/prognostic/reference_node', reference_node)
          if (GetProcNo()==1) then
             ewrite(2,*) 'Imposing_reference_pressure_node'
             allocate(ghost_nodes(1:1))
@@ -274,20 +274,20 @@
 
       ! set up numbering used in PETSc objects:
       call allocate(petsc_numbering_u, &
-           nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
-           group_size=inner_m%row_numbering%group_size, &
-           halo=div_matrix_comp%sparsity%column_halo)
+         nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
+         group_size=inner_m%row_numbering%group_size, &
+         halo=div_matrix_comp%sparsity%column_halo)
       call allocate(petsc_numbering_p, &
-           nnodes=block_size(div_matrix_comp,1), nfields=1, &
-           halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+         nnodes=block_size(div_matrix_comp,1), nfields=1, &
+         halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
 
-           ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
-           ! - same question about the nnodes use of the rows of the block of the divergence matrix?
-           ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?
-           ! this definitely appears to be inappropriate for the auxiliary matrix (hence there's a new one added
-           ! below) so two questions:
-           ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
-           ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
+      ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
+      ! - same question about the nnodes use of the rows of the block of the divergence matrix?
+      ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?
+      ! this definitely appears to be inappropriate for the auxiliary matrix (hence there's a new one added
+      ! below) so two questions:
+      ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
+      ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
 
       ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m
       ! corresponding to dirichlet bcs have not been zeroed
@@ -309,8 +309,8 @@
       call collect_vector_dirichlet_conditions(velocity, boundary_row_set)
       ! mark these out with -1
       do i=1, velocity%dim
-        petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
-        call deallocate(boundary_row_set(i))
+         petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
+         call deallocate(boundary_row_set(i))
       end do
 
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:
@@ -337,9 +337,9 @@
          ! NOTE: we use size(auxiliary_matrix,2) here as halo rows may be absent
          allocate(ghost_nodes_aux(1:0))
          call allocate(petsc_numbering_aux, &
-              nnodes=size(auxiliary_matrix,2), nfields=1, &
-              halo=auxiliary_matrix%sparsity%column_halo, &
-              ghost_nodes=ghost_nodes_aux)
+            nnodes=size(auxiliary_matrix,2), nfields=1, &
+            halo=auxiliary_matrix%sparsity%column_halo, &
+            ghost_nodes=ghost_nodes_aux)
 
          S=csr2petsc(auxiliary_matrix, petsc_numbering_aux, petsc_numbering_aux)
 
@@ -362,67 +362,67 @@
       end if
 
       if (have_option(trim(inner_option_path)//"/solver")) then
-        ! for FullMass solver/ is required - and this is the first time we use these options
-        ! for FullMomentum solver/ is optional - if present the specified nullspace options are possibly different
-        ! in both cases we need to setup the null spaces of the inner matrix here
+         ! for FullMass solver/ is required - and this is the first time we use these options
+         ! for FullMomentum solver/ is optional - if present the specified nullspace options are possibly different
+         ! in both cases we need to setup the null spaces of the inner matrix here
 
-        ! this call returns, depending on options, prolongators and mesh_positions needed for setting
-        ! up the ksp and the nullspaces
-        call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-          state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
-          mesh_positions=mesh_positions)
+         ! this call returns, depending on options, prolongators and mesh_positions needed for setting
+         ! up the ksp and the nullspaces
+         call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
+            state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+            mesh_positions=mesh_positions)
 
-        if (associated(prolongators))then
-          FLExit("mg vertical_lumping and higher_order_lumping not supported for inner_matrix solve")
-        end if
+         if (associated(prolongators))then
+            FLExit("mg vertical_lumping and higher_order_lumping not supported for inner_matrix solve")
+         end if
 
-        rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
-        if (associated(mesh_positions)) then
-          if (rotation_stat==0) then
+         rotation_matrix => extract_petsc_csr_matrix(state, "RotationMatrix", stat=rotation_stat)
+         if (associated(mesh_positions)) then
+            if (rotation_stat==0) then
+               call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+                  positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
+                  petsc_numbering=petsc_numbering_u)
+            else
+               call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
+                  positions=mesh_positions, petsc_numbering=petsc_numbering_u)
+            end if
+            call deallocate(mesh_positions)
+            deallocate(mesh_positions)
+         elseif (rotation_stat==0) then
             call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-              positions=mesh_positions, rotation_matrix=rotation_matrix%M, &
-              petsc_numbering=petsc_numbering_u)
-          else
+               rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
+         else
             call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-              positions=mesh_positions, petsc_numbering=petsc_numbering_u)
-          end if
-          call deallocate(mesh_positions)
-          deallocate(mesh_positions)
-        elseif (rotation_stat==0) then
-          call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            rotation_matrix=rotation_matrix%M, petsc_numbering=petsc_numbering_u)
-        else
-          call attach_null_space_from_options(inner_M%M, inner_solver_option_path, &
-            petsc_numbering=petsc_numbering_u)
-        end if
+               petsc_numbering=petsc_numbering_u)
+         end if
 
       else
-        ! for FullMomentum solver/ is optional - if it's not there we reuse the option path of velocity
-        inner_solver_option_path = complete_solver_option_path(velocity%option_path)
+         ! for FullMomentum solver/ is optional - if it's not there we reuse the option path of velocity
+         inner_solver_option_path = complete_solver_option_path(velocity%option_path)
       end if
 
 
       if (inner_M%ksp==PETSC_NULL_KSP) then
-        ! use the one that's just been created for us
-        call MatSchurComplementGetKSP(A,ksp_schur,ierr)
+         ! use the one that's just been created for us
+         call MatSchurComplementGetKSP(A,ksp_schur,ierr)
 
-        ! we keep our own reference, so it can be re-used in the velocity correction solve
-        call PetscObjectReferenceWrapper(ksp_schur, ierr)
-        inner_M%ksp = ksp_schur
+         ! we keep our own reference, so it can be re-used in the velocity correction solve
+         call PetscObjectReferenceWrapper(ksp_schur, ierr)
+         inner_M%ksp = ksp_schur
       else
-        ! we have a ksp (presumably from the first velocity solve), try to reuse it
-        ewrite(2,*) "Reusing the ksp from the initial velocity solve"
-        call MatSchurComplementSetKSP(A, inner_M%ksp, ierr)
+         ! we have a ksp (presumably from the first velocity solve), try to reuse it
+         ewrite(2,*) "Reusing the ksp from the initial velocity solve"
+         call MatSchurComplementSetKSP(A, inner_M%ksp, ierr)
       end if
 
       call setup_ksp_from_options(inner_M%ksp, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
+         inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format (if required):
       have_preconditioner_matrix=.not.(have_option(trim(option_path)//&
-              "/prognostic/scheme/use_projection_method&
-              &/full_schur_complement/preconditioner_matrix::NoPreconditionerMatrix"))
+         "/prognostic/scheme/use_projection_method&
+      &/full_schur_complement/preconditioner_matrix::NoPreconditionerMatrix"))
 
       if(have_preconditioner_matrix) then
          pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
@@ -457,6 +457,6 @@
       call deallocate( petsc_numbering_u )
       ! petsc_numbering_p is passed back and destroyed there
 
-    end subroutine petsc_solve_setup_full_projection
+   end subroutine petsc_solve_setup_full_projection
 
-  end module Full_Projection
+end module Full_Projection

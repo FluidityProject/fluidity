@@ -29,77 +29,77 @@
 
 subroutine test_adapt_mesh
 
-  use fldebug
-  use adapt_integration
-  use field_options
-  use fields
-  use metric_assemble
-  use spud
-  use state_module
-  use unittest_tools
-  use vtk_interfaces
-  use populate_state_module, only: compute_domain_statistics
+   use fldebug
+   use adapt_integration
+   use field_options
+   use fields
+   use metric_assemble
+   use spud
+   use state_module
+   use unittest_tools
+   use vtk_interfaces
+   use populate_state_module, only: compute_domain_statistics
 
-  implicit none
+   implicit none
 
-  type(mesh_type), pointer :: mesh
-  type(scalar_field) :: pressure
-  type(state_type) :: state, state_array(1), state_read
-  type(vector_field) :: output_mesh_field, velocity
-  type(vector_field), pointer :: input_mesh_field
-  type(tensor_field) :: metric
+   type(mesh_type), pointer :: mesh
+   type(scalar_field) :: pressure
+   type(state_type) :: state, state_array(1), state_read
+   type(vector_field) :: output_mesh_field, velocity
+   type(vector_field), pointer :: input_mesh_field
+   type(tensor_field) :: metric
 
-  integer :: i, stat
+   integer :: i, stat
 
-  call vtk_read_state("data/pseudo2d.vtu", state_read)
+   call vtk_read_state("data/pseudo2d.vtu", state_read)
 
-  input_mesh_field => extract_vector_field(state_read, "Coordinate")
+   input_mesh_field => extract_vector_field(state_read, "Coordinate")
 
-  mesh => input_mesh_field%mesh
-  mesh%name = "CoordinateMesh"
-  call add_faces(mesh)
+   mesh => input_mesh_field%mesh
+   mesh%name = "CoordinateMesh"
+   call add_faces(mesh)
 
-  call insert(state, mesh, "CoordinateMesh")
-  call insert(state, input_mesh_field, "Coordinate")
+   call insert(state, mesh, "CoordinateMesh")
+   call insert(state, input_mesh_field, "Coordinate")
 
-  call deallocate(state_read)
+   call deallocate(state_read)
 
-  mesh => extract_mesh(state, "CoordinateMesh")
-  input_mesh_field => extract_vector_field(state, "Coordinate")
+   mesh => extract_mesh(state, "CoordinateMesh")
+   input_mesh_field => extract_vector_field(state, "Coordinate")
 
-  call allocate(pressure, mesh, "Pressure")
-  call allocate(velocity, mesh_dim(mesh), mesh, "Velocity")
+   call allocate(pressure, mesh, "Pressure")
+   call allocate(velocity, mesh_dim(mesh), mesh, "Velocity")
 
-  do i = 1, node_count(mesh)
-    call set(pressure, i, input_mesh_field%val(1,i) ** 2.0)
-    call set(velocity, i, node_val(input_mesh_field, i))
-  end do
+   do i = 1, node_count(mesh)
+      call set(pressure, i, input_mesh_field%val(1,i) ** 2.0)
+      call set(velocity, i, node_val(input_mesh_field, i))
+   end do
 
-  call adaptivity_options(state, pressure, 1.0, .false.)
+   call adaptivity_options(state, pressure, 1.0, .false.)
 
-  call insert(state, pressure, "Pressure")
-  call insert(state, velocity, "Velocity")
-  call deallocate(pressure)
-  call deallocate(velocity)
+   call insert(state, pressure, "Pressure")
+   call insert(state, velocity, "Velocity")
+   call deallocate(pressure)
+   call deallocate(velocity)
 
-  call set_option("/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes", 100000, stat = stat)
-  assert(stat == SPUD_NEW_KEY_WARNING)
-  call adaptivity_bounds(state, 0.01, 1.0, name="CoordinateMesh")
+   call set_option("/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes", 100000, stat = stat)
+   assert(stat == SPUD_NEW_KEY_WARNING)
+   call adaptivity_bounds(state, 0.01, 1.0, name="CoordinateMesh")
 
-  call allocate(metric, mesh, "Metric")
-  state_array(1) = state
-  call compute_domain_statistics(state_array)
-  call assemble_metric(state_array, metric)
+   call allocate(metric, mesh, "Metric")
+   state_array(1) = state
+   call compute_domain_statistics(state_array)
+   call assemble_metric(state_array, metric)
 
-  call adapt_mesh(input_mesh_field, metric, output_mesh_field)
-  call report_test("[adapt_mesh]", .false., .false., "adapt_mesh failure")
+   call adapt_mesh(input_mesh_field, metric, output_mesh_field)
+   call report_test("[adapt_mesh]", .false., .false., "adapt_mesh failure")
 
-  call vtk_write_fields("data/test_adapt_mesh_out", position = output_mesh_field, model = output_mesh_field%mesh)
+   call vtk_write_fields("data/test_adapt_mesh_out", position = output_mesh_field, model = output_mesh_field%mesh)
 
-  call deallocate(output_mesh_field)
-  call deallocate(metric)
-  call deallocate(state)
+   call deallocate(output_mesh_field)
+   call deallocate(metric)
+   call deallocate(state)
 
-  call report_test_no_references()
+   call report_test_no_references()
 
 end subroutine test_adapt_mesh

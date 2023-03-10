@@ -29,33 +29,33 @@
 
 module pickers_deallocates
 
-  use fldebug
-  use global_parameters, only : empty_name
-  use reference_counting
-  use picker_data_types
-  use fields_data_types
-  use pickers_base
+   use fldebug
+   use global_parameters, only : empty_name
+   use reference_counting
+   use picker_data_types
+   use fields_data_types
+   use pickers_base
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: deallocate, nullify, remove_picker, addref, incref, has_references
+   public :: deallocate, nullify, remove_picker, addref, incref, has_references
 
-  interface deallocate
-    module procedure deallocate_picker
-  end interface deallocate
+   interface deallocate
+      module procedure deallocate_picker
+   end interface deallocate
 
-  interface nullify
-    module procedure nullify_picker
-  end interface nullify
+   interface nullify
+      module procedure nullify_picker
+   end interface nullify
 
-  interface node_owner_finder_reset
-    subroutine cnode_owner_finder_reset(id)
-      implicit none
-      integer, intent(in) :: id
-    end subroutine cnode_owner_finder_reset
-  end interface node_owner_finder_reset
+   interface node_owner_finder_reset
+      subroutine cnode_owner_finder_reset(id)
+         implicit none
+         integer, intent(in) :: id
+      end subroutine cnode_owner_finder_reset
+   end interface node_owner_finder_reset
 
 #include "Reference_count_interface_picker_type.F90"
 
@@ -63,45 +63,45 @@ contains
 
 #include "Reference_count_picker_type.F90"
 
-  subroutine deallocate_picker(picker)
-    !!< Deallocate a picker
+   subroutine deallocate_picker(picker)
+      !!< Deallocate a picker
 
-    type(picker_type), intent(inout) :: picker
+      type(picker_type), intent(inout) :: picker
 
-    call decref(picker)
-    if(has_references(picker)) return
+      call decref(picker)
+      if(has_references(picker)) return
 
-    ewrite(2, *) "Deallocating picker with ID", picker%picker_id
-    call node_owner_finder_reset(picker%picker_id)
-    call nullify(picker)
+      ewrite(2, *) "Deallocating picker with ID", picker%picker_id
+      call node_owner_finder_reset(picker%picker_id)
+      call nullify(picker)
 
-  end subroutine deallocate_picker
+   end subroutine deallocate_picker
 
-  subroutine nullify_picker(picker)
-    !!< Return a picker type to its uninitialised state
+   subroutine nullify_picker(picker)
+      !!< Return a picker type to its uninitialised state
 
-    type(picker_type), intent(inout) :: picker
+      type(picker_type), intent(inout) :: picker
 
-    type(picker_type) :: null_picker
+      type(picker_type) :: null_picker
 
-    ! Initialise the null_picker name to prevent uninitialised variable access
-    call set_picker_name(picker, empty_name)
-    picker = null_picker
+      ! Initialise the null_picker name to prevent uninitialised variable access
+      call set_picker_name(picker, empty_name)
+      picker = null_picker
 
-  end subroutine nullify_picker
+   end subroutine nullify_picker
 
-  subroutine remove_picker(field)
-    !!< Remove the picker from the supplied Coordinate field
+   subroutine remove_picker(field)
+      !!< Remove the picker from the supplied Coordinate field
 
-    type(vector_field), intent(inout) :: field
+      type(vector_field), intent(inout) :: field
 
-    assert(associated(field%picker))
-    if(associated(field%picker%ptr)) then
-       call deallocate(field%picker%ptr)
-       deallocate(field%picker%ptr)
-       nullify(field%picker%ptr)
-    end if
+      assert(associated(field%picker))
+      if(associated(field%picker%ptr)) then
+         call deallocate(field%picker%ptr)
+         deallocate(field%picker%ptr)
+         nullify(field%picker%ptr)
+      end if
 
-  end subroutine remove_picker
+   end subroutine remove_picker
 
 end module pickers_deallocates

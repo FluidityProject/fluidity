@@ -1,334 +1,334 @@
 #include "fdebug.h"
 
 module integer_set_module
-  ! Don't use this directly, use data_structures
-  use iso_c_binding, only: c_ptr, c_int
-  use fldebug
-  type integer_set
-    type(c_ptr) :: address
-  end type integer_set
+   ! Don't use this directly, use data_structures
+   use iso_c_binding, only: c_ptr, c_int
+   use fldebug
+   type integer_set
+      type(c_ptr) :: address
+   end type integer_set
 
-  type integer_set_vector
-     type(integer_set), dimension(:), pointer :: sets
-  end type integer_set_vector
+   type integer_set_vector
+      type(integer_set), dimension(:), pointer :: sets
+   end type integer_set_vector
 
-  interface
-    subroutine integer_set_create_c(i) bind(c)
-      use iso_c_binding, only: c_ptr
-      type(c_ptr), intent(out) :: i
-    end subroutine integer_set_create_c
+   interface
+      subroutine integer_set_create_c(i) bind(c)
+         use iso_c_binding, only: c_ptr
+         type(c_ptr), intent(out) :: i
+      end subroutine integer_set_create_c
 
-    subroutine integer_set_delete_c(i) bind(c)
-      use iso_c_binding, only: c_ptr
-      type(c_ptr), intent(inout) :: i
-    end subroutine integer_set_delete_c
+      subroutine integer_set_delete_c(i) bind(c)
+         use iso_c_binding, only: c_ptr
+         type(c_ptr), intent(inout) :: i
+      end subroutine integer_set_delete_c
 
-    subroutine integer_set_insert_c(i, v, c) bind(c)
-      use iso_c_binding, only: c_ptr, c_int
-      type(c_ptr), intent(inout) :: i
-      integer(c_int), intent(in) :: v
-      integer(c_int), intent(out) :: c
-    end subroutine integer_set_insert_c
+      subroutine integer_set_insert_c(i, v, c) bind(c)
+         use iso_c_binding, only: c_ptr, c_int
+         type(c_ptr), intent(inout) :: i
+         integer(c_int), intent(in) :: v
+         integer(c_int), intent(out) :: c
+      end subroutine integer_set_insert_c
 
-    pure subroutine integer_set_length_c(i, l) bind(c)
-      use iso_c_binding, only: c_ptr, c_int
-      type(c_ptr), intent(in) :: i
-      integer(c_int), intent(out) :: l
-    end subroutine integer_set_length_c
+      pure subroutine integer_set_length_c(i, l) bind(c)
+         use iso_c_binding, only: c_ptr, c_int
+         type(c_ptr), intent(in) :: i
+         integer(c_int), intent(out) :: l
+      end subroutine integer_set_length_c
 
-    subroutine integer_set_fetch_c(i, idx, val) bind(c)
-      use iso_c_binding, only: c_ptr, c_int
-      type(c_ptr), intent(in) :: i
-      integer(c_int), intent(in) :: idx
-      integer(c_int), intent(out) :: val
-    end subroutine integer_set_fetch_c
+      subroutine integer_set_fetch_c(i, idx, val) bind(c)
+         use iso_c_binding, only: c_ptr, c_int
+         type(c_ptr), intent(in) :: i
+         integer(c_int), intent(in) :: idx
+         integer(c_int), intent(out) :: val
+      end subroutine integer_set_fetch_c
 
-    subroutine integer_set_remove_c(i, idx, stat) bind(c)
-      use iso_c_binding, only: c_ptr, c_int
-      type(c_ptr), intent(in) :: i
-      integer(c_int), intent(in) :: idx
-      integer(c_int), intent(out) :: stat
-    end subroutine integer_set_remove_c
+      subroutine integer_set_remove_c(i, idx, stat) bind(c)
+         use iso_c_binding, only: c_ptr, c_int
+         type(c_ptr), intent(in) :: i
+         integer(c_int), intent(in) :: idx
+         integer(c_int), intent(out) :: stat
+      end subroutine integer_set_remove_c
 
-    subroutine integer_set_has_value_c(i, val, bool) bind(c)
-      use iso_c_binding, only: c_ptr, c_int
-      type(c_ptr), intent(in) :: i
-      integer(c_int), intent(in) :: val
-      integer(c_int), intent(out) :: bool
-    end subroutine integer_set_has_value_c
-  end interface
+      subroutine integer_set_has_value_c(i, val, bool) bind(c)
+         use iso_c_binding, only: c_ptr, c_int
+         type(c_ptr), intent(in) :: i
+         integer(c_int), intent(in) :: val
+         integer(c_int), intent(out) :: bool
+      end subroutine integer_set_has_value_c
+   end interface
 
-  interface allocate
-    module procedure integer_set_allocate_single, integer_set_allocate_vector
-  end interface
+   interface allocate
+      module procedure integer_set_allocate_single, integer_set_allocate_vector
+   end interface
 
-  interface insert
-    module procedure integer_set_insert, integer_set_insert_multiple, &
-      integer_set_insert_set
-  end interface
+   interface insert
+      module procedure integer_set_insert, integer_set_insert_multiple, &
+         integer_set_insert_set
+   end interface
 
-  interface deallocate
-    module procedure integer_set_delete_single, integer_set_delete_vector
-  end interface
+   interface deallocate
+      module procedure integer_set_delete_single, integer_set_delete_vector
+   end interface
 
-  interface has_value
-    module procedure integer_set_has_value, integer_set_has_value_multiple
-  end interface
+   interface has_value
+      module procedure integer_set_has_value, integer_set_has_value_multiple
+   end interface
 
-  interface key_count
-    module procedure integer_set_length_single, integer_set_length_vector
-  end interface
+   interface key_count
+      module procedure integer_set_length_single, integer_set_length_vector
+   end interface
 
-  interface fetch
-    module procedure integer_set_fetch
-  end interface
+   interface fetch
+      module procedure integer_set_fetch
+   end interface
 
-  interface remove
-    module procedure integer_set_remove
-  end interface
+   interface remove
+      module procedure integer_set_remove
+   end interface
 
-  interface copy
-    module procedure integer_set_copy, integer_set_copy_multiple
-  end interface
+   interface copy
+      module procedure integer_set_copy, integer_set_copy_multiple
+   end interface
 
-  interface set_intersection
-    module procedure set_intersection_two, set_intersection_multiple
-  end interface
+   interface set_intersection
+      module procedure set_intersection_two, set_intersection_multiple
+   end interface
 
-  private
-  public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
-          & set_complement, set2vector, set_intersection, set_minus, remove, copy, &
-          & integer_set_vector
+   private
+   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
+   & set_complement, set2vector, set_intersection, set_minus, remove, copy, &
+   & integer_set_vector
 
-  contains
+contains
 
-  subroutine integer_set_allocate_single(iset)
-    type(integer_set), intent(out) :: iset
-    iset = integer_set_create()
-  end subroutine integer_set_allocate_single
+   subroutine integer_set_allocate_single(iset)
+      type(integer_set), intent(out) :: iset
+      iset = integer_set_create()
+   end subroutine integer_set_allocate_single
 
-  subroutine integer_set_allocate_vector(iset)
-    type(integer_set), dimension(:), intent(out) :: iset
+   subroutine integer_set_allocate_vector(iset)
+      type(integer_set), dimension(:), intent(out) :: iset
 
-    integer :: i
+      integer :: i
 
-    do i = 1, size(iset)
-      call allocate(iset(i))
-    end do
+      do i = 1, size(iset)
+         call allocate(iset(i))
+      end do
 
-  end subroutine integer_set_allocate_vector
+   end subroutine integer_set_allocate_vector
 
-  function integer_set_create() result(iset)
-    type(integer_set) :: iset
-    call integer_set_create_c(iset%address)
-  end function integer_set_create
+   function integer_set_create() result(iset)
+      type(integer_set) :: iset
+      call integer_set_create_c(iset%address)
+   end function integer_set_create
 
-  subroutine integer_set_delete_single(iset)
-    type(integer_set), intent(inout) :: iset
-    call integer_set_delete_c(iset%address)
-  end subroutine integer_set_delete_single
+   subroutine integer_set_delete_single(iset)
+      type(integer_set), intent(inout) :: iset
+      call integer_set_delete_c(iset%address)
+   end subroutine integer_set_delete_single
 
-  subroutine integer_set_delete_vector(iset)
-    type(integer_set), dimension(:), intent(inout) :: iset
+   subroutine integer_set_delete_vector(iset)
+      type(integer_set), dimension(:), intent(inout) :: iset
 
-    integer :: i
+      integer :: i
 
-    do i = 1, size(iset)
-      call deallocate(iset(i))
-    end do
+      do i = 1, size(iset)
+         call deallocate(iset(i))
+      end do
 
-  end subroutine integer_set_delete_vector
+   end subroutine integer_set_delete_vector
 
-  subroutine integer_set_insert(iset, val, changed)
-    type(integer_set), intent(inout) :: iset
-    integer, intent(in) :: val
-    logical, intent(out), optional :: changed
-    integer :: lchanged
+   subroutine integer_set_insert(iset, val, changed)
+      type(integer_set), intent(inout) :: iset
+      integer, intent(in) :: val
+      logical, intent(out), optional :: changed
+      integer :: lchanged
 
-    call integer_set_insert_c(iset%address, val, lchanged)
+      call integer_set_insert_c(iset%address, val, lchanged)
 
-    if (present(changed)) then
-      changed = (lchanged == 1)
-    end if
-  end subroutine integer_set_insert
-
-  subroutine integer_set_insert_multiple(iset, values)
-    type(integer_set), intent(inout) :: iset
-    integer, dimension(:), intent(in) :: values
-    integer :: i
-
-    do i=1,size(values)
-      call insert(iset, values(i))
-    end do
-  end subroutine integer_set_insert_multiple
-
-  subroutine integer_set_insert_set(iset, value_set)
-    type(integer_set), intent(inout) :: iset
-    type(integer_set), intent(in) :: value_set
-    integer :: i
-
-    do i=1, key_count(value_set)
-      call insert(iset, fetch(value_set,i))
-    end do
-  end subroutine integer_set_insert_set
-
-  pure function integer_set_length_single(iset) result(len)
-    type(integer_set), intent(in) :: iset
-    integer :: len
-
-    call integer_set_length_c(iset%address, len)
-  end function integer_set_length_single
-
-  pure function integer_set_length_vector(iset) result(len)
-    type(integer_set), dimension(:), intent(in) :: iset
-
-    integer, dimension(size(iset)) :: len
-
-    integer :: i
-
-    do i = 1, size(iset)
-      len(i) = key_count(iset(i))
-    end do
-
-  end function integer_set_length_vector
-
-  function integer_set_fetch(iset, idx) result(val)
-    type(integer_set), intent(in) :: iset
-    integer, intent(in) :: idx
-    integer :: val
-
-    call integer_set_fetch_c(iset%address, idx, val)
-  end function integer_set_fetch
-
-  subroutine integer_set_remove(iset, idx)
-    type(integer_set), intent(in) :: iset
-    integer, intent(in) :: idx
-    integer :: stat
-
-    call integer_set_remove_c(iset%address, idx, stat)
-    assert(stat == 1)
-  end subroutine integer_set_remove
-
-  function integer_set_has_value(iset, val) result(bool)
-    type(integer_set), intent(in) :: iset
-    integer, intent(in) :: val
-    logical :: bool
-
-    integer :: lbool
-    call integer_set_has_value_c(iset%address, val, lbool)
-    bool = (lbool == 1)
-  end function integer_set_has_value
-
-  function integer_set_has_value_multiple(iset, val) result(bool)
-    type(integer_set), intent(in) :: iset
-    integer, dimension(:), intent(in) :: val
-    logical, dimension(size(val)) :: bool
-
-    integer:: i
-
-    do i=1, size(val)
-      bool(i)=integer_set_has_value(iset, val(i))
-    end do
-  end function integer_set_has_value_multiple
-
-  subroutine set_complement(complement, universe, current)
-    ! complement = universe \ current
-    type(integer_set), intent(out) :: complement
-    type(integer_set), intent(in) :: universe, current
-    integer :: i, val
-
-    call allocate(complement)
-    do i=1,key_count(universe)
-      val = fetch(universe, i)
-      if (.not. has_value(current, val)) then
-        call insert(complement, val)
+      if (present(changed)) then
+         changed = (lchanged == 1)
       end if
-    end do
-  end subroutine set_complement
+   end subroutine integer_set_insert
 
-  subroutine set_intersection_two(intersection, A, B)
-    ! intersection = A n B
-    type(integer_set), intent(out) :: intersection
-    type(integer_set), intent(in) :: A, B
-    integer :: i, val
+   subroutine integer_set_insert_multiple(iset, values)
+      type(integer_set), intent(inout) :: iset
+      integer, dimension(:), intent(in) :: values
+      integer :: i
 
-    call allocate(intersection)
-    do i=1,key_count(A)
-      val = fetch(A, i)
-      if (has_value(B, val)) then
-        call insert(intersection, val)
-      end if
-    end do
-  end subroutine set_intersection_two
+      do i=1,size(values)
+         call insert(iset, values(i))
+      end do
+   end subroutine integer_set_insert_multiple
 
-  subroutine set_intersection_multiple(intersection, isets)
-    ! intersection = isets(i) n isets(j), forall i /= j
-    type(integer_set), intent(out) :: intersection
-    type(integer_set), dimension(:), intent(in) :: isets
-    integer :: i
+   subroutine integer_set_insert_set(iset, value_set)
+      type(integer_set), intent(inout) :: iset
+      type(integer_set), intent(in) :: value_set
+      integer :: i
 
-    type(integer_set) :: tmp_intersection, tmp_iset
+      do i=1, key_count(value_set)
+         call insert(iset, fetch(value_set,i))
+      end do
+   end subroutine integer_set_insert_set
 
-    tmp_iset = isets(1)
-    do i = 2, size(isets)
-      call set_intersection(tmp_intersection, tmp_iset, isets(i))
-      call copy(tmp_iset, tmp_intersection)
-      call deallocate(tmp_intersection)
-    end do
-    intersection = tmp_iset
+   pure function integer_set_length_single(iset) result(len)
+      type(integer_set), intent(in) :: iset
+      integer :: len
 
-  end subroutine set_intersection_multiple
+      call integer_set_length_c(iset%address, len)
+   end function integer_set_length_single
 
-  subroutine integer_set_copy(iset_copy, iset)
-    type(integer_set), intent(out) :: iset_copy
-    type(integer_set), intent(in) :: iset
+   pure function integer_set_length_vector(iset) result(len)
+      type(integer_set), dimension(:), intent(in) :: iset
 
-    integer :: i, val
+      integer, dimension(size(iset)) :: len
 
-    call allocate(iset_copy)
+      integer :: i
 
-    do i = 1, key_count(iset)
-      val = fetch(iset, i)
-      call insert(iset_copy, val)
-    end do
+      do i = 1, size(iset)
+         len(i) = key_count(iset(i))
+      end do
 
-  end subroutine integer_set_copy
+   end function integer_set_length_vector
 
-  subroutine integer_set_copy_multiple(iset_copy, iset)
-    type(integer_set), dimension(:), intent(out) :: iset_copy
-    type(integer_set), dimension(:), intent(in) :: iset
+   function integer_set_fetch(iset, idx) result(val)
+      type(integer_set), intent(in) :: iset
+      integer, intent(in) :: idx
+      integer :: val
 
-    integer :: n
+      call integer_set_fetch_c(iset%address, idx, val)
+   end function integer_set_fetch
 
-    do n=1, size(iset)
-      call copy(iset_copy(n), iset(n))
-    end do
+   subroutine integer_set_remove(iset, idx)
+      type(integer_set), intent(in) :: iset
+      integer, intent(in) :: idx
+      integer :: stat
 
-  end subroutine integer_set_copy_multiple
+      call integer_set_remove_c(iset%address, idx, stat)
+      assert(stat == 1)
+   end subroutine integer_set_remove
 
-  subroutine set_minus(minus, A, B)
-  ! minus = A \ B
-    type(integer_set), intent(out) :: minus
-    type(integer_set), intent(in) :: A, B
-    integer :: i, val
+   function integer_set_has_value(iset, val) result(bool)
+      type(integer_set), intent(in) :: iset
+      integer, intent(in) :: val
+      logical :: bool
 
-    call allocate(minus)
-    do i=1,key_count(A)
-      val = fetch(A, i)
-      if (.not. has_value(B, val)) then
-        call insert(minus, val)
-      end if
-    end do
-  end subroutine set_minus
+      integer :: lbool
+      call integer_set_has_value_c(iset%address, val, lbool)
+      bool = (lbool == 1)
+   end function integer_set_has_value
 
-  function set2vector(iset) result(vec)
-    type(integer_set), intent(in) :: iset
-    integer, dimension(key_count(iset)) :: vec
-    integer :: i
+   function integer_set_has_value_multiple(iset, val) result(bool)
+      type(integer_set), intent(in) :: iset
+      integer, dimension(:), intent(in) :: val
+      logical, dimension(size(val)) :: bool
 
-    do i=1,key_count(iset)
-      vec(i) = fetch(iset, i)
-    end do
-  end function set2vector
+      integer:: i
+
+      do i=1, size(val)
+         bool(i)=integer_set_has_value(iset, val(i))
+      end do
+   end function integer_set_has_value_multiple
+
+   subroutine set_complement(complement, universe, current)
+      ! complement = universe \ current
+      type(integer_set), intent(out) :: complement
+      type(integer_set), intent(in) :: universe, current
+      integer :: i, val
+
+      call allocate(complement)
+      do i=1,key_count(universe)
+         val = fetch(universe, i)
+         if (.not. has_value(current, val)) then
+            call insert(complement, val)
+         end if
+      end do
+   end subroutine set_complement
+
+   subroutine set_intersection_two(intersection, A, B)
+      ! intersection = A n B
+      type(integer_set), intent(out) :: intersection
+      type(integer_set), intent(in) :: A, B
+      integer :: i, val
+
+      call allocate(intersection)
+      do i=1,key_count(A)
+         val = fetch(A, i)
+         if (has_value(B, val)) then
+            call insert(intersection, val)
+         end if
+      end do
+   end subroutine set_intersection_two
+
+   subroutine set_intersection_multiple(intersection, isets)
+      ! intersection = isets(i) n isets(j), forall i /= j
+      type(integer_set), intent(out) :: intersection
+      type(integer_set), dimension(:), intent(in) :: isets
+      integer :: i
+
+      type(integer_set) :: tmp_intersection, tmp_iset
+
+      tmp_iset = isets(1)
+      do i = 2, size(isets)
+         call set_intersection(tmp_intersection, tmp_iset, isets(i))
+         call copy(tmp_iset, tmp_intersection)
+         call deallocate(tmp_intersection)
+      end do
+      intersection = tmp_iset
+
+   end subroutine set_intersection_multiple
+
+   subroutine integer_set_copy(iset_copy, iset)
+      type(integer_set), intent(out) :: iset_copy
+      type(integer_set), intent(in) :: iset
+
+      integer :: i, val
+
+      call allocate(iset_copy)
+
+      do i = 1, key_count(iset)
+         val = fetch(iset, i)
+         call insert(iset_copy, val)
+      end do
+
+   end subroutine integer_set_copy
+
+   subroutine integer_set_copy_multiple(iset_copy, iset)
+      type(integer_set), dimension(:), intent(out) :: iset_copy
+      type(integer_set), dimension(:), intent(in) :: iset
+
+      integer :: n
+
+      do n=1, size(iset)
+         call copy(iset_copy(n), iset(n))
+      end do
+
+   end subroutine integer_set_copy_multiple
+
+   subroutine set_minus(minus, A, B)
+      ! minus = A \ B
+      type(integer_set), intent(out) :: minus
+      type(integer_set), intent(in) :: A, B
+      integer :: i, val
+
+      call allocate(minus)
+      do i=1,key_count(A)
+         val = fetch(A, i)
+         if (.not. has_value(B, val)) then
+            call insert(minus, val)
+         end if
+      end do
+   end subroutine set_minus
+
+   function set2vector(iset) result(vec)
+      type(integer_set), intent(in) :: iset
+      integer, dimension(key_count(iset)) :: vec
+      integer :: i
+
+      do i=1,key_count(iset)
+         vec(i) = fetch(iset, i)
+      end do
+   end function set2vector
 
 end module integer_set_module

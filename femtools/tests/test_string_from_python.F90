@@ -29,28 +29,28 @@
 
 subroutine test_string_from_python
 
-  use embed_python
-  use fldebug
-  use global_parameters, only : PYTHON_FUNC_LEN
-  use unittest_tools
+   use embed_python
+   use fldebug
+   use global_parameters, only : PYTHON_FUNC_LEN
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  character(len = *), parameter :: func = &
-    & 'def val(t):' // new_line("") // &
-    & '  if t >= 0.0:' // new_line("") // &
-    & '    return "Positive"' // new_line("") // &
-    & '  else:' // new_line("") // &
-    & '    return "Negative"'
-  character(len = PYTHON_FUNC_LEN) :: result
-  integer :: stat
+   character(len = *), parameter :: func = &
+   & 'def val(t):' // new_line("") // &
+   & '  if t >= 0.0:' // new_line("") // &
+   & '    return "Positive"' // new_line("") // &
+   & '  else:' // new_line("") // &
+   & '    return "Negative"'
+   character(len = PYTHON_FUNC_LEN) :: result
+   integer :: stat
 
-  call string_from_python(func, -1.0, result, stat = stat)
-  call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
-  call report_test("[Expected result]", result /= "Negative", .false., "string_from_python returned incorrect string")
+   call string_from_python(func, -1.0, result, stat = stat)
+   call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
+   call report_test("[Expected result]", result /= "Negative", .false., "string_from_python returned incorrect string")
 
-  call string_from_python(func, 1.0, result, stat = stat)
-  call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
-  call report_test("[Expected result]", result /= "Positive", .false., "string_from_python returned incorrect string")
+   call string_from_python(func, 1.0, result, stat = stat)
+   call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
+   call report_test("[Expected result]", result /= "Positive", .false., "string_from_python returned incorrect string")
 
 end subroutine test_string_from_python

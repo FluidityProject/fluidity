@@ -29,80 +29,80 @@
 
 module surface_diagnostics
 
-  use fldebug
-  use global_parameters, only : OPTION_PATH_LEN
-  use spud
-  use fields
-  use state_module
-  use field_options
-  use diagnostic_source_fields
-  use sediment, only: surface_horizontal_divergence
-  use surface_integrals
+   use fldebug
+   use global_parameters, only : OPTION_PATH_LEN
+   use spud
+   use fields
+   use state_module
+   use field_options
+   use diagnostic_source_fields
+   use sediment, only: surface_horizontal_divergence
+   use surface_integrals
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: calculate_grad_normal, calculate_surface_horizontal_divergence
+   public :: calculate_grad_normal, calculate_surface_horizontal_divergence
 
 contains
 
-  subroutine calculate_grad_normal(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
+   subroutine calculate_grad_normal(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
 
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
+      type(scalar_field), pointer :: source_field
+      type(vector_field), pointer :: positions
 
-    character(len = OPTION_PATH_LEN) :: base_path
-    integer, dimension(2) :: nsurface_ids
-    integer, dimension(:), allocatable :: surface_ids
+      character(len = OPTION_PATH_LEN) :: base_path
+      integer, dimension(2) :: nsurface_ids
+      integer, dimension(:), allocatable :: surface_ids
 
-    source_field => scalar_source_field(state, s_field)
-    positions => extract_vector_field(state, "Coordinate")
+      source_field => scalar_source_field(state, s_field)
+      positions => extract_vector_field(state, "Coordinate")
 
-    base_path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    if(have_option(trim(base_path) // "/surface_ids")) then
+      base_path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+      if(have_option(trim(base_path) // "/surface_ids")) then
+         nsurface_ids = option_shape(trim(base_path) // "/surface_ids")
+         assert(nsurface_ids(1) >= 0)
+         allocate(surface_ids(nsurface_ids(1)))
+         call get_option(trim(base_path) // "/surface_ids", surface_ids)
+
+         call surface_gradient_normal(source_field, positions, s_field, surface_ids = surface_ids)
+
+         deallocate(surface_ids)
+      else
+         call surface_gradient_normal(source_field, positions, s_field)
+      end if
+
+   end subroutine calculate_grad_normal
+
+   subroutine calculate_surface_horizontal_divergence(state, s_field)
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
+
+      type(vector_field), pointer :: source_field
+      type(vector_field), pointer :: positions
+
+      character(len = OPTION_PATH_LEN) :: base_path
+      integer, dimension(2) :: nsurface_ids
+      integer, dimension(:), allocatable :: surface_ids
+
+      source_field => vector_source_field(state, s_field)
+      positions => extract_vector_field(state, "Coordinate")
+
+      base_path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+
       nsurface_ids = option_shape(trim(base_path) // "/surface_ids")
       assert(nsurface_ids(1) >= 0)
       allocate(surface_ids(nsurface_ids(1)))
       call get_option(trim(base_path) // "/surface_ids", surface_ids)
 
-      call surface_gradient_normal(source_field, positions, s_field, surface_ids = surface_ids)
+      call surface_horizontal_divergence(source_field, positions, s_field, surface_ids = surface_ids)
 
       deallocate(surface_ids)
-    else
-      call surface_gradient_normal(source_field, positions, s_field)
-    end if
 
-  end subroutine calculate_grad_normal
-
-subroutine calculate_surface_horizontal_divergence(state, s_field)
-    type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: s_field
-
-    type(vector_field), pointer :: source_field
-    type(vector_field), pointer :: positions
-
-    character(len = OPTION_PATH_LEN) :: base_path
-    integer, dimension(2) :: nsurface_ids
-    integer, dimension(:), allocatable :: surface_ids
-
-    source_field => vector_source_field(state, s_field)
-    positions => extract_vector_field(state, "Coordinate")
-
-    base_path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-
-    nsurface_ids = option_shape(trim(base_path) // "/surface_ids")
-    assert(nsurface_ids(1) >= 0)
-    allocate(surface_ids(nsurface_ids(1)))
-    call get_option(trim(base_path) // "/surface_ids", surface_ids)
-
-    call surface_horizontal_divergence(source_field, positions, s_field, surface_ids = surface_ids)
-
-    deallocate(surface_ids)
-
-  end subroutine calculate_surface_horizontal_divergence
+   end subroutine calculate_surface_horizontal_divergence
 
 
 end module surface_diagnostics

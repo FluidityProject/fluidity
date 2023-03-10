@@ -1,72 +1,72 @@
 #include "fdebug.h"
 
 module field_derivatives
-    !!< This module contains code to compute the derivatives of
-    !!< scalar fields. It uses superconvergent patch recovery, see
-    !!< Zienkiewicz & Zhu, Int. J. Numer. Methods Eng, 33, 1331-1364 (1992)
-    !!< At present it only computes up to the second derivative.
-    !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
-    !!< anything with k > 2 rapidly becomes far too big to store in memory.)
+   !!< This module contains code to compute the derivatives of
+   !!< scalar fields. It uses superconvergent patch recovery, see
+   !!< Zienkiewicz & Zhu, Int. J. Numer. Methods Eng, 33, 1331-1364 (1992)
+   !!< At present it only computes up to the second derivative.
+   !!< (Since the k-th derivative of a scalar field is a rank-k tensor,
+   !!< anything with k > 2 rapidly becomes far too big to store in memory.)
 
-    use fldebug
-    use vector_tools
-    use elements
-    use eventcounter
-    use superconvergence
-    use sparse_tools
-    use tensors, only: tensormul
-    use transform_elements
-    use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
-     shape_vector_rhs
-    use parallel_fields
-    use fields
-    use state_module
-    use vtk_interfaces
-    use halos
-    use vector_set
-    use surfacelabels
-    use node_boundary
-    use boundary_conditions, only: get_entire_boundary_condition
-    implicit none
+   use fldebug
+   use vector_tools
+   use elements
+   use eventcounter
+   use superconvergence
+   use sparse_tools
+   use tensors, only: tensormul
+   use transform_elements
+   use fetools, only: shape_shape, shape_dshape, dshape_outer_dshape,&
+      shape_vector_rhs
+   use parallel_fields
+   use fields
+   use state_module
+   use vtk_interfaces
+   use halos
+   use vector_set
+   use surfacelabels
+   use node_boundary
+   use boundary_conditions, only: get_entire_boundary_condition
+   implicit none
 
-    interface compute_hessian_real
+   interface compute_hessian_real
       module procedure compute_hessian_var
-    end interface
+   end interface
 
-    interface differentiate_field_lumped
+   interface differentiate_field_lumped
       module procedure differentiate_field_lumped_single, differentiate_field_lumped_multiple, &
-          differentiate_field_lumped_vector
-    end interface
+         differentiate_field_lumped_vector
+   end interface
 
-    interface u_dot_nabla
+   interface u_dot_nabla
       module procedure u_dot_nabla_scalar, &
-        & u_dot_nabla_vector
-    end interface u_dot_nabla
+      & u_dot_nabla_vector
+   end interface u_dot_nabla
 
-    interface grad
+   interface grad
       module procedure grad_scalar, grad_vector, grad_vector_tensor
-    end interface grad
+   end interface grad
 
-    interface dg_ele_grad
+   interface dg_ele_grad
       module procedure dg_ele_grad_scalar, dg_ele_grad_vector
-    end interface dg_ele_grad
+   end interface dg_ele_grad
 
-    interface dg_ele_grad_at_quad
+   interface dg_ele_grad_at_quad
       module procedure dg_ele_grad_at_quad_scalar, dg_ele_grad_at_quad_vector
-    end interface dg_ele_grad_at_quad
+   end interface dg_ele_grad_at_quad
 
-    private
+   private
 
-    public :: strain_rate, differentiate_field, grad, compute_hessian, &
+   public :: strain_rate, differentiate_field, grad, compute_hessian, &
       domain_is_2d, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
       dg_ele_grad_at_quad, dg_ele_grad
 
-    public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
+   public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
 
-    contains
+contains
 
-    function dg_ele_grad_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
+   function dg_ele_grad_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
       ! Return the element contritubtion to the grad matrix of (scalar)
       ! field for element ele. X is the coordinate field, Optional
       ! arguments bc_value and bc_type allow for boundary information.
@@ -120,32 +120,32 @@ module field_derivatives
       neigh=>ele_neigh(field, ele)
       faces => ele_faces(field, ele)
       do ni=1,size(neigh)
-        ! Find the relevant faces.
-        ele_2 = neigh(ni)
-        face = faces(ni)
+         ! Find the relevant faces.
+         ele_2 = neigh(ni)
+         face = faces(ni)
 
-        if (ele_2>0) then
-          ! Internal faces.
-          face_2=ele_face(field, ele_2, ele)
-        else
-          ! External face.
-          face_2=face
-        end if
+         if (ele_2>0) then
+            ! Internal faces.
+            face_2=ele_face(field, ele_2, ele)
+         else
+            ! External face.
+            face_2=face
+         end if
 
-        call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
-             & loc_grad, X, field, bc_value, bc_type)
+         call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
+         & loc_grad, X, field, bc_value, bc_type)
       end do
 
       ! multiply by inverse of mass matrix
       inv_mass = inverse(shape_shape(shape, shape, detwei))
       do i = 1, mesh_dim(field)
-        loc_grad(i,:) = matmul(inv_mass, loc_grad(i,:))
+         loc_grad(i,:) = matmul(inv_mass, loc_grad(i,:))
       end do
 
-    end function dg_ele_grad_scalar
+   end function dg_ele_grad_scalar
 
-    subroutine dg_ele_grad_scalar_interface(ele, face, face_2, &
-         ni, loc_grad, X, field, bc_value, bc_type)
+   subroutine dg_ele_grad_scalar_interface(ele, face, face_2, &
+      ni, loc_grad, X, field, bc_value, bc_type)
 
       !!< Construct the DG element boundary integrals on the ni-th face of
       !!< element ele.
@@ -174,41 +174,41 @@ module field_derivatives
       call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
 
       if (face==face_2) then
-        ! boundary faces - need to apply weak dirichlet bc's
-        ! = - int_ v_h \cdot (u - u^b) n
-        ! first check for weak-dirichlet bc
-        ! if no bc_info is applied then assume not weak bc
-        if (present(bc_type)) then
-          if (bc_type(face) == 1) then
-            in_q = face_val_at_quad(field, face)
-            in_bc_q = ele_val_at_quad(bc_value, face)
+         ! boundary faces - need to apply weak dirichlet bc's
+         ! = - int_ v_h \cdot (u - u^b) n
+         ! first check for weak-dirichlet bc
+         ! if no bc_info is applied then assume not weak bc
+         if (present(bc_type)) then
+            if (bc_type(face) == 1) then
+               in_q = face_val_at_quad(field, face)
+               in_bc_q = ele_val_at_quad(bc_value, face)
 
-            do i=1, mesh_dim(field)
-              vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
-            end do
-            face_rhs = shape_vector_rhs(shape, vector, detwei)
-          end if
-        end if
+               do i=1, mesh_dim(field)
+                  vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
+               end do
+               face_rhs = shape_vector_rhs(shape, vector, detwei)
+            end if
+         end if
       else
-        ! internal face
-        ! = int_ {v_h} \cdot J(x)
-        in_q = face_val_at_quad(field, face)
-        in_q_2 = face_val_at_quad(field, face_2)
+         ! internal face
+         ! = int_ {v_h} \cdot J(x)
+         in_q = face_val_at_quad(field, face)
+         in_q_2 = face_val_at_quad(field, face_2)
 
-        do i=1, mesh_dim(field)
-          !! factor of 0.5 comes from the averaging operator applied to the
-          !! test function at the interface.
-          vector(i,:) = -0.5*(in_q(:) - in_q_2(:))*normal(i,:)
-        end do
-        face_rhs = shape_vector_rhs(shape, vector, detwei)
+         do i=1, mesh_dim(field)
+            !! factor of 0.5 comes from the averaging operator applied to the
+            !! test function at the interface.
+            vector(i,:) = -0.5*(in_q(:) - in_q_2(:))*normal(i,:)
+         end do
+         face_rhs = shape_vector_rhs(shape, vector, detwei)
       end if
 
       lnodes = face_local_nodes(field, face)
       loc_grad(:,lnodes) = loc_grad(:,lnodes) + face_rhs
 
-    end subroutine dg_ele_grad_scalar_interface
+   end subroutine dg_ele_grad_scalar_interface
 
-    function dg_ele_grad_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
+   function dg_ele_grad_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
       ! Return the element contritubtion to the grad matrix of vector
       ! field for element ele_number. X is the coordinate field, Optional
       ! arguments bc_value and bc_type allow for boundary information.
@@ -232,19 +232,19 @@ module field_derivatives
       integer :: j
 
       do j=1,field%dim
-        field_component = extract_scalar_field(field, j)
-        if (present(bc_value)) then
-          bc_component_value = extract_scalar_field(bc_value, j)
-          loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X, &
-               & bc_component_value, bc_type(j,:))
-        else
-          loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X)
-        end if
+         field_component = extract_scalar_field(field, j)
+         if (present(bc_value)) then
+            bc_component_value = extract_scalar_field(bc_value, j)
+            loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X, &
+            & bc_component_value, bc_type(j,:))
+         else
+            loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X)
+         end if
       end do
 
-    end function dg_ele_grad_vector
+   end function dg_ele_grad_vector
 
-    function dg_ele_grad_at_quad_scalar(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
+   function dg_ele_grad_at_quad_scalar(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient.
       ! including interface terms for dg discretisations based upon
@@ -270,9 +270,9 @@ module field_derivatives
       ! transform to physical
       quad_grad = matmul(loc_grad, shape%n)
 
-    end function dg_ele_grad_at_quad_scalar
+   end function dg_ele_grad_at_quad_scalar
 
-    function dg_ele_grad_at_quad_vector(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
+   function dg_ele_grad_at_quad_vector(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient.
       ! including interface terms for dg discretisations based upon
@@ -296,19 +296,19 @@ module field_derivatives
       integer :: j
 
       do j=1,field%dim
-        field_component = extract_scalar_field(field, j)
-        if (present(bc_value)) then
-          bc_component_value = extract_scalar_field(bc_value, j)
-          quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X, &
-               & bc_component_value, bc_type(j,:))
-        else
-          quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X)
-        end if
+         field_component = extract_scalar_field(field, j)
+         if (present(bc_value)) then
+            bc_component_value = extract_scalar_field(bc_value, j)
+            quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X, &
+            & bc_component_value, bc_type(j,:))
+         else
+            quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X)
+         end if
       end do
 
-    end function dg_ele_grad_at_quad_vector
+   end function dg_ele_grad_at_quad_vector
 
-    subroutine differentiate_field_spr(infield, positions, derivatives, outfields, accuracy_at_cost)
+   subroutine differentiate_field_spr(infield, positions, derivatives, outfields, accuracy_at_cost)
       !!< This subroutine takes in a scalar field infield,
       !!< an array of allocated scalar fields outfields, and an array of logicals
       !!< telling it what derivatives to take.
@@ -322,10 +322,10 @@ module field_derivatives
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: outfields
       logical, intent(in), optional :: accuracy_at_cost !!< Don't check for duplicate
-                                                        !!< superconvergent points.
-                                                        !!< Setting this improves
-                                                        !!< accuracy but greatly increases
-                                                        !!< runtime.
+      !!< superconvergent points.
+      !!< Setting this improves
+      !!< accuracy but greatly increases
+      !!< runtime.
 
       ! (n%loc x n%superconvergence%nsp x dim)
       real, dimension(:,:,:), allocatable ::  dnsp_t ! Holds the output of transform_superconvergent_to_physical
@@ -355,7 +355,7 @@ module field_derivatives
 
       cnt = 0
       do i=1,size(derivatives)
-        if (derivatives(i)) cnt = cnt + 1
+         if (derivatives(i)) cnt = cnt + 1
       end do
 
       assert(size(outfields) .ge. cnt)
@@ -380,75 +380,75 @@ module field_derivatives
       call vecset_create(vset)
 
       do node=1,infield%mesh%nodes                               ! loop over nodes requested
-        A = 0.0; b = 0.0                                         ! clear the linear system
-        if (node_lies_on_boundary(node)) then
-          level = 2
-        else
-          level = 1
-        end if
-        patch = get_patch_ele(infield%mesh, node, level=level)    ! form patch
+         A = 0.0; b = 0.0                                         ! clear the linear system
+         if (node_lies_on_boundary(node)) then
+            level = 2
+         else
+            level = 1
+         end if
+         patch = get_patch_ele(infield%mesh, node, level=level)    ! form patch
 
-        node_position = node_val(positions, node)
+         node_position = node_val(positions, node)
 
-        do ele=1,patch%count                                   ! loop over elements around node
-          !shape = ele_shape(infield%mesh, patch%elements(ele)) ! get the element type
+         do ele=1,patch%count                                   ! loop over elements around node
+            !shape = ele_shape(infield%mesh, patch%elements(ele)) ! get the element type
 
-          ! get the derivatives of the basis functions at the superconvergent points
-          assert(associated(shape%superconvergence))
-          call transform_superconvergent_to_physical(ele_val(positions, patch%elements(ele)), x_shape, shape, dnsp_t)
+            ! get the derivatives of the basis functions at the superconvergent points
+            assert(associated(shape%superconvergence))
+            call transform_superconvergent_to_physical(ele_val(positions, patch%elements(ele)), x_shape, shape, dnsp_t)
 
-          ! get the positions of the superconvergent points
-          superconvergent_positions = ele_val_at_superconvergent(positions, patch%elements(ele))
+            ! get the positions of the superconvergent points
+            superconvergent_positions = ele_val_at_superconvergent(positions, patch%elements(ele))
 
-          do sp=1,shape%superconvergence%nsp
-            if (.not. present(accuracy_at_cost)) then
-              call vecset_is_present(vset, superconvergent_positions(:, sp), already_processed)
-              if (already_processed) cycle
+            do sp=1,shape%superconvergence%nsp
+               if (.not. present(accuracy_at_cost)) then
+                  call vecset_is_present(vset, superconvergent_positions(:, sp), already_processed)
+                  if (already_processed) cycle
+               end if
+
+               ! construct the matrix.
+               A = A + compute_matrix_contribution_spr(superconvergent_positions(:, sp), shape)
+
+               ! construct the rhs.
+               cnt = 0
+               do i=1,size(derivatives)
+
+                  if (derivatives(i)) then
+                     cnt = cnt+1
+                     diffval = dot_product(ele_val(infield, patch%elements(ele)), dnsp_t(:, sp, i)) ! compute the direct derivative at the point
+                     b(:, cnt) = b(:, cnt) + compute_rhs_contribution_spr(superconvergent_positions(:, sp), shape, diffval)
+                  end if
+               end do ! loop over derivatives
+            end do ! loop over superconvergent points
+         end do ! loop over elements
+
+         ! OK. Now we have the linear system to be solved.
+         ! First solve it:
+
+         call solve(A, b, stat)
+         assert(stat == 0)
+
+         ! The solutions are now in the memory of b.
+
+         ! Now we need to multiply P * the solution to get the recovered derivative at the point.
+         do i=1,positions%dim
+            node_position(i) = positions%val(i,node)
+         end do
+         ! So now get P:
+         P = getP_spr(node_position, shape)
+
+         ! Now compute the derivative. (At last!)
+         cnt = 0
+         do i=1,size(derivatives)
+            if (derivatives(i)) then
+               cnt = cnt + 1
+               diffval = dot_product(P, b(:, cnt))
+               outfields(cnt)%val(node) = diffval
             end if
+         end do
 
-            ! construct the matrix.
-            A = A + compute_matrix_contribution_spr(superconvergent_positions(:, sp), shape)
-
-            ! construct the rhs.
-            cnt = 0
-            do i=1,size(derivatives)
-
-              if (derivatives(i)) then
-                cnt = cnt+1
-                diffval = dot_product(ele_val(infield, patch%elements(ele)), dnsp_t(:, sp, i)) ! compute the direct derivative at the point
-                b(:, cnt) = b(:, cnt) + compute_rhs_contribution_spr(superconvergent_positions(:, sp), shape, diffval)
-              end if
-            end do ! loop over derivatives
-          end do ! loop over superconvergent points
-        end do ! loop over elements
-
-        ! OK. Now we have the linear system to be solved.
-        ! First solve it:
-
-        call solve(A, b, stat)
-        assert(stat == 0)
-
-        ! The solutions are now in the memory of b.
-
-        ! Now we need to multiply P * the solution to get the recovered derivative at the point.
-        do i=1,positions%dim
-          node_position(i) = positions%val(i,node)
-        end do
-        ! So now get P:
-        P = getP_spr(node_position, shape)
-
-        ! Now compute the derivative. (At last!)
-        cnt = 0
-        do i=1,size(derivatives)
-          if (derivatives(i)) then
-            cnt = cnt + 1
-            diffval = dot_product(P, b(:, cnt))
-            outfields(cnt)%val(node) = diffval
-          end if
-        end do
-
-        deallocate(patch%elements) ! Have to do it here; otherwise memory leak
-        call vecset_clear(vset)
+         deallocate(patch%elements) ! Have to do it here; otherwise memory leak
+         call vecset_clear(vset)
       end do ! loop over nodes
       deallocate(dnsp_t, superconvergent_positions, A, b, node_position)
       call vecset_destroy(vset)
@@ -464,9 +464,9 @@ module field_derivatives
          end if
       end do
 
-    end subroutine differentiate_field_spr
+   end subroutine differentiate_field_spr
 
-    subroutine grad_scalar(infield, positions, gradient)
+   subroutine grad_scalar(infield, positions, gradient)
       !!< This routine computes the gradient of a field.
       !!< For a continuous gradient this lumps the mass matrix
       !!< in the Galerkin projection.
@@ -486,28 +486,28 @@ module field_derivatives
 
       dim = gradient%dim
       do i=1,dim
-        pardiff(i) = extract_scalar_field(gradient, i)
+         pardiff(i) = extract_scalar_field(gradient, i)
       end do
 
       ! we need all derivatives
       derivatives = .true.
 
       if (infield%mesh%continuity<0) then
-        !! required for dg gradient calculation
-        allocate(bc_type(1:surface_element_count(infield)))
-        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+         !! required for dg gradient calculation
+         allocate(bc_type(1:surface_element_count(infield)))
+         call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
 
-        call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+         call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
 
-        call deallocate(bc_value)
-        deallocate(bc_type)
+         call deallocate(bc_value)
+         deallocate(bc_type)
       else
-        call differentiate_field(infield, positions, derivatives, pardiff)
+         call differentiate_field(infield, positions, derivatives, pardiff)
       end if
 
-    end subroutine grad_scalar
+   end subroutine grad_scalar
 
-    subroutine grad_vector(infield, positions, gradient)
+   subroutine grad_vector(infield, positions, gradient)
       !!< This routine computes the gradient of a field.
       type(vector_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
@@ -527,42 +527,42 @@ module field_derivatives
       ewrite(1,*) 'in grad_vector'
 
       if (infield%mesh%continuity<0) then
-        !! required for dg gradient calculation
-        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
-        allocate(bc_component_type(1:surface_element_count(infield)))
-        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+         !! required for dg gradient calculation
+         allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+         allocate(bc_component_type(1:surface_element_count(infield)))
+         call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
       end if
 
       dim = gradient(1)%dim
 
       do j=1,infield%dim
 
-        component = extract_scalar_field(infield, j)
+         component = extract_scalar_field(infield, j)
 
-        do i=1,dim
-          pardiff(i) = extract_scalar_field(gradient(j), i)
-        end do
+         do i=1,dim
+            pardiff(i) = extract_scalar_field(gradient(j), i)
+         end do
 
-        derivatives = .true.
+         derivatives = .true.
 
-        if (infield%mesh%continuity<0) then
-          bc_component_value = extract_scalar_field(bc_value, j)
-          bc_component_type = bc_type(j,:)
-          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
-        else
-          call differentiate_field(component, positions, derivatives, pardiff)
-        end if
+         if (infield%mesh%continuity<0) then
+            bc_component_value = extract_scalar_field(bc_value, j)
+            bc_component_type = bc_type(j,:)
+            call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+         else
+            call differentiate_field(component, positions, derivatives, pardiff)
+         end if
 
       end do
 
       if (infield%mesh%continuity<0) then
-        call deallocate(bc_value)
-        deallocate(bc_type, bc_component_type)
+         call deallocate(bc_value)
+         deallocate(bc_type, bc_component_type)
       end if
 
-    end subroutine grad_vector
+   end subroutine grad_vector
 
-    subroutine grad_vector_tensor(infield,positions,t_field)
+   subroutine grad_vector_tensor(infield,positions,t_field)
       !!< This routine computes the full (tensor) grad of an infield vector field
       type(vector_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
@@ -584,40 +584,40 @@ module field_derivatives
       ewrite(1,*) 'in grad_vector_tensor'
 
       if (infield%mesh%continuity<0) then
-        !! required for dg gradient calculation
-        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
-        allocate(bc_component_type(1:surface_element_count(infield)))
-        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+         !! required for dg gradient calculation
+         allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+         allocate(bc_component_type(1:surface_element_count(infield)))
+         call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
       end if
 
       do j=1,infield%dim
 
-        component = extract_scalar_field(infield, j)
+         component = extract_scalar_field(infield, j)
 
-        do i=1,infield%dim
-          pardiff(i) = extract_scalar_field(t_field,i,j)
-        end do
+         do i=1,infield%dim
+            pardiff(i) = extract_scalar_field(t_field,i,j)
+         end do
 
-        derivatives = .true.
+         derivatives = .true.
 
-        if (infield%mesh%continuity<0) then
-          bc_component_value = extract_scalar_field(bc_value, j)
-          bc_component_type = bc_type(j,:)
-          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
-        else
-          call differentiate_field(component, positions, derivatives, pardiff)
-        end if
+         if (infield%mesh%continuity<0) then
+            bc_component_value = extract_scalar_field(bc_value, j)
+            bc_component_type = bc_type(j,:)
+            call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+         else
+            call differentiate_field(component, positions, derivatives, pardiff)
+         end if
 
       end do
 
       if (infield%mesh%continuity<0) then
-        call deallocate(bc_value)
-        deallocate(bc_type, bc_component_type)
+         call deallocate(bc_value)
+         deallocate(bc_type, bc_component_type)
       end if
 
-    end subroutine grad_vector_tensor
+   end subroutine grad_vector_tensor
 
-    subroutine strain_rate(infield,positions,t_field)
+   subroutine strain_rate(infield,positions,t_field)
       !!< This routine computes the strain rate of an infield vector field
       type(vector_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
@@ -633,31 +633,31 @@ module field_derivatives
 
       do j=1,infield%dim
 
-        component = extract_scalar_field(infield, j)
+         component = extract_scalar_field(infield, j)
 
-        do i=1,infield%dim
-          pardiff(i) = extract_scalar_field(t_field,i,j)
-        end do
+         do i=1,infield%dim
+            pardiff(i) = extract_scalar_field(t_field,i,j)
+         end do
 
-        derivatives = .true.
+         derivatives = .true.
 
-        call differentiate_field(component, positions, derivatives, pardiff)
+         call differentiate_field(component, positions, derivatives, pardiff)
 
       end do
 
       ! Computing the final strain rate tensor
       do node=1,node_count(t_field)
-           t=node_val(t_field, node)
-           call set(t_field, node, (t+transpose(t))/2)
+         t=node_val(t_field, node)
+         call set(t_field, node, (t+transpose(t))/2)
       end do
 
-    end subroutine strain_rate
+   end subroutine strain_rate
 
-    subroutine differentiate_field_qf(infield, positions, derivatives, pardiff)
-    !!< This routine computes the derivative using the QF (quadratic-fit)
-    !!< approach described in:
-    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
-    !!< Int. J. Numer. Meth. Engng., in press
+   subroutine differentiate_field_qf(infield, positions, derivatives, pardiff)
+      !!< This routine computes the derivative using the QF (quadratic-fit)
+      !!< approach described in:
+      !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
+      !!< Int. J. Numer. Meth. Engng., in press
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -677,32 +677,32 @@ module field_derivatives
       t_shape = ele_shape(mesh, 1)
       x_shape = ele_shape(positions, 1)
       do i=1,count(derivatives .eqv. .true.)
-        call zero(pardiff(i))
+         call zero(pardiff(i))
       end do
 
       if (maxval(infield%val) == minval(infield%val)) then
-        ewrite(2,*) "+++: Field constant; returning 0.0"
-        return
+         ewrite(2,*) "+++: Field constant; returning 0.0"
+         return
       end if
 
       call add_nelist(mesh)
       call initialise_boundcount(mesh, positions)
 
       do node=1,node_count(infield)
-        x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node)
-        b = get_quadratic_fit_qf(infield, positions, node)
+         x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node)
+         b = get_quadratic_fit_qf(infield, positions, node)
 
-        diffvals(1) = b(2) + 2 * b(5) * x + b(8) * y + b(9) * z + b(11) * y * z
-        diffvals(2) = b(3) + 2 * b(6) * y + b(8) * x + b(10) * z + b(11) * x * z
-        diffvals(3) = b(4) + 2 * b(7) * z + b(9) * x + b(10) * y + b(11) * x * y
+         diffvals(1) = b(2) + 2 * b(5) * x + b(8) * y + b(9) * z + b(11) * y * z
+         diffvals(2) = b(3) + 2 * b(6) * y + b(8) * x + b(10) * z + b(11) * x * z
+         diffvals(3) = b(4) + 2 * b(7) * z + b(9) * x + b(10) * y + b(11) * x * y
 
-        j = 1
-        do i=1,3
-          if (derivatives(i)) then
-            pardiff(j)%val(node) = diffvals(i)
-            j = j + 1
-          end if
-        end do
+         j = 1
+         do i=1,3
+            if (derivatives(i)) then
+               pardiff(j)%val(node) = diffvals(i)
+               j = j + 1
+            end if
+         end do
       end do
 
       call differentiate_boundary_correction(pardiff, positions, t_shape, count(derivatives .eqv. .true.))
@@ -711,13 +711,13 @@ module field_derivatives
       do i=1,count(derivatives .eqv. .true.)
          call halo_update(pardiff(i))
       end do
-    end subroutine differentiate_field_qf
+   end subroutine differentiate_field_qf
 
-    subroutine compute_hessian_qf(infield, positions, hessian)
-    !!< This routine computes the hessian using the QF (quadratic-fit)
-    !!< approach described in:
-    !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
-    !!< Int. J. Numer. Meth. Engng., in press
+   subroutine compute_hessian_qf(infield, positions, hessian)
+      !!< This routine computes the hessian using the QF (quadratic-fit)
+      !!< approach described in:
+      !!< M.G. Vallet et al., Numerical comparison of some Hessian recovery techniques
+      !!< Int. J. Numer. Meth. Engng., in press
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: hessian
@@ -747,35 +747,35 @@ module field_derivatives
       x_shape = ele_shape(positions, 1)
       call zero(hessian)
       if (maxval(infield%val) == minval(infield%val)) then
-        ewrite(2,*) "+++: Field constant; returning 0.0"
-        return
+         ewrite(2,*) "+++: Field constant; returning 0.0"
+         return
       end if
 
       call add_nelist(mesh)
       call initialise_boundcount(mesh, positions)
 
       do node=1,node_count(infield)
-        x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node);
-        b = get_quadratic_fit_qf(infield, positions, node)
+         x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node);
+         b = get_quadratic_fit_qf(infield, positions, node)
 
 #ifdef QF_DEBUG
-        patch = get_patch_node(mesh, node, level=2, min_nodes=MATRIX_SIZE_QF)
-        do i=1,patch%count
-          nnode = patch%elements(i)
-          call addto(variance, node, (node_val(infield, nnode) - evaluate_qf(b, node_val(positions, nnode)))**2)
-        end do
-        variance%val(node) = sqrt(variance%val(node))
+         patch = get_patch_node(mesh, node, level=2, min_nodes=MATRIX_SIZE_QF)
+         do i=1,patch%count
+            nnode = patch%elements(i)
+            call addto(variance, node, (node_val(infield, nnode) - evaluate_qf(b, node_val(positions, nnode)))**2)
+         end do
+         variance%val(node) = sqrt(variance%val(node))
 #endif
 
-        hessian%val(1, 1, node) = 2 * b(5)
-        hessian%val(1, 2, node) = b(8) + z * b(11)
-        hessian%val(1, 3, node) = b(9) + y * b(11)
-        hessian%val(2, 1, node) = b(8) + z * b(11)
-        hessian%val(2, 2, node) = 2 * b(6)
-        hessian%val(2, 3, node) = b(10) + x * b(11)
-        hessian%val(3, 1, node) = b(9) + y * b(11)
-        hessian%val(3, 2, node) = b(10) + x * b(11)
-        hessian%val(3, 3, node) = 2 * b(7)
+         hessian%val(1, 1, node) = 2 * b(5)
+         hessian%val(1, 2, node) = b(8) + z * b(11)
+         hessian%val(1, 3, node) = b(9) + y * b(11)
+         hessian%val(2, 1, node) = b(8) + z * b(11)
+         hessian%val(2, 2, node) = 2 * b(6)
+         hessian%val(2, 3, node) = b(10) + x * b(11)
+         hessian%val(3, 1, node) = b(9) + y * b(11)
+         hessian%val(3, 2, node) = b(10) + x * b(11)
+         hessian%val(3, 3, node) = 2 * b(7)
       end do
 
       call hessian_boundary_correction(hessian, positions, t_shape)
@@ -787,9 +787,9 @@ module field_derivatives
       call vtk_write_fields("qf_debug", 0, positions, mesh, sfields=(/infield, variance/))
       call deallocate(variance)
 #endif
-    end subroutine compute_hessian_qf
+   end subroutine compute_hessian_qf
 
-    recursive function get_quadratic_fit_qf(infield, positions, node, level, maxlevel) result(b)
+   recursive function get_quadratic_fit_qf(infield, positions, node, level, maxlevel) result(b)
       !!< Fit a quadratic function to infield around the node,
       !!< with a least squares approach.
       type(scalar_field), intent(in) :: infield
@@ -807,64 +807,64 @@ module field_derivatives
       type(mesh_type) :: mesh
 
       if (present(level)) then
-        llevel = level
+         llevel = level
       else
-        llevel = 2
+         llevel = 2
       end if
 
       if (present(maxlevel)) then
-        lmaxlevel = maxlevel
+         lmaxlevel = maxlevel
       else
-        lmaxlevel = llevel + 1
+         lmaxlevel = llevel + 1
       end if
 
       mesh = infield%mesh
       node_patch = get_patch_node(mesh, node, level=llevel, min_nodes=MATRIX_SIZE_QF)
       A = 0.0; b_tmp = 0.0
       do i=1,node_patch%count
-        nnode = node_patch%elements(i)
+         nnode = node_patch%elements(i)
 
-        A = A + compute_matrix_contribution_qf(node_val(positions, nnode))
-        b_tmp(:, 1) = b_tmp(:, 1) + compute_rhs_contribution_qf(node_val(positions, nnode), node_val(infield, nnode))
+         A = A + compute_matrix_contribution_qf(node_val(positions, nnode))
+         b_tmp(:, 1) = b_tmp(:, 1) + compute_rhs_contribution_qf(node_val(positions, nnode), node_val(infield, nnode))
       end do
 
       if (pseudo2d_coord /= 0) then
-        if (pseudo2d_coord == 1) then
-          A_2D = A(QF_2D_X, QF_2D_X)
-          b_tmp_2D(:, 1) = b_tmp(QF_2D_X, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(QF_2D_X) = b_tmp_2D(:, 1)
-        else if (pseudo2d_coord == 2) then
-          A_2D = A(QF_2D_Y, QF_2D_Y)
-          b_tmp_2D(:, 1) = b_tmp(QF_2D_Y, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(QF_2D_Y) = b_tmp_2D(:, 1)
-        else if (pseudo2d_coord == 3) then
-          A_2D = A(QF_2D_Z, QF_2D_Z)
-          b_tmp_2D(:, 1) = b_tmp(QF_2D_Z, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(QF_2D_Z) = b_tmp_2D(:, 1)
-        end if
+         if (pseudo2d_coord == 1) then
+            A_2D = A(QF_2D_X, QF_2D_X)
+            b_tmp_2D(:, 1) = b_tmp(QF_2D_X, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(QF_2D_X) = b_tmp_2D(:, 1)
+         else if (pseudo2d_coord == 2) then
+            A_2D = A(QF_2D_Y, QF_2D_Y)
+            b_tmp_2D(:, 1) = b_tmp(QF_2D_Y, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(QF_2D_Y) = b_tmp_2D(:, 1)
+         else if (pseudo2d_coord == 3) then
+            A_2D = A(QF_2D_Z, QF_2D_Z)
+            b_tmp_2D(:, 1) = b_tmp(QF_2D_Z, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(QF_2D_Z) = b_tmp_2D(:, 1)
+         end if
       else
-        call solve(A, b_tmp, stat)
-        b = b_tmp(:, 1)
+         call solve(A, b_tmp, stat)
+         b = b_tmp(:, 1)
       end if
 
 
       if (llevel < lmaxlevel) then
-        if (stat /= 0) then
-          ! If the solver fails, go one more level deep
-          ! to get enough equations to do the fitting
-          b = get_quadratic_fit_qf(infield, positions, node, level=llevel+1)
-        end if
+         if (stat /= 0) then
+            ! If the solver fails, go one more level deep
+            ! to get enough equations to do the fitting
+            b = get_quadratic_fit_qf(infield, positions, node, level=llevel+1)
+         end if
       end if
 
       deallocate(node_patch%elements) ! Have to do it here; otherwise memory leak
-    end function get_quadratic_fit_qf
+   end function get_quadratic_fit_qf
 
-    subroutine compute_hessian_int(infield, positions, hessian)
-    !!< This routine computes the hessian using integration by parts.
-    !!< See Buscaglia and Dari, Int. J. Numer. Meth. Engng., 40, 4119-4136 (1997)
+   subroutine compute_hessian_int(infield, positions, hessian)
+      !!< This routine computes the hessian using integration by parts.
+      !!< See Buscaglia and Dari, Int. J. Numer. Meth. Engng., 40, 4119-4136 (1997)
       type(scalar_field), intent(inout) :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: hessian
@@ -885,8 +885,8 @@ module field_derivatives
 
       call zero(hessian)
       if (maxval(infield%val) == minval(infield%val)) then
-        ewrite(2,*) "+++: Field constant; returning 0.0"
-        return
+         ewrite(2,*) "+++: Field constant; returning 0.0"
+         return
       end if
 
       mesh = infield%mesh
@@ -899,38 +899,38 @@ module field_derivatives
       t_shape => ele_shape(infield, 1)
 
       do ele=1,element_count(infield)
-        ! Compute detwei.
-        call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
+         ! Compute detwei.
+         call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
 
-        ! Compute the tensor representing grad(N) grad(N)
-        r = dshape_outer_dshape(dt_t, dt_t, detwei)
-        !r_ele = 0.5 * (tensormul(r, ele_val(infield, ele), 3) + tensormul(r, ele_val(infield, ele), 4))
-        !r_ele = tensormul(r, ele_val(infield, ele), 4)
+         ! Compute the tensor representing grad(N) grad(N)
+         r = dshape_outer_dshape(dt_t, dt_t, detwei)
+         !r_ele = 0.5 * (tensormul(r, ele_val(infield, ele), 3) + tensormul(r, ele_val(infield, ele), 4))
+         !r_ele = tensormul(r, ele_val(infield, ele), 4)
 
-        r_ele = 0.
-        do i = 1,size(r,1)
-           do j = 1,size(r,2)
-              r_ele(i,j,:) = r_ele(i,j,:) + &
-                   matmul(r(i,j,:,:),ele_val(infield,ele))
-           end do
-        end do
-        call addto(hessian, ele_nodes(infield, ele), r_ele)
+         r_ele = 0.
+         do i = 1,size(r,1)
+            do j = 1,size(r,2)
+               r_ele(i,j,:) = r_ele(i,j,:) + &
+                  matmul(r(i,j,:,:),ele_val(infield,ele))
+            end do
+         end do
+         call addto(hessian, ele_nodes(infield, ele), r_ele)
 
-        ! Lump the mass matrix
-        mass_matrix = shape_shape(t_shape, t_shape, detwei)
-        call addto(lumped_mass_matrix, ele_nodes(infield, ele), sum(mass_matrix, 2))
+         ! Lump the mass matrix
+         mass_matrix = shape_shape(t_shape, t_shape, detwei)
+         call addto(lumped_mass_matrix, ele_nodes(infield, ele), sum(mass_matrix, 2))
       end do
 
       do node=1,node_count(infield)
-        hessian%val(:, :, node) = (-1.0 / node_val(lumped_mass_matrix, node)) * hessian%val(:, :, node)
-        !hessian%val(:, :, node) = (-1) * hessian%val(:, :, node)
+         hessian%val(:, :, node) = (-1.0 / node_val(lumped_mass_matrix, node)) * hessian%val(:, :, node)
+         !hessian%val(:, :, node) = (-1) * hessian%val(:, :, node)
       end do
 
       call hessian_boundary_correction(hessian, positions, t_shape)
       call deallocate(lumped_mass_matrix)
-    end subroutine compute_hessian_int
+   end subroutine compute_hessian_int
 
-    subroutine differentiate_boundary_correction(pardiff, positions, t_shape, count)
+   subroutine differentiate_boundary_correction(pardiff, positions, t_shape, count)
       !!< Implement the boundary correction routine for first derivatives.
       type(scalar_field), dimension(:), intent(inout), target :: pardiff
       type(vector_field), intent(in) :: positions
@@ -963,73 +963,73 @@ module field_derivatives
       call initialise_boundcount(mesh, positions)
 
       do i=1,dim
-        do node=1,node_count(mesh)
-          if (node_boundary_count(node) >= get_expected_boundcount() + i) then
-            call zero(node_weights)
-            has_neighbouring_interior_node = .false.
-            ! First we need to compute the weights for each neighbouring node.
-            neighbour_elements => row_m_ptr(nelist, node)
-            do j=1,size(neighbour_elements)
-              ele = neighbour_elements(j)
-              neighbour_nodes => ele_nodes(mesh, ele)
-              call transform_to_physical(positions, ele, detwei=detwei)
-              mass_matrix = shape_shape(t_shape, t_shape, detwei)
-              ! In words: find the row of the mass matrix corresponding to the node we're interested in,
-              ! and stuff the integral of the shape functions into node_weights.
-              call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
+         do node=1,node_count(mesh)
+            if (node_boundary_count(node) >= get_expected_boundcount() + i) then
+               call zero(node_weights)
+               has_neighbouring_interior_node = .false.
+               ! First we need to compute the weights for each neighbouring node.
+               neighbour_elements => row_m_ptr(nelist, node)
+               do j=1,size(neighbour_elements)
+                  ele = neighbour_elements(j)
+                  neighbour_nodes => ele_nodes(mesh, ele)
+                  call transform_to_physical(positions, ele, detwei=detwei)
+                  mass_matrix = shape_shape(t_shape, t_shape, detwei)
+                  ! In words: find the row of the mass matrix corresponding to the node we're interested in,
+                  ! and stuff the integral of the shape functions into node_weights.
+                  call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
 
-              ! Also: find out if the node has /any/ neighbouring interior nodes.
-              if (.not. has_neighbouring_interior_node) then
-                do k=1,size(neighbour_nodes)
-                  nnode = neighbour_nodes(k)
-                  if (.not. node_lies_on_boundary(nnode)) then
-                    has_neighbouring_interior_node = .true.
-                    exit
+                  ! Also: find out if the node has /any/ neighbouring interior nodes.
+                  if (.not. has_neighbouring_interior_node) then
+                     do k=1,size(neighbour_nodes)
+                        nnode = neighbour_nodes(k)
+                        if (.not. node_lies_on_boundary(nnode)) then
+                           has_neighbouring_interior_node = .true.
+                           exit
+                        end if
+                     end do
                   end if
-                end do
-              end if
-            end do
+               end do
 
-            ! Now that we have the weights, let us use them.
+               ! Now that we have the weights, let us use them.
 
-            node_patch = get_patch_node(mesh, node)
-            sum_weights = 0.0
-            forall (j=1:count)
-              old_val(j) = pardiff(j)%val(node)
-              pardiff(j)%val(node) = 0.0
-            end forall
-            do j=1,node_patch%count
-              nnode = node_patch%elements(j)
-              ! If it's on the boundary, no ...
-              if (&
-              (has_neighbouring_interior_node .and. &
-              (.not. node_lies_on_boundary(nnode))) &
-              .or. ((.not. has_neighbouring_interior_node) .and. node_boundary_count(nnode) < node_boundary_count(node))) then
-                sum_weights = sum_weights + node_val(node_weights, nnode)
-                do k=1,count
-                  pardiff(k)%val(node) = pardiff(k)%val(node) +  &
-                                         pardiff(k)%val(nnode) * node_val(node_weights, nnode)
-                end do
-              end if
-            end do
+               node_patch = get_patch_node(mesh, node)
+               sum_weights = 0.0
+               forall (j=1:count)
+                  old_val(j) = pardiff(j)%val(node)
+                  pardiff(j)%val(node) = 0.0
+               end forall
+               do j=1,node_patch%count
+                  nnode = node_patch%elements(j)
+                  ! If it's on the boundary, no ...
+                  if (&
+                     (has_neighbouring_interior_node .and. &
+                     (.not. node_lies_on_boundary(nnode))) &
+                     .or. ((.not. has_neighbouring_interior_node) .and. node_boundary_count(nnode) < node_boundary_count(node))) then
+                     sum_weights = sum_weights + node_val(node_weights, nnode)
+                     do k=1,count
+                        pardiff(k)%val(node) = pardiff(k)%val(node) +  &
+                           pardiff(k)%val(nnode) * node_val(node_weights, nnode)
+                     end do
+                  end if
+               end do
 
-            if (sum_weights == 0.0) then
-              forall (k=1:count)
-                pardiff(k)%val(node) = old_val(k)
-              end forall
-            else
-              forall (k=1:count)
-                pardiff(k)%val(node) = pardiff(k)%val(node) / sum_weights
-              end forall
+               if (sum_weights == 0.0) then
+                  forall (k=1:count)
+                     pardiff(k)%val(node) = old_val(k)
+                  end forall
+               else
+                  forall (k=1:count)
+                     pardiff(k)%val(node) = pardiff(k)%val(node) / sum_weights
+                  end forall
+               end if
+               deallocate(node_patch%elements)
             end if
-            deallocate(node_patch%elements)
-          end if
-        end do
+         end do
       end do
       call deallocate(node_weights)
-    end subroutine differentiate_boundary_correction
+   end subroutine differentiate_boundary_correction
 
-    subroutine hessian_boundary_correction(hessian, positions, t_shape)
+   subroutine hessian_boundary_correction(hessian, positions, t_shape)
       !!< Implement the hessian boundary correction routine.
       type(tensor_field), intent(inout), target :: hessian
       type(vector_field), intent(in) :: positions
@@ -1060,93 +1060,93 @@ module field_derivatives
       call initialise_boundcount(hessian%mesh, positions)
 
       do i=1,dim
-        do node=1,node_count(hessian)
-          if (node_boundary_count(node) >= get_expected_boundcount() + i) then
-            call zero(node_weights)
-            has_neighbouring_interior_node = .false.
-            ! First we need to compute the weights for each neighbouring node.
-            neighbour_elements => row_m_ptr(nelist, node)
-            do j=1,size(neighbour_elements)
-              ele = neighbour_elements(j)
-              neighbour_nodes => ele_nodes(hessian, ele)
-              call transform_to_physical(positions, ele, detwei=detwei)
-              mass_matrix = shape_shape(t_shape, t_shape, detwei)
-              ! In words: find the row of the mass matrix corresponding to the node we're interested in,
-              ! and stuff the integral of the shape functions into node_weights.
-              call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
+         do node=1,node_count(hessian)
+            if (node_boundary_count(node) >= get_expected_boundcount() + i) then
+               call zero(node_weights)
+               has_neighbouring_interior_node = .false.
+               ! First we need to compute the weights for each neighbouring node.
+               neighbour_elements => row_m_ptr(nelist, node)
+               do j=1,size(neighbour_elements)
+                  ele = neighbour_elements(j)
+                  neighbour_nodes => ele_nodes(hessian, ele)
+                  call transform_to_physical(positions, ele, detwei=detwei)
+                  mass_matrix = shape_shape(t_shape, t_shape, detwei)
+                  ! In words: find the row of the mass matrix corresponding to the node we're interested in,
+                  ! and stuff the integral of the shape functions into node_weights.
+                  call addto(node_weights, neighbour_nodes, mass_matrix(:, find(neighbour_nodes, node)))
 
-              ! Also: find out if the node has /any/ neighbouring interior nodes.
-              if (.not. has_neighbouring_interior_node) then
-                do k=1,size(neighbour_nodes)
-                  nnode = neighbour_nodes(k)
-                  if (.not. node_lies_on_boundary(nnode)) then
-                    has_neighbouring_interior_node = .true.
-                    exit
+                  ! Also: find out if the node has /any/ neighbouring interior nodes.
+                  if (.not. has_neighbouring_interior_node) then
+                     do k=1,size(neighbour_nodes)
+                        nnode = neighbour_nodes(k)
+                        if (.not. node_lies_on_boundary(nnode)) then
+                           has_neighbouring_interior_node = .true.
+                           exit
+                        end if
+                     end do
                   end if
-                end do
-              end if
-            end do
+               end do
 
-            ! Now that we have the weights, let us use them.
+               ! Now that we have the weights, let us use them.
 
-            node_patch = get_patch_node(mesh, node)
-            sum_weights = 0.0
-            old_val = hessian%val(:, :, node)
-            hessian%val(:, :, node) = 0.0
-            do j=1,node_patch%count
-              nnode = node_patch%elements(j)
-              ! If it's on the boundary, no ...
-              if (&
-              (has_neighbouring_interior_node .and. &
-              (.not. node_lies_on_boundary(nnode))) &
-              .or. ((.not. has_neighbouring_interior_node) .and. node_boundary_count(nnode) < node_boundary_count(node))) then
-                sum_weights = sum_weights + node_val(node_weights, nnode)
-                hessian%val(:, :, node) = hessian%val(:, :, node) +  &
-                                          hessian%val(:, :, nnode) * node_val(node_weights, nnode)
-              end if
-            end do
+               node_patch = get_patch_node(mesh, node)
+               sum_weights = 0.0
+               old_val = hessian%val(:, :, node)
+               hessian%val(:, :, node) = 0.0
+               do j=1,node_patch%count
+                  nnode = node_patch%elements(j)
+                  ! If it's on the boundary, no ...
+                  if (&
+                     (has_neighbouring_interior_node .and. &
+                     (.not. node_lies_on_boundary(nnode))) &
+                     .or. ((.not. has_neighbouring_interior_node) .and. node_boundary_count(nnode) < node_boundary_count(node))) then
+                     sum_weights = sum_weights + node_val(node_weights, nnode)
+                     hessian%val(:, :, node) = hessian%val(:, :, node) +  &
+                        hessian%val(:, :, nnode) * node_val(node_weights, nnode)
+                  end if
+               end do
 
-            if (sum_weights == 0.0) then
-              hessian%val(:, :, node) = old_val
-            else
-              hessian%val(:, :, node) = hessian%val(:, :, node) / sum_weights
+               if (sum_weights == 0.0) then
+                  hessian%val(:, :, node) = old_val
+               else
+                  hessian%val(:, :, node) = hessian%val(:, :, node) / sum_weights
+               end if
+               deallocate(node_patch%elements)
             end if
-            deallocate(node_patch%elements)
-          end if
-        end do
+         end do
       end do
 
       call deallocate(node_weights)
-    end subroutine hessian_boundary_correction
+   end subroutine hessian_boundary_correction
 
-    subroutine hessian_squash_pseudo2d(hessian)
+   subroutine hessian_squash_pseudo2d(hessian)
       !!< Squash derivatives in directions where no dynamics occur.
       type(tensor_field), intent(inout) :: hessian
 
       integer :: node
 
       if (pseudo2d_coord == 0) then
-        return
+         return
       end if
 
       do node=1,node_count(hessian)
-        hessian%val(:, pseudo2d_coord, node) = 0.0
-        hessian%val(pseudo2d_coord, :, node) = 0.0
+         hessian%val(:, pseudo2d_coord, node) = 0.0
+         hessian%val(pseudo2d_coord, :, node) = 0.0
       end do
-    end subroutine hessian_squash_pseudo2d
+   end subroutine hessian_squash_pseudo2d
 
-    subroutine differentiate_squash_pseudo2d(pardiff)
+   subroutine differentiate_squash_pseudo2d(pardiff)
       !!< Squash derivatives in directions where no dynamics occur.
       type(scalar_field), dimension(:), intent(inout) :: pardiff
 
       if (pseudo2d_coord == 0) then
-        return
+         return
       end if
 
       call zero(pardiff(pseudo2d_coord))
-    end subroutine differentiate_squash_pseudo2d
+   end subroutine differentiate_squash_pseudo2d
 
-    function find(array, val) result(loc)
+   function find(array, val) result(loc)
       !!< Find the first instance of val in array.
       integer, intent(in), dimension(:) :: array
       integer, intent(in) :: val
@@ -1154,15 +1154,15 @@ module field_derivatives
 
       loc = -1
       do i=1,size(array)
-        if (array(i) == val) then
-          loc = i
-          return
-        end if
+         if (array(i) == val) then
+            loc = i
+            return
+         end if
       end do
-    end function find
+   end function find
 
-    subroutine compute_hessian_spr(infield, positions, hessian, accuracy_at_cost)
-    !!< This routine computes the hessian, applying differentiate_field_spr multiple times.
+   subroutine compute_hessian_spr(infield, positions, hessian, accuracy_at_cost)
+      !!< This routine computes the hessian, applying differentiate_field_spr multiple times.
       type(scalar_field), intent(inout) :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: hessian
@@ -1177,163 +1177,163 @@ module field_derivatives
 !      integer :: j, k, neigh_count, node
 
       if (maxval(infield%val) == minval(infield%val)) then
-        hessian%val = 0.0
-        ewrite(2,*) "+++: Field constant; returning 0.0"
-        return
+         hessian%val = 0.0
+         ewrite(2,*) "+++: Field constant; returning 0.0"
+         return
       end if
 
       call initialise_boundcount(infield%mesh, positions)
 
       dim = positions%dim
       do i=1,dim
-        call allocate(pardiff(i), infield%mesh) ! allocate the partial derivatives
+         call allocate(pardiff(i), infield%mesh) ! allocate the partial derivatives
       end do
 
       ! First get the first derivatives.
 
       if (dim == 2) then
-        derivatives(1) = .true. ; derivatives(2) = .true.
-        call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
+         derivatives(1) = .true. ; derivatives(2) = .true.
+         call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1)
-        temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 1, 2)
-        derivatives(1) = .true. ; derivatives(2) = .false.
-        call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1)
+         temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 1, 2)
+         derivatives(1) = .true. ; derivatives(2) = .false.
+         call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx ]
-        ! [    ??         ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx ]
+         ! [    ??         ??    ]
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 1)
-        temp_fields(1)%val(:) = temp_fields(2)%val
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 1)
+         temp_fields(1)%val(:) = temp_fields(2)%val
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx ]
-        ! [ d^2f/dxdy     ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx ]
+         ! [ d^2f/dxdy     ??    ]
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 2)
-        derivatives(1) = .false. ; derivatives(2) = .true.
-        call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 2)
+         derivatives(1) = .false. ; derivatives(2) = .true.
+         call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx ]
-        ! [ d^2f/dydy d^2f/dy^2 ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx ]
+         ! [ d^2f/dydy d^2f/dy^2 ]
 
       end if
 
       if (dim == 3) then
 
-        ! if the domain is pseudo-2d, we don't want to take z derivatives
-        if (.not. domain_is_2d()) then
-          derivatives(1) = .true. ; derivatives(2) = .true. ; derivatives(3) = .true.
-          call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
-        else if (domain_is_2d_x()) then
-          derivatives(1) = .false. ; derivatives(2) = .true. ; derivatives(3) = .true.
-          call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
-          pardiff(1)%val = 0.0
-        else if (domain_is_2d_y()) then
-          derivatives(1) = .true. ; derivatives(2) = .false. ; derivatives(3) = .true.
-          call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
-          pardiff(2)%val = 0.0
-        else if (domain_is_2d_z()) then
-          derivatives(1) = .true. ; derivatives(2) = .true. ; derivatives(3) = .false.
-          call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
-          pardiff(3)%val = 0.0
-        end if
-        ewrite(2,*) "+++: Gradient computed"
+         ! if the domain is pseudo-2d, we don't want to take z derivatives
+         if (.not. domain_is_2d()) then
+            derivatives(1) = .true. ; derivatives(2) = .true. ; derivatives(3) = .true.
+            call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
+         else if (domain_is_2d_x()) then
+            derivatives(1) = .false. ; derivatives(2) = .true. ; derivatives(3) = .true.
+            call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
+            pardiff(1)%val = 0.0
+         else if (domain_is_2d_y()) then
+            derivatives(1) = .true. ; derivatives(2) = .false. ; derivatives(3) = .true.
+            call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
+            pardiff(2)%val = 0.0
+         else if (domain_is_2d_z()) then
+            derivatives(1) = .true. ; derivatives(2) = .true. ; derivatives(3) = .false.
+            call differentiate_field_spr(infield, positions, derivatives, pardiff, accuracy_at_cost)
+            pardiff(3)%val = 0.0
+         end if
+         ewrite(2,*) "+++: Gradient computed"
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1)
-        temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 1, 2)
-        temp_fields(3) = extract_scalar_field_from_tensor_field(hessian, 1, 3)
-        if (.not. domain_is_2d()) then
-          derivatives(1) = .true. ; derivatives(2) = .true.; derivatives(3) = .true.
-          call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
-        else if (domain_is_2d_x()) then
-          temp_fields(1)%val = 0.0
-          temp_fields(2)%val = 0.0
-          temp_fields(3)%val = 0.0
-        else if (domain_is_2d_y()) then
-          derivatives(1) = .true. ; derivatives(2) = .false.; derivatives(3) = .true.
-          call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
-          temp_fields(2)%val = 0.0
-        else if (domain_is_2d_z()) then
-          derivatives(1) = .true. ; derivatives(2) = .true.; derivatives(3) = .false.
-          call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
-          temp_fields(3)%val = 0.0
-        end if
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 1, 1)
+         temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 1, 2)
+         temp_fields(3) = extract_scalar_field_from_tensor_field(hessian, 1, 3)
+         if (.not. domain_is_2d()) then
+            derivatives(1) = .true. ; derivatives(2) = .true.; derivatives(3) = .true.
+            call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
+         else if (domain_is_2d_x()) then
+            temp_fields(1)%val = 0.0
+            temp_fields(2)%val = 0.0
+            temp_fields(3)%val = 0.0
+         else if (domain_is_2d_y()) then
+            derivatives(1) = .true. ; derivatives(2) = .false.; derivatives(3) = .true.
+            call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
+            temp_fields(2)%val = 0.0
+         else if (domain_is_2d_z()) then
+            derivatives(1) = .true. ; derivatives(2) = .true.; derivatives(3) = .false.
+            call differentiate_field_spr(pardiff(1), positions, derivatives, temp_fields, accuracy_at_cost)
+            temp_fields(3)%val = 0.0
+         end if
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
-        ! [     ??        ??        ??    ]
-        ! [     ??        ??        ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
+         ! [     ??        ??        ??    ]
+         ! [     ??        ??        ??    ]
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 1)
-        temp_fields(1)%val(:) = temp_fields(2)%val
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 1)
-        temp_fields(1)%val(:) = temp_fields(3)%val
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 1)
+         temp_fields(1)%val(:) = temp_fields(2)%val
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 1)
+         temp_fields(1)%val(:) = temp_fields(3)%val
 
-        ewrite(2,*) "+++: 2nd-order x derivatives computed"
+         ewrite(2,*) "+++: 2nd-order x derivatives computed"
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
-        ! [ d^2f/dydx     ??        ??    ]
-        ! [ d^2f/dzdx     ??        ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
+         ! [ d^2f/dydx     ??        ??    ]
+         ! [ d^2f/dzdx     ??        ??    ]
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 2)
-        temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 2, 3)
-        if (.not. domain_is_2d()) then
-          derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .true. ! only want the y,z derivatives
-          call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
-        else if (domain_is_2d_x()) then
-          derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .true.
-          call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
-        else if (domain_is_2d_y()) then
-          temp_fields(1)%val = 0.0
-          temp_fields(2)%val = 0.0
-        else if (domain_is_2d_z()) then
-          derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .false.
-          call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
-          temp_fields(2)%val = 0.0
-        end if
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 2, 2)
+         temp_fields(2) = extract_scalar_field_from_tensor_field(hessian, 2, 3)
+         if (.not. domain_is_2d()) then
+            derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .true. ! only want the y,z derivatives
+            call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
+         else if (domain_is_2d_x()) then
+            derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .true.
+            call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
+         else if (domain_is_2d_y()) then
+            temp_fields(1)%val = 0.0
+            temp_fields(2)%val = 0.0
+         else if (domain_is_2d_z()) then
+            derivatives(1) = .false.; derivatives(2) = .true. ; derivatives(3) = .false.
+            call differentiate_field_spr(pardiff(2), positions, derivatives, temp_fields, accuracy_at_cost)
+            temp_fields(2)%val = 0.0
+         end if
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
-        ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
-        ! [ d^2f/dzdx     ??        ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
+         ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
+         ! [ d^2f/dzdx     ??        ??    ]
 
-        ewrite(2,*) "+++: 2nd-order y derivatives computed"
+         ewrite(2,*) "+++: 2nd-order y derivatives computed"
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 2)
-        temp_fields(1)%val(:) = temp_fields(2)%val
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 2)
+         temp_fields(1)%val(:) = temp_fields(2)%val
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
-        ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
-        ! [ d^2f/dzdx d^2f/dydx     ??    ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
+         ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
+         ! [ d^2f/dzdx d^2f/dydx     ??    ]
 
-        temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 3)
-        if (.not. domain_is_2d_z()) then
-          derivatives(1) = .false.; derivatives(2) = .false. ; derivatives(3) = .true. ! only want z derivative
-          call differentiate_field_spr(pardiff(3), positions, derivatives, temp_fields, accuracy_at_cost)
-        else
-          temp_fields(1)%val = 0.0
-        end if
+         temp_fields(1) = extract_scalar_field_from_tensor_field(hessian, 3, 3)
+         if (.not. domain_is_2d_z()) then
+            derivatives(1) = .false.; derivatives(2) = .false. ; derivatives(3) = .true. ! only want z derivative
+            call differentiate_field_spr(pardiff(3), positions, derivatives, temp_fields, accuracy_at_cost)
+         else
+            temp_fields(1)%val = 0.0
+         end if
 
-        ! Now the state of hessian is
-        ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
-        ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
-        ! [ d^2f/dzdx d^2f/dydx d^2f/dz^2 ]
+         ! Now the state of hessian is
+         ! [ d^2f/dx^2 d^2f/dydx d^2f/dzdx ]
+         ! [ d^2f/dydx d^2f/dy^2 d^2f/dydz ]
+         ! [ d^2f/dzdx d^2f/dydx d^2f/dz^2 ]
 
-        ewrite(2,*) "+++: 2nd-order z derivatives computed"
+         ewrite(2,*) "+++: 2nd-order z derivatives computed"
       end if
 
       do i=1,dim
-        deallocate(pardiff(i)%val)
+         deallocate(pardiff(i)%val)
       end do
-    end subroutine compute_hessian_spr
+   end subroutine compute_hessian_spr
 
-    subroutine compute_hessian_var(infield, positions, hessian)
-    !!< This routine computes the hessian using a weak finite element formulation.
+   subroutine compute_hessian_var(infield, positions, hessian)
+      !!< This routine computes the hessian using a weak finite element formulation.
       type(scalar_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout), target :: hessian
@@ -1360,8 +1360,8 @@ module field_derivatives
 
       call zero(hessian)
       if (maxval(infield%val) == minval(infield%val)) then
-        ewrite(2,*) "+++: Field constant; returning 0.0"
-        return
+         ewrite(2,*) "+++: Field constant; returning 0.0"
+         return
       end if
 
       call allocate(lumped_mass_matrix, mesh, "Lumped mass matrix")
@@ -1378,23 +1378,23 @@ module field_derivatives
 
       ! First, compute gradient and mass matrix.
       do ele=1,element_count(infield)
-        ! Compute detwei.
-        call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
+         ! Compute detwei.
+         call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
 
-        r = shape_dshape(h_shape, dt_t, detwei)
-        r_grad_ele = tensormul(r, ele_val(infield, ele), 3)
+         r = shape_dshape(h_shape, dt_t, detwei)
+         r_grad_ele = tensormul(r, ele_val(infield, ele), 3)
 
-        call addto(gradient, ele_nodes(gradient, ele), r_grad_ele)
+         call addto(gradient, ele_nodes(gradient, ele), r_grad_ele)
 
-        ! Lump the mass matrix
-        mass_matrix = shape_shape(h_shape, h_shape, detwei)
-        call addto(lumped_mass_matrix, ele_nodes(lumped_mass_matrix, ele), sum(mass_matrix, 2))
+         ! Lump the mass matrix
+         mass_matrix = shape_shape(h_shape, h_shape, detwei)
+         call addto(lumped_mass_matrix, ele_nodes(lumped_mass_matrix, ele), sum(mass_matrix, 2))
       end do
 
       do node=1,node_count(gradient)
-        do i=1,dim
-          gradient%val(i,node) = gradient%val(i,node) / node_val(lumped_mass_matrix, node)
-        end do
+         do i=1,dim
+            gradient%val(i,node) = gradient%val(i,node) / node_val(lumped_mass_matrix, node)
+         end do
       end do
 
       ! Testing: does this cause the lock exchange result to fail?
@@ -1404,35 +1404,35 @@ module field_derivatives
       !call differentiate_boundary_correction(grad_components, positions, x_shape, t_shape, dim)
 
       do ele=1,element_count(infield)
-        call transform_to_physical(positions, ele, h_shape, dshape=dh_t, detwei=detwei)
-        r_hess = shape_dshape(h_shape, dh_t, detwei)
-        do i=1,dim
-          r_hess_ele(i, :, :) = tensormul(r_hess, ele_val(gradient, i, ele), 3)
-        end do
-        call addto(hessian, ele_nodes(hessian, ele), r_hess_ele)
+         call transform_to_physical(positions, ele, h_shape, dshape=dh_t, detwei=detwei)
+         r_hess = shape_dshape(h_shape, dh_t, detwei)
+         do i=1,dim
+            r_hess_ele(i, :, :) = tensormul(r_hess, ele_val(gradient, i, ele), 3)
+         end do
+         call addto(hessian, ele_nodes(hessian, ele), r_hess_ele)
       end do
 
       do node=1,node_count(hessian)
-        hess_ptr => hessian%val(:, :, node)
-        hess_ptr = hess_ptr / node_val(lumped_mass_matrix, node)
+         hess_ptr => hessian%val(:, :, node)
+         hess_ptr = hess_ptr / node_val(lumped_mass_matrix, node)
 
-        ! Now we need to make it symmetric, see?
-        do i=1,dim
-          do j=i+1,dim
-            hess_ptr(i, j) = (hess_ptr(i, j) + hess_ptr(j, i)) / 2.0
-            hess_ptr(j, i) = hess_ptr(i, j)
-          end do
-        end do
+         ! Now we need to make it symmetric, see?
+         do i=1,dim
+            do j=i+1,dim
+               hess_ptr(i, j) = (hess_ptr(i, j) + hess_ptr(j, i)) / 2.0
+               hess_ptr(j, i) = hess_ptr(i, j)
+            end do
+         end do
       end do
 
       call hessian_boundary_correction(hessian, positions, h_shape)
 
       call deallocate(lumped_mass_matrix)
       call deallocate(gradient)
-    end subroutine compute_hessian_var
+   end subroutine compute_hessian_var
 
-    subroutine differentiate_field_lumped_multiple(infields, positions, derivatives, pardiff)
-    !!< This routine computes the first derivatives using a weak finite element formulation.
+   subroutine differentiate_field_lumped_multiple(infields, positions, derivatives, pardiff)
+      !!< This routine computes the first derivatives using a weak finite element formulation.
       type(scalar_field), dimension(:), intent(in) :: infields
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1449,48 +1449,48 @@ module field_derivatives
       mesh => pardiff(1, 1)%mesh
 
       do i=1, size(infields)
-        ! don't compute if the field is constant
-        compute(i)= (maxval(infields(i)%val) /= minval(infields(i)%val))
-        ! check the infield is continuous!!!!
-        if (infields(i)%mesh%continuity<0) then
-          ewrite(0,*) "If the following error is directly due to user input"
-          ewrite(0,*) "a check and a more helpful error message should be inserted in"
-          ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
-          ewrite(0,*) "Error has occured in differentiate_field_lumped_multiple, with field, ", trim(infields(i)%name)
-          FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
-        end if
+         ! don't compute if the field is constant
+         compute(i)= (maxval(infields(i)%val) /= minval(infields(i)%val))
+         ! check the infield is continuous!!!!
+         if (infields(i)%mesh%continuity<0) then
+            ewrite(0,*) "If the following error is directly due to user input"
+            ewrite(0,*) "a check and a more helpful error message should be inserted in"
+            ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+            ewrite(0,*) "Error has occured in differentiate_field_lumped_multiple, with field, ", trim(infields(i)%name)
+            FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
+         end if
       end do
 
       call allocate(lumped_mass_matrix, mesh, "LumpedMassMatrix")
       call zero(lumped_mass_matrix)
 
       do i=1, size(infields)
-        if (compute(i)) then
-          call allocate(gradient(i), positions%dim, mesh, "Gradient")
-          call zero(gradient(i))
-        end if
+         if (compute(i)) then
+            call allocate(gradient(i), positions%dim, mesh, "Gradient")
+            call zero(gradient(i))
+         end if
       end do
 
 
       ! First, compute gradient and mass matrix.
       do ele=1, element_count(mesh)
-        call differentiate_field_ele(ele)
+         call differentiate_field_ele(ele)
       end do
 
       do i=1, size(infields)
-        if (compute(i)) then
-          k=0
-          do j=1, positions%dim
-            if (derivatives(j)) then
-              k=k+1
-              call set( pardiff(k,i), gradient(i), dim=j )
-            end if
-          end do
-        else
-          do k=1, size(pardiff,1)
-            call zero(pardiff(k,i))
-          end do
-        end if
+         if (compute(i)) then
+            k=0
+            do j=1, positions%dim
+               if (derivatives(j)) then
+                  k=k+1
+                  call set( pardiff(k,i), gradient(i), dim=j )
+               end if
+            end do
+         else
+            do k=1, size(pardiff,1)
+               call zero(pardiff(k,i))
+            end do
+         end if
       end do
 
       ! invert the lumped mass matrix
@@ -1499,55 +1499,55 @@ module field_derivatives
 
       ! compute pardiff=M^-1*pardiff
       do i=1, size(infields)
-        do k=1, size(pardiff,1)
-          call scale(pardiff(k,i), inverse_lumped_mass)
-        end do
+         do k=1, size(pardiff,1)
+            call scale(pardiff(k,i), inverse_lumped_mass)
+         end do
       end do
 
       do i=1, size(infields)
-        if (compute(i)) then
-          call deallocate(gradient(i))
-        end if
+         if (compute(i)) then
+            call deallocate(gradient(i))
+         end if
       end do
       call deallocate(lumped_mass_matrix)
       call deallocate(inverse_lumped_mass)
 
-      contains
+   contains
 
       subroutine differentiate_field_ele(ele)
-        integer, intent(in):: ele
+         integer, intent(in):: ele
 
-        real, dimension(mesh_dim(mesh), ele_loc(mesh, ele), ele_loc(infields(1), ele)) :: r
-        real, dimension(ele_ngi(mesh, ele)) :: detwei
-        real, dimension(ele_loc(infields(1), ele), ele_ngi(infields(1), ele), mesh_dim(infields(1))) :: dt_t
-        real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: mass_matrix
+         real, dimension(mesh_dim(mesh), ele_loc(mesh, ele), ele_loc(infields(1), ele)) :: r
+         real, dimension(ele_ngi(mesh, ele)) :: detwei
+         real, dimension(ele_loc(infields(1), ele), ele_ngi(infields(1), ele), mesh_dim(infields(1))) :: dt_t
+         real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: mass_matrix
 
-        integer i
+         integer i
 
-        ! Compute detwei.
-        call transform_to_physical(positions, ele, &
-           ele_shape(infields(1), ele), dshape=dt_t, detwei=detwei)
+         ! Compute detwei.
+         call transform_to_physical(positions, ele, &
+            ele_shape(infields(1), ele), dshape=dt_t, detwei=detwei)
 
-        r = shape_dshape(ele_shape(mesh, ele), dt_t, detwei)
-        do i=1, size(infields)
+         r = shape_dshape(ele_shape(mesh, ele), dt_t, detwei)
+         do i=1, size(infields)
 
-          if (compute(i)) then
-            call addto(gradient(i), ele_nodes(mesh, ele), &
-               tensormul(r, ele_val(infields(i), ele), 3) )
-          end if
+            if (compute(i)) then
+               call addto(gradient(i), ele_nodes(mesh, ele), &
+                  tensormul(r, ele_val(infields(i), ele), 3) )
+            end if
 
-        end do
+         end do
 
-        ! Lump the mass matrix
-        mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
-        call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
+         ! Lump the mass matrix
+         mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
+         call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
 
       end subroutine differentiate_field_ele
 
-    end subroutine differentiate_field_lumped_multiple
+   end subroutine differentiate_field_lumped_multiple
 
-    subroutine differentiate_field_lumped_single(infield, positions, derivatives, pardiff)
-    !!< This routine computes the first derivatives using a weak finite element formulation.
+   subroutine differentiate_field_lumped_single(infield, positions, derivatives, pardiff)
+      !!< This routine computes the first derivatives using a weak finite element formulation.
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1559,10 +1559,10 @@ module field_derivatives
 
       call differentiate_field_lumped_multiple( (/ infield /), positions, derivatives, pardiffs)
 
-    end subroutine differentiate_field_lumped_single
+   end subroutine differentiate_field_lumped_single
 
-    subroutine differentiate_field_lumped_vector(infield, positions, outfield)
-    !!< This routine computes the derivatives of a vector field returning a tensor field
+   subroutine differentiate_field_lumped_vector(infield, positions, outfield)
+      !!< This routine computes the derivatives of a vector field returning a tensor field
       type(vector_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: outfield
@@ -1574,17 +1574,17 @@ module field_derivatives
 
       derivatives=.true.
       do i=1, infield%dim
-        infields(i)=extract_scalar_field(infield, i)
-        do j=1, positions%dim
-          pardiffs(j, i)=extract_scalar_field(outfield, j, i)
-        end do
+         infields(i)=extract_scalar_field(infield, i)
+         do j=1, positions%dim
+            pardiffs(j, i)=extract_scalar_field(outfield, j, i)
+         end do
       end do
 
       call differentiate_field_lumped_multiple( infields, positions, derivatives, pardiffs)
 
-    end subroutine differentiate_field_lumped_vector
+   end subroutine differentiate_field_lumped_vector
 
-    subroutine differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+   subroutine differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1598,20 +1598,20 @@ module field_derivatives
       type(mesh_type), pointer :: mesh
 
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
-        do i=1,count(derivatives)
-          call zero(pardiff(i))
-        end do
-        return
+         do i=1,count(derivatives)
+            call zero(pardiff(i))
+         end do
+         return
       end if
 
       if (continuity(infield)<0) then
-        call differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
-        return
+         call differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+         return
       end if
 
       if (continuity(pardiff(1))<0) then
-        call differentiate_field_discontinuous(infield, positions, derivatives, pardiff)
-        return
+         call differentiate_field_discontinuous(infield, positions, derivatives, pardiff)
+         return
       end if
 
       mesh => infield%mesh
@@ -1619,16 +1619,16 @@ module field_derivatives
       call differentiate_field_lumped_single(infield, positions, derivatives, pardiff)
 
       if (pseudo2d_coord /= 0) then
-        if (derivatives(pseudo2d_coord)) then
-        ! which pardiff corresponds to dimension pseudo2d_coord?
-        i = count(derivatives(1:pseudo2d_coord))
-        call zero(pardiff(i))
-        end if
+         if (derivatives(pseudo2d_coord)) then
+            ! which pardiff corresponds to dimension pseudo2d_coord?
+            i = count(derivatives(1:pseudo2d_coord))
+            call zero(pardiff(i))
+         end if
       end if
 
-    end subroutine differentiate_field
+   end subroutine differentiate_field
 
-    subroutine differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+   subroutine differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1640,27 +1640,27 @@ module field_derivatives
       integer :: ele, i
 
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
-        do i=1,count(derivatives)
-          if (derivatives(i)) then
-             call zero(pardiff(i))
-          end if
-        end do
-        return
+         do i=1,count(derivatives)
+            if (derivatives(i)) then
+               call zero(pardiff(i))
+            end if
+         end do
+         return
       end if
 
       ! only works if all pardiff fields are discontinuous:
       do i=1, count(derivatives)
-        assert(pardiff(i)%mesh%continuity<0)
+         assert(pardiff(i)%mesh%continuity<0)
       end do
 
       ! calculate gradient
       do ele = 1, ele_count(infield)
-        call calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
+         call calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
       end do
 
-    end subroutine differentiate_discontinuous_field
+   end subroutine differentiate_discontinuous_field
 
-    subroutine calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
+   subroutine calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1676,7 +1676,7 @@ module field_derivatives
       ! In parallel, we only construct the equations on elements we own, or
       ! those in the L1 halo.
       if (.not.(element_owned(infield, ele).or.element_neighbour_owned(infield, ele))) then
-        return
+         return
       end if
 
       ! Get dg grad
@@ -1684,14 +1684,14 @@ module field_derivatives
 
       ! set pardiffs
       do i = 1, positions%dim
-        if (derivatives(i)) then
-          call set(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
-        end if
+         if (derivatives(i)) then
+            call set(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
+         end if
       end do
 
-    end subroutine calculate_grad_ele_dg
+   end subroutine calculate_grad_ele_dg
 
-    subroutine differentiate_field_discontinuous(infield, positions, derivatives, pardiff)
+   subroutine differentiate_field_discontinuous(infield, positions, derivatives, pardiff)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
@@ -1707,25 +1707,25 @@ module field_derivatives
       integer ele, gi, i, j
 
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
-        do i=1,count(derivatives)
-          if (derivatives(i)) then
-             call zero(pardiff(i))
-          end if
-        end do
-        return
+         do i=1,count(derivatives)
+            if (derivatives(i)) then
+               call zero(pardiff(i))
+            end if
+         end do
+         return
       end if
 
       ! only works if all pardiff fields are discontinuous:
       do i=1, count(derivatives)
-        assert(pardiff(i)%mesh%continuity<0)
+         assert(pardiff(i)%mesh%continuity<0)
       end do
       ! and the infield is continuous!!!!
       if (infield%mesh%continuity<0) then
-        ewrite(0,*) "If the following error is directly due to user input"
-        ewrite(0,*) "a check and a more helpful error message should be inserted in"
-        ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
-        ewrite(0,*) "Error has occured in differentiate_field_discontinuous, with field, ", trim(infield%name)
-        FLAbort("Shouldn't get here?")
+         ewrite(0,*) "If the following error is directly due to user input"
+         ewrite(0,*) "a check and a more helpful error message should be inserted in"
+         ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+         ewrite(0,*) "Error has occured in differentiate_field_discontinuous, with field, ", trim(infield%name)
+         FLAbort("Shouldn't get here?")
       end if
 
       xshape=ele_shape(positions, 1)
@@ -1754,13 +1754,13 @@ module field_derivatives
                r=matmul(M, matmul(Q(i,:,:), ele_val(infield, ele)))
                call set(pardiff(j), ele_nodes(pardiff(j), ele), r)
             end if
-        end do
+         end do
 
       end do
 
-    end subroutine differentiate_field_discontinuous
+   end subroutine differentiate_field_discontinuous
 
-    subroutine compute_hessian(infield, positions, hessian)
+   subroutine compute_hessian(infield, positions, hessian)
       type(scalar_field), intent(inout) :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: hessian
@@ -1768,22 +1768,22 @@ module field_derivatives
       integer :: node
 
       if (infield%field_type == FIELD_TYPE_CONSTANT) then
-        call zero(hessian)
-        return
+         call zero(hessian)
+         return
       end if
 
       call add_nelist(infield%mesh)
       call compute_hessian_real(infield, positions, hessian)
 
       if (pseudo2d_coord /= 0) then
-        do node=1,node_count(hessian)
-          hessian%val(pseudo2d_coord, :, node) = 0.0
-          hessian%val(:, pseudo2d_coord, node) = 0.0
-        end do
+         do node=1,node_count(hessian)
+            hessian%val(pseudo2d_coord, :, node) = 0.0
+            hessian%val(:, pseudo2d_coord, node) = 0.0
+         end do
       end if
-    end subroutine compute_hessian
+   end subroutine compute_hessian
 
-    subroutine curl(infield, positions, curl_norm, curl_field)
+   subroutine curl(infield, positions, curl_norm, curl_field)
       type(vector_field), intent(in) :: positions, infield
       type(scalar_field), intent(inout), optional :: curl_norm ! norm of curl_field
       type(vector_field), intent(inout), optional :: curl_field
@@ -1799,85 +1799,85 @@ module field_derivatives
       call add_nelist(mesh)
 
       do i=1,positions%dim
-        call allocate(grad_v(i), positions%dim, infield%mesh, "Grad V")
-        call grad(extract_scalar_field(infield, i), positions, grad_v(i))
+         call allocate(grad_v(i), positions%dim, infield%mesh, "Grad V")
+         call grad(extract_scalar_field(infield, i), positions, grad_v(i))
       end do
 
       if (present(curl_field)) then
-        call zero(curl_field)
+         call zero(curl_field)
       end if
 
       if (present(curl_norm)) then
-        call zero(curl_norm)
+         call zero(curl_norm)
       end if
 
       do i=1,node_count(infield)
-        a = grad_v(3)%val(2,i) - grad_v(2)%val(3,i) ! dw/dy - dv/dz
-        b = grad_v(1)%val(3,i) - grad_v(3)%val(1,i) ! du/dz - dw/dx
-        c = grad_v(2)%val(1,i) - grad_v(1)%val(2,i) ! dv/dx - du/dy
-        if (present(curl_norm)) then
-          w = sqrt(a**2 + b**2 + c**2)
-          call addto(curl_norm, i, w)
-        end if
-        if (present(curl_field)) then
-          call addto(curl_field, i, (/a, b, c/))
-        end if
+         a = grad_v(3)%val(2,i) - grad_v(2)%val(3,i) ! dw/dy - dv/dz
+         b = grad_v(1)%val(3,i) - grad_v(3)%val(1,i) ! du/dz - dw/dx
+         c = grad_v(2)%val(1,i) - grad_v(1)%val(2,i) ! dv/dx - du/dy
+         if (present(curl_norm)) then
+            w = sqrt(a**2 + b**2 + c**2)
+            call addto(curl_norm, i, w)
+         end if
+         if (present(curl_field)) then
+            call addto(curl_field, i, (/a, b, c/))
+         end if
       end do
 
       do i=1,positions%dim
-        call deallocate(grad_v(i))
+         call deallocate(grad_v(i))
       end do
 
-    end subroutine curl
+   end subroutine curl
 
-  subroutine u_dot_nabla_scalar(v_field, in_field, positions, out_field)
-    !!< Calculates (u dot nabla) in_field for scalar fields
+   subroutine u_dot_nabla_scalar(v_field, in_field, positions, out_field)
+      !!< Calculates (u dot nabla) in_field for scalar fields
 
-    type(vector_field), intent(in) :: v_field
-    type(scalar_field), intent(in) :: in_field
-    type(vector_field), intent(in) :: positions
-    type(scalar_field), intent(inout) :: out_field
+      type(vector_field), intent(in) :: v_field
+      type(scalar_field), intent(in) :: in_field
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), intent(inout) :: out_field
 
-    integer :: i
-    real, dimension(positions%dim) :: grad_val_at_node, &
+      integer :: i
+      real, dimension(positions%dim) :: grad_val_at_node, &
       & v_field_val_at_node
-    type(vector_field) :: gradient
+      type(vector_field) :: gradient
 
-    call allocate(gradient, positions%dim, in_field%mesh, "Gradient")
+      call allocate(gradient, positions%dim, in_field%mesh, "Gradient")
 
-    call grad(in_field, positions, gradient)
+      call grad(in_field, positions, gradient)
 
-    call zero(out_field)
-    do i = 1, node_count(out_field)
-      grad_val_at_node = node_val(gradient, i)
-      v_field_val_at_node = node_val(v_field, i)
-      call set(out_field, i, &
-        & dot_product(v_field_val_at_node, grad_val_at_node))
-    end do
+      call zero(out_field)
+      do i = 1, node_count(out_field)
+         grad_val_at_node = node_val(gradient, i)
+         v_field_val_at_node = node_val(v_field, i)
+         call set(out_field, i, &
+         & dot_product(v_field_val_at_node, grad_val_at_node))
+      end do
 
-    call deallocate(gradient)
+      call deallocate(gradient)
 
-  end subroutine u_dot_nabla_scalar
+   end subroutine u_dot_nabla_scalar
 
-  subroutine u_dot_nabla_vector(v_field, in_field, positions, out_field)
-    !!< Calculates (u dot nabla) in_field for vector fields
+   subroutine u_dot_nabla_vector(v_field, in_field, positions, out_field)
+      !!< Calculates (u dot nabla) in_field for vector fields
 
-    type(vector_field), intent(in) :: v_field
-    type(vector_field), intent(in) :: in_field
-    type(vector_field), intent(in) :: positions
-    type(vector_field), intent(inout) :: out_field
+      type(vector_field), intent(in) :: v_field
+      type(vector_field), intent(in) :: in_field
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(inout) :: out_field
 
-    integer :: i
-    type(scalar_field) :: out_field_comp
+      integer :: i
+      type(scalar_field) :: out_field_comp
 
-    do i = 1, v_field%dim
-      out_field_comp = extract_scalar_field(out_field, i)
-      call u_dot_nabla(v_field, &
-        & extract_scalar_field(in_field, i), positions, &
-        & out_field_comp)
-    end do
+      do i = 1, v_field%dim
+         out_field_comp = extract_scalar_field(out_field, i)
+         call u_dot_nabla(v_field, &
+         & extract_scalar_field(in_field, i), positions, &
+         & out_field_comp)
+      end do
 
-  end subroutine u_dot_nabla_vector
+   end subroutine u_dot_nabla_vector
 
 !    subroutine compute_hessian_eqf(infield, positions, hessian)
 !      !!< This routine computes the hessian using the method suggested
@@ -1897,7 +1897,7 @@ module field_derivatives
 !      real, dimension(MATRIX_SIZE_QF) :: b
 !    end subroutine compute_hessian_eqf
 
-    function get_quadratic_fit_eqf(infield, positions, ele, gradient) result(b)
+   function get_quadratic_fit_eqf(infield, positions, ele, gradient) result(b)
       !!< Implement Chris' idea for computing the Hessian.
       !!< The idea is, for a given element, construct a quadratic polynomial
       !!< expansion of the field over that element by constraining it as follows:
@@ -1928,31 +1928,31 @@ module field_derivatives
       centroid = insphere_tet(ele_val(positions, ele))
 
       do j=1,4
-        A(i, :) = getP_qf(node_val(positions, nodelist(j)))
-        b(i) = node_val(infield, nodelist(j))
-        i = i + 1
+         A(i, :) = getP_qf(node_val(positions, nodelist(j)))
+         b(i) = node_val(infield, nodelist(j))
+         i = i + 1
       end do
 
       do j=1,4
-        do k=j+1,4
-          edge_centre = (node_val(positions, nodelist(j)) + node_val(positions, nodelist(k))) / 2.0
-          dir = centroid - edge_centre
-          !dir = node_val(positions, nodelist(k)) - node_val(positions, nodelist(j))
-          A(i, 2) = dir(1); A(i, 3) = dir(2); A(i, 4) = dir(3)
-          A(i, 5) = 2 * dir(1) * edge_centre(1); A(i, 6) = 2 * dir(2) * edge_centre(2); A(i, 7) = 2 * dir(3) * edge_centre(3);
-          A(i, 8) = dir(1) * edge_centre(2) + dir(2) * edge_centre(1)
-          A(i, 9) = dir(3) * edge_centre(1) + dir(1) * edge_centre(3)
-          A(i, 10) = dir(2) * edge_centre(3) + dir(3) * edge_centre(2)
-          b(i) = dot_product((gradient(j, :) + gradient(k, :)) / 2.0, dir)
-          i = i + 1
-        end do
+         do k=j+1,4
+            edge_centre = (node_val(positions, nodelist(j)) + node_val(positions, nodelist(k))) / 2.0
+            dir = centroid - edge_centre
+            !dir = node_val(positions, nodelist(k)) - node_val(positions, nodelist(j))
+            A(i, 2) = dir(1); A(i, 3) = dir(2); A(i, 4) = dir(3)
+            A(i, 5) = 2 * dir(1) * edge_centre(1); A(i, 6) = 2 * dir(2) * edge_centre(2); A(i, 7) = 2 * dir(3) * edge_centre(3);
+            A(i, 8) = dir(1) * edge_centre(2) + dir(2) * edge_centre(1)
+            A(i, 9) = dir(3) * edge_centre(1) + dir(1) * edge_centre(3)
+            A(i, 10) = dir(2) * edge_centre(3) + dir(3) * edge_centre(2)
+            b(i) = dot_product((gradient(j, :) + gradient(k, :)) / 2.0, dir)
+            i = i + 1
+         end do
       end do
       A(11, 11) = 1.0; b(11) = 0.0
 
       call solve(A, b)
-    end function get_quadratic_fit_eqf
+   end function get_quadratic_fit_eqf
 
-    subroutine compute_hessian_eqf(infield, positions, hessian)
+   subroutine compute_hessian_eqf(infield, positions, hessian)
       type(scalar_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
       type(tensor_field), intent(inout) :: hessian
@@ -1974,36 +1974,36 @@ module field_derivatives
       x_shape = ele_shape(positions, 1)
 
       do ele=1,ele_count(infield)
-        nodelist => ele_nodes(infield, ele)
-        fit = get_quadratic_fit_eqf(infield, positions, ele, transpose(ele_val(gradient, ele)))
-        do j=1,ele_loc(infield, ele)
-          node = nodelist(j)
-          x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node);
-          tmp_hessian(1, 1) = 2 * fit(5)
-          tmp_hessian(1, 2) = fit(8) + z * fit(11)
-          tmp_hessian(1, 3) = fit(9) + y * fit(11)
-          tmp_hessian(2, 1) = fit(8) + z * fit(11)
-          tmp_hessian(2, 2) = 2 * fit(6)
-          tmp_hessian(2, 3) = fit(10) + x * fit(11)
-          tmp_hessian(3, 1) = fit(9) + y * fit(11)
-          tmp_hessian(3, 2) = fit(10) + x * fit(11)
-          tmp_hessian(3, 3) = 2 * fit(7)
-          hessian%val(:, :, node) = hessian%val(:, :, node) + tmp_hessian
-          touched(node) = touched(node) + 1
-        end do
+         nodelist => ele_nodes(infield, ele)
+         fit = get_quadratic_fit_eqf(infield, positions, ele, transpose(ele_val(gradient, ele)))
+         do j=1,ele_loc(infield, ele)
+            node = nodelist(j)
+            x = node_val(positions, 1, node); y = node_val(positions, 2, node); z = node_val(positions, 3, node);
+            tmp_hessian(1, 1) = 2 * fit(5)
+            tmp_hessian(1, 2) = fit(8) + z * fit(11)
+            tmp_hessian(1, 3) = fit(9) + y * fit(11)
+            tmp_hessian(2, 1) = fit(8) + z * fit(11)
+            tmp_hessian(2, 2) = 2 * fit(6)
+            tmp_hessian(2, 3) = fit(10) + x * fit(11)
+            tmp_hessian(3, 1) = fit(9) + y * fit(11)
+            tmp_hessian(3, 2) = fit(10) + x * fit(11)
+            tmp_hessian(3, 3) = 2 * fit(7)
+            hessian%val(:, :, node) = hessian%val(:, :, node) + tmp_hessian
+            touched(node) = touched(node) + 1
+         end do
       end do
 
       do node=1,node_count(hessian)
-        hessian%val(:, :, node) = hessian%val(:, :, node) / touched(node)
+         hessian%val(:, :, node) = hessian%val(:, :, node) / touched(node)
       end do
 
       call hessian_boundary_correction(hessian, positions, t_shape)
       call hessian_squash_pseudo2d(hessian)
 
       call deallocate(gradient)
-    end subroutine compute_hessian_eqf
+   end subroutine compute_hessian_eqf
 
-    subroutine div(infield, positions, divergence)
+   subroutine div(infield, positions, divergence)
       !! Implement div() operator.
       type(vector_field), intent(in):: infield, positions
       type(scalar_field), intent(inout), target  :: divergence
@@ -2021,17 +2021,17 @@ module field_derivatives
       derivatives = .false.
 
       do i=1,mesh_dim(infield)
-        derivatives(i) = .true.
-        component = extract_scalar_field(infield, i)
-        call differentiate_field(component, positions, derivatives, derivative)
-        call addto(divergence, derivative(1))
-        derivatives = .false.
+         derivatives(i) = .true.
+         component = extract_scalar_field(infield, i)
+         call differentiate_field(component, positions, derivatives, derivative)
+         call addto(divergence, derivative(1))
+         derivatives = .false.
       end do
 
       call deallocate(derivative(1))
-    end subroutine div
+   end subroutine div
 
-    function insphere_tet(positions) result(centre)
+   function insphere_tet(positions) result(centre)
       !! dim x loc
       real, dimension(3, 4), intent(in) :: positions
       real, dimension(size(positions, 1)) :: centre
@@ -2057,9 +2057,9 @@ module field_derivatives
       O1 = s - p
       t = dot_product(w, s) / dot_product(y, O1)
       centre = positions(:, 1) + t * y
-    end function insphere_tet
+   end function insphere_tet
 
-    recursive function get_cubic_fit_cf(infield, positions, node, level, maxlevel) result(b)
+   recursive function get_cubic_fit_cf(infield, positions, node, level, maxlevel) result(b)
       !!< Fit a cubic function to infield around the node,
       !!< with a least squares approach.
       type(scalar_field), intent(in) :: infield
@@ -2077,58 +2077,58 @@ module field_derivatives
       type(mesh_type) :: mesh
 
       if (present(level)) then
-        llevel = level
+         llevel = level
       else
-        llevel = 2
+         llevel = 2
       end if
 
       if (present(maxlevel)) then
-        lmaxlevel = maxlevel
+         lmaxlevel = maxlevel
       else
-        lmaxlevel = llevel + 1
+         lmaxlevel = llevel + 1
       end if
 
       mesh = infield%mesh
       node_patch = get_patch_node(mesh, node, level=llevel, min_nodes=min(node_count(mesh), int(2.5 * MATRIX_SIZE_CF)))
       A = 0.0; b_tmp = 0.0
       do i=1,node_patch%count
-        nnode = node_patch%elements(i)
+         nnode = node_patch%elements(i)
 
-        A = A + compute_matrix_contribution_cf(node_val(positions, nnode))
-        b_tmp(:, 1) = b_tmp(:, 1) + compute_rhs_contribution_cf(node_val(positions, nnode), node_val(infield, nnode))
+         A = A + compute_matrix_contribution_cf(node_val(positions, nnode))
+         b_tmp(:, 1) = b_tmp(:, 1) + compute_rhs_contribution_cf(node_val(positions, nnode), node_val(infield, nnode))
       end do
 
       if (pseudo2d_coord /= 0) then
-        if (pseudo2d_coord == 1) then
-          A_2D = A(CF_2D_X, CF_2D_X)
-          b_tmp_2D(:, 1) = b_tmp(CF_2D_X, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(CF_2D_X) = b_tmp_2D(:, 1)
-        else if (pseudo2d_coord == 2) then
-          A_2D = A(CF_2D_Y, CF_2D_Y)
-          b_tmp_2D(:, 1) = b_tmp(CF_2D_Y, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(CF_2D_Y) = b_tmp_2D(:, 1)
-        else if (pseudo2d_coord == 3) then
-          A_2D = A(CF_2D_Z, CF_2D_Z)
-          b_tmp_2D(:, 1) = b_tmp(CF_2D_Z, 1)
-          call solve(A_2D, b_tmp_2D, stat)
-          b = 0.0; b(CF_2D_Z) = b_tmp_2D(:, 1)
-        end if
+         if (pseudo2d_coord == 1) then
+            A_2D = A(CF_2D_X, CF_2D_X)
+            b_tmp_2D(:, 1) = b_tmp(CF_2D_X, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(CF_2D_X) = b_tmp_2D(:, 1)
+         else if (pseudo2d_coord == 2) then
+            A_2D = A(CF_2D_Y, CF_2D_Y)
+            b_tmp_2D(:, 1) = b_tmp(CF_2D_Y, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(CF_2D_Y) = b_tmp_2D(:, 1)
+         else if (pseudo2d_coord == 3) then
+            A_2D = A(CF_2D_Z, CF_2D_Z)
+            b_tmp_2D(:, 1) = b_tmp(CF_2D_Z, 1)
+            call solve(A_2D, b_tmp_2D, stat)
+            b = 0.0; b(CF_2D_Z) = b_tmp_2D(:, 1)
+         end if
       else
-        call solve(A, b_tmp, stat)
-        b = b_tmp(:, 1)
+         call solve(A, b_tmp, stat)
+         b = b_tmp(:, 1)
       end if
 
 
       if (llevel < lmaxlevel) then
-        if (stat /= 0) then
-          ! If the solver fails, go one more level deep
-          ! to get enough equations to do the fitting
-          b = get_cubic_fit_cf(infield, positions, node, level=llevel+1)
-        end if
+         if (stat /= 0) then
+            ! If the solver fails, go one more level deep
+            ! to get enough equations to do the fitting
+            b = get_cubic_fit_cf(infield, positions, node, level=llevel+1)
+         end if
       end if
 
       deallocate(node_patch%elements) ! Have to do it here; otherwise memory leak
-    end function get_cubic_fit_cf
+   end function get_cubic_fit_cf
 end module field_derivatives

@@ -29,85 +29,85 @@
 
 module pickers_allocates
 
-  use fldebug
-  use global_parameters, only : empty_name
-  use elements
-  use eventcounter
-  use picker_data_types
-  use fields_data_types
-  use fields_base
-  use pickers_base
-  use pickers_deallocates
-  use node_owner_finder
+   use fldebug
+   use global_parameters, only : empty_name
+   use elements
+   use eventcounter
+   use picker_data_types
+   use fields_data_types
+   use fields_base
+   use pickers_base
+   use pickers_deallocates
+   use node_owner_finder
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: allocate, initialise_picker, incref, has_references
+   public :: allocate, initialise_picker, incref, has_references
 
-  interface allocate
-    module procedure allocate_picker
-  end interface allocate
+   interface allocate
+      module procedure allocate_picker
+   end interface allocate
 
 contains
 
-  subroutine allocate_picker(picker, positions, name)
-    !!< Allocate a picker
+   subroutine allocate_picker(picker, positions, name)
+      !!< Allocate a picker
 
-    type(picker_type), intent(out) :: picker
-    type(vector_field), intent(in) :: positions
-    character(len = *), optional, intent(in) :: name
-
-    call node_owner_finder_set_input(picker%picker_id, positions)
-    ewrite(2, *) "New picker ID: ", picker%picker_id
-
-    if(present(name)) then
-      call set_picker_name(picker, name)
-    else
-      call set_picker_name(picker, empty_name)
-    end if
-
-    picker%last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
-
-    call addref(picker)
-
-  end subroutine allocate_picker
-
-  subroutine initialise_picker(positions)
-    !!< Initialise a picker for a Coordinate field
-
-    type(vector_field), intent(inout) :: positions
-
-    if(use_cached_picker(positions)) return
-
-    ewrite(2, *) "Initialising picker for field " // trim(positions%name)
-    assert(associated(positions%picker))
-    if(associated(positions%picker%ptr)) call remove_picker(positions)
-    allocate(positions%picker%ptr)
-    call allocate(positions%picker%ptr, positions, name = trim(positions%name) // "Picker")
-
-  contains
-
-    function use_cached_picker(positions)
+      type(picker_type), intent(out) :: picker
       type(vector_field), intent(in) :: positions
+      character(len = *), optional, intent(in) :: name
 
-      logical :: use_cached_picker
+      call node_owner_finder_set_input(picker%picker_id, positions)
+      ewrite(2, *) "New picker ID: ", picker%picker_id
 
-      assert(associated(positions%picker))
-      if(associated(positions%picker%ptr)) then
-        if(eventcount(EVENT_MESH_MOVEMENT) > positions%picker%ptr%last_mesh_movement) then
-          ! Mesh movement event has occurred - generate a new picker
-          use_cached_picker = .false.
-        else
-          use_cached_picker = .true.
-        end if
+      if(present(name)) then
+         call set_picker_name(picker, name)
       else
-        use_cached_picker = .false.
+         call set_picker_name(picker, empty_name)
       end if
 
-    end function use_cached_picker
+      picker%last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
 
-  end subroutine initialise_picker
+      call addref(picker)
+
+   end subroutine allocate_picker
+
+   subroutine initialise_picker(positions)
+      !!< Initialise a picker for a Coordinate field
+
+      type(vector_field), intent(inout) :: positions
+
+      if(use_cached_picker(positions)) return
+
+      ewrite(2, *) "Initialising picker for field " // trim(positions%name)
+      assert(associated(positions%picker))
+      if(associated(positions%picker%ptr)) call remove_picker(positions)
+      allocate(positions%picker%ptr)
+      call allocate(positions%picker%ptr, positions, name = trim(positions%name) // "Picker")
+
+   contains
+
+      function use_cached_picker(positions)
+         type(vector_field), intent(in) :: positions
+
+         logical :: use_cached_picker
+
+         assert(associated(positions%picker))
+         if(associated(positions%picker%ptr)) then
+            if(eventcount(EVENT_MESH_MOVEMENT) > positions%picker%ptr%last_mesh_movement) then
+               ! Mesh movement event has occurred - generate a new picker
+               use_cached_picker = .false.
+            else
+               use_cached_picker = .true.
+            end if
+         else
+            use_cached_picker = .false.
+         end if
+
+      end function use_cached_picker
+
+   end subroutine initialise_picker
 
 end module pickers_allocates

@@ -27,23 +27,23 @@
 #include "confdefs.h"
 
 module signals
-  ! This module sets up signal handling.
-  use signal_vars
-  implicit none
+   ! This module sets up signal handling.
+   use signal_vars
+   implicit none
 
 #ifdef SIGNAL_HAVE_FLAG
-  interface
-     function signal(signum, proc, flag)
-       integer :: signal
-       integer, intent(in):: signum, flag
-       interface
-          function proc(signum)
-            integer :: proc
-            integer, intent(in) :: signum
-          end function proc
-       end interface
-     end function signal
-  end interface
+   interface
+      function signal(signum, proc, flag)
+         integer :: signal
+         integer, intent(in):: signum, flag
+         interface
+            function proc(signum)
+               integer :: proc
+               integer, intent(in) :: signum
+            end function proc
+         end interface
+      end function signal
+   end interface
 !#else
 !  interface
 !     function signal(signum, proc)
@@ -61,59 +61,59 @@ module signals
 
 contains
 
-  subroutine initialise_signals
-    ! Register the signal handlers.
-    interface
-       function handle_sigint(signum)
-         integer :: handle_sigint
-         integer, intent(in) :: signum
-       end function handle_sigint
-       function handle_sigterm(signum)
-         integer :: handle_sigterm
-         integer, intent(in) :: signum
-       end function handle_sigterm
-    end interface
-    interface
-       function handle_sighup(signum)
-         integer :: handle_sighup
-         integer, intent(in) :: signum
-       end function handle_sighup
-    end interface
-    interface
-       function handle_sigfpe(signum)
-         integer :: handle_sigfpe
-         integer, intent(in) :: signum
-       end function handle_sigfpe
-    end interface
+   subroutine initialise_signals
+      ! Register the signal handlers.
+      interface
+         function handle_sigint(signum)
+            integer :: handle_sigint
+            integer, intent(in) :: signum
+         end function handle_sigint
+         function handle_sigterm(signum)
+            integer :: handle_sigterm
+            integer, intent(in) :: signum
+         end function handle_sigterm
+      end interface
+      interface
+         function handle_sighup(signum)
+            integer :: handle_sighup
+            integer, intent(in) :: signum
+         end function handle_sighup
+      end interface
+      interface
+         function handle_sigfpe(signum)
+            integer :: handle_sigfpe
+            integer, intent(in) :: signum
+         end function handle_sigfpe
+      end interface
 
-    integer :: result
+      integer :: result
 
-    ! SIGHUP support is still to come.
-    ! call signal(SIGHUP, handle_sighup, -1)
+      ! SIGHUP support is still to come.
+      ! call signal(SIGHUP, handle_sighup, -1)
 
 #ifdef SIGNAL_HAVE_FLAG
-    result= signal(SIGINT, handle_sigint, -1)
+      result= signal(SIGINT, handle_sigint, -1)
 #else
-    result= signal(SIGINT, handle_sigint)
+      result= signal(SIGINT, handle_sigint)
 #endif
 
 #ifdef SIGNAL_HAVE_FLAG
-    result= signal(SIGTERM, handle_sigterm, -1)
+      result= signal(SIGTERM, handle_sigterm, -1)
 #else
-    result= signal(SIGTERM, handle_sigterm)
+      result= signal(SIGTERM, handle_sigterm)
 #endif
 
-    ! We don't check result because we don't know if it has the same
-    ! meaning on all platforms.
+      ! We don't check result because we don't know if it has the same
+      ! meaning on all platforms.
 
 !DEBUG
 #ifdef SIGNAL_HAVE_FLAG
-    result= signal(SIGFPE, handle_sigfpe, -1)
+      result= signal(SIGFPE, handle_sigfpe, -1)
 #else
-    result= signal(SIGFPE, handle_sigfpe)
+      result= signal(SIGFPE, handle_sigfpe)
 #endif
 
-  end subroutine initialise_signals
+   end subroutine initialise_signals
 
 end module signals
 
@@ -122,16 +122,16 @@ end module signals
 
 #ifndef SIGNAL
 function signal(signum, proc, flag)
-  integer :: signal
-  integer, intent(in):: signum, flag
-  interface
-     function proc(signum)
-       integer :: proc
-       integer, intent(in) :: signum
-     end function proc
-  end interface
+   integer :: signal
+   integer, intent(in):: signum, flag
+   interface
+      function proc(signum)
+         integer :: proc
+         integer, intent(in) :: signum
+      end function proc
+   end interface
 
-  signal=0
+   signal=0
 
 end function signal
 #endif

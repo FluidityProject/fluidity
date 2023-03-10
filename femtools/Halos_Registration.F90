@@ -29,385 +29,385 @@
 
 module halos_registration
 
-  use fldebug
-  use futils
-  use mpi_interfaces
-  use halo_data_types
-  use parallel_tools
-  use halos_base
-  use halos_debug
-  use halos_allocates
-  use data_structures
-  use fields_data_types
-  use fields_base
-  use halos_communications
-  use halos_numbering
-  use halos_ownership
-  use fields_allocates
-  use fields_manipulation
-  use halos_derivation
+   use fldebug
+   use futils
+   use mpi_interfaces
+   use halo_data_types
+   use parallel_tools
+   use halos_base
+   use halos_debug
+   use halos_allocates
+   use data_structures
+   use fields_data_types
+   use fields_base
+   use halos_communications
+   use halos_numbering
+   use halos_ownership
+   use fields_allocates
+   use fields_manipulation
+   use halos_derivation
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: read_halos, write_halos, verify_halos
-  public :: extract_raw_halo_data, form_halo_from_raw_data
+   public :: read_halos, write_halos, verify_halos
+   public :: extract_raw_halo_data, form_halo_from_raw_data
 
-  interface
-    subroutine chalo_reader_reset()
-    end subroutine chalo_reader_reset
+   interface
+      subroutine chalo_reader_reset()
+      end subroutine chalo_reader_reset
 
-    function chalo_reader_set_input(filename, filename_len, process, nprocs)
-      implicit none
-      integer, intent(in) :: filename_len
-      character(len = filename_len) :: filename
-      integer, intent(in) :: process
-      integer, intent(in) :: nprocs
-      integer :: chalo_reader_set_input
-    end function chalo_reader_set_input
+      function chalo_reader_set_input(filename, filename_len, process, nprocs)
+         implicit none
+         integer, intent(in) :: filename_len
+         character(len = filename_len) :: filename
+         integer, intent(in) :: process
+         integer, intent(in) :: nprocs
+         integer :: chalo_reader_set_input
+      end function chalo_reader_set_input
 
-    subroutine chalo_reader_query_output(level, nprocs, nsends, nreceives)
-      implicit none
-      integer, intent(in) :: level
-      integer, intent(in) :: nprocs
-      integer, dimension(nprocs), intent(out) :: nsends
-      integer, dimension(nprocs), intent(out) :: nreceives
-    end subroutine chalo_reader_query_output
+      subroutine chalo_reader_query_output(level, nprocs, nsends, nreceives)
+         implicit none
+         integer, intent(in) :: level
+         integer, intent(in) :: nprocs
+         integer, dimension(nprocs), intent(out) :: nsends
+         integer, dimension(nprocs), intent(out) :: nreceives
+      end subroutine chalo_reader_query_output
 
-    subroutine chalo_reader_get_output(level, nprocs, nsends, nreceives, &
+      subroutine chalo_reader_get_output(level, nprocs, nsends, nreceives, &
       & npnodes, send, recv)
-      implicit none
-      integer, intent(in) :: level
-      integer, intent(in) :: nprocs
-      integer, dimension(nprocs), intent(in) :: nsends
-      integer, dimension(nprocs), intent(in) :: nreceives
-      integer, intent(out) :: npnodes
-      integer, dimension(sum(nsends)), intent(out) :: send
-      integer, dimension(sum(nreceives)), intent(out) :: recv
-    end subroutine chalo_reader_get_output
+         implicit none
+         integer, intent(in) :: level
+         integer, intent(in) :: nprocs
+         integer, dimension(nprocs), intent(in) :: nsends
+         integer, dimension(nprocs), intent(in) :: nreceives
+         integer, intent(out) :: npnodes
+         integer, dimension(sum(nsends)), intent(out) :: send
+         integer, dimension(sum(nreceives)), intent(out) :: recv
+      end subroutine chalo_reader_get_output
 
-    subroutine chalo_writer_reset()
-    end subroutine chalo_writer_reset
+      subroutine chalo_writer_reset()
+      end subroutine chalo_writer_reset
 
-    subroutine chalo_writer_initialise(process, nprocs)
-      implicit none
-      integer, intent(in) :: process
-      integer, intent(in) :: nprocs
-    end subroutine chalo_writer_initialise
+      subroutine chalo_writer_initialise(process, nprocs)
+         implicit none
+         integer, intent(in) :: process
+         integer, intent(in) :: nprocs
+      end subroutine chalo_writer_initialise
 
-    subroutine chalo_writer_set_input(level, nprocs, nsends, nreceives, &
+      subroutine chalo_writer_set_input(level, nprocs, nsends, nreceives, &
       & npnodes, send, recv)
-      implicit none
-      integer, intent(in) :: level
-      integer, intent(in) :: nprocs
-      integer, dimension(nprocs), intent(in) :: nsends
-      integer, dimension(nprocs), intent(in) :: nreceives
-      integer, intent(in) :: npnodes
-      integer, dimension(sum(nsends)), intent(in) :: send
-      integer, dimension(sum(nreceives)), intent(in) :: recv
-    end subroutine chalo_writer_set_input
+         implicit none
+         integer, intent(in) :: level
+         integer, intent(in) :: nprocs
+         integer, dimension(nprocs), intent(in) :: nsends
+         integer, dimension(nprocs), intent(in) :: nreceives
+         integer, intent(in) :: npnodes
+         integer, dimension(sum(nsends)), intent(in) :: send
+         integer, dimension(sum(nreceives)), intent(in) :: recv
+      end subroutine chalo_writer_set_input
 
-    function chalo_writer_write(filename, filename_len)
-      implicit none
-      integer, intent(in) :: filename_len
-      character(len = filename_len) :: filename
-      integer :: chalo_writer_write
-    end function chalo_writer_write
-  end interface
+      function chalo_writer_write(filename, filename_len)
+         implicit none
+         integer, intent(in) :: filename_len
+         character(len = filename_len) :: filename
+         integer :: chalo_writer_write
+      end function chalo_writer_write
+   end interface
 
-  interface read_halos
-    module procedure read_halos_mesh, read_halos_positions
-  end interface read_halos
+   interface read_halos
+      module procedure read_halos_mesh, read_halos_positions
+   end interface read_halos
 
 contains
 
-  subroutine read_halos_mesh(filename, mesh, communicator)
-    character(len = *), intent(in) :: filename
-    type(mesh_type), intent(inout) :: mesh
-    integer, optional, intent(in) :: communicator
+   subroutine read_halos_mesh(filename, mesh, communicator)
+      character(len = *), intent(in) :: filename
+      type(mesh_type), intent(inout) :: mesh
+      integer, optional, intent(in) :: communicator
 
 #ifdef HAVE_MPI
-    integer :: error_count, i, lcommunicator, nowned_nodes, nprocs, procno
-    integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
+      integer :: error_count, i, lcommunicator, nowned_nodes, nprocs, procno
+      integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
 
-    ewrite(1, *) "In read_halos_mesh"
+      ewrite(1, *) "In read_halos_mesh"
 
-    assert(continuity(mesh) == 0)
-    assert(.not. associated(mesh%halos))
-    assert(.not. associated(mesh%element_halos))
+      assert(continuity(mesh) == 0)
+      assert(.not. associated(mesh%halos))
+      assert(.not. associated(mesh%element_halos))
 
-    if(present(communicator)) then
-      lcommunicator = communicator
-    else
-      lcommunicator = MPI_COMM_FEMTOOLS
-    end if
-
-    procno = getprocno(communicator = lcommunicator)
-    nprocs = getnprocs(communicator = lcommunicator)
-
-    error_count = chalo_reader_set_input(filename, len_trim(filename), procno - 1, nprocs)
-    call allsum(error_count, communicator = lcommunicator)
-    if(error_count > 0) then
-      FLExit("Unable to read halos with name " // trim(filename))
-    end if
-
-    allocate(mesh%halos(2))
-    allocate(nsends(nprocs))
-    allocate(nreceives(nprocs))
-    do i = 1, 2
-      call chalo_reader_query_output(i, nprocs, nsends, nreceives)
-      call allocate(mesh%halos(i), nsends, nreceives, name = trim(mesh%name) // "Level" // int2str(i) // "Halo", communicator = lcommunicator, &
-        & data_type = HALO_TYPE_CG_NODE, ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
-
-      allocate(sends(sum(nsends)))
-      allocate(receives(sum(nreceives)))
-      call chalo_reader_get_output(i, nprocs, nsends, nreceives, &
-        & nowned_nodes, sends, receives)
-      call set_halo_nowned_nodes(mesh%halos(i), nowned_nodes)
-      call set_all_halo_sends(mesh%halos(i), sends)
-      call set_all_halo_receives(mesh%halos(i), receives)
-      deallocate(sends)
-      deallocate(receives)
-      assert(trailing_receives_consistent(mesh%halos(i)))
-
-      if(.not. serial_storage_halo(mesh%halos(i))) then
-        assert(halo_valid_for_communication(mesh%halos(i)))
-        call create_global_to_universal_numbering(mesh%halos(i))
-        call create_ownership(mesh%halos(i))
+      if(present(communicator)) then
+         lcommunicator = communicator
+      else
+         lcommunicator = MPI_COMM_FEMTOOLS
       end if
-    end do
-    deallocate(nsends)
-    deallocate(nreceives)
 
-    call chalo_reader_reset()
+      procno = getprocno(communicator = lcommunicator)
+      nprocs = getnprocs(communicator = lcommunicator)
 
-    if(all(serial_storage_halo(mesh%halos))) then
-      allocate(mesh%element_halos(0))
-    else
-      allocate(mesh%element_halos(2))
-      call derive_element_halo_from_node_halo(mesh, &
-        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
-    end if
-
-    ewrite(1, *) "Exiting read_halos_mesh"
-#else
-    FLAbort("read_halos_mesh cannot be called without MPI support")
-#endif
-
-  end subroutine read_halos_mesh
-
-  subroutine read_halos_positions(filename, positions, communicator)
-    character(len = *), intent(in) :: filename
-    type(vector_field), intent(inout) :: positions
-    integer, optional, intent(in) :: communicator
-
-    call read_halos(filename, positions%mesh, communicator = communicator)
-
-#ifdef DDEBUG
-    call verify_halos(positions)
-#endif
-
-  end subroutine read_halos_positions
-
-  subroutine verify_halos(positions)
-    type(vector_field), intent(inout) :: positions
-
-    integer :: i, nhalos
-    type(mesh_type) :: pwc_mesh
-    type(vector_field) :: positions_ele
-
-    ! Node halo verification
-    nhalos = halo_count(positions)
-    do i = 1, nhalos
-      if(.not. serial_storage_halo(positions%mesh%halos(i))) then
-         assert(halo_verifies(positions%mesh%halos(i), positions))
+      error_count = chalo_reader_set_input(filename, len_trim(filename), procno - 1, nprocs)
+      call allsum(error_count, communicator = lcommunicator)
+      if(error_count > 0) then
+         FLExit("Unable to read halos with name " // trim(filename))
       end if
-    end do
 
-    ! Element halo verification
-    nhalos = element_halo_count(positions)
-    if(nhalos > 0) then
-       if(.not. all(serial_storage_halo(positions%mesh%element_halos))) then
-          pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
-          call allocate(positions_ele, positions%dim, pwc_mesh, positions%name)
-          call deallocate(pwc_mesh)
-          call remap_field(positions, positions_ele)
-          do i = 1, nhalos
-             if(.not. serial_storage_halo(positions%mesh%element_halos(i))) then
-                assert(halo_verifies(positions%mesh%element_halos(i), positions_ele))
-             end if
-          end do
-          call deallocate(positions_ele)
-       end if
-    end if
-
-  end subroutine verify_halos
-
-  subroutine write_halos(filename, mesh, number_of_partitions)
-    character(len = *), intent(in) :: filename
-    type(mesh_type), intent(in) :: mesh
-    !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
-    integer, optional, intent(in):: number_of_partitions
-
-    integer :: communicator, error_count, i, nhalos, procno, nparts, nprocs
-    integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
-
-    ewrite(1, *) "In write_halos"
-
-    nhalos = halo_count(mesh)
-    if(nhalos == 0) return
-
-    communicator = halo_communicator(mesh%halos(nhalos))
-    procno = getprocno(communicator = communicator)
-
-    if (present(number_of_partitions)) then
-      nparts = number_of_partitions
-    else
-      nparts = getnprocs()
-    end if
-
-    if(procno <= nparts) then
-      nprocs = getnprocs(communicator = communicator)
-
-      call chalo_writer_initialise(procno - 1, nparts)
-
+      allocate(mesh%halos(2))
       allocate(nsends(nprocs))
       allocate(nreceives(nprocs))
-      do i = 1, nhalos
-        allocate(sends(halo_all_sends_count(mesh%halos(i))))
-        allocate(receives(halo_all_receives_count(mesh%halos(i))))
-        call extract_all_halo_sends(mesh%halos(i), sends, nsends = nsends)
-        call extract_all_halo_receives(mesh%halos(i), receives, nreceives = nreceives)
-        call chalo_writer_set_input(i, nparts, nsends(:nparts), nreceives(:nparts), &
-          & halo_nowned_nodes(mesh%halos(i)), sends, receives)
-        deallocate(sends)
-        deallocate(receives)
+      do i = 1, 2
+         call chalo_reader_query_output(i, nprocs, nsends, nreceives)
+         call allocate(mesh%halos(i), nsends, nreceives, name = trim(mesh%name) // "Level" // int2str(i) // "Halo", communicator = lcommunicator, &
+         & data_type = HALO_TYPE_CG_NODE, ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
+
+         allocate(sends(sum(nsends)))
+         allocate(receives(sum(nreceives)))
+         call chalo_reader_get_output(i, nprocs, nsends, nreceives, &
+         & nowned_nodes, sends, receives)
+         call set_halo_nowned_nodes(mesh%halos(i), nowned_nodes)
+         call set_all_halo_sends(mesh%halos(i), sends)
+         call set_all_halo_receives(mesh%halos(i), receives)
+         deallocate(sends)
+         deallocate(receives)
+         assert(trailing_receives_consistent(mesh%halos(i)))
+
+         if(.not. serial_storage_halo(mesh%halos(i))) then
+            assert(halo_valid_for_communication(mesh%halos(i)))
+            call create_global_to_universal_numbering(mesh%halos(i))
+            call create_ownership(mesh%halos(i))
+         end if
       end do
       deallocate(nsends)
       deallocate(nreceives)
 
-      error_count = chalo_writer_write(filename, len_trim(filename))
-      call chalo_writer_reset()
-    else
-      error_count = 0
-    end if
+      call chalo_reader_reset()
 
-    call allsum(error_count, communicator = communicator)
-    if(error_count > 0) then
-      FLExit("Unable to write halos with name " // trim(filename))
-    end if
+      if(all(serial_storage_halo(mesh%halos))) then
+         allocate(mesh%element_halos(0))
+      else
+         allocate(mesh%element_halos(2))
+         call derive_element_halo_from_node_halo(mesh, &
+         & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+      end if
 
-    ewrite(1, *) "Exiting write_halos"
+      ewrite(1, *) "Exiting read_halos_mesh"
+#else
+      FLAbort("read_halos_mesh cannot be called without MPI support")
+#endif
 
-  end subroutine write_halos
+   end subroutine read_halos_mesh
 
-  subroutine extract_raw_halo_data(halo, sends, send_starts, receives, receive_starts, nowned_nodes)
-    !!< Extract raw halo data from the supplied halo
+   subroutine read_halos_positions(filename, positions, communicator)
+      character(len = *), intent(in) :: filename
+      type(vector_field), intent(inout) :: positions
+      integer, optional, intent(in) :: communicator
 
-    type(halo_type), intent(in) :: halo
+      call read_halos(filename, positions%mesh, communicator = communicator)
 
-    !! Send nodes for all processes. Size halo_all_sends_count(halo).
-    integer, dimension(:), intent(out) :: sends
-    !! imem type indices into sends denoting the start points of process send
-    !! nodes. Size halo_proc_count(halo) or halo_proc_count(halo) + 1.
-    integer, dimension(:), intent(out) :: send_starts
-    !! Receive nodes for all process. Size halo_all_receives_count(halo).
-    integer, dimension(:), intent(out) :: receives
-    !! imem type indices into receives denoting the start points of process
-    !! receive nodes. Size halo_proc_count(halo) or halo_proc_count(halo) + 1.
-    integer, dimension(:), intent(out) :: receive_starts
-    !! Number of owned nodes
-    integer, optional, intent(out) :: nowned_nodes
+#ifdef DDEBUG
+      call verify_halos(positions)
+#endif
 
-    integer :: nprocs, receives_size, sends_size
+   end subroutine read_halos_positions
 
-    nprocs = halo_proc_count(halo)
-    sends_size = halo_all_sends_count(halo)
-    receives_size = halo_all_receives_count(halo)
+   subroutine verify_halos(positions)
+      type(vector_field), intent(inout) :: positions
 
-    assert(size(sends) == sends_size)
-    assert(any(size(send_starts) == (/nprocs, nprocs + 1/)))
-    assert(size(receives) == receives_size)
-    assert(any(size(receive_starts) == (/nprocs, nprocs + 1/)))
+      integer :: i, nhalos
+      type(mesh_type) :: pwc_mesh
+      type(vector_field) :: positions_ele
 
-    ! Form sends, receives, send_starts and receive_starts from the halo
-    call extract_all_halo_sends(halo, sends, start_indices = send_starts(:nprocs))
-    call extract_all_halo_receives(halo, receives, start_indices = receive_starts(:nprocs))
-    if(size(send_starts) == nprocs + 1) send_starts(nprocs + 1) = sends_size + 1
-    if(size(receive_starts) == nprocs + 1) receive_starts(nprocs + 1) = receives_size + 1
+      ! Node halo verification
+      nhalos = halo_count(positions)
+      do i = 1, nhalos
+         if(.not. serial_storage_halo(positions%mesh%halos(i))) then
+            assert(halo_verifies(positions%mesh%halos(i), positions))
+         end if
+      end do
 
-    if(present(nowned_nodes)) then
-      ! Extract nowned_nodes from the halo
-      nowned_nodes = halo_nowned_nodes(halo)
-    end if
+      ! Element halo verification
+      nhalos = element_halo_count(positions)
+      if(nhalos > 0) then
+         if(.not. all(serial_storage_halo(positions%mesh%element_halos))) then
+            pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
+            call allocate(positions_ele, positions%dim, pwc_mesh, positions%name)
+            call deallocate(pwc_mesh)
+            call remap_field(positions, positions_ele)
+            do i = 1, nhalos
+               if(.not. serial_storage_halo(positions%mesh%element_halos(i))) then
+                  assert(halo_verifies(positions%mesh%element_halos(i), positions_ele))
+               end if
+            end do
+            call deallocate(positions_ele)
+         end if
+      end if
 
-  end subroutine extract_raw_halo_data
+   end subroutine verify_halos
 
-  subroutine form_halo_from_raw_data(halo, nprocs, sends, send_starts, receives, receive_starts, nowned_nodes, ordering_scheme, create_caches)
-    !!< Inverse of extract_legacy_halo_data. halo is allocated by this
-    !!< routine.
+   subroutine write_halos(filename, mesh, number_of_partitions)
+      character(len = *), intent(in) :: filename
+      type(mesh_type), intent(in) :: mesh
+      !!< If present, only write for processes 1:number_of_partitions (assumes the other partitions are empty)
+      integer, optional, intent(in):: number_of_partitions
 
-    type(halo_type), intent(inout) :: halo
-    integer, intent(in) :: nprocs
-    integer, dimension(:), intent(in) :: sends
-    integer, dimension(:), intent(in) :: send_starts
-    integer, dimension(:), intent(in) :: receives
-    integer, dimension(:), intent(in) :: receive_starts
-    integer, optional, intent(in) :: nowned_nodes
-    integer, optional, intent(in) :: ordering_scheme
-    logical, optional, intent(in) :: create_caches
+      integer :: communicator, error_count, i, nhalos, procno, nparts, nprocs
+      integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
 
-    integer :: i, lordering_scheme
-    integer, dimension(:), allocatable :: nreceives, nsends
-    logical :: lcreate_caches
+      ewrite(1, *) "In write_halos"
 
-    if(present(ordering_scheme)) then
-      lordering_scheme = ordering_scheme
-    else
-      lordering_scheme = HALO_ORDER_TRAILING_RECEIVES
-    end if
+      nhalos = halo_count(mesh)
+      if(nhalos == 0) return
 
-    lcreate_caches = .not. present_and_false(create_caches)
+      communicator = halo_communicator(mesh%halos(nhalos))
+      procno = getprocno(communicator = communicator)
 
-    ! Form nsends and nreceives from send_starts and receive_starts
-    assert(nprocs > 0)
-    assert(any(size(send_starts) == (/nprocs, nprocs + 1/)))
-    assert(any(size(receive_starts) == (/nprocs, nprocs + 1/)))
+      if (present(number_of_partitions)) then
+         nparts = number_of_partitions
+      else
+         nparts = getnprocs()
+      end if
 
-    allocate(nsends(nprocs))
-    allocate(nreceives(nprocs))
+      if(procno <= nparts) then
+         nprocs = getnprocs(communicator = communicator)
 
-    do i = 1, size(send_starts) - 1
-      nsends(i) = send_starts(i + 1) - send_starts(i)
-      assert(nsends(i) >= 0)
-    end do
-    if(size(send_starts) == nprocs) nsends(nprocs) = size(sends) - send_starts(nprocs) + 1
-    assert(sum(nsends) == size(sends))
+         call chalo_writer_initialise(procno - 1, nparts)
 
-    do i = 1, size(receive_starts) - 1
-      nreceives(i) = receive_starts(i + 1) - receive_starts(i)
-      assert(nreceives(i) >= 0)
-    end do
-    if(size(receive_starts) == nprocs) nreceives(nprocs) = size(receives) - receive_starts(nprocs) + 1
-    assert(sum(nreceives) == size(receives))
+         allocate(nsends(nprocs))
+         allocate(nreceives(nprocs))
+         do i = 1, nhalos
+            allocate(sends(halo_all_sends_count(mesh%halos(i))))
+            allocate(receives(halo_all_receives_count(mesh%halos(i))))
+            call extract_all_halo_sends(mesh%halos(i), sends, nsends = nsends)
+            call extract_all_halo_receives(mesh%halos(i), receives, nreceives = nreceives)
+            call chalo_writer_set_input(i, nparts, nsends(:nparts), nreceives(:nparts), &
+            & halo_nowned_nodes(mesh%halos(i)), sends, receives)
+            deallocate(sends)
+            deallocate(receives)
+         end do
+         deallocate(nsends)
+         deallocate(nreceives)
 
-    ! Allocate the halo
-    call allocate(halo, nsends, nreceives, nprocs = nprocs, &
+         error_count = chalo_writer_write(filename, len_trim(filename))
+         call chalo_writer_reset()
+      else
+         error_count = 0
+      end if
+
+      call allsum(error_count, communicator = communicator)
+      if(error_count > 0) then
+         FLExit("Unable to write halos with name " // trim(filename))
+      end if
+
+      ewrite(1, *) "Exiting write_halos"
+
+   end subroutine write_halos
+
+   subroutine extract_raw_halo_data(halo, sends, send_starts, receives, receive_starts, nowned_nodes)
+      !!< Extract raw halo data from the supplied halo
+
+      type(halo_type), intent(in) :: halo
+
+      !! Send nodes for all processes. Size halo_all_sends_count(halo).
+      integer, dimension(:), intent(out) :: sends
+      !! imem type indices into sends denoting the start points of process send
+      !! nodes. Size halo_proc_count(halo) or halo_proc_count(halo) + 1.
+      integer, dimension(:), intent(out) :: send_starts
+      !! Receive nodes for all process. Size halo_all_receives_count(halo).
+      integer, dimension(:), intent(out) :: receives
+      !! imem type indices into receives denoting the start points of process
+      !! receive nodes. Size halo_proc_count(halo) or halo_proc_count(halo) + 1.
+      integer, dimension(:), intent(out) :: receive_starts
+      !! Number of owned nodes
+      integer, optional, intent(out) :: nowned_nodes
+
+      integer :: nprocs, receives_size, sends_size
+
+      nprocs = halo_proc_count(halo)
+      sends_size = halo_all_sends_count(halo)
+      receives_size = halo_all_receives_count(halo)
+
+      assert(size(sends) == sends_size)
+      assert(any(size(send_starts) == (/nprocs, nprocs + 1/)))
+      assert(size(receives) == receives_size)
+      assert(any(size(receive_starts) == (/nprocs, nprocs + 1/)))
+
+      ! Form sends, receives, send_starts and receive_starts from the halo
+      call extract_all_halo_sends(halo, sends, start_indices = send_starts(:nprocs))
+      call extract_all_halo_receives(halo, receives, start_indices = receive_starts(:nprocs))
+      if(size(send_starts) == nprocs + 1) send_starts(nprocs + 1) = sends_size + 1
+      if(size(receive_starts) == nprocs + 1) receive_starts(nprocs + 1) = receives_size + 1
+
+      if(present(nowned_nodes)) then
+         ! Extract nowned_nodes from the halo
+         nowned_nodes = halo_nowned_nodes(halo)
+      end if
+
+   end subroutine extract_raw_halo_data
+
+   subroutine form_halo_from_raw_data(halo, nprocs, sends, send_starts, receives, receive_starts, nowned_nodes, ordering_scheme, create_caches)
+      !!< Inverse of extract_legacy_halo_data. halo is allocated by this
+      !!< routine.
+
+      type(halo_type), intent(inout) :: halo
+      integer, intent(in) :: nprocs
+      integer, dimension(:), intent(in) :: sends
+      integer, dimension(:), intent(in) :: send_starts
+      integer, dimension(:), intent(in) :: receives
+      integer, dimension(:), intent(in) :: receive_starts
+      integer, optional, intent(in) :: nowned_nodes
+      integer, optional, intent(in) :: ordering_scheme
+      logical, optional, intent(in) :: create_caches
+
+      integer :: i, lordering_scheme
+      integer, dimension(:), allocatable :: nreceives, nsends
+      logical :: lcreate_caches
+
+      if(present(ordering_scheme)) then
+         lordering_scheme = ordering_scheme
+      else
+         lordering_scheme = HALO_ORDER_TRAILING_RECEIVES
+      end if
+
+      lcreate_caches = .not. present_and_false(create_caches)
+
+      ! Form nsends and nreceives from send_starts and receive_starts
+      assert(nprocs > 0)
+      assert(any(size(send_starts) == (/nprocs, nprocs + 1/)))
+      assert(any(size(receive_starts) == (/nprocs, nprocs + 1/)))
+
+      allocate(nsends(nprocs))
+      allocate(nreceives(nprocs))
+
+      do i = 1, size(send_starts) - 1
+         nsends(i) = send_starts(i + 1) - send_starts(i)
+         assert(nsends(i) >= 0)
+      end do
+      if(size(send_starts) == nprocs) nsends(nprocs) = size(sends) - send_starts(nprocs) + 1
+      assert(sum(nsends) == size(sends))
+
+      do i = 1, size(receive_starts) - 1
+         nreceives(i) = receive_starts(i + 1) - receive_starts(i)
+         assert(nreceives(i) >= 0)
+      end do
+      if(size(receive_starts) == nprocs) nreceives(nprocs) = size(receives) - receive_starts(nprocs) + 1
+      assert(sum(nreceives) == size(receives))
+
+      ! Allocate the halo
+      call allocate(halo, nsends, nreceives, nprocs = nprocs, &
       & nowned_nodes = nowned_nodes, name = "HaloFormedFromRawData", &
       & ordering_scheme = lordering_scheme)
-    deallocate(nsends)
-    deallocate(nreceives)
+      deallocate(nsends)
+      deallocate(nreceives)
 
-    ! Copy sends and receives into the halo
-    call set_all_halo_sends(halo, sends)
-    call set_all_halo_receives(halo, receives)
+      ! Copy sends and receives into the halo
+      call set_all_halo_sends(halo, sends)
+      call set_all_halo_receives(halo, receives)
 
-    if(lcreate_caches .and. .not. serial_storage_halo(halo)) then
-      call create_global_to_universal_numbering(halo)
-      call create_ownership(halo)
-    end if
+      if(lcreate_caches .and. .not. serial_storage_halo(halo)) then
+         call create_global_to_universal_numbering(halo)
+         call create_ownership(halo)
+      end if
 
-  end subroutine form_halo_from_raw_data
+   end subroutine form_halo_from_raw_data
 
 end module halos_registration

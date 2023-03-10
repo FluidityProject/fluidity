@@ -2,32 +2,32 @@
 
 module quicksort
 
-  use iso_c_binding, only: c_float
-  use fldebug
+   use iso_c_binding, only: c_float
+   use fldebug
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: qsort, sort, count_unique, inverse_permutation, apply_permutation, apply_reverse_permutation
+   public :: qsort, sort, count_unique, inverse_permutation, apply_permutation, apply_reverse_permutation
 
-  interface qsort
-    module procedure qsortd, qsortsp, qsorti
-  end interface qsort
+   interface qsort
+      module procedure qsortd, qsortsp, qsorti
+   end interface qsort
 
-  interface sort
-    module procedure sort_integer_array, sort_real_array
-  end interface
+   interface sort
+      module procedure sort_integer_array, sort_real_array
+   end interface
 
-  interface apply_permutation
-    module procedure apply_permutation_integer_array, &
+   interface apply_permutation
+      module procedure apply_permutation_integer_array, &
       & apply_permutation_real_array, apply_permutation_integer, &
       & apply_permutation_real
-  end interface apply_permutation
+   end interface apply_permutation
 
-  interface apply_reverse_permutation
-    module procedure apply_reverse_permutation_real, apply_reverse_permutation_integer
-  end interface apply_reverse_permutation
+   interface apply_reverse_permutation
+      module procedure apply_reverse_permutation_real, apply_reverse_permutation_integer
+   end interface apply_reverse_permutation
 
 contains
 
@@ -36,17 +36,17 @@ contains
 ! Believed to be public domain as it is the work of
 ! a US government employee.
 
-SUBROUTINE qsortd(x, ind)
+   SUBROUTINE qsortd(x, ind)
 
 ! Code converted using TO_F90 by Alan Miller
 ! Date: 2002-12-18  Time: 11:55:47
 
-IMPLICIT NONE
-INTEGER, PARAMETER  :: dp = SELECTED_REAL_KIND(12, 60)
+      IMPLICIT NONE
+      INTEGER, PARAMETER  :: dp = SELECTED_REAL_KIND(12, 60)
 
-REAL (dp), INTENT(IN)  :: x(:)
-INTEGER, INTENT(OUT)   :: ind(:)
-INTEGER :: n
+      REAL (dp), INTENT(IN)  :: x(:)
+      INTEGER, INTENT(OUT)   :: ind(:)
+      INTEGER :: n
 
 !***************************************************************************
 
@@ -85,12 +85,12 @@ INTEGER :: n
 
 !*********************************************************************
 
-INTEGER   :: iu(21), il(21)
-INTEGER   :: m, i, j, k, l, ij, it, itt, indx
-REAL      :: r
-REAL (dp) :: t
+      INTEGER   :: iu(21), il(21)
+      INTEGER   :: m, i, j, k, l, ij, it, itt, indx
+      REAL      :: r
+      REAL (dp) :: t
 
-n = size(x)
+      n = size(x)
 
 ! LOCAL PARAMETERS -
 
@@ -105,154 +105,154 @@ n = size(x)
 ! R =      PSEUDO RANDOM NUMBER FOR GENERATING IJ
 ! T =      CENTRAL ELEMENT OF X
 
-IF (n <= 0) RETURN
+      IF (n <= 0) RETURN
 
 ! INITIALIZE IND, M, I, J, AND R
 
-DO  i = 1, n
-  ind(i) = i
-END DO
-m = 1
-i = 1
-j = n
-r = .375
+      DO  i = 1, n
+         ind(i) = i
+      END DO
+      m = 1
+      i = 1
+      j = n
+      r = .375
 
 ! TOP OF LOOP
 
-20 IF (i >= j) GO TO 70
-IF (r <= .5898437) THEN
-  r = r + .0390625
-ELSE
-  r = r - .21875
-END IF
+20    IF (i >= j) GO TO 70
+      IF (r <= .5898437) THEN
+         r = r + .0390625
+      ELSE
+         r = r - .21875
+      END IF
 
 ! INITIALIZE K
 
-30 k = i
+30    k = i
 
 ! SELECT A CENTRAL ELEMENT OF X AND SAVE IT IN T
 
-ij = i + r*(j-i)
-it = ind(ij)
-t = x(it)
+      ij = i + r*(j-i)
+      it = ind(ij)
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) > t) THEN
-  ind(ij) = indx
-  ind(i) = it
-  it = indx
-  t = x(it)
-END IF
+      indx = ind(i)
+      IF (x(indx) > t) THEN
+         ind(ij) = indx
+         ind(i) = it
+         it = indx
+         t = x(it)
+      END IF
 
 ! INITIALIZE L
 
-l = j
+      l = j
 
 ! IF THE LAST ELEMENT OF THE ARRAY IS LESS THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(j)
-IF (x(indx) >= t) GO TO 50
-ind(ij) = indx
-ind(j) = it
-it = indx
-t = x(it)
+      indx = ind(j)
+      IF (x(indx) >= t) GO TO 50
+      ind(ij) = indx
+      ind(j) = it
+      it = indx
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) <= t) GO TO 50
-ind(ij) = indx
-ind(i) = it
-it = indx
-t = x(it)
-GO TO 50
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 50
+      ind(ij) = indx
+      ind(i) = it
+      it = indx
+      t = x(it)
+      GO TO 50
 
 ! INTERCHANGE ELEMENTS K AND L
 
-40 itt = ind(l)
-ind(l) = ind(k)
-ind(k) = itt
+40    itt = ind(l)
+      ind(l) = ind(k)
+      ind(k) = itt
 
 ! FIND AN ELEMENT IN THE UPPER PART OF THE ARRAY WHICH IS
 !   NOT LARGER THAN T
 
-50 l = l - 1
-indx = ind(l)
-IF (x(indx) > t) GO TO 50
+50    l = l - 1
+      indx = ind(l)
+      IF (x(indx) > t) GO TO 50
 
 ! FIND AN ELEMENT IN THE LOWER PART OF THE ARRAY WHCIH IS NOT SMALLER THAN T
 
-60 k = k + 1
-indx = ind(k)
-IF (x(indx) < t) GO TO 60
+60    k = k + 1
+      indx = ind(k)
+      IF (x(indx) < t) GO TO 60
 
 ! IF K <= L, INTERCHANGE ELEMENTS K AND L
 
-IF (k <= l) GO TO 40
+      IF (k <= l) GO TO 40
 
 ! SAVE THE UPPER AND LOWER SUBSCRIPTS OF THE PORTION OF THE
 !   ARRAY YET TO BE SORTED
 
-IF (l-i > j-k) THEN
-  il(m) = i
-  iu(m) = l
-  i = k
-  m = m + 1
-  GO TO 80
-END IF
+      IF (l-i > j-k) THEN
+         il(m) = i
+         iu(m) = l
+         i = k
+         m = m + 1
+         GO TO 80
+      END IF
 
-il(m) = k
-iu(m) = j
-j = l
-m = m + 1
-GO TO 80
+      il(m) = k
+      iu(m) = j
+      j = l
+      m = m + 1
+      GO TO 80
 
 ! BEGIN AGAIN ON ANOTHER UNSORTED PORTION OF THE ARRAY
 
-70 m = m - 1
-IF (m == 0) RETURN
-i = il(m)
-j = iu(m)
+70    m = m - 1
+      IF (m == 0) RETURN
+      i = il(m)
+      j = iu(m)
 
-80 IF (j-i >= 11) GO TO 30
-IF (i == 1) GO TO 20
-i = i - 1
+80    IF (j-i >= 11) GO TO 30
+      IF (i == 1) GO TO 20
+      i = i - 1
 
 ! SORT ELEMENTS I+1,...,J.  NOTE THAT 1 <= I < J AND J-I < 11.
 
-90 i = i + 1
-IF (i == j) GO TO 70
-indx = ind(i+1)
-t = x(indx)
-it = indx
-indx = ind(i)
-IF (x(indx) <= t) GO TO 90
-k = i
+90    i = i + 1
+      IF (i == j) GO TO 70
+      indx = ind(i+1)
+      t = x(indx)
+      it = indx
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 90
+      k = i
 
-100 ind(k+1) = ind(k)
-k = k - 1
-indx = ind(k)
-IF (t < x(indx)) GO TO 100
+100   ind(k+1) = ind(k)
+      k = k - 1
+      indx = ind(k)
+      IF (t < x(indx)) GO TO 100
 
-ind(k+1) = it
-GO TO 90
-END SUBROUTINE qsortd
+      ind(k+1) = it
+      GO TO 90
+   END SUBROUTINE qsortd
 
-SUBROUTINE qsortsp(x, ind)
+   SUBROUTINE qsortsp(x, ind)
 
 ! Code converted using TO_F90 by Alan Miller
 ! Date: 2002-12-18  Time: 11:55:47
 
-IMPLICIT NONE
+      IMPLICIT NONE
 
-REAL (kind = c_float), INTENT(IN)  :: x(:)
-INTEGER, INTENT(OUT)   :: ind(:)
-INTEGER :: n
+      REAL (kind = c_float), INTENT(IN)  :: x(:)
+      INTEGER, INTENT(OUT)   :: ind(:)
+      INTEGER :: n
 
 !***************************************************************************
 
@@ -291,12 +291,12 @@ INTEGER :: n
 
 !*********************************************************************
 
-INTEGER   :: iu(21), il(21)
-INTEGER   :: m, i, j, k, l, ij, it, itt, indx
-REAL      :: r
-REAL (kind = c_float) :: t
+      INTEGER   :: iu(21), il(21)
+      INTEGER   :: m, i, j, k, l, ij, it, itt, indx
+      REAL      :: r
+      REAL (kind = c_float) :: t
 
-n = size(x)
+      n = size(x)
 
 ! LOCAL PARAMETERS -
 
@@ -311,154 +311,154 @@ n = size(x)
 ! R =      PSEUDO RANDOM NUMBER FOR GENERATING IJ
 ! T =      CENTRAL ELEMENT OF X
 
-IF (n <= 0) RETURN
+      IF (n <= 0) RETURN
 
 ! INITIALIZE IND, M, I, J, AND R
 
-DO  i = 1, n
-  ind(i) = i
-END DO
-m = 1
-i = 1
-j = n
-r = .375
+      DO  i = 1, n
+         ind(i) = i
+      END DO
+      m = 1
+      i = 1
+      j = n
+      r = .375
 
 ! TOP OF LOOP
 
-20 IF (i >= j) GO TO 70
-IF (r <= .5898437) THEN
-  r = r + .0390625
-ELSE
-  r = r - .21875
-END IF
+20    IF (i >= j) GO TO 70
+      IF (r <= .5898437) THEN
+         r = r + .0390625
+      ELSE
+         r = r - .21875
+      END IF
 
 ! INITIALIZE K
 
-30 k = i
+30    k = i
 
 ! SELECT A CENTRAL ELEMENT OF X AND SAVE IT IN T
 
-ij = i + r*(j-i)
-it = ind(ij)
-t = x(it)
+      ij = i + r*(j-i)
+      it = ind(ij)
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) > t) THEN
-  ind(ij) = indx
-  ind(i) = it
-  it = indx
-  t = x(it)
-END IF
+      indx = ind(i)
+      IF (x(indx) > t) THEN
+         ind(ij) = indx
+         ind(i) = it
+         it = indx
+         t = x(it)
+      END IF
 
 ! INITIALIZE L
 
-l = j
+      l = j
 
 ! IF THE LAST ELEMENT OF THE ARRAY IS LESS THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(j)
-IF (x(indx) >= t) GO TO 50
-ind(ij) = indx
-ind(j) = it
-it = indx
-t = x(it)
+      indx = ind(j)
+      IF (x(indx) >= t) GO TO 50
+      ind(ij) = indx
+      ind(j) = it
+      it = indx
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) <= t) GO TO 50
-ind(ij) = indx
-ind(i) = it
-it = indx
-t = x(it)
-GO TO 50
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 50
+      ind(ij) = indx
+      ind(i) = it
+      it = indx
+      t = x(it)
+      GO TO 50
 
 ! INTERCHANGE ELEMENTS K AND L
 
-40 itt = ind(l)
-ind(l) = ind(k)
-ind(k) = itt
+40    itt = ind(l)
+      ind(l) = ind(k)
+      ind(k) = itt
 
 ! FIND AN ELEMENT IN THE UPPER PART OF THE ARRAY WHICH IS
 !   NOT LARGER THAN T
 
-50 l = l - 1
-indx = ind(l)
-IF (x(indx) > t) GO TO 50
+50    l = l - 1
+      indx = ind(l)
+      IF (x(indx) > t) GO TO 50
 
 ! FIND AN ELEMENT IN THE LOWER PART OF THE ARRAY WHCIH IS NOT SMALLER THAN T
 
-60 k = k + 1
-indx = ind(k)
-IF (x(indx) < t) GO TO 60
+60    k = k + 1
+      indx = ind(k)
+      IF (x(indx) < t) GO TO 60
 
 ! IF K <= L, INTERCHANGE ELEMENTS K AND L
 
-IF (k <= l) GO TO 40
+      IF (k <= l) GO TO 40
 
 ! SAVE THE UPPER AND LOWER SUBSCRIPTS OF THE PORTION OF THE
 !   ARRAY YET TO BE SORTED
 
-IF (l-i > j-k) THEN
-  il(m) = i
-  iu(m) = l
-  i = k
-  m = m + 1
-  GO TO 80
-END IF
+      IF (l-i > j-k) THEN
+         il(m) = i
+         iu(m) = l
+         i = k
+         m = m + 1
+         GO TO 80
+      END IF
 
-il(m) = k
-iu(m) = j
-j = l
-m = m + 1
-GO TO 80
+      il(m) = k
+      iu(m) = j
+      j = l
+      m = m + 1
+      GO TO 80
 
 ! BEGIN AGAIN ON ANOTHER UNSORTED PORTION OF THE ARRAY
 
-70 m = m - 1
-IF (m == 0) RETURN
-i = il(m)
-j = iu(m)
+70    m = m - 1
+      IF (m == 0) RETURN
+      i = il(m)
+      j = iu(m)
 
-80 IF (j-i >= 11) GO TO 30
-IF (i == 1) GO TO 20
-i = i - 1
+80    IF (j-i >= 11) GO TO 30
+      IF (i == 1) GO TO 20
+      i = i - 1
 
 ! SORT ELEMENTS I+1,...,J.  NOTE THAT 1 <= I < J AND J-I < 11.
 
-90 i = i + 1
-IF (i == j) GO TO 70
-indx = ind(i+1)
-t = x(indx)
-it = indx
-indx = ind(i)
-IF (x(indx) <= t) GO TO 90
-k = i
+90    i = i + 1
+      IF (i == j) GO TO 70
+      indx = ind(i+1)
+      t = x(indx)
+      it = indx
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 90
+      k = i
 
-100 ind(k+1) = ind(k)
-k = k - 1
-indx = ind(k)
-IF (t < x(indx)) GO TO 100
+100   ind(k+1) = ind(k)
+      k = k - 1
+      indx = ind(k)
+      IF (t < x(indx)) GO TO 100
 
-ind(k+1) = it
-GO TO 90
-END SUBROUTINE qsortsp
+      ind(k+1) = it
+      GO TO 90
+   END SUBROUTINE qsortsp
 
-SUBROUTINE qsorti(x, ind)
+   SUBROUTINE qsorti(x, ind)
 
 ! Code converted using TO_F90 by Alan Miller
 ! Date: 2002-12-18  Time: 11:55:47
 
-IMPLICIT NONE
+      IMPLICIT NONE
 
-INTEGER, INTENT(IN)  :: x(:)
-INTEGER, INTENT(OUT)   :: ind(:)
-INTEGER :: n
+      INTEGER, INTENT(IN)  :: x(:)
+      INTEGER, INTENT(OUT)   :: ind(:)
+      INTEGER :: n
 
 !***************************************************************************
 
@@ -497,12 +497,12 @@ INTEGER :: n
 
 !*********************************************************************
 
-INTEGER   :: iu(21), il(21)
-INTEGER   :: m, i, j, k, l, ij, it, itt, indx
-REAL      :: r
-INTEGER   :: t
+      INTEGER   :: iu(21), il(21)
+      INTEGER   :: m, i, j, k, l, ij, it, itt, indx
+      REAL      :: r
+      INTEGER   :: t
 
-n = size(x)
+      n = size(x)
 
 ! LOCAL PARAMETERS -
 
@@ -517,453 +517,453 @@ n = size(x)
 ! R =      PSEUDO RANDOM NUMBER FOR GENERATING IJ
 ! T =      CENTRAL ELEMENT OF X
 
-IF (n <= 0) RETURN
+      IF (n <= 0) RETURN
 
 ! INITIALIZE IND, M, I, J, AND R
 
-DO  i = 1, n
-  ind(i) = i
-END DO
-m = 1
-i = 1
-j = n
-r = .375
+      DO  i = 1, n
+         ind(i) = i
+      END DO
+      m = 1
+      i = 1
+      j = n
+      r = .375
 
 ! TOP OF LOOP
 
-20 IF (i >= j) GO TO 70
-IF (r <= .5898437) THEN
-  r = r + .0390625
-ELSE
-  r = r - .21875
-END IF
+20    IF (i >= j) GO TO 70
+      IF (r <= .5898437) THEN
+         r = r + .0390625
+      ELSE
+         r = r - .21875
+      END IF
 
 ! INITIALIZE K
 
-30 k = i
+30    k = i
 
 ! SELECT A CENTRAL ELEMENT OF X AND SAVE IT IN T
 
-ij = i + r*(j-i)
-it = ind(ij)
-t = x(it)
+      ij = i + r*(j-i)
+      it = ind(ij)
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) > t) THEN
-  ind(ij) = indx
-  ind(i) = it
-  it = indx
-  t = x(it)
-END IF
+      indx = ind(i)
+      IF (x(indx) > t) THEN
+         ind(ij) = indx
+         ind(i) = it
+         it = indx
+         t = x(it)
+      END IF
 
 ! INITIALIZE L
 
-l = j
+      l = j
 
 ! IF THE LAST ELEMENT OF THE ARRAY IS LESS THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(j)
-IF (x(indx) >= t) GO TO 50
-ind(ij) = indx
-ind(j) = it
-it = indx
-t = x(it)
+      indx = ind(j)
+      IF (x(indx) >= t) GO TO 50
+      ind(ij) = indx
+      ind(j) = it
+      it = indx
+      t = x(it)
 
 ! IF THE FIRST ELEMENT OF THE ARRAY IS GREATER THAN T,
 !   INTERCHANGE IT WITH T
 
-indx = ind(i)
-IF (x(indx) <= t) GO TO 50
-ind(ij) = indx
-ind(i) = it
-it = indx
-t = x(it)
-GO TO 50
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 50
+      ind(ij) = indx
+      ind(i) = it
+      it = indx
+      t = x(it)
+      GO TO 50
 
 ! INTERCHANGE ELEMENTS K AND L
 
-40 itt = ind(l)
-ind(l) = ind(k)
-ind(k) = itt
+40    itt = ind(l)
+      ind(l) = ind(k)
+      ind(k) = itt
 
 ! FIND AN ELEMENT IN THE UPPER PART OF THE ARRAY WHICH IS
 !   NOT LARGER THAN T
 
-50 l = l - 1
-indx = ind(l)
-IF (x(indx) > t) GO TO 50
+50    l = l - 1
+      indx = ind(l)
+      IF (x(indx) > t) GO TO 50
 
 ! FIND AN ELEMENT IN THE LOWER PART OF THE ARRAY WHCIH IS NOT SMALLER THAN T
 
-60 k = k + 1
-indx = ind(k)
-IF (x(indx) < t) GO TO 60
+60    k = k + 1
+      indx = ind(k)
+      IF (x(indx) < t) GO TO 60
 
 ! IF K <= L, INTERCHANGE ELEMENTS K AND L
 
-IF (k <= l) GO TO 40
+      IF (k <= l) GO TO 40
 
 ! SAVE THE UPPER AND LOWER SUBSCRIPTS OF THE PORTION OF THE
 !   ARRAY YET TO BE SORTED
 
-IF (l-i > j-k) THEN
-  il(m) = i
-  iu(m) = l
-  i = k
-  m = m + 1
-  GO TO 80
-END IF
+      IF (l-i > j-k) THEN
+         il(m) = i
+         iu(m) = l
+         i = k
+         m = m + 1
+         GO TO 80
+      END IF
 
-il(m) = k
-iu(m) = j
-j = l
-m = m + 1
-GO TO 80
+      il(m) = k
+      iu(m) = j
+      j = l
+      m = m + 1
+      GO TO 80
 
 ! BEGIN AGAIN ON ANOTHER UNSORTED PORTION OF THE ARRAY
 
-70 m = m - 1
-IF (m == 0) RETURN
-i = il(m)
-j = iu(m)
+70    m = m - 1
+      IF (m == 0) RETURN
+      i = il(m)
+      j = iu(m)
 
-80 IF (j-i >= 11) GO TO 30
-IF (i == 1) GO TO 20
-i = i - 1
+80    IF (j-i >= 11) GO TO 30
+      IF (i == 1) GO TO 20
+      i = i - 1
 
 ! SORT ELEMENTS I+1,...,J.  NOTE THAT 1 <= I < J AND J-I < 11.
 
-90 i = i + 1
-IF (i == j) GO TO 70
-indx = ind(i+1)
-t = x(indx)
-it = indx
-indx = ind(i)
-IF (x(indx) <= t) GO TO 90
-k = i
+90    i = i + 1
+      IF (i == j) GO TO 70
+      indx = ind(i+1)
+      t = x(indx)
+      it = indx
+      indx = ind(i)
+      IF (x(indx) <= t) GO TO 90
+      k = i
 
-100 ind(k+1) = ind(k)
-k = k - 1
-indx = ind(k)
-IF (t < x(indx)) GO TO 100
+100   ind(k+1) = ind(k)
+      k = k - 1
+      indx = ind(k)
+      IF (t < x(indx)) GO TO 100
 
-ind(k+1) = it
-GO TO 90
-END SUBROUTINE qsorti
+      ind(k+1) = it
+      GO TO 90
+   END SUBROUTINE qsorti
 
-  recursive subroutine sort_integer_array(integer_array, permutation)
-    !!< Sort integer_array along integer_array(:, 1), then integer_array(:, 2), etc.
+   recursive subroutine sort_integer_array(integer_array, permutation)
+      !!< Sort integer_array along integer_array(:, 1), then integer_array(:, 2), etc.
 
-    integer, dimension(:, :), intent(in) :: integer_array
-    integer, dimension(size(integer_array, 1)), intent(out) :: permutation
+      integer, dimension(:, :), intent(in) :: integer_array
+      integer, dimension(size(integer_array, 1)), intent(out) :: permutation
 
-    integer :: end_index, i, j, start_index
-    integer, dimension(:), allocatable :: sub_permutation
-    logical :: do_sub_permute
-    integer, dimension(:, :), allocatable :: sorted_integer_array
+      integer :: end_index, i, j, start_index
+      integer, dimension(:), allocatable :: sub_permutation
+      logical :: do_sub_permute
+      integer, dimension(:, :), allocatable :: sorted_integer_array
 
-    permutation = 0
+      permutation = 0
 
-    if(size(integer_array, 2) == 1) then
-      ! Terminating case
+      if(size(integer_array, 2) == 1) then
+         ! Terminating case
 
-      ! Sort along integer_array(:, 1)
-      call qsort(integer_array(:, 1), permutation)
-    else
-      ! Recursing case
+         ! Sort along integer_array(:, 1)
+         call qsort(integer_array(:, 1), permutation)
+      else
+         ! Recursing case
 
-      ! Sort along integer_array(:, 1)
-      call qsort(integer_array(:, 1), permutation)
-      ! Now we need to sort equal consecutive entries in
-      ! integer_array(permutation, 1) using integer_array(permutation, 2:)
-      start_index = -1  ! When this is > 0, it indicates we're iterating over
-                        ! equal consecutive entries in
-                        ! integer_array(permutation, 1)
-      do i = 2, size(integer_array, 1) + 1
-        if(start_index < 0) then
-          ! We haven't yet found equal consecutive entries in
-          ! integer_array(permutation, 1) over which to sort
+         ! Sort along integer_array(:, 1)
+         call qsort(integer_array(:, 1), permutation)
+         ! Now we need to sort equal consecutive entries in
+         ! integer_array(permutation, 1) using integer_array(permutation, 2:)
+         start_index = -1  ! When this is > 0, it indicates we're iterating over
+         ! equal consecutive entries in
+         ! integer_array(permutation, 1)
+         do i = 2, size(integer_array, 1) + 1
+            if(start_index < 0) then
+               ! We haven't yet found equal consecutive entries in
+               ! integer_array(permutation, 1) over which to sort
 
-          if(i <= size(integer_array, 1)) then
-            ! We're not yet at the end of the array
-            if(abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) == 0) then
-              ! We've found equal entries in integer_array(permutation, 1) - this
-              ! gives us a start index over which to sort
-              start_index = i - 1
+               if(i <= size(integer_array, 1)) then
+                  ! We're not yet at the end of the array
+                  if(abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) == 0) then
+                     ! We've found equal entries in integer_array(permutation, 1) - this
+                     ! gives us a start index over which to sort
+                     start_index = i - 1
+                  end if
+               end if
+            else
+               ! We're already iterating over equal entries in
+               ! integer_array(permutation, 1)
+
+               ! We've found an end index over which to sort if ...
+               ! ... we're at the end of the array ...
+               do_sub_permute = i == size(integer_array, 1) + 1
+               if(.not. do_sub_permute) then
+                  ! ... or we've hit non-equal consecutive entries
+                  do_sub_permute = abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) > 0
+               end if
+               if(do_sub_permute) then
+                  ! We've found an end index
+                  end_index = i - 1
+
+                  ! Sort using integer_array(permutation(start_index:end_index), 2:)
+                  allocate(sorted_integer_array(end_index - start_index + 1, size(integer_array, 2) - 1))
+                  do j = 1, size(sorted_integer_array, 1)
+                     assert(permutation(j + start_index - 1) >= 1)
+                     assert(permutation(j + start_index - 1) <= size(integer_array, 1))
+                     sorted_integer_array(j, :) = integer_array(permutation(j + start_index - 1), 2:)
+                  end do
+                  allocate(sub_permutation(end_index - start_index + 1))
+                  call sort(sorted_integer_array, sub_permutation)
+                  call apply_permutation(permutation(start_index:end_index), sub_permutation)
+                  deallocate(sub_permutation)
+                  deallocate(sorted_integer_array)
+
+                  ! Now we need to find a new start index
+                  start_index = -1
+               end if
             end if
-          end if
-        else
-          ! We're already iterating over equal entries in
-          ! integer_array(permutation, 1)
+         end do
+      end if
 
-          ! We've found an end index over which to sort if ...
-          ! ... we're at the end of the array ...
-          do_sub_permute = i == size(integer_array, 1) + 1
-          if(.not. do_sub_permute) then
-            ! ... or we've hit non-equal consecutive entries
-            do_sub_permute = abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) > 0
-          end if
-          if(do_sub_permute) then
-            ! We've found an end index
-            end_index = i - 1
+   end subroutine sort_integer_array
 
-            ! Sort using integer_array(permutation(start_index:end_index), 2:)
-            allocate(sorted_integer_array(end_index - start_index + 1, size(integer_array, 2) - 1))
-            do j = 1, size(sorted_integer_array, 1)
-              assert(permutation(j + start_index - 1) >= 1)
-              assert(permutation(j + start_index - 1) <= size(integer_array, 1))
-              sorted_integer_array(j, :) = integer_array(permutation(j + start_index - 1), 2:)
-            end do
-            allocate(sub_permutation(end_index - start_index + 1))
-            call sort(sorted_integer_array, sub_permutation)
-            call apply_permutation(permutation(start_index:end_index), sub_permutation)
-            deallocate(sub_permutation)
-            deallocate(sorted_integer_array)
+   recursive subroutine sort_real_array(real_array, permutation)
+      !!< Sort real_array along real_array(:, 1), then real_array(:, 2), etc.
 
-            ! Now we need to find a new start index
-            start_index = -1
-          end if
-        end if
-      end do
-    end if
+      real, dimension(:, :), intent(in) :: real_array
+      integer, dimension(size(real_array, 1)), intent(out) :: permutation
 
-  end subroutine sort_integer_array
+      integer :: end_index, i, j, start_index
+      integer, dimension(:), allocatable :: sub_permutation
+      logical :: do_sub_permute
+      real, dimension(:, :), allocatable :: sorted_real_array
 
-  recursive subroutine sort_real_array(real_array, permutation)
-    !!< Sort real_array along real_array(:, 1), then real_array(:, 2), etc.
+      permutation = 0
 
-    real, dimension(:, :), intent(in) :: real_array
-    integer, dimension(size(real_array, 1)), intent(out) :: permutation
+      if(size(real_array, 2) == 1) then
+         ! Terminating case
 
-    integer :: end_index, i, j, start_index
-    integer, dimension(:), allocatable :: sub_permutation
-    logical :: do_sub_permute
-    real, dimension(:, :), allocatable :: sorted_real_array
+         ! Sort along real_array(:, 1)
+         call qsort(real_array(:, 1), permutation)
+      else
+         ! Recursing case
 
-    permutation = 0
+         ! Sort along real_array(:, 1)
+         call qsort(real_array(:, 1), permutation)
+         ! Now we need to sort equal consecutive entries in
+         ! real_array(permutation, 1) using real_array(permutation, 2:)
+         start_index = -1  ! When this is > 0, it indicates we're iterating over
+         ! equal consecutive entries in
+         ! real_array(permutation, 1)
+         do i = 2, size(real_array, 1) + 1
+            if(start_index < 0) then
+               ! We haven't yet found equal consecutive entries in
+               ! real_array(permutation, 1) over which to sort
 
-    if(size(real_array, 2) == 1) then
-      ! Terminating case
+               if(i <= size(real_array, 1)) then
+                  ! We're not yet at the end of the array
+                  if(abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) == 0.0) then
+                     ! We've found equal entries in real_array(permutation, 1) - this
+                     ! gives us a start index over which to sort
+                     start_index = i - 1
+                  end if
+               end if
+            else
+               ! We're already iterating over equal entries in
+               ! real_array(permutation, 1)
 
-      ! Sort along real_array(:, 1)
-      call qsort(real_array(:, 1), permutation)
-    else
-      ! Recursing case
+               ! We've found an end index over which to sort if ...
+               ! ... we're at the end of the array ...
+               do_sub_permute = i == size(real_array, 1) + 1
+               if(.not. do_sub_permute) then
+                  ! ... or we've hit non-equal consecutive entries
+                  do_sub_permute = abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) > 0.0
+               end if
+               if(do_sub_permute) then
+                  ! We've found an end index
+                  end_index = i - 1
 
-      ! Sort along real_array(:, 1)
-      call qsort(real_array(:, 1), permutation)
-      ! Now we need to sort equal consecutive entries in
-      ! real_array(permutation, 1) using real_array(permutation, 2:)
-      start_index = -1  ! When this is > 0, it indicates we're iterating over
-                        ! equal consecutive entries in
-                        ! real_array(permutation, 1)
-      do i = 2, size(real_array, 1) + 1
-        if(start_index < 0) then
-          ! We haven't yet found equal consecutive entries in
-          ! real_array(permutation, 1) over which to sort
+                  ! Sort using real_array(permutation(start_index:end_index), 2:)
+                  allocate(sorted_real_array(end_index - start_index + 1, size(real_array, 2) - 1))
+                  do j = 1, size(sorted_real_array, 1)
+                     assert(permutation(j + start_index - 1) >= 1 .and. permutation(j + start_index - 1) <= size(real_array, 1))
+                     sorted_real_array(j, :) = real_array(permutation(j + start_index - 1), 2:)
+                  end do
+                  allocate(sub_permutation(end_index - start_index + 1))
+                  call sort(sorted_real_array, sub_permutation)
+                  call apply_permutation(permutation(start_index:end_index), sub_permutation)
+                  deallocate(sub_permutation)
+                  deallocate(sorted_real_array)
 
-          if(i <= size(real_array, 1)) then
-            ! We're not yet at the end of the array
-            if(abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) == 0.0) then
-              ! We've found equal entries in real_array(permutation, 1) - this
-              ! gives us a start index over which to sort
-              start_index = i - 1
+                  ! Now we need to find a new start index
+                  start_index = -1
+               end if
             end if
-          end if
-        else
-          ! We're already iterating over equal entries in
-          ! real_array(permutation, 1)
+         end do
+      end if
 
-          ! We've found an end index over which to sort if ...
-          ! ... we're at the end of the array ...
-          do_sub_permute = i == size(real_array, 1) + 1
-          if(.not. do_sub_permute) then
-            ! ... or we've hit non-equal consecutive entries
-            do_sub_permute = abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) > 0.0
-          end if
-          if(do_sub_permute) then
-            ! We've found an end index
-            end_index = i - 1
+   end subroutine sort_real_array
 
-            ! Sort using real_array(permutation(start_index:end_index), 2:)
-            allocate(sorted_real_array(end_index - start_index + 1, size(real_array, 2) - 1))
-            do j = 1, size(sorted_real_array, 1)
-              assert(permutation(j + start_index - 1) >= 1 .and. permutation(j + start_index - 1) <= size(real_array, 1))
-              sorted_real_array(j, :) = real_array(permutation(j + start_index - 1), 2:)
-            end do
-            allocate(sub_permutation(end_index - start_index + 1))
-            call sort(sorted_real_array, sub_permutation)
-            call apply_permutation(permutation(start_index:end_index), sub_permutation)
-            deallocate(sub_permutation)
-            deallocate(sorted_real_array)
+   function count_unique(int_array) result(unique)
+      !!< Count the unique entries in the supplied array of integers
 
-            ! Now we need to find a new start index
-            start_index = -1
-          end if
-        end if
+      integer, dimension(:), intent(in) :: int_array
+
+      integer :: unique
+
+      integer :: i
+      integer, dimension(size(int_array)) :: permutation
+
+      call qsort(int_array, permutation)
+
+      unique = 0
+      if(size(int_array) > 0) then
+         unique = unique + 1
+      end if
+      do i = 2, size(int_array)
+         if(int_array(permutation(i)) == int_array(permutation(i - 1))) cycle
+         unique = unique + 1
       end do
-    end if
 
-  end subroutine sort_real_array
+   end function count_unique
 
-  function count_unique(int_array) result(unique)
-    !!< Count the unique entries in the supplied array of integers
+   pure function inverse_permutation(permutation)
+      !!< Return the inverse of the supplied permutation
 
-    integer, dimension(:), intent(in) :: int_array
+      integer, dimension(:), intent(in) :: permutation
 
-    integer :: unique
+      integer, dimension(size(permutation)) :: inverse_permutation
 
-    integer :: i
-    integer, dimension(size(int_array)) :: permutation
+      integer :: i
 
-    call qsort(int_array, permutation)
+      do i = 1, size(permutation)
+         inverse_permutation(permutation(i)) = i
+      end do
 
-    unique = 0
-    if(size(int_array) > 0) then
-      unique = unique + 1
-    end if
-    do i = 2, size(int_array)
-      if(int_array(permutation(i)) == int_array(permutation(i - 1))) cycle
-      unique = unique + 1
-    end do
+   end function inverse_permutation
 
-  end function count_unique
+   subroutine apply_permutation_integer_array(permutation, applied_permutation)
+      !!< Apply the given applied_permutation to the array permutation
+      !!< Use this instead of permutation = permutation(applied_permutation), as
+      !!< the inline form can cause intermittent errors on some compilers.
 
-  pure function inverse_permutation(permutation)
-    !!< Return the inverse of the supplied permutation
+      integer, dimension(:, :), intent(inout) :: permutation
+      integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
 
-    integer, dimension(:), intent(in) :: permutation
+      integer :: i
+      integer, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
 
-    integer, dimension(size(permutation)) :: inverse_permutation
+      temp_permutation = permutation
 
-    integer :: i
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i, :) = temp_permutation(applied_permutation(i), :)
+      end do
 
-    do i = 1, size(permutation)
-      inverse_permutation(permutation(i)) = i
-    end do
+   end subroutine apply_permutation_integer_array
 
-  end function inverse_permutation
+   subroutine apply_permutation_real_array(permutation, applied_permutation)
+      !!< Apply the given applied_permutation to the array permutation
+      !!< Use this instead of permutation = permutation(applied_permutation), as
+      !!< the inline form can cause intermittent errors on some compilers.
 
-  subroutine apply_permutation_integer_array(permutation, applied_permutation)
-    !!< Apply the given applied_permutation to the array permutation
-    !!< Use this instead of permutation = permutation(applied_permutation), as
-    !!< the inline form can cause intermittent errors on some compilers.
+      real, dimension(:, :), intent(inout) :: permutation
+      integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
 
-    integer, dimension(:, :), intent(inout) :: permutation
-    integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
+      integer :: i
+      real, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
 
-    integer :: i
-    integer, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
+      temp_permutation = permutation
 
-    temp_permutation = permutation
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i, :) = temp_permutation(applied_permutation(i), :)
+      end do
 
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i, :) = temp_permutation(applied_permutation(i), :)
-    end do
+   end subroutine apply_permutation_real_array
 
-  end subroutine apply_permutation_integer_array
+   subroutine apply_permutation_integer(permutation, applied_permutation)
+      !!< Apply the given applied_permutation to the array permutation
+      !!< Use this instead of permutation = permutation(applied_permutation), as
+      !!< the inline form can cause intermittent errors on some compilers.
 
-  subroutine apply_permutation_real_array(permutation, applied_permutation)
-    !!< Apply the given applied_permutation to the array permutation
-    !!< Use this instead of permutation = permutation(applied_permutation), as
-    !!< the inline form can cause intermittent errors on some compilers.
+      integer, dimension(:), intent(inout) :: permutation
+      integer, dimension(size(permutation)), intent(in) :: applied_permutation
 
-    real, dimension(:, :), intent(inout) :: permutation
-    integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
+      integer :: i
+      integer, dimension(size(permutation)) :: temp_permutation
 
-    integer :: i
-    real, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
+      temp_permutation = permutation
 
-    temp_permutation = permutation
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i) = temp_permutation(applied_permutation(i))
+      end do
 
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i, :) = temp_permutation(applied_permutation(i), :)
-    end do
+   end subroutine apply_permutation_integer
 
-  end subroutine apply_permutation_real_array
+   subroutine apply_permutation_real(permutation, applied_permutation)
+      !!< Apply the given applied_permutation to the array permutation
+      !!< Use this instead of permutation = permutation(applied_permutation), as
+      !!< the inline form can cause intermittent errors on some compilers.
 
-  subroutine apply_permutation_integer(permutation, applied_permutation)
-    !!< Apply the given applied_permutation to the array permutation
-    !!< Use this instead of permutation = permutation(applied_permutation), as
-    !!< the inline form can cause intermittent errors on some compilers.
+      real, dimension(:), intent(inout) :: permutation
+      integer, dimension(size(permutation)), intent(in) :: applied_permutation
 
-    integer, dimension(:), intent(inout) :: permutation
-    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+      integer :: i
+      real, dimension(size(permutation)) :: temp_permutation
 
-    integer :: i
-    integer, dimension(size(permutation)) :: temp_permutation
+      temp_permutation = permutation
 
-    temp_permutation = permutation
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i) = temp_permutation(applied_permutation(i))
+      end do
 
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i) = temp_permutation(applied_permutation(i))
-    end do
+   end subroutine apply_permutation_real
 
-  end subroutine apply_permutation_integer
+   subroutine apply_reverse_permutation_real(permutation, applied_permutation)
+      !!< Apply the reverse of the given applied_permutation to the array permutation
 
-  subroutine apply_permutation_real(permutation, applied_permutation)
-    !!< Apply the given applied_permutation to the array permutation
-    !!< Use this instead of permutation = permutation(applied_permutation), as
-    !!< the inline form can cause intermittent errors on some compilers.
+      real, dimension(:), intent(inout) :: permutation
+      integer, dimension(size(permutation)), intent(in) :: applied_permutation
 
-    real, dimension(:), intent(inout) :: permutation
-    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+      integer :: i, length
+      real, dimension(size(permutation)) :: temp_permutation
 
-    integer :: i
-    real, dimension(size(permutation)) :: temp_permutation
+      temp_permutation = permutation
 
-    temp_permutation = permutation
+      length = size(applied_permutation)+1
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i) = temp_permutation(applied_permutation(length-i))
+      end do
 
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i) = temp_permutation(applied_permutation(i))
-    end do
+   end subroutine apply_reverse_permutation_real
 
-  end subroutine apply_permutation_real
+   subroutine apply_reverse_permutation_integer(permutation, applied_permutation)
+      !!< Apply the reverse of the given applied_permutation to the array permutation
 
-  subroutine apply_reverse_permutation_real(permutation, applied_permutation)
-    !!< Apply the reverse of the given applied_permutation to the array permutation
+      integer, dimension(:), intent(inout) :: permutation
+      integer, dimension(size(permutation)), intent(in) :: applied_permutation
 
-    real, dimension(:), intent(inout) :: permutation
-    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+      integer :: i, length
+      integer, dimension(size(permutation)) :: temp_permutation
 
-    integer :: i, length
-    real, dimension(size(permutation)) :: temp_permutation
+      temp_permutation = permutation
 
-    temp_permutation = permutation
+      length = size(applied_permutation)+1
+      do i = 1, size(applied_permutation)
+         assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+         permutation(i) = temp_permutation(applied_permutation(length-i))
+      end do
 
-    length = size(applied_permutation)+1
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i) = temp_permutation(applied_permutation(length-i))
-    end do
-
-  end subroutine apply_reverse_permutation_real
-
-  subroutine apply_reverse_permutation_integer(permutation, applied_permutation)
-    !!< Apply the reverse of the given applied_permutation to the array permutation
-
-    integer, dimension(:), intent(inout) :: permutation
-    integer, dimension(size(permutation)), intent(in) :: applied_permutation
-
-    integer :: i, length
-    integer, dimension(size(permutation)) :: temp_permutation
-
-    temp_permutation = permutation
-
-    length = size(applied_permutation)+1
-    do i = 1, size(applied_permutation)
-      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
-      permutation(i) = temp_permutation(applied_permutation(length-i))
-    end do
-
-  end subroutine apply_reverse_permutation_integer
+   end subroutine apply_reverse_permutation_integer
 
 end module quicksort

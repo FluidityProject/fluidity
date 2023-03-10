@@ -29,53 +29,53 @@
 ! modules because these routines are designed to be callable from C.
 
 subroutine set_debug_level(level)
-  ! Temporarily set the verbosity of the program.
-  use fldebug_parameters
-  implicit none
-  integer, intent(in) :: level
+   ! Temporarily set the verbosity of the program.
+   use fldebug_parameters
+   implicit none
+   integer, intent(in) :: level
 
-  current_debug_level=level
+   current_debug_level=level
 
 end subroutine set_debug_level
 
 subroutine set_global_debug_level(level)
-  ! Set the global verbosity of the program.
-  use fldebug_parameters
-  implicit none
-  integer, intent(in) :: level
+   ! Set the global verbosity of the program.
+   use fldebug_parameters
+   implicit none
+   integer, intent(in) :: level
 
-  global_debug_level=level
-  current_debug_level=global_debug_level
+   global_debug_level=level
+   current_debug_level=global_debug_level
 
 end subroutine set_global_debug_level
 
 subroutine reset_debug_level
-  ! Temporarily set the verbosity of the program.
-  use fldebug_parameters
-  implicit none
+   ! Temporarily set the verbosity of the program.
+   use fldebug_parameters
+   implicit none
 
-  current_debug_level=global_debug_level
+   current_debug_level=global_debug_level
 
 end subroutine reset_debug_level
 
 function debug_level()
-  ! Simply return the current debug level. This makes the debug level
-  ! effectively global.
-  use fldebug_parameters
-  implicit none
-  integer :: debug_level
+   ! Simply return the current debug level. This makes the debug level
+   ! effectively global.
+   use fldebug_parameters
+   implicit none
+   integer :: debug_level
 
-  debug_level=current_debug_level
+   debug_level=current_debug_level
 
 end function debug_level
 
 function get_global_debug_level()
-  ! Simply return the global debug level. This makes the debug level
-  ! effectively global.
-  use fldebug_parameters
-  implicit none
-  integer :: get_global_debug_level
+   ! Simply return the global debug level. This makes the debug level
+   ! effectively global.
+   use fldebug_parameters
+   implicit none
+   integer :: get_global_debug_level
 
-  get_global_debug_level=global_debug_level
+   get_global_debug_level=global_debug_level
 
 end function get_global_debug_level

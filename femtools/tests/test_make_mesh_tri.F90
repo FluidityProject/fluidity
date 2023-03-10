@@ -29,102 +29,102 @@
 
 subroutine test_make_mesh_tri
 
-  use futils
-  use element_numbering
-  use elements
-  use fields
-  use fldebug
-  use mesh_files
-  use unittest_tools
+   use futils
+   use element_numbering
+   use elements
+   use fields
+   use fldebug
+   use mesh_files
+   use unittest_tools
 
-  implicit none
+   implicit none
 
-  integer :: degree, ele, node
-  integer, parameter :: min_degree = 1, max_degree = 20
-  logical :: fail
-  real, dimension(:, :), allocatable :: l_coords, otn_l_coords
-  type(element_type) :: derived_shape
-  type(element_type), pointer :: base_shape
-  type(mesh_type) :: derived_mesh
-  type(mesh_type), pointer :: base_mesh
-  type(vector_field) :: positions_remap
-  type(vector_field), target :: positions
+   integer :: degree, ele, node
+   integer, parameter :: min_degree = 1, max_degree = 20
+   logical :: fail
+   real, dimension(:, :), allocatable :: l_coords, otn_l_coords
+   type(element_type) :: derived_shape
+   type(element_type), pointer :: base_shape
+   type(mesh_type) :: derived_mesh
+   type(mesh_type), pointer :: base_mesh
+   type(vector_field) :: positions_remap
+   type(vector_field), target :: positions
 
-  positions = read_mesh_files("data/laplacian_grid.2", quad_degree = 1, format="gmsh")
-  base_mesh => positions%mesh
-  base_shape => ele_shape(base_mesh, 1)
-  call report_test("[Linear triangle input mesh]", &
-    & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 2, .false., &
-    & "Input mesh not composed of linear triangles")
+   positions = read_mesh_files("data/laplacian_grid.2", quad_degree = 1, format="gmsh")
+   base_mesh => positions%mesh
+   base_shape => ele_shape(base_mesh, 1)
+   call report_test("[Linear triangle input mesh]", &
+   & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 2, .false., &
+   & "Input mesh not composed of linear triangles")
 
-  do degree = min_degree, max_degree
-    print "(a,i0)", "Degree = ", degree
+   do degree = min_degree, max_degree
+      print "(a,i0)", "Degree = ", degree
 
-    derived_shape = make_element_shape(base_shape, degree = degree)
-    call report_test("[Derived loc]", &
+      derived_shape = make_element_shape(base_shape, degree = degree)
+      call report_test("[Derived loc]", &
       & derived_shape%loc /= tr(degree + 1), .false., &
       & "Incorrect local node count")
 
-    derived_mesh = make_mesh(base_mesh, derived_shape)
-    call report_test("[Derived ele_count]", &
+      derived_mesh = make_mesh(base_mesh, derived_shape)
+      call report_test("[Derived ele_count]", &
       & ele_count(derived_mesh) /= ele_count(base_mesh), .false., &
       & "Incorrect element count")
 
-    call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
-    call remap_field(positions, positions_remap)
-    allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
-    otn_l_coords = tri_otn_local_coords(degree)
-    allocate(l_coords(base_shape%loc, derived_shape%loc))
-    fail = .false.
-    ele_loop: do ele = 1, ele_count(derived_mesh)
-      fail = ele_loc(derived_mesh, ele) /= derived_shape%loc
-      if(fail) exit ele_loop
+      call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
+      call remap_field(positions, positions_remap)
+      allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
+      otn_l_coords = tri_otn_local_coords(degree)
+      allocate(l_coords(base_shape%loc, derived_shape%loc))
+      fail = .false.
+      ele_loop: do ele = 1, ele_count(derived_mesh)
+         fail = ele_loc(derived_mesh, ele) /= derived_shape%loc
+         if(fail) exit ele_loop
 
-      l_coords = local_coords(positions, ele, ele_val(positions_remap, ele))
-      fail = fnequals(l_coords, otn_l_coords, tol = 1.0e3 * epsilon(0.0))
-      if(fail) then
-        do node = 1, size(l_coords, 2)
-          print *, node, l_coords(:, node)
-          print *, node, otn_l_coords(:, node)
-        end do
-        exit ele_loop
-      end if
-    end do ele_loop
-    deallocate(l_coords)
-    deallocate(otn_l_coords)
-    call deallocate(positions_remap)
+         l_coords = local_coords(positions, ele, ele_val(positions_remap, ele))
+         fail = fnequals(l_coords, otn_l_coords, tol = 1.0e3 * epsilon(0.0))
+         if(fail) then
+            do node = 1, size(l_coords, 2)
+               print *, node, l_coords(:, node)
+               print *, node, otn_l_coords(:, node)
+            end do
+            exit ele_loop
+         end if
+      end do ele_loop
+      deallocate(l_coords)
+      deallocate(otn_l_coords)
+      call deallocate(positions_remap)
 
-    call report_test("[Derived mesh numbering]", fail, .false., "Invalid derived mesh numbering, failed on element " // int2str(ele))
+      call report_test("[Derived mesh numbering]", fail, .false., "Invalid derived mesh numbering, failed on element " // int2str(ele))
 
-    call deallocate(derived_shape)
-    call deallocate(derived_mesh)
-  end do
+      call deallocate(derived_shape)
+      call deallocate(derived_mesh)
+   end do
 
-  call deallocate(positions)
-  call report_test_no_references()
+   call deallocate(positions)
+   call report_test_no_references()
 
 contains
 
-  function tri_otn_local_coords(degree) result(l_coords)
-    !!< Return the node local coords according to the One True Element Numbering
+   function tri_otn_local_coords(degree) result(l_coords)
+      !!< Return the node local coords according to the One True Element Numbering
 
-    integer, intent(in) :: degree
+      integer, intent(in) :: degree
 
-    integer :: i, index, j
-    real, dimension(3, tr(degree + 1)) :: l_coords
+      integer :: i, index, j
+      real, dimension(3, tr(degree + 1)) :: l_coords
 
-    index = 1
-    do i = 0, degree
-      do j = 0, degree - i
-        assert(index <= size(l_coords, 2))
-        l_coords(2, index) = float(j) / float(degree)
-        l_coords(3, index) = float(i) / float(degree)
-        l_coords(1, index) = 1.0 - sum(l_coords(2:3, index))
-        index = index + 1
+      index = 1
+      do i = 0, degree
+         do j = 0, degree - i
+            assert(index <= size(l_coords, 2))
+            l_coords(2, index) = float(j) / float(degree)
+            l_coords(3, index) = float(i) / float(degree)
+            l_coords(1, index) = 1.0 - sum(l_coords(2:3, index))
+            index = index + 1
+         end do
       end do
-    end do
-    assert(index == size(l_coords, 2) + 1)
+      assert(index == size(l_coords, 2) + 1)
 
-  end function tri_otn_local_coords
+   end function tri_otn_local_coords
 
 end subroutine test_make_mesh_tri

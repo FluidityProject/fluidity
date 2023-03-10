@@ -30,83 +30,83 @@
 module timers
 !  !!< This module contains routines which time the fluidity run
 
-  use iso_c_binding, only: c_double
-  use fldebug
-  use mpi_interfaces
+   use iso_c_binding, only: c_double
+   use fldebug
+   use mpi_interfaces
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: wall_time, wall_time_supported
+   public :: wall_time, wall_time_supported
 
 contains
 
-  function wall_time()
-    ! This function returns the wall clock time from when the
-    ! simulation started.
-    !
-    ! It must be called at the start of the simulation to get the clock
-    ! running.
-    real(kind = c_double):: wall_time
-    logical, save :: started=.false.
+   function wall_time()
+      ! This function returns the wall clock time from when the
+      ! simulation started.
+      !
+      ! It must be called at the start of the simulation to get the clock
+      ! running.
+      real(kind = c_double):: wall_time
+      logical, save :: started=.false.
 #ifdef HAVE_MPI
-    real(kind = c_double), save :: wall_time0
+      real(kind = c_double), save :: wall_time0
 
-    wall_time = MPI_Wtime()
-    if(.not.started) then
-       wall_time0 = wall_time
-       wall_time = 0.0
-       started=.true.
-    else
-       wall_time = wall_time - wall_time0
-    endif
+      wall_time = MPI_Wtime()
+      if(.not.started) then
+         wall_time0 = wall_time
+         wall_time = 0.0
+         started=.true.
+      else
+         wall_time = wall_time - wall_time0
+      endif
 #else
-    integer, save :: clock0
-    integer, save :: clock1,clockmax,clockrate, ticks
-    real secs
-    logical, save :: clock_support=.true.
+      integer, save :: clock0
+      integer, save :: clock1,clockmax,clockrate, ticks
+      real secs
+      logical, save :: clock_support=.true.
 
-    ! Initialize
-    wall_time = -1.0
+      ! Initialize
+      wall_time = -1.0
 
-    ! Return -1.0 if no clock support
-    IF(.not.clock_support) return
+      ! Return -1.0 if no clock support
+      IF(.not.clock_support) return
 
-    IF(.not.started) THEN
-       call system_clock(count_max=clockmax, count_rate=clockrate)
-       call system_clock(clock0)
+      IF(.not.started) THEN
+         call system_clock(count_max=clockmax, count_rate=clockrate)
+         call system_clock(clock0)
 
-       IF(clockrate==0) THEN
-          clock_support=.false.
-          ewrite(-1, *) "No wall time support"
-       else
-          wall_time = 0.0
-       ENDIF
+         IF(clockrate==0) THEN
+            clock_support=.false.
+            ewrite(-1, *) "No wall time support"
+         else
+            wall_time = 0.0
+         ENDIF
 
-       started=.true.
-    ELSE
-       call system_clock(clock1)
-       ticks=clock1-clock0
-       ! reset -ve numbers
-       ticks=mod(ticks+clockmax, clockmax)
-       secs=  real(ticks)/real(clockrate)
-       wall_time=secs
-    ENDIF
+         started=.true.
+      ELSE
+         call system_clock(clock1)
+         ticks=clock1-clock0
+         ! reset -ve numbers
+         ticks=mod(ticks+clockmax, clockmax)
+         secs=  real(ticks)/real(clockrate)
+         wall_time=secs
+      ENDIF
 #endif
-  end function wall_time
+   end function wall_time
 
-  function wall_time_supported() result(supported)
+   function wall_time_supported() result(supported)
 !    !!< Return whether wall time is supported
 
-    logical :: supported
+      logical :: supported
 
 #ifdef HAVE_MPI
-    supported = .true.
+      supported = .true.
 #else
-    supported = (wall_time() >= 0.0)
+      supported = (wall_time() >= 0.0)
 #endif
 
-  end function wall_time_supported
+   end function wall_time_supported
 
 end module timers

@@ -26,69 +26,69 @@
 ! USA
 
 module SampleNetCDF
-  use FLDebug
+   use FLDebug
 
-  implicit none
+   implicit none
 
-  private
+   private
 
-  public :: SampleNetCDF_Open, SampleNetCDF_SetVariable,&
-       SampleNetCDF_GetValue, SampleNetCDF_Close
+   public :: SampleNetCDF_Open, SampleNetCDF_SetVariable,&
+      SampleNetCDF_GetValue, SampleNetCDF_Close
 
-  interface
+   interface
 
-     subroutine samplenetcdf_open_c(name, n, id)
-       character (len=*) :: name
-       integer, intent(in)  :: n
-       integer, intent(out) :: id
-     end subroutine samplenetcdf_open_c
+      subroutine samplenetcdf_open_c(name, n, id)
+         character (len=*) :: name
+         integer, intent(in)  :: n
+         integer, intent(out) :: id
+      end subroutine samplenetcdf_open_c
 
-     subroutine samplenetcdf_setvariable_c(id, varname, n)
-       integer, intent(out) :: id
-       character (len=*) :: varname
-       integer, intent(in)  :: n
-     end subroutine samplenetcdf_setvariable_c
+      subroutine samplenetcdf_setvariable_c(id, varname, n)
+         integer, intent(out) :: id
+         character (len=*) :: varname
+         integer, intent(in)  :: n
+      end subroutine samplenetcdf_setvariable_c
 
-     subroutine samplenetcdf_close_c(id)
-       integer, intent(out) ::id
-     end subroutine samplenetcdf_close_c
+      subroutine samplenetcdf_close_c(id)
+         integer, intent(out) ::id
+      end subroutine samplenetcdf_close_c
 
-     subroutine samplenetcdf_getvalue_c(id, longitude, latitude, val)
-       integer, intent(out)::id
-       real, intent(out)::longitude, latitude
-       real, intent(out)::val
-     end subroutine Samplenetcdf_getvalue_c
+      subroutine samplenetcdf_getvalue_c(id, longitude, latitude, val)
+         integer, intent(out)::id
+         real, intent(out)::longitude, latitude
+         real, intent(out)::val
+      end subroutine Samplenetcdf_getvalue_c
 
-  end interface
+   end interface
 
 contains
 
-  subroutine SampleNetCDF_Open(name, id)
-    character(len=*), intent(in)::name
-    integer, intent(out)::id
+   subroutine SampleNetCDF_Open(name, id)
+      character(len=*), intent(in)::name
+      integer, intent(out)::id
 
-    call samplenetcdf_open_c(name, len_trim(name), id)
-  end subroutine SampleNetCDF_Open
+      call samplenetcdf_open_c(name, len_trim(name), id)
+   end subroutine SampleNetCDF_Open
 
-  subroutine SampleNetCDF_SetVariable(id, varname)
-    character(len=*), intent(in)::varname
-    integer, intent(out)::id
+   subroutine SampleNetCDF_SetVariable(id, varname)
+      character(len=*), intent(in)::varname
+      integer, intent(out)::id
 
-    call samplenetcdf_setvariable_c(id, varname, len_trim(varname))
-  end subroutine SampleNetCDF_SetVariable
+      call samplenetcdf_setvariable_c(id, varname, len_trim(varname))
+   end subroutine SampleNetCDF_SetVariable
 
-  subroutine SampleNetCDF_GetValue(id, longitude, latitude, val)
-    integer, intent(out)::id
-    real, intent(out)::longitude, latitude
-    real, intent(out)::val
+   subroutine SampleNetCDF_GetValue(id, longitude, latitude, val)
+      integer, intent(out)::id
+      real, intent(out)::longitude, latitude
+      real, intent(out)::val
 
-    call samplenetcdf_getvalue_c(id, longitude, latitude, val)
-  end subroutine SampleNetCDF_GetValue
+      call samplenetcdf_getvalue_c(id, longitude, latitude, val)
+   end subroutine SampleNetCDF_GetValue
 
-  subroutine SampleNetCDF_Close(id)
-    integer, intent(out)::id
+   subroutine SampleNetCDF_Close(id)
+      integer, intent(out)::id
 
-    call samplenetcdf_close_c(id)
-  end subroutine SampleNetCDF_Close
+      call samplenetcdf_close_c(id)
+   end subroutine SampleNetCDF_Close
 
 end module SampleNetCDF

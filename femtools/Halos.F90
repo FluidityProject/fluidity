@@ -29,18 +29,18 @@
 
 module halos
 
-  use halo_data_types
-  use halos_base
-  use halos_debug
-  use halos_allocates
-  use halos_communications
-  use halos_numbering
-  use halos_ownership
-  use halos_repair
-  use halos_diagnostics
-  use halos_derivation
-  use halos_registration
+   use halo_data_types
+   use halos_base
+   use halos_debug
+   use halos_allocates
+   use halos_communications
+   use halos_numbering
+   use halos_ownership
+   use halos_repair
+   use halos_diagnostics
+   use halos_derivation
+   use halos_registration
 
-  implicit none
+   implicit none
 
 end module halos
