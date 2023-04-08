@@ -7,7 +7,7 @@ MAINTAINER tim.greaves@imperial.ac.uk
 
 # Install the required packages for spud building and testing
 RUN apt-get -y update
-RUN apt-get -y install gfortran g++ python3-setuptools python3-all-dev python3-dev debhelper dh-python texlive python3-junit.xml
+RUN apt-get -y install gfortran=4:7.4.* g++=4:7.4.* python3-setuptools=39.0.* python3-all-dev=3.6.* python3-dev=3.6.* debhelper=11.1.* dh-python=3.20180325ubuntu2 texlive=2017.20180305-* python3-junit.xml=1.7-* 
 
 # Make sure the spud user has a userid matching the host system if you
 #   are exposing a volume into the container and need files to be
