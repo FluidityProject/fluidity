@@ -32,6 +32,8 @@
 
 module gmsh_common
 
+  use, intrinsic :: iso_fortran_env, only : int64
+
   character(len=3), parameter :: GMSHVersionStr = "2.1"
   integer, parameter :: asciiFormat = 0
   integer, parameter :: binaryFormat = 1
@@ -69,7 +71,7 @@ contains
     integer fd
     character(len=*) :: filename, readWriteStr
 
-    integer position
+    integer (int64) position
 
 
     inquire(fd, POS=position)
@@ -100,7 +102,7 @@ contains
     integer fd
     character(len=*) filename, readWriteStr
 
-    integer position
+    integer (int64) position
 
 
     inquire(fd, POS=position)
