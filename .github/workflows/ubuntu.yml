@@ -32,17 +32,17 @@ jobs:
     steps:
 
       - name: Check Out Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: docker/actions/Dockerfile.actions.${{ matrix.release }}
@@ -105,13 +105,13 @@ jobs:
          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
           name: tests_xml_outputs
 
       - name: ${{ matrix.name }} JUnit
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v3
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.output }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -238,13 +238,13 @@ jobs:
          docker pull fluidity/actions:jammy-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:jammy-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: test_results_${{ matrix.name }}.xml
           name: tests_xml_outputs
 
       - name: ${{ matrix.name }} JUnit
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v3
         with:
           report_paths: test_results_${{ matrix.name }}.xml
           github_token: ${{ secrets.GITHUB_TOKEN }}
