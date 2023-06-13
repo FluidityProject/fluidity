@@ -69,6 +69,7 @@ def sort_nicely(my_list):
 
 ###################################################################
 
+
 # Reattachment length:
 def reatt_length(filelist, zarray):
     print("Calculating reattachment point locations using change of x-velocity sign\n")
@@ -154,6 +155,7 @@ def reatt_length(filelist, zarray):
 
 
 #########################################################################
+
 
 # Velocity profiles:
 def velo(filelist, xarray, zarray, yarray):

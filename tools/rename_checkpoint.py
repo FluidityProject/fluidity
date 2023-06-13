@@ -6,7 +6,6 @@ import shutil
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         prog="rename_checkpoint",
         description="""This takes a list of vtu files in the working directory produced
@@ -83,7 +82,6 @@ def main():
 
 
 def rename_vtu(base_filename, filelist, index, verbose=False):
-
     """Rename the VTU or PVTU files based on base_filename and "checkpoint" """
 
     for i in range(len(filelist)):
@@ -244,7 +242,6 @@ def rename_vtu(base_filename, filelist, index, verbose=False):
 
 
 def concat_statfile(base_filename):
-
     statfile_check = base_filename + "_checkpoint.stat"
     statfile = base_filename + ".stat"
 

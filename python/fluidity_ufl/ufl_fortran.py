@@ -40,7 +40,6 @@ class fortran_integral:
         self.map_sum_indices()
 
     def fortran(self):
-
         dim_indices = ["dim" + str(i) + "_i" for i in range(self.integral.rank)]
 
         name, declaration, lhs = self.function_spec(dim_indices)
@@ -149,7 +148,6 @@ class fortran_integral:
             yield self.integral.trial
 
     def function_spec(self, dim_indices):
-
         name = "integral"
         declaration = "real, dimension("
         lhs_args = dim_indices + ["test_i"]
@@ -160,11 +158,9 @@ class fortran_integral:
             for i in f.indices:
                 # Slices are free indices.
                 if isinstance(i, slice):
-
                     declaration = declaration + str(self.dim) + ", "
 
                 else:
-
                     name = name + "_i" + str(self.sum_index_map[i.id])
 
         name = name + "_" + self.integral.measure.name
@@ -201,7 +197,6 @@ class fortran_integral:
         self.actual_arguments = []
 
         for f in self.iterfunctions():
-
             args = function_to_arguments(f)
             self.dummy_arguments.append(args[0])
             self.actual_arguments.append(args[1])
@@ -238,12 +233,10 @@ def function_to_arguments(function):
 
 
 def indent(code):
-
     return ["  " + line for line in code]
 
 
 def do_loop(var, size, body):
-
     code = ["do " + var + " = 1, " + str(size)] + indent(body) + ["end do"]
 
     return code
