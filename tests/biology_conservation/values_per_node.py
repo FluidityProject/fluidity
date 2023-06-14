@@ -2,7 +2,6 @@ import vtktools
 
 
 def values_per_node(file):
-
     u = vtktools.vtu(file)
     zoo = u.GetScalarField("Zooplankton")
     phyto = u.GetScalarField("Phytoplankton")

@@ -43,11 +43,9 @@ def find_bounding_box(ps, margin=10):
 
 
 def set_bounding_box(ps, margin):
-
     bb = find_bounding_box(ps, margin)
 
     for i in range(len(ps)):
-
         if bb_re.match(ps[i]):
             ps[i] = "%%BoundingBox: " + " ".join(map(str, bb)) + "\n"
 
@@ -58,9 +56,7 @@ def set_bounding_box(ps, margin):
 
 
 def set_linestyle(ps):
-
     for i in range(len(ps)):
-
         if linestyle_re.match(ps[i]):
             ps[i] = "1 setlinecap 1 setlinejoin\n"
             return
@@ -69,7 +65,6 @@ def set_linestyle(ps):
 
 
 def process_file(inname, outname, options):
-
     ps = open(inname).readlines()
 
     set_bounding_box(ps, options.margin)
