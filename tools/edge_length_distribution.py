@@ -95,8 +95,8 @@ def pair_off(nodes):
     # e.g. for [1,5,7,9] will yield [1,5], [1,7], [1,9]
     # then knock off 1 and yield [5,7], [5,9]
     # then knock off 5 and yield [7,9]
-    for (idx_i, node) in enumerate(nodes):
-        for (idx_j, node_j) in enumerate(nodes[idx_i + 1 :]):
+    for idx_i, node in enumerate(nodes):
+        for idx_j, node_j in enumerate(nodes[idx_i + 1 :]):
             yield (node, node_j)
 
 
@@ -119,7 +119,6 @@ def GetFiles(filename, vtu_type):
 
 
 def GetEdgeLengths(data):
-
     eles = data.ugrid.GetNumberOfCells()
     edgeset = set()
 
@@ -145,7 +144,6 @@ def GetEdgeLengths(data):
 
 
 def PlotEdgeLengths(edge_lengths_all, time, options):
-
     for i in range(len(edge_lengths_all)):
         plt.figure(num=None, figsize=(16.5, 11.5))
         plt.hist(edge_lengths_all[i], options.no_bins)
@@ -166,7 +164,6 @@ def PlotEdgeLengths(edge_lengths_all, time, options):
 
 
 def PlotMaxMin(edge_lengths_all, time):
-
     min_edgelength = []
     max_edgelength = []
 
@@ -195,7 +192,6 @@ def PlotMaxMin(edge_lengths_all, time):
 
 
 def PlotCumulative(edge_lengths_all, options):
-
     all_vals = []
     for edge_lengths in edge_lengths_all:
         all_vals = all_vals + edge_lengths
@@ -235,7 +231,6 @@ except OSError:
     pass
 
 if options.plot_only is True:
-
     try:
         time_log = open("edge_length_distribution_plots/time.log")
     except OSError:
@@ -264,7 +259,6 @@ Try running WITHOUT option --plotonly"""
         edge_lengths_all.append(line)
 
 else:
-
     time_log = open("edge_length_distribution_plots/time.log", "w")
     edge_lengths_log = open("edge_length_distribution_plots/edge_lengths.log", "w")
     if options.end_vtu is None:

@@ -83,7 +83,6 @@ def restresseslemoin(off):
 
 
 def velocityprofileslemoin():
-
     Le = open(str(mydir) + "/Le-profiles/Le-profile1-U-x4.dat").readlines()
     Le_u4 = [float(line.split()[0]) for line in Le]
     Le_y4 = [float(line.split()[1]) for line in Le]
@@ -130,7 +129,6 @@ def velocityprofileslemoin():
 
 
 def ercoftacvelocityprofiles():
-
     y4 = []
     U4 = []
     y6 = []
@@ -168,7 +166,6 @@ def ercoftacvelocityprofiles():
 
 
 def ercoftacrestressprofiles():
-
     datafile = open(str(mydir) + "/Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC181-table.dat")
     print("reading in data from file: BFS-SEM-ERCOFTAC181-table.dat")
     # ignore header line
@@ -191,7 +188,6 @@ def ercoftacrestressprofiles():
 
 
 def panjwaniprofiles(variable):
-
     off = 0.05 if variable == "uu" else 0.0
     inv = -1.0 if variable == "uv" else 1.0
     # get data from relevant files

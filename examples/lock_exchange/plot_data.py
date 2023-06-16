@@ -182,7 +182,6 @@ iii) initial temperature difference is 1.0 degC"""
 
 
 def mixing(flmlname):
-
     print("\n********** Calculating the mixing diagnostics\n")
     # warn user about assumptions
     print(

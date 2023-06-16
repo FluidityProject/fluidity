@@ -44,13 +44,11 @@ module_re = re.compile(r"^\s*module\s+(\w+)\s*$", re.IGNORECASE | re.MULTILINE)
 module_list = []
 
 for filename in fortran_files:
-
     fortran = open(filename, "rb").read().decode("utf-8")
 
     modules = module_re.findall(fortran)
 
     for module in modules:
-
         if re.search(
             r"^\s*subroutine\s+" + module + r"_register_diagnostic\s*$",
             fortran,
@@ -59,7 +57,6 @@ for filename in fortran_files:
             module_list.append(module)
 
 for module in module_list:
-
     output.write(
         safe_decode("  use " + module + ", only: " + module + "_register_diagnostic\n")
     )
@@ -74,7 +71,6 @@ output.write(
 )
 
 for module in module_list:
-
     output.write(safe_decode("  call " + module + "_register_diagnostic\n"))
 
 output.write(safe_decode(footer))

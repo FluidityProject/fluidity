@@ -27,7 +27,6 @@ def bathymetry_function(X):
 
 # Main #
 def main(argv=None):
-
     filename = ""
     timestep_ana = 0.0
     dzero = 0.01
