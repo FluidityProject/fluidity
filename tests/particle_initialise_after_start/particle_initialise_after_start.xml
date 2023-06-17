@@ -38,7 +38,7 @@ val = d['Chem1'][:][idx]
 
 attributes_error = np.zeros(11)
 for i in range(11,22):
-   attributes_error[i-11] = val[i] - 9
+   attributes_error[i-11] = val[i] - 8
 
 attributes_error_2=abs(attributes_error).max()
 
@@ -55,7 +55,7 @@ val = d['Chem1'][:][idx]
 
 attributes_error = np.zeros(11)
 for i in range(22,33):
-   attributes_error[i-22] = val[i] - 6
+   attributes_error[i-22] = val[i] - 5
 
 attributes_error_3=abs(attributes_error).max()
 
