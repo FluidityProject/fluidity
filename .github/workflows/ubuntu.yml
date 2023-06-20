@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal", "Build Jammy" ]
+        name: [ "Build Bionic", "Build Focal", "Build Jammy", "Build Jammy OMP" ]
         include:
 
           - name: "Build Bionic"
@@ -28,6 +28,9 @@ jobs:
 
           - name: "Build Jammy"
             release: jammy
+
+          - name: "Build Jammy OMP"
+            release: jammy-omp
 
     steps:
 
