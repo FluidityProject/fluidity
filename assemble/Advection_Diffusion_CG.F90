@@ -259,7 +259,7 @@ contains
 #ifdef _OPENMP
     !! Did we successfully prepopulate the transform_to_physical_cache?
     logical :: cache_valid
-#endif    
+#endif
 
     type(element_type), dimension(:), allocatable :: supg_element
 

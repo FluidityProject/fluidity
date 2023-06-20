@@ -174,7 +174,7 @@ contains
 #ifdef _OPENMP
     !! Did we successfully prepopulate the transform_to_physical_cache?
     logical :: cache_valid
-#endif       
+#endif
 
     ewrite(1,*) "In assemble_advection_diffusion_fv"
 
