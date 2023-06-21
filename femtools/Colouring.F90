@@ -89,6 +89,13 @@ contains
     type(integer_set), dimension(:), pointer, intent(out) :: colouring
     type(mesh_type), pointer :: topology
     integer :: i
+#ifdef _OPENMP
+    type(csr_sparsity), pointer :: sparsity
+    type(mesh_type) :: p0_mesh
+    integer :: ncolours
+    integer :: stat
+    type(scalar_field) :: element_colours
+#endif
 
     topology => extract_mesh(state, topology_mesh_name)
 

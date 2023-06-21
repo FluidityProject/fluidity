@@ -171,6 +171,11 @@ contains
     integer :: clr, nnid, len, ele
     integer :: thread_num
 
+#ifdef _OPENMP
+    !! Did we successfully prepopulate the transform_to_physical_cache?
+    logical :: cache_valid
+#endif
+
     ewrite(1,*) "In assemble_advection_diffusion_fv"
 
     coordinate => extract_vector_field(state, "Coordinate")
