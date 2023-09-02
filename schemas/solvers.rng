@@ -37,6 +37,35 @@ by the PETSc library. Many more methods are provided.
     </choice>
     <ref name="generic_solver_options_scalar"/>
   </define>
+  <define name="linear_solver_options_sym_scalar">
+    <choice>
+      <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
+Given are the most frequently used methods. The solution is done
+by the PETSc library. Many more methods are provided.
+</a:documentation>
+      <ref name="kspcg_options"/>
+      <ref name="kspgmres_options"/>
+      <ref name="ksppreonly_options"/>
+      <ref name="ksprichardson_options"/>
+      <ref name="kspother_options"/>
+    </choice>
+    <choice>
+      <a:documentation>Preconditioner to be used in combination with the iterative method.</a:documentation>
+      <ref name="pcsor_options"/>
+      <ref name="pceisenstat_options"/>
+      <ref name="pcilu_options"/>
+      <ref name="pcicc_options"/>
+      <ref name="pclu_options"/>
+      <ref name="pcmg_options"/>
+      <ref name="pcprometheus_options"/>
+      <ref name="pchypre_options"/>
+      <ref name="pcbjacobi_options"/>
+      <ref name="pcasm_options"/>
+      <ref name="pcksp_options"/>
+      <ref name="pcother_options"/>
+    </choice>
+    <ref name="generic_solver_options_scalar"/>
+  </define>
   <define name="linear_solver_options_asym_vector">
     <choice>
       <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
@@ -66,7 +95,7 @@ by the PETSc library. Many more methods are provided.
     </choice>
     <ref name="generic_solver_options_vector"/>
   </define>
-  <define name="linear_solver_options_sym">
+  <define name="linear_solver_options_sym_vector">
     <choice>
       <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
 Given are the most frequently used methods. The solution is done
@@ -83,17 +112,17 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcsor_options"/>
       <ref name="pceisenstat_options"/>
       <ref name="pcilu_options"/>
-      <ref name="pcicc_options"/>
       <ref name="pclu_options"/>
       <ref name="pcmg_options"/>
       <ref name="pcprometheus_options"/>
       <ref name="pchypre_options"/>
       <ref name="pcbjacobi_options"/>
       <ref name="pcasm_options"/>
-      <ref name="pcksp_options"/>
+      <ref name="pcgamg_options"/>
+      <ref name="pcfieldsplit_options"/>
       <ref name="pcother_options"/>
     </choice>
-    <ref name="generic_solver_options_scalar"/>
+    <ref name="generic_solver_options_vector"/>
   </define>
   <!--
     ####################################################################
@@ -401,7 +430,7 @@ exact matrix inversion), or use fgmres in the outer solve.</a:documentation>
     </element>
   </define>
   <!--
-    this is a copy linear_solver_options_sym, but with preconditioner "ksp"
+    this is a copy linear_solver_options_sym_scalar, but with preconditioner "ksp"
     removed to avoid infinite recursion
   -->
   <define name="pc_ksp_solver_options">
@@ -746,7 +775,7 @@ run for multiple solves.</a:documentation>
       <element name="solver">
         <a:documentation>Solver options. Required for a continuous consistent mass
 projection.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </choice>
   </define>
@@ -767,7 +796,7 @@ strictly valid on 2d meshes.</a:documentation>
       <element name="solver">
         <a:documentation>Solver options. Required for a continuous consistent mass
 projection.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </choice>
   </define>

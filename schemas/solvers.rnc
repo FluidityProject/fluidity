@@ -36,6 +36,37 @@ linear_solver_options_asym_scalar =
       generic_solver_options_scalar
    )
 
+linear_solver_options_sym_scalar =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspcg_options|
+         kspgmres_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pcicc_options|
+         pclu_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcksp_options|
+         pcother_options
+      ),
+      generic_solver_options_scalar
+   )
+
 linear_solver_options_asym_vector =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
@@ -67,7 +98,7 @@ linear_solver_options_asym_vector =
       generic_solver_options_vector
    )
 
-linear_solver_options_sym =
+linear_solver_options_sym_vector =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
       ## Given are the most frequently used methods. The solution is done
@@ -85,17 +116,17 @@ linear_solver_options_sym =
          pcsor_options|
          pceisenstat_options|
          pcilu_options|
-         pcicc_options|
          pclu_options|
          pcmg_options|
          pcprometheus_options|
          pchypre_options|
          pcbjacobi_options|
          pcasm_options|
-         pcksp_options|
+         pcgamg_options|
+         pcfieldsplit_options|
          pcother_options
       ),
-      generic_solver_options_scalar
+      generic_solver_options_vector
    )
 
 # ####################################################################
@@ -380,7 +411,7 @@ pcksp_options =
       }
    )
 
-# this is a copy linear_solver_options_sym, but with preconditioner "ksp"
+# this is a copy linear_solver_options_sym_scalar, but with preconditioner "ksp"
 # removed to avoid infinite recursion
 pc_ksp_solver_options =
    (
@@ -679,7 +710,7 @@ galerkin_projection_mass_options =
       ## Solver options. Required for a continuous consistent mass
       ## projection.
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       }
    )
 
@@ -698,6 +729,6 @@ galerkin_projection_mass_options_submesh =
       ## Solver options. Required for a continuous consistent mass
       ## projection.
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       }
    )

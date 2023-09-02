@@ -94,7 +94,7 @@ solver.</a:documentation>
               </choice>
             </element>
             <element name="solver">
-              <ref name="linear_solver_options_sym">
+              <ref name="linear_solver_options_sym_scalar">
                 <a:documentation>Solver is used to apply projections to div-conforming
 space, and in elliptic solvers</a:documentation>
               </ref>

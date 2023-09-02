@@ -491,7 +491,7 @@
                      full_projection_preconditioner => cmc_m
                   case default
                      ! Developer error... out of sync options input and code
-                     FLAbort("Unknown Matrix Type for Full_Projection")
+                     FLAbort("Unknown preconditioner matrix for full schur complement in momentum equation.")
                end select
 
                ! Decide on configuration of inner_m for full_projection solve:

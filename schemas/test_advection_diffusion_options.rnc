@@ -1086,7 +1086,7 @@ prognostic_velocity_field =
                 }?,
                 ## Solver options are necessary if you're not lumping your mass or if you're field isn't dg
                 element solver {
-                  linear_solver_options_sym
+                  linear_solver_options_sym_scalar
                 }?,
                 ## Choose whether the surface tension term in the momentum equation is integrated by parts or not
                 element integrate_by_parts {
@@ -1110,7 +1110,7 @@ prognostic_scalar_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       (
          ## Initial condition for WholeMesh
@@ -1425,7 +1425,7 @@ prognostic_pressure_field =
                 element inner_matrix {
                   attribute name { "FullMassMatrix" },
                   element solver {
-                    linear_solver_options_sym
+                    linear_solver_options_sym_scalar
                   }
                 }|
                 ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
@@ -1473,7 +1473,7 @@ prognostic_pressure_field =
       },
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       (
          ## Initial condition for WholeMesh
@@ -1549,7 +1549,7 @@ prognostic_geostrophic_pressure_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_sym
+            linear_solver_options_sym_scalar
          }
       ),
       (
@@ -1607,7 +1607,7 @@ prognostic_balance_pressure_field =
       # Solver block is the same as prognostic_scalar_field
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       # Alas, no initial_condition either, so we'd better not checkpointing it...
       ## Disables checkpointing of this field
@@ -1743,7 +1743,7 @@ diagnostic_cv_gradient_vector_field =
       }?,
       ## Solver options are necessary if you're not lumping your mass or if you're field isn't dg
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       }?,
       ## Normalise the gradient by its magnitude
       element normalise {
@@ -1762,7 +1762,7 @@ diagnostic_gradient_vector_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       diagnostic_output_options,
       diagnostic_vector_stat_options,
@@ -1789,7 +1789,7 @@ diagnostic_fe_divergence_scalar_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
@@ -2476,7 +2476,7 @@ adaptivity_preprocessing =
                      real_dim_symmetric_tensor
                  },
                  element solver {
-                   linear_solver_options_sym
+                   linear_solver_options_sym_scalar
                  }
             }
         )
@@ -3939,7 +3939,7 @@ scalar_field_choice =
                   velocity_mesh_choice,
                   ## Solver
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   },
                   diagnostic_scalar_field
                }|
@@ -4046,7 +4046,7 @@ scalar_field_choice =
                      empty
                   }?,
                   element solver {
-                    linear_solver_options_sym
+                    linear_solver_options_sym_scalar
                   }?,
                   diagnostic_scalar_field
                }|
@@ -4866,7 +4866,7 @@ vector_field_choice =
                      empty
                   }?,
                   element solver {
-                  linear_solver_options_sym
+                  linear_solver_options_sym_scalar
                   }?,
                   diagnostic_vector_field
                }|
@@ -4890,7 +4890,7 @@ vector_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   element solver {
-                  linear_solver_options_sym
+                  linear_solver_options_sym_scalar
                   }?,
                   diagnostic_vector_field
                }|
@@ -5312,7 +5312,7 @@ linear_solver_options_asym =
       generic_solver_options
    )
 
-linear_solver_options_sym =
+linear_solver_options_sym_scalar =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
       ## Given are the most frequently used methods. The solution is done
@@ -5461,7 +5461,7 @@ linear_solver_options_sym =
       generic_solver_options
    )
 
-# this is a copy linear_solver_options_sym, but with preconditioner "ksp"
+# this is a copy linear_solver_options_sym_scalar, but with preconditioner "ksp"
 # removed to avoid infinite recursion
 pc_ksp_solver_options =
    (
@@ -6603,7 +6603,7 @@ scalar_equation_choice =
                   attribute name { string }
                }
             )
-         }|
+         }
       )
    )
 
@@ -7060,7 +7060,7 @@ continuous_discontinuous_projection =
           ## conservation properties are affected by the tolerance of the
           ## linear solve.
           element solver {
-            linear_solver_options_sym
+            linear_solver_options_sym_scalar
           }|
           ## Lump the mass matrix on the left hand side of the galerkin projection.
           ## Hence solver options aren't necessary.
@@ -7171,7 +7171,7 @@ solenoidal_options =
         ## Solver options for the linear solve.
         ## This method requires the inversion of a projection matrix.
         element solver {
-          linear_solver_options_sym
+          linear_solver_options_sym_scalar
         }
       }
     }
@@ -7190,7 +7190,7 @@ balanced_interpolation =
     element balanced_interpolation {
       ## The solver options for computing the balanced velocity to subtract.
       element solver {
-        linear_solver_options_sym
+        linear_solver_options_sym_scalar
       }
     }
 

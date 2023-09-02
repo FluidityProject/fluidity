@@ -4029,7 +4029,7 @@ formulations</a:documentation>
     <optional>
       <element name="solver">
         <a:documentation>Solver options are necessary if you're not lumping your mass or if you're field isn't dg</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </optional>
     <optional>
@@ -4052,7 +4052,7 @@ formulations</a:documentation>
   <define name="diagnostic_gradient_vector_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
@@ -4081,7 +4081,7 @@ formulations</a:documentation>
   <define name="diagnostic_fe_divergence_scalar_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
@@ -5506,7 +5506,7 @@ requires a distinct name for the options dictionary.</a:documentation>
             </oneOrMore>
             <element name="solver">
               <a:documentation>Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
             <ref name="prognostic_scalar_output_options"/>
             <ref name="prognostic_scalar_stat_options"/>
@@ -6938,7 +6938,7 @@ strong Dirichlet boundary condition of 0 on all boundaries.</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <element name="solver">
               <a:documentation>Solver</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
             <ref name="diagnostic_scalar_field"/>
           </element>
@@ -7078,7 +7078,7 @@ less accurate but faster and might give smoother result.</a:documentation>
             </optional>
             <optional>
               <element name="solver">
-                <ref name="linear_solver_options_sym"/>
+                <ref name="linear_solver_options_sym_scalar"/>
               </element>
             </optional>
             <ref name="diagnostic_scalar_field"/>
@@ -7248,7 +7248,7 @@ or with a CG but with the continuity tested with the CV dual.</a:documentation>
           </optional>
           <ref name="diagnostic_scalar_field_no_adapt"/>
           <element name="solver">
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
         </element>
       </element>
@@ -7269,7 +7269,7 @@ where _c and _i denote the compressible and incompressible phases respectively.<
           <ref name="internal_algorithm"/>
           <ref name="diagnostic_scalar_field_no_adapt"/>
           <element name="solver">
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
         </element>
       </element>
@@ -7511,7 +7511,7 @@ and the Foam Velocity is obtained by taking its gradient.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="mesh_choice"/>
             <element name="solver">
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
             <ref name="diagnostic_vector_field"/>
           </element>
@@ -7819,7 +7819,7 @@ less accurate but faster and might give smoother result.</a:documentation>
             </optional>
             <optional>
               <element name="solver">
-                <ref name="linear_solver_options_sym"/>
+                <ref name="linear_solver_options_sym_scalar"/>
               </element>
             </optional>
             <ref name="diagnostic_vector_field"/>
@@ -9385,20 +9385,74 @@ vector fields, such as incompressible velocity!</a:documentation>
         <a:documentation>Options for the mass matrix of the field being interpolated</a:documentation>
         <choice>
           <element name="continuous">
-            <element name="lump_mass_matrix">
-              <a:documentation>Lump the mass matrix for the assembly of the projection matrix
-(not for the initial galerkin projection)
+            <choice>
+              <element name="full_schur_complement">
+                <a:documentation>Solver options for the (inner) solve.</a:documentation>
+                <element name="inner_matrix">
+                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+Use the full mass matrix (the only option).</a:documentation>
+                  <attribute name="name">
+                    <value>FullMassMatrix</value>
+                  </attribute>
+                  <element name="solver">
+                    <a:documentation>Solver options to solve the inner (mass) matrix in the schur complement solve, also used
+to solve the correction solve afterwards.</a:documentation>
+                    <ref name="linear_solver_options_sym_scalar"/>
+                  </element>
+                </element>
+                <choice>
+                  <element name="preconditioner_matrix">
+                    <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
-Required when using interpolating continuous fields</a:documentation>
-              <optional>
-                <element name="use_submesh">
-                  <a:documentation>Lump on the submesh.
+Assemble a Schur Complement using a lumped mass inner matrix.</a:documentation>
+                    <attribute name="name">
+                      <value>LumpedSchurComplement</value>
+                    </attribute>
+                    <optional>
+                      <element name="lump_on_submesh">
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                  <element name="preconditioner_matrix">
+                    <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+DiagonalSchurComplement = C_P^T * [(M)_diagonal]^-1 * C</a:documentation>
+                    <attribute name="name">
+                      <value>DiagonalSchurComplement</value>
+                    </attribute>
+                    <empty/>
+                  </element>
+                  <element name="preconditioner_matrix">
+                    <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+Lagrange Mass Matrix.</a:documentation>
+                    <attribute name="name">
+                      <value>LagrangeMassMatrix</value>
+                    </attribute>
+                    <empty/>
+                  </element>
+                  <element name="preconditioner_matrix">
+                    <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
+                    <attribute name="name">
+                      <value>NoPreconditionerMatrix</value>
+                    </attribute>
+                    <empty/>
+                  </element>
+                </choice>
+              </element>
+              <element name="lump_mass_matrix">
+                <a:documentation>Lump the mass matrix for the assembly of the projection matrix</a:documentation>
+                <optional>
+                  <element name="use_submesh">
+                    <a:documentation>Lump on the submesh.
 This only works for simplex meshes and is only
 strictly valid on 2d meshes.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </choice>
           </element>
           <element name="discontinuous">
             <optional>
@@ -9451,9 +9505,20 @@ considered when selecting the lagrange multiplier  solver options.</a:documentat
           </choice>
         </element>
         <optional>
-          <element name="reference_node">
-            <ref name="integer"/>
-          </element>
+          <choice>
+            <element name="reference_node">
+              <a:documentation>Reference node (node at which lagrange multiplier = 0). Note that the node number must be less than the total number of nodes.
+If running in parallel, the node number must be less than the total number of nodes of the first processor.
+** Note - it is also an option to remove the null-space of the residual vector. This
+option is available under solvers</a:documentation>
+              <ref name="integer"/>
+            </element>
+            <element name="reference_coordinates">
+              <a:documentation>Input coordinates of desired reference node. If a node does not exist at these
+coordinates, the nearest vertex will be selected.</a:documentation>
+              <ref name="real_dim_vector"/>
+            </element>
+          </choice>
         </optional>
         <optional>
           <element name="repair_stiff_nodes">
@@ -9498,9 +9563,9 @@ vector fields, such as pressure to incompressible velocity!</a:documentation>
           </choice>
         </optional>
         <element name="solver">
-          <a:documentation>Solver options for the linear solve.
+          <a:documentation>Solver options for the (outer) linear solve.
 This method requires the inversion of a projection matrix.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
       </element>
     </element>

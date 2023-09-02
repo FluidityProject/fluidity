@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="">
-  <!--
-    Default child of prescribed scalar field
-    This is a choice of ways of inputing the prescribed field
-  -->
+  <!-- This is a choice of ways of inputing the prescribed field -->
   <define name="prescribed_scalar_field">
     <ref name="prescribed_scalar_field_no_adapt"/>
     <ref name="adaptivity_options_scalar_field"/>
