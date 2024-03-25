@@ -193,9 +193,9 @@ class BoundaryMarkerEditor(Filter):
         # value is the new cell_id of the corresponding cell in the masked grid
         self._cell_mappings = list(
             map(
-                lambda masked, cell_id: None
-                if masked
-                else unmasked_cells_list.insert_next_id(cell_id),
+                lambda masked, cell_id: (
+                    None if masked else unmasked_cells_list.insert_next_id(cell_id)
+                ),
                 in_masked,
                 cell_ids,
             )
