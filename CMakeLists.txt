@@ -227,7 +227,7 @@ else()
   set_target_properties(Zoltan
     PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/src/libzoltan.a
   )
-  
+
   set(ZOLTAN_INCLUDE_DIR ${BINARY_DIR}/src)
 endif()
 
@@ -474,7 +474,7 @@ set_target_properties(fluidity_binary PROPERTIES OUTPUT_NAME fluidity)
 target_link_libraries(fluidity_binary fluidity)
 
 # Install Python packages included in Fluidity's repository
-add_custom_target(install_python_packages 
+add_custom_target(install_python_packages
   COMMAND ${CMAKE_MAKE_PROGRAM} fluidity_python spud_diamond spud_dxdiff spud_python
   VERBATIM
 )
