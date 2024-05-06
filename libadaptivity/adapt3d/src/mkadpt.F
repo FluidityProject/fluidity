@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -100,7 +100,7 @@ C
 C
       CALL INITLS( EMTBIG, BIGLST, SIZBIG, NXTBIG, LSTBIG, MAXBIG )
 C
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Setting up initial real list pointers...',MXNODS
 C
       CALL INIRLS( EMTNOD, NODLST, SIZNOD, NXTNOD, LSTNOD, MXNODS )
@@ -108,7 +108,7 @@ C
       STTNOD = 1
       STFRND = 1
 C
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Creating node list...',debug
 C
       XMAX = NODX(1)
@@ -176,7 +176,7 @@ C
 C
       IF( NPRDND .GT. 1 ) THEN
 C
-         ewrite(2,*) 
+         ewrite(2,*)
      :        'Flagging periodic nodes... ',nprdnd
 C
          DO I = 1, NPRDND
@@ -191,7 +191,7 @@ C
 C
 C - flag halo (receive) nodes (both flag bits 8 & 9)
 C
-         ewrite(2,*) 
+         ewrite(2,*)
      :        'Flagging halo nodes...'
 C
          DO ILN = PNOD+1, NNOD
@@ -424,7 +424,7 @@ C
                   IF( GTNDFL( BIGLST, NODLST, IND1, 7 ) .AND.
      :                GTNDFL( BIGLST, NODLST, IND2, 7 ) ) THEN
                      CALL SETFLG( BIGLST, NODLST, EDGLST(I), 6, .TRUE. )
-                     ewrite(3,*) 
+                     ewrite(3,*)
      :                    '   Fixed edge ',edglst(i),ind1,ind2
                   END IF
 C
@@ -506,11 +506,11 @@ C
      :             NSELM, SZSNLS, SNLBAS, SNLIST, SURFID )
 C
       ewrite(2,*) ' '
-      ewrite(2,*) 
+      ewrite(2,*)
      :     '++++++++++ Finished making mesh ++++++++++++'
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'STTBIG,EMTBIG,ENDBIG: ',STTBIG,EMTBIG,ENDBIG
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'NELEMS,NEDGES: ',NELEMS,NEDGES
       ewrite(2,*) ' '
       RETURN

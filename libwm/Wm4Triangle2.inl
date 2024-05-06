@@ -235,7 +235,7 @@ Real Triangle2<Real>::DistanceTo (const Vector2<Real>& rkQ) const
 }
 //----------------------------------------------------------------------------
 template <class Real>
-void Triangle2<Real>::Orient () 
+void Triangle2<Real>::Orient ()
 {
   Vector2<Real> AB = V[1] - V[0];
   Vector2<Real> AC = V[2] - V[0];

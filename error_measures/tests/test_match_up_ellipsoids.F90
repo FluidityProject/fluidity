@@ -1,5 +1,5 @@
 subroutine test_match_up_ellipsoids
-  
+
   use gradation_metric
   use unittest_tools
   implicit none

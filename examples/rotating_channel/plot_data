@@ -1,33 +1,34 @@
 #!/usr/bin/env python3
-import pylab
-import channel_tools
 import sys
+
+import channel_tools
 import numpy
+import pylab
+
 
 def usage():
-    print """plot_data <layers>
+    print(
+        """plot_data <layers>
 
     <layers> is a space-separated list of layer counts."""
-    
+    )
+
 
 try:
-    layers=numpy.array(map(int,sys.argv[1:]))
+    layers = numpy.array(list(map(int, sys.argv[1:])))
 except:
     usage()
     sys.exit(1)
 
-if len(layers)==0:
+if len(layers) == 0:
     usage()
     sys.exit(1)
 
 
-dx=1./layers
+dx = 1.0 / layers
 
-error=channel_tools.retrieve_results(layers)
+error = channel_tools.retrieve_results(layers)
 
-channel_tools.plot_results(dx,error)
+channel_tools.plot_results(dx, error)
 
 pylab.show()
-
-
-

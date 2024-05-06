@@ -122,7 +122,7 @@ bool LinComp<Real>::IsCanonical () const
 
     if (m_iType == CT_POINT)
     {
-        return m_fMin == (Real)0.0; 
+        return m_fMin == (Real)0.0;
     }
 
     if (m_iType == CT_EMPTY)

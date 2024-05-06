@@ -6,8 +6,8 @@
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l  2material_column_under_gravity.flml  </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -16,35 +16,35 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <variable name="pressure" language="python">
 import fluidity_tools
 pressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Pressure']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="minpressure" language="python">
 import fluidity_tools
 minpressure = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Pressure']['min'][-1]
-    </variable>    
+    </variable>
     <variable name="velocity" language="python">
 import fluidity_tools
 velocity = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Velocity%magnitude']['max'][-1]
-    </variable>    
+    </variable>
     <variable name="density" language="python">
 import fluidity_tools
 density = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['Density']['l2norm'][-1]
-    </variable>    
-     <variable name="mxvfrac" language="python"> 
+    </variable>
+     <variable name="mxvfrac" language="python">
 import fluidity_tools
 mxvfrac = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac" language="python"> 
+    </variable>
+     <variable name="mnvfrac" language="python">
 import fluidity_tools
 mnvfrac = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
-     <variable name="mxvfrac2" language="python"> 
+    </variable>
+     <variable name="mxvfrac2" language="python">
 import fluidity_tools
 mxvfrac2 = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['MaterialVolumeFraction']['max'][-1]
-    </variable>    
-     <variable name="mnvfrac2" language="python"> 
+    </variable>
+     <variable name="mnvfrac2" language="python">
 import fluidity_tools
 mnvfrac2 = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material2']['MaterialVolumeFraction']['min'][-1]
-    </variable>    
+    </variable>
      <variable name="mxsumvfrac" language="python">
 import fluidity_tools
 mxsumvfrac = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['SumMaterialVolumeFractions']['max'][-1]
@@ -54,19 +54,19 @@ import fluidity_tools
 mnsumvfrac = fluidity_tools.stat_parser("2material_column_under_gravity.stat")['Material1']['SumMaterialVolumeFractions']['min'][-1]
     </variable>
    </variables>
-    <pass_tests>  
+    <pass_tests>
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
     <test name="check maximum pressure is 10.0" language="python">
    assert abs(pressure-1e+1) &lt; 1e-6
-    </test>    
+    </test>
     <test name="check pressure range is 10.0" language="python">
    assert abs(pressure-minpressure-1e+1) &lt; 1e-6
-    </test>    
+    </test>
     <test name="check maximum speed is zero" language="python">
    assert abs(velocity) &lt; 1e-6
-    </test>    
+    </test>
     <test name="check diagnostic volume fraction max" language="python">
    assert abs(mxvfrac-(1.0-mnvfrac2)) &lt; 1e-6
     </test>

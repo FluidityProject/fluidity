@@ -25,7 +25,7 @@ extern "C" {
 /**
   Define format of the step/iteration names.
 
-  Example: ==H5SetStepNameFormat( f, "Step", 6 )== defines step names 
+  Example: ==H5SetStepNameFormat( f, "Step", 6 )== defines step names
   like ==Step#000042==.
 
   \return   \c H5_SUCCESS on success
@@ -127,7 +127,7 @@ H5HasStep (
 	const h5_file_t f,	///< [in] file handle.
 	h5_id_t stepno          ///< [in] step number to query for existence.
 	) {
-	H5_API_ENTER (h5_err_t, 
+	H5_API_ENTER (h5_err_t,
 		      "f=%p, stepno=%lld",
 		      (h5_file_p)f, (long long)stepno);
 	H5_API_RETURN (h5_has_iteration (f, stepno));
@@ -152,7 +152,7 @@ H5GetNumProcs (
 /**
    @}
 */
-	
+
 #ifdef __cplusplus
 }
 #endif

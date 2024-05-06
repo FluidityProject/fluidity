@@ -7,7 +7,7 @@ subroutine test_temperature_goal
   use futils
   use fields
   implicit none
-  
+
   type(state_type) :: state(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions

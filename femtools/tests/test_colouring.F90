@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-  
+
   subroutine test_colouring
   use fldebug
   use sparse_tools
@@ -51,10 +51,10 @@
   type(integer_set), dimension(:), allocatable :: clr_sets
 
   positions = read_mesh_files('data/square-cavity-2d', quad_degree=4, format="gmsh")
-  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")   
+  mesh = piecewise_constant_mesh(positions%mesh, "P0Mesh")
   sparsity = make_sparsity_compactdgdouble(mesh, "cdG Sparsity")
 
-  ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes 
+  ! The sparsity matrix is the adjacency matrix of the graph and should therefore have dimension nodes X nodes
   assert(size(sparsity,1)==size(sparsity,2))
 
   maxdgr=0
@@ -87,9 +87,9 @@
      enddo
   enddo
 
-  fail = .not.(sum1 .eq. sum2) 
+  fail = .not.(sum1 .eq. sum2)
   call report_test("colour sets", fail, .false., "there are something wrong in  construction of colour_sets")
   call deallocate(clr_sets)
   deallocate(clr_sets)
-  
+
   end subroutine test_colouring

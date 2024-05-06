@@ -259,19 +259,19 @@ if test "$enable_vtk" != "no" ; then
             ],
 	[
             AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes	    
+	    search_for_vtk=yes
 	])
-    
+
     if test "x$search_for_vtk" == "xyes" ; then
         # Usually the location of the libraries is not a mystery. The
         # header files are another matter.
         AC_CHECK_LIB(dl, main)
         AC_CHECK_LIB(vtksys, main)
-        AC_CHECK_LIB(vtkCommon, main, [], 
+        AC_CHECK_LIB(vtkCommon, main, [],
             [if test "x$VTK_LIBS" != "x" ; then
                 LIBS="$LIBS -L$VTK_LIBS"
                 unset ac_cv_lib_vtkCommon_main
-                AC_CHECK_LIB(vtkCommon, main, [], 
+                AC_CHECK_LIB(vtkCommon, main, [],
                    [
                       AC_MSG_ERROR([Cannot find vtk installation.])
                       exit -1
@@ -286,7 +286,7 @@ if test "$enable_vtk" != "no" ; then
         AC_CHECK_LIB(vtkFiltering, main)
         AC_CHECK_LIB(vtkGraphics, main)
         AC_CHECK_LIB(vtkIO, main)
-        
+
         # check at the usual places:
         for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
             if test -r $i/vtkCellData.h; then
@@ -302,7 +302,7 @@ if test "$enable_vtk" != "no" ; then
                         VTK=yes
                         vtk_header_relative_path="vtk-5.0/"
                         ],
-                    [       
+                    [
                         AC_MSG_ERROR([Cannot find vtk installation.])
                         exit -1
                     ])
@@ -378,4 +378,3 @@ cat confdefs.h | grep MPI >> include/confdefs.h
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" >> include/confdefs.h
 
 AC_OUTPUT(Makefile)
-

@@ -45,7 +45,7 @@ subroutine test_mba_adapt
     velocity%val(1,i) = x
     velocity%val(2,i) = y
   end do
-  
+
   call adaptivity_options(state, pressure, 0.001, .false.)
 
   call insert(state, pressure, "Pressure")

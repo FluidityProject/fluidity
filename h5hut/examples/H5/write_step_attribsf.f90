@@ -15,7 +15,7 @@
 #if defined(PARALLEL_IO)
     include 'mpif.h'
 #endif
-    
+
     integer*8, parameter :: verbosity_level =          1
     character (len=*), parameter :: FNAME =            "example_step_attribs.h5"
 
@@ -38,7 +38,7 @@
     integer :: ierr
     call mpi_init(ierr)
 #endif
-    
+
     ! abort program on any H5hut error
     call h5_abort_on_error()
 

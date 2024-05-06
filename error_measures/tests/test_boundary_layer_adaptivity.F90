@@ -28,7 +28,7 @@ subroutine test_boundary_layer_adaptivity
   real, dimension(4), target :: hmaxxx, hmaxxy, hmaxxz, hmaxyy, hmaxyz, hmaxzz
   logical :: fail = .false., warn = .false.
   integer :: i, nhsamp
-  real :: x, y, z 
+  real :: x, y, z
   integer :: ierr
 
   pseudo2d_coord = 3
@@ -36,7 +36,7 @@ subroutine test_boundary_layer_adaptivity
 
   mesh => extract_mesh(state(1), "Mesh")
   positions => extract_vector_field(state(1), "Coordinate")
-  call allocate(field, mesh, "Field") 
+  call allocate(field, mesh, "Field")
 
   do i=1,mesh%nodes
     x = positions%val(1,i)
@@ -83,5 +83,5 @@ subroutine test_boundary_layer_adaptivity
   positions => extract_vector_field(state(1), "Coordinate")
   ptr_field => extract_scalar_field(state(1), "Field")
 
-  call vtk_write_fields("data/boundary_layer_adapt", 1, positions,  mesh, sfields=(/ptr_field/)) 
+  call vtk_write_fields("data/boundary_layer_adapt", 1, positions,  mesh, sfields=(/ptr_field/))
 end subroutine test_boundary_layer_adaptivity

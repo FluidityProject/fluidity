@@ -11,15 +11,15 @@ len_z = 4.0;
 Point(1) = {0.0, 0.0, 0.0, 1.0};
 
 Extrude {len_x, 0.0, 0.0} {
-  Point{1}; Layers{lay_x}; 
+  Point{1}; Layers{lay_x};
 }
 
 Extrude {0.0, len_y, 0.0} {
-  Line{1}; Layers{lay_y}; 
+  Line{1}; Layers{lay_y};
 }
 
 Extrude {0.0, 0.0, len_z} {
-  Surface{5}; Layers{lay_z}; 
+  Surface{5}; Layers{lay_z};
 }
 
 // bottom

@@ -353,12 +353,12 @@
   theta0=-pi/2.0 # initial phase
   # for real(exp(1j*(omega*T+theta0))) to be going up first and then
   # down, we need theta0=-pi/2
-  
+
   omega=2*pi/T
   p=sqrt( (omega**2 - gamma*omega*1j) / (g*H) )
-  
+
   eta=real( a * cos(p*(X[0]-L)) * exp( 1j*(omega*t+theta0) ) / cos(p*L) )
-  
+
   return eta</string_value>
           </python>
         </value>

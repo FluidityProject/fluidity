@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -37,7 +37,7 @@ implicit none
 private
 
 public:: make_mesh_unperiodic, verify_consistent_local_element_numbering
-  
+
 contains
 
   function make_mesh_unperiodic(model, my_physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name, all_periodic_bc_ids, aliased_to_new_node_number) &
@@ -50,17 +50,17 @@ contains
     character(len=*), intent(in) :: periodic_mapping_python
     character(len=*), intent(in):: name
     type(integer_set), intent(in) :: all_periodic_bc_ids ! all boundary ids from all periodic BCs
-    
+
     type(integer_hash_table), intent(out) :: aliased_to_new_node_number
     type(mesh_type):: mesh
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
     integer:: mapped_node_count, aliased_node, physical_node
     integer:: i, j, ele, sid, key, output
     integer, dimension(node_count(model)) :: is_periodic
-    
+
     ! build a map from aliased node number to physical node number
     ! thus also counting the number mapped nodes
-    call allocate( aliased_to_new_node_number )   
+    call allocate( aliased_to_new_node_number )
     mapped_node_count = 0
     do i = 1, surface_element_count(model)
       sid = surface_element_id(model, i)
@@ -118,13 +118,13 @@ contains
     do j=1, model%dim
        new_positions%val(j,1:node_count(model))=model%val(j,:)
     end do
-    
+
     ! copy aliased positions into an array
     do i=1, mapped_node_count
       call fetch_pair(aliased_to_new_node_number, i, aliased_node, physical_node)
       aliased_positions(:, i)=node_val(model, aliased_node)
     end do
-    
+
     ! apply the python map
     call set_from_python_function(physical_positions, &
             periodic_mapping_python, aliased_positions, &
@@ -137,7 +137,7 @@ contains
          new_positions%val(j,physical_node)=physical_positions(j,i)
       end do
     end do
-      
+
     ! now fix the elements
     do i = 1, surface_element_count(model)
       sid = surface_element_id(model, i)
@@ -152,13 +152,13 @@ contains
     deallocate( aliased_positions, physical_positions )
 
   contains
-  
+
     subroutine copy_aliased_nodes_face(face)
       integer, intent(in):: face
-      
+
       integer, dimension(face_loc(model, face)):: aliased_nodes
       integer:: j
-      
+
       aliased_nodes = face_global_nodes(model, face)
       do j = 1, size(aliased_nodes)
         if (.not. has_key(aliased_to_new_node_number, aliased_nodes(j))) then
@@ -166,35 +166,35 @@ contains
           call insert(aliased_to_new_node_number, aliased_nodes(j), node_count(model)+mapped_node_count)
         end if
       end do
-    
+
     end subroutine copy_aliased_nodes_face
-    
+
   end function make_mesh_unperiodic
-  
+
   recursive subroutine make_mesh_unperiodic_fix_ele(mesh, model, &
     aliased_to_new_node_number, boundary_ids_set, ele)
     ! For an element on the physical side of a periodic boundary,
-    ! change all nodes from aliased to physical. This is recursively 
+    ! change all nodes from aliased to physical. This is recursively
     ! called for all neighbouring elements. Neighbours are found using
     ! the element-element list of the model, where we don't cross any
     ! facets with a physical boundary id - thus staying on this side of
-    ! the boundary. Also as soon as an element without any aliased nodes 
+    ! the boundary. Also as soon as an element without any aliased nodes
     ! is encountered the recursion stops
     ! so that we don't propagate into the interior of the mesh and don't fix
-    ! elements twice. This assumes elements with aliased nodes and elements 
+    ! elements twice. This assumes elements with aliased nodes and elements
     ! with physical nodes are not directly adjacent.
     type(mesh_type), intent(inout):: mesh
     type(mesh_type), intent(in):: model
     type(integer_hash_table), intent(in):: aliased_to_new_node_number
     type(integer_set), intent(in):: boundary_ids_set
     integer, intent(in):: ele
-    
+
     integer, dimension(:), pointer:: nodes, neigh, faces
     integer:: j, sid
     logical:: changed
-    
+
     changed=.false. ! have we changed this element
-    
+
     nodes => ele_nodes(mesh, ele)
     do j = 1, size(nodes)
       if (has_key(aliased_to_new_node_number, nodes(j))) then
@@ -202,54 +202,54 @@ contains
         changed=.true.
       end if
     end do
-      
+
     ! no aliased nodes found, we can stop the recursion
     if (.not. changed) return
-    
+
     ! recursively "fix" our neighbours
     neigh => ele_neigh(model, ele)
     faces => ele_faces(model, ele)
-    do j=1, size(neigh)      
+    do j=1, size(neigh)
       if (neigh(j)>0) then
         ! found a neighbour
-        
+
         ! check if we're crossing a physical boundary
         if (faces(j)<=surface_element_count(model)) then
           sid = surface_element_id(model, faces(j))
           if (has_value(boundary_ids_set, sid)) cycle
         end if
-        
+
         ! otherwise go fix it
         call make_mesh_unperiodic_fix_ele(mesh, model, &
            aliased_to_new_node_number, boundary_ids_set, neigh(j))
       end if
     end do
-    
+
   end subroutine make_mesh_unperiodic_fix_ele
-    
+
   function verify_consistent_local_element_numbering(mesh) result (pass)
     !!< Checks that the local element ordering is consistent between the owner
     !!< of the element and all other processes that see it.
     type(mesh_type), intent(in):: mesh
     logical :: pass
-      
+
     integer, dimension(:), allocatable:: eleunn, eleunn2
     integer:: nloc
-    
+
     if (.not. associated(mesh%element_halos)) then
       FLAbort("Element halos not allocated in verify_local_element_numbering")
     end if
-    
+
     nloc=ele_loc(mesh,1)
     assert(nloc*element_count(mesh)==size(mesh%ndglno))
-    
+
     allocate( eleunn(1:size(mesh%ndglno)), eleunn2(1:size(mesh%ndglno)) )
     eleunn = halo_universal_numbers(mesh%halos(2),mesh%ndglno)
     eleunn2 = eleunn
     call halo_update(mesh%element_halos(2), eleunn, block_size=nloc)
-    
+
     pass = all(eleunn==eleunn2)
-    
+
   end function verify_consistent_local_element_numbering
-  
+
 end module fields_halos

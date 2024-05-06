@@ -57,5 +57,5 @@ subroutine test_intersection_finder_completeness
       write(0,*) "vols_C: ", vols_C
     end if
   end do
-    
+
 end subroutine test_intersection_finder_completeness

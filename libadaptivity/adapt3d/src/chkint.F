@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -81,13 +81,13 @@ c
          goto 10
       end if
 c
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of real,intrp X: ',sum2,sum1
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Largest X difference,iptr,inod: ',maxdif,k,j
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Node co-ords: ',(nodlst(i,k),i=1,3)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Interpolated: ',(newfld(j,i),i=1,3)
       j = int(nodlst(16,k))
       l = enlbas(j)
@@ -96,13 +96,13 @@ c
          yy(i) = nody(enlist(l+i))
          zz(i) = nodz(enlist(l+i))
       end do
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Inside old element,vol: ',j,tetvol(xx,yy,zz)
       call vals3d( xx, yy, zz, 5,
      :             nodlst(1,k), nodlst(2,k), nodlst(3,k), b )
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Bases: ',(b(i),i=1,4)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of bases: ',b(1)+b(2)+b(3)+b(4)
 c
       sum1 = 0.0
@@ -125,13 +125,13 @@ c
          goto 20
       end if
 c
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of real,intrp Y: ',sum2,sum1
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Largest Y difference,iptr,inod: ',maxdif,k,j
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Node co-ords: ',(nodlst(i,k),i=1,3)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Interpolated: ',(newfld(j,i),i=1,3)
       j = int(nodlst(16,k))
       l = enlbas(j)
@@ -142,11 +142,11 @@ c
       end do
       call vals3d( xx, yy, zz, 5,
      :             nodlst(1,k), nodlst(2,k), nodlst(3,k), b )
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Inside old element,vol: ',j,tetvol(xx,yy,zz)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Bases: ',(b(i),i=1,4)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of bases: ',b(1)+b(2)+b(3)+b(4)
 c
       sum1 = 0.0
@@ -169,13 +169,13 @@ c
          goto 30
       end if
 c
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of real,intrp Z: ',sum2,sum1
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Largest Z difference,iptr,inod: ',maxdif,k,j
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Node co-ords: ',(nodlst(i,k),i=1,3)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Interpolated: ',(newfld(j,i),i=1,3)
       j = int(nodlst(16,k))
       l = enlbas(j)
@@ -186,11 +186,11 @@ c
       end do
       call vals3d( xx, yy, zz, 5,
      :             nodlst(1,k), nodlst(2,k), nodlst(3,k), b )
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Inside old element,vol: ',j,tetvol(xx,yy,zz)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Bases: ',(b(i),i=1,4)
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Sum of bases: ',b(1)+b(2)+b(3)+b(4)
 C
       RETURN

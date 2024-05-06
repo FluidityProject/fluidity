@@ -64,7 +64,7 @@ Suggested value for R_earth: 6.371e6</a:documentation>
           <element name="latitude_0">
             <a:documentation>Full Coriolis parameter:
   f = 2 omega sin (latitude)
-where 
+where
   latitude=y/R_earth+latitude_0
 latitude_0 is the latitude of y=0</a:documentation>
             <ref name="real"/>

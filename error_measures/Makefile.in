@@ -61,7 +61,7 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I../include -c $<

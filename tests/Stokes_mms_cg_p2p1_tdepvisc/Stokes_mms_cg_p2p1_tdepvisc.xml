@@ -7,10 +7,10 @@
     <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
 <!--
 <command_line>
-make parallel-input &amp;&amp; 
-mpiexec fluidity -v2 -l MMS_A.flml &amp;&amp; mkdir -p MMS_A_logs &amp;&amp; mv fluidity.* MMS_A_logs/ &amp;&amp; 
-mpiexec fluidity -v2 -l MMS_B.flml &amp;&amp; mkdir -p MMS_B_logs &amp;&amp;  mv fluidity.* MMS_B_logs/ &amp;&amp; 
-mpiexec fluidity -v2 -l MMS_C.flml &amp;&amp; mkdir -p MMS_C_logs &amp;&amp;  mv fluidity.* MMS_C_logs/ &amp;&amp; 
+make parallel-input &amp;&amp;
+mpiexec fluidity -v2 -l MMS_A.flml &amp;&amp; mkdir -p MMS_A_logs &amp;&amp; mv fluidity.* MMS_A_logs/ &amp;&amp;
+mpiexec fluidity -v2 -l MMS_B.flml &amp;&amp; mkdir -p MMS_B_logs &amp;&amp;  mv fluidity.* MMS_B_logs/ &amp;&amp;
+mpiexec fluidity -v2 -l MMS_C.flml &amp;&amp; mkdir -p MMS_C_logs &amp;&amp;  mv fluidity.* MMS_C_logs/ &amp;&amp;
 mpiexec fluidity -v2 -l MMS_D.flml &amp;&amp; mkdir -p MMS_D_logs &amp;&amp;  mv fluidity.* MMS_D_logs/
 </command_line>-->
   </problem_definition>

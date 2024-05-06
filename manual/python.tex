@@ -87,13 +87,13 @@ in the shape of arguments to their data routines.
 \item[ele\_loc(ele\_number)] Return the number of nodes in element
   \lstinline[language=Python]+ele_number+.
 \item[ele\_nodes(ele\_number)] Return the indices of the nodes in element
-  \lstinline[language=Python]+ele_number+. 
+  \lstinline[language=Python]+ele_number+.
 \item[ele\_val(ele\_number)] Return the value of the field at the nodes in element
   \lstinline[language=Python]+ele_number+. This is equivalent to calling
-  \lstinline[language=Python]+field.node_val(field.ele_nodes(ele_number))+. 
+  \lstinline[language=Python]+field.node_val(field.ele_nodes(ele_number))+.
 \item[ele\_region\_id(ele\_number)] Return the region\_id of element
   \lstinline[language=Python]+ele_number+. This can be used to specify
-  diagnostics which only apply over some portion of the domain. 
+  diagnostics which only apply over some portion of the domain.
 \end{description}
 
 \begin{table}
@@ -101,8 +101,8 @@ in the shape of arguments to their data routines.
 
 \begin{tabular}{lccc}
   \textbf{\lstinline[language=Python]+node+ shape}
-  &\textbf{\lstinline[language=Python]+ScalarField+ values} & 
-  \textbf{\lstinline[language=Python]+VectorField+ values} & 
+  &\textbf{\lstinline[language=Python]+ScalarField+ values} &
+  \textbf{\lstinline[language=Python]+VectorField+ values} &
   \textbf{\lstinline[language=Python]+TensorField+ values}\\
   \textbf{scalar} &
 scalar& \lstinline[language=Python]+(dim)+ &\lstinline[language=Python]+(dim, dim)+ \\
@@ -160,12 +160,12 @@ being used to specify a diagnostic field and the\\
 ``multiple'', then all of the material phases will be present in the
 states dictionary. For example, if there are two material phases, ``Air''
 and ``Water'', then the air velocity will be present as the field\\
-\lstinline[language=Python]+states['Air'].vector_fields['Velocity']+. 
+\lstinline[language=Python]+states['Air'].vector_fields['Velocity']+.
 
 In addition to these states, the variable \lstinline[language=Python]+field+
 is preset to the current diagnostic to be set (this does not apply in
 situations such as the biology model in which multiple fields are to be set
-in a single Python calculation). 
+in a single Python calculation).
 
 The variables \lstinline[language=Python]+time+ and
 \lstinline[language=Python]+dt+ are pre-set to the current simulation time
@@ -191,7 +191,7 @@ be stored in the dictionary named \lstinline[language=Python]+persistent+
 under any key the user chooses.
 
 It is \emph{not}\ safe to store fields extracted from the states in the
-persistent dictionary. 
+persistent dictionary.
 
 \section{Debugging with an interactive Python session}
 
@@ -228,9 +228,9 @@ because the field is a function of position), this can be achieved by
 looping over the elements and setting the value at each node of each
 element rather than directly looping over all the nodes in the field. This
 is possible because the element numbering and the local numbering of nodes within
-elements is common between meshes of different continuity. 
+elements is common between meshes of different continuity.
 
 In other cases, such as the case in which a diagnostic field is a function
 of a field of different polynomial order, it may be necessary to introduce
 an additional diagnostic field which is the Galerkin projection of the
-second field onto the same mesh as the diagnostic field. 
+second field onto the same mesh as the diagnostic field.

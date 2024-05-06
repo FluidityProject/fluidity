@@ -9,7 +9,7 @@ default: input
 input: clean
 	cp src/* .
 
-clean: clean-mesh clean-run-debug 
+clean: clean-mesh clean-run-debug
 clean-mesh:
 	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo $(MESH)_?*.msh
 clean-run:

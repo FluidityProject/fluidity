@@ -46,10 +46,10 @@ assert abs(tracer_integral0 - 1.0) &lt; 1e-3
 assert abs(tracer_integral - 1.0) &lt; 1e-6
     </test>
     <test name="tracer error is initially less than 0.01" language="python">
-assert tracer_error0 &lt; 0.01 
+assert tracer_error0 &lt; 0.01
     </test>
     <test name="tracer error less than 0.01" language="python">
-assert tracer_error &lt; 0.01 
+assert tracer_error &lt; 0.01
     </test>
   </pass_tests>
   <warn_tests>

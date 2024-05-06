@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -43,19 +43,19 @@ contains
     type(state_type), dimension(:), intent(inout):: states
     integer, intent(in):: istate
     type(scalar_field), intent(in):: field
-    
-    ! scalar child fields that can be handled by just calling 
+
+    ! scalar child fields that can be handled by just calling
     ! calculate_diagnostic_variable
     character(len=*), dimension(1:3), parameter :: generic_scalar_child_field_names = &
       (/ "Source         ", &
          "Absorption     ", &
          "SinkingVelocity" /)
-         
+
     type(tensor_field), pointer:: tfield
     type(scalar_field), pointer:: sfield
     logical:: diagnostic
     integer:: i, stat
-    
+
     ! first the scalar child fields
     do i=1, size(generic_scalar_child_field_names)
       sfield => extract_scalar_field(states(istate), &
@@ -67,9 +67,9 @@ contains
         end if
       end if
     end do
-    
+
     ! no vector child fields at the moment
-    
+
     ! only one tensor child field
     tfield => extract_tensor_field(states(istate), &
         trim(field%name)//"Diffusivity", stat)
@@ -81,7 +81,7 @@ contains
         call calculate_diagnostic_variable(states, istate, tfield)
       end if
     end if
-    
+
   end subroutine calculate_diagnostic_children
 
 end module diagnostic_children

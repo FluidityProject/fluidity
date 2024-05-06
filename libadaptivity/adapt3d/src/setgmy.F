@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -86,7 +86,7 @@ C
          CNTS(I) = 0
       END DO
 C
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Setting the edge geometry information...'
 C
 C - Loop through edges, clearing bits four and eight of the flag
@@ -110,9 +110,9 @@ C
 C
       IF( GETFLG(BIGLST,NODLST,IPTR,1) ) GOTO 10
 C
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Edge flags cleared: ',cntedg
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Elements counted: ',cntelm
 C
 C - Loop through nodes, setting bits six and nine of the flag
@@ -132,7 +132,7 @@ C
 C
       IF( GTNDFL(BIGLST,NODLST,IPTR,1) ) GOTO 15
 c
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Node flags cleared: ',cntnod
 C
 C - Loop through elements, picking out edges
@@ -221,7 +221,7 @@ C - surface IDs are different, so must be geometry edge
                      CNTGMY = CNTGMY + 1
                      CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      IF( SRFGMY ) THEN
-                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) ) 
+                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) )
      :                    CALL SETFLG( BIGLST, NODLST, IEDG, 6, .TRUE. )
                      END IF
                      CALL SETFLG( BIGLST, NODLST, IEDG, 8, .TRUE. )
@@ -235,7 +235,7 @@ C - internal boundary, as well as surface, so must be geometry edge
                      CNTGMY = CNTGMY + 1
                      CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      IF( SRFGMY ) THEN
-                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) ) 
+                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) )
      :                    CALL SETFLG( BIGLST, NODLST, IEDG, 6, .TRUE. )
                      END IF
                      CALL SETFLG( BIGLST, NODLST, IEDG, 8, .TRUE. )
@@ -262,7 +262,7 @@ C - check angle between faces, to see if it should be a geometry edge
                      BIGLST( 7, IEDG ) = INT(ABS(DOT)*100000000)+1
                      call docnts( dot, cnts, cuts )
                      IF( SRFGMY ) THEN
-                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) ) 
+                        IF( .NOT. GETFLG(BIGLST,NODLST,IEDG,6) )
      :                    CALL SETFLG( BIGLST, NODLST, IEDG, 6, .TRUE. )
                      END IF
                      IF( ABS(DOT) .LT. CUTOFF .AND. CLCGMY ) THEN
@@ -334,7 +334,7 @@ C
 C
       IPTR = STTBIG
 C
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Setting the node geometry information...'
 C
       CNTGMY = 0
@@ -371,7 +371,7 @@ C - check to see if we have visited this node before, and decrement
 C - appropriate counters if we have.
 C
                IF( .NOT. GTNDFL(BIGLST,NODLST,NODS(I),9) ) THEN
-                  ewrite(3,*) 
+                  ewrite(3,*)
      :                 '   Check again for node ',nods(i),
      :                   gtndfl(biglst,nodlst,nods(i),2),
      :                   gtndfl(biglst,nodlst,nods(i),3),
@@ -511,7 +511,7 @@ C
 c
       ewrite(2,*) 'Count of dot products:'
       do i = 1, 20
-        ewrite(2,*) 
+        ewrite(2,*)
      :        'Greater than ',cuts(21-i),' :   ',cnts(21-i)
       end do
 C

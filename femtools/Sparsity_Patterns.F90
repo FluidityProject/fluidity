@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -40,7 +40,7 @@ module sparsity_patterns
 
   public :: make_sparsity, make_sparsity_transpose, make_sparsity_mult,&
             make_sparsity_dg_mass, make_sparsity_compactdgdouble,&
-	    make_sparsity_lists, lists2csr_sparsity
+            make_sparsity_lists, lists2csr_sparsity
 
 contains
 
@@ -51,9 +51,9 @@ contains
     type(csr_sparsity) :: sparsity
     type(mesh_type), intent(in) :: colmesh, rowmesh
     character(len=*), intent(in) :: name
-    
+
     integer :: row_count, i
-    
+
     row_count=node_count(rowmesh)
 
     allocate(list_matrix(row_count))
@@ -63,11 +63,11 @@ contains
     sparsity=lists2csr_sparsity(list_matrix, name)
     sparsity%columns=node_count(colmesh)
     sparsity%sorted_rows=.true.
-    
+
     do i=1,row_count
        call flush_list(list_matrix(i))
     end do
-    
+
     ! Since this is a degree one operator, use the first halo.
     if (associated(rowmesh%halos)) then
        allocate(sparsity%row_halo)
@@ -79,7 +79,7 @@ contains
        sparsity%column_halo=colmesh%halos(1)
        call incref(sparsity%column_halo)
     end if
-    
+
     deallocate(list_matrix)
 
   end function make_sparsity
@@ -91,7 +91,7 @@ contains
     type(csr_sparsity) :: sparsity
     type(mesh_type), intent(in) :: outsidemesh, insidemesh
     character(len=*), intent(in) :: name
-    
+
     type(ilist), dimension(:), pointer :: list_matrix, list_matrix_out
     integer :: row_count, row_count_out, i, j, k
     integer, dimension(:), allocatable :: row
@@ -101,7 +101,7 @@ contains
 
     allocate(list_matrix(row_count))
     allocate(list_matrix_out(row_count_out))
-    
+
     ! Generate the first order operator C.
     list_matrix=make_sparsity_lists(insidemesh, outsidemesh)
 
@@ -142,18 +142,18 @@ contains
     do i=1,row_count_out
        call flush_list(list_matrix_out(i))
     end do
-    
+
     deallocate(list_matrix, list_matrix_out)
 
   end function make_sparsity_transpose
-  
+
   function make_sparsity_mult(mesh1, mesh2, mesh3, name) result (sparsity)
     ! Produce the sparsity of a second degree operator formed by the
     ! operation A B, where A is mesh1 x mesh2 and B is mesh2 x mesh3
     type(csr_sparsity) :: sparsity
     type(mesh_type), intent(in) :: mesh1, mesh2, mesh3
     character(len=*), intent(in) :: name
-    
+
     type(ilist), dimension(:), pointer :: list_matrix_1, list_matrix_3, list_matrix_out
     integer :: count_1, count_2, count_3, i, j, k
     integer, dimension(:), allocatable :: row_1, row_3
@@ -165,7 +165,7 @@ contains
     allocate(list_matrix_1(count_2))
     allocate(list_matrix_3(count_2))
     allocate(list_matrix_out(count_1))
-    
+
     list_matrix_1=make_sparsity_lists(mesh2, mesh1)
     list_matrix_3=make_sparsity_lists(mesh2, mesh3)
 
@@ -204,7 +204,7 @@ contains
 
     call deallocate(list_matrix_1)
     call deallocate(list_matrix_3)
-    call deallocate(list_matrix_out)    
+    call deallocate(list_matrix_out)
     deallocate(list_matrix_1, list_matrix_3, list_matrix_out)
 
   end function make_sparsity_mult
@@ -215,10 +215,10 @@ contains
     !!< elements.
     !!<
     !!< Note that this currently assumes that the mesh has uniform
-    !!< elements. 
+    !!< elements.
     type(csr_sparsity) :: sparsity
     type(mesh_type), intent(in) :: mesh
-    
+
     integer :: nonzeros, nodes, elements, nloc
     integer :: i,j,k
 
@@ -229,7 +229,7 @@ contains
 
     call allocate(sparsity, rows=nodes, columns=nodes,&
          & entries=nonzeros, diag=.false., name="DGMassSparsity")
-    
+
     forall (i=1:elements, j=1:nloc, k=1:nloc)
        sparsity%colm((i-1)*nloc**2+(j-1)*nloc+k)&
             =(i-1)*nloc+k
@@ -253,20 +253,20 @@ contains
 
   function make_sparsity_compactdgdouble(&
        mesh, name) result (sparsity)
-    !!< Produce the sparsity pattern of a second order compact dg stencil. 
+    !!< Produce the sparsity pattern of a second order compact dg stencil.
     !!< This means: Each node is coupled to the nodes in that element,
     !!< plus the nodes in all other elements which share a face with that
     !!< element.
     !!<
     !!< Note that this currently assumes that the mesh has uniform
-    !!< elements. 
+    !!< elements.
     type(ilist), dimension(:), pointer :: list_matrix
     type(csr_sparsity) :: sparsity
     type(mesh_type), intent(in) :: mesh
     character(len=*), intent(in) :: name
-    
+
     integer :: row_count, i
-    
+
     row_count=node_count(mesh)
 
     allocate(list_matrix(row_count))
@@ -277,11 +277,11 @@ contains
     sparsity=lists2csr_sparsity(list_matrix, name)
     sparsity%columns=node_count(mesh)
     sparsity%sorted_rows=.true.
-    
+
     do i=1,row_count
        call flush_list(list_matrix(i))
     end do
-    
+
     deallocate(list_matrix)
 
     ! Since the operator is compact, the level 1 halo should suffice.
@@ -305,7 +305,7 @@ contains
     type(ilist), dimension(node_count(rowmesh)) :: list_matrix
     logical, intent(in), optional :: &
          & include_all_neighbour_element_nodes
-    
+
     integer :: ele, i, j, face, neigh
     integer, dimension(:), pointer :: row_ele, col_ele, face_ele, col_neigh
 
@@ -318,9 +318,9 @@ contains
     end if
 
     ! this should happen automatically through the initialisations
-    ! statements, but not in old gcc4s: 
+    ! statements, but not in old gcc4s:
     list_matrix%length=0
-   
+
     do ele=1,element_count(rowmesh)
        row_ele=>ele_nodes(rowmesh, ele)
        col_ele=>ele_nodes(colmesh, ele)
@@ -329,7 +329,7 @@ contains
           do j=1,size(col_ele)
              ! Every node in row_ele receives contribution from every node
              ! in col_ele
-             call insert_ascending(list_matrix(row_ele(i)),col_ele(j)) 
+             call insert_ascending(list_matrix(row_ele(i)),col_ele(j))
           end do
        end do
 
@@ -339,13 +339,13 @@ contains
     ! if rowmesh is continuous then we're only interested in coupling between continuous face nodes
     !   and discontinuous nodes on the same face pair - the connection to the discontinuous nodes on the other
     !   side will be added from the adjacent element, so nothing extra to do in this case
-    if (continuity(colmesh)<0 .and. (continuity(rowmesh)<0 .or. l_include_all_neighbour_element_nodes)) then 
+    if (continuity(colmesh)<0 .and. (continuity(rowmesh)<0 .or. l_include_all_neighbour_element_nodes)) then
        assert(has_faces(colmesh))
-       
+
        do ele=1,element_count(colmesh)
           row_ele=>ele_nodes(rowmesh, ele)
           col_neigh=>ele_neigh(colmesh, ele)
-          
+
           do neigh=1,size(col_neigh)
              ! Skip external faces
              if (col_neigh(neigh)<=0) cycle
@@ -358,20 +358,20 @@ contains
                 do i=1,size(row_ele)
                    do j=1,size(col_ele)
                       call insert_ascending(list_matrix(row_ele(i))&
-                           &,col_ele(j)) 
+                           &,col_ele(j))
                    end do
                 end do
              else
-                
+
                 do i=1,size(row_ele)
                    do j=1,size(face_ele)
                       call insert_ascending(list_matrix(row_ele(i))&
-                           &,col_ele(face_ele(j))) 
+                           &,col_ele(face_ele(j)))
                    end do
                 end do
              end if
           end do
-          
+
        end do
 
     end if
@@ -383,7 +383,7 @@ contains
     type(csr_sparsity) :: sparsity
     character(len=*), intent(in):: name
     type(ilist), dimension(:), intent(in) :: lists
-    
+
     integer :: i, count, pos
 
     integer :: columns
@@ -396,7 +396,7 @@ contains
 
     call allocate(sparsity, rows=size(lists), columns=columns, &
          entries=sum(lists(:)%length), name=name)
-    
+
     ! Lay out space for column indices.
     count=1
     do i=1,size(lists)

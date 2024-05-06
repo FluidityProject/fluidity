@@ -47,7 +47,7 @@ subroutine compute_mesh_conformity
 !    if (x >  3.0) pressure%val(i) = 3.0 * 1.0e6
     pressure%val(i) = x * x
   end do
-  
+
   call adaptivity_options(state, pressure, 0.05, .false.)
 
   call insert(state, pressure, "Pressure")

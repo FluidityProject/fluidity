@@ -1,5 +1,5 @@
 !    Copyright (C) 2012 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -49,7 +49,7 @@ subroutine test_lon_lat_height_2_cartesian
   LonLatHeightCoordinate => extract_vector_field(state, "lonlatradius")
   CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
 
-  !Extract the components of points in vtu file in lon-lat-radius, apply transformation and 
+  !Extract the components of points in vtu file in lon-lat-radius, apply transformation and
   ! compare with position-vector in Cartesian coordinates.
   call allocate(difference, 3 , mesh, 'difference')
   do node=1,node_count(LonLatHeightCoordinate)
@@ -64,7 +64,7 @@ subroutine test_lon_lat_height_2_cartesian
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: lon-lat-height to Cartesian.]", &
                    fail, .false., "Position vector components not transformed correctly.")
-  
+
   call deallocate(difference)
 
 end subroutine

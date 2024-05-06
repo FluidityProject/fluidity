@@ -10,8 +10,8 @@
                       fluidity -v2 -l forcing-ncar.flml;
                       fluidity -v2 -l forcing-ncar_p1dgp2.flml;
         </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -58,7 +58,7 @@ FinalSalinityMinKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid'][
     <variable name="FinalVelocityMagnitudeMaxKara" language="python">
 import fluidity_tools
 FinalVelocityMagnitudeMaxKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Velocity%magnitude']['max'][-1]
-    </variable> 
+    </variable>
 <!--  forcing -->
      <variable name="FinalTimeNcar" language="python">
 import fluidity_tools
@@ -97,14 +97,14 @@ FirstTemperatureIntegralp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['
 import fluidity_tools
 FinalSalinityMinp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
-  </variables>    
+  </variables>
 
-  <pass_tests> 
+  <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
     <test name="Coare: Final time is 1440 seconds" language="python">
-assert FinalTimeCoare ==1440 
+assert FinalTimeCoare ==1440
     </test>
     <test name="Coare: Final temperature integral has decreased" language="python">
         assert((FinalTemperatureIntegralCoare - FirstTemperatureIntegralCoare) &gt; 10)
@@ -117,7 +117,7 @@ assert FinalSalinityMinCoare &lt; 35
     </test>
 
     <test name="Ncar: Final time is 1440 seconds" language="python">
-assert FinalTimeNcar ==1440 
+assert FinalTimeNcar ==1440
     </test>
     <test name="Ncar: Final temperature integral has decreased" language="python">
         assert((FinalTemperatureIntegralNcar - FirstTemperatureIntegralNcar) &gt; 10)
@@ -130,7 +130,7 @@ assert FinalSalinityMinNcar &lt; 35
     </test>
 
     <test name="Kara: Final time is 1440 seconds" language="python">
-assert FinalTimeKara ==1440 
+assert FinalTimeKara ==1440
     </test>
     <test name="Kara: Final temperature integral has decreased" language="python">
         assert((FinalTemperatureIntegralKara - FirstTemperatureIntegralKara) &gt; 10)
@@ -143,7 +143,7 @@ assert FinalSalinityMinKara &lt; 35
     </test>
 
     <test name="P1dg_p2: Final time is 1440 seconds" language="python">
-assert FinalTimep1dg ==1440 
+assert FinalTimep1dg ==1440
     </test>
     <test name="P1dg_p2: Final temperature integral has decreased" language="python">
         assert((FinalTemperatureIntegralp1dg - FirstTemperatureIntegralp1dg) &gt; 10)

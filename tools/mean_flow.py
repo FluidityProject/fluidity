@@ -25,56 +25,57 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 #    USA
+import getopt
+import sys
 
 import vtk
-import sys
-import getopt
-from math import *
 
 bbox = []
 intervals = [100, 100, 100]
 verbose = False
 
+
 def probe(pd, filename):
-    if(verbose):
+    if verbose:
         print("Opening ", filename)
 
     reader = vtk.vtkXMLUnstructuredGridReader()
     reader.SetFileName(filename)
     ugrid = reader.GetOutput()
     ugrid.Update()
-    
-    if(verbose):
+
+    if verbose:
         print("Probing")
 
     probe = vtk.vtkProbeFilter()
     if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
-      probe.SetSource(ugrid)
-      probe.SetInput(pd)
+        probe.SetSource(ugrid)
+        probe.SetInput(pd)
     else:
-      probe.SetSourceData(ugrid)
-      probe.SetInputData(pd)
+        probe.SetSourceData(ugrid)
+        probe.SetInputData(pd)
     probe.Update()
 
     return probe.GetOutput()
 
+
 def usage():
-    print("mean_flow <options> [vtu basename] [first dump id] [last dump id]\n\
- options:\n\
- -h, --help\n\
-   prints this message\n\
- -b, --bbox xmin/xmax/ymin/ymax/zmin/zmax\n\
-   bounding box of sampling window\n\
- -i, --intervals i/j/k\n\
-   number of sampling planes in each direction\
- -v, --verbose\n\
-   verbose output\n")
+    print(
+        "mean_flow <options> [vtu basename] [first dump id] [last dump id]\n options:\n"
+        " -h, --help\n   prints this message\n -b, --bbox"
+        " xmin/xmax/ymin/ymax/zmin/zmax\n   bounding box of sampling window\n -i,"
+        " --intervals i/j/k\n   number of sampling planes in each direction -v,"
+        " --verbose\n   verbose output\n"
+    )
+
 
 def parse_args(argv):
     global bbox, intervals, verbose
 
     try:
-        opts, args = getopt.gnu_getopt(argv, "b:hi:v", ["bbox", "help", "intervals", "verbose"])
+        opts, args = getopt.gnu_getopt(
+            argv, "b:hi:v", ["bbox", "help", "intervals", "verbose"]
+        )
     except getopt.GetoptError:
         usage()
         sys.exit()
@@ -111,8 +112,9 @@ def parse_args(argv):
 
     return args
 
+
 def create_probe(filename):
-    if(verbose):
+    if verbose:
         print("Creating probe from ", filename)
 
     pd = vtk.vtkStructuredPoints()
@@ -124,29 +126,33 @@ def create_probe(filename):
 
     b = ugrid.GetBounds()
     pd.SetOrigin(b[0], b[2], b[4])
-    l = [b[1] - b[0], b[3] - b[2], b[5] - b[4]]
-    tot_len = float(l[0] + l[1] + l[2])
-    dims = intervals
-    pd.SetExtent(0, dims[0]-1, 0, dims[1] -1, 0, dims[2] -1)
-    pd.SetUpdateExtent(0, dims[0]-1, 0, dims[1] -1, 0, dims[2] -1)
-    pd.SetWholeExtent(0, dims[0]-1, 0, dims[1] -1, 0, dims[2] -1)
-    pd.SetDimensions(dims)
-    dims = [max(1, x-1) for x in dims]
-    l = [max(1e-3, x) for x in l]
-    sp = [l[0]/dims[0], l[1]/dims[1], l[2]/dims[2]]
+    dim_from_bounds = [b[1] - b[0], b[3] - b[2], b[5] - b[4]]
+    pd.SetExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetUpdateExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetWholeExtent(0, intervals[0] - 1, 0, intervals[1] - 1, 0, intervals[2] - 1)
+    pd.SetDimensions(intervals)
+    clipped_intervals = [max(1, x - 1) for x in intervals]
+    clipped_dim = [max(1e-3, x) for x in dim_from_bounds]
+    sp = [
+        clipped_dim[0] / clipped_intervals[0],
+        clipped_dim[1] / clipped_intervals[1],
+        clipped_dim[2] / clipped_intervals[2],
+    ]
     pd.SetSpacing(sp)
 
     return pd
+
 
 def write_sp(pd):
     writer = vtk.vtkXMLImageDataWriter()
     writer.SetFileName("mean_flow.vti")
     if vtk.vtkVersion.GetVTKMajorVersion() <= 5:
-      writer.SetInput(pd)
+        writer.SetInput(pd)
     else:
-      writer.SetInputData(pd)
+        writer.SetInputData(pd)
     writer.Write()
     return
+
 
 def sum_vti(vti0, vti1):
     narrays = vti0.GetPointData().GetNumberOfArrays()
@@ -167,10 +173,15 @@ def sum_vti(vti0, vti1):
             for n in range(ntuples):
                 tuple0 = array0.GetTuple3(n)
                 tuple1 = array1.GetTuple3(n)
-                array0.SetTuple3(n, tuple0[0]+tuple1[0], tuple0[1]+tuple1[1],
-                                 tuple0[2]+tuple1[2])
+                array0.SetTuple3(
+                    n,
+                    tuple0[0] + tuple1[0],
+                    tuple0[1] + tuple1[1],
+                    tuple0[2] + tuple1[2],
+                )
         else:
             print("ERROR: Buy someone who knows python a beer")
+
 
 def divide_vti(vti, scalar):
     if verbose:
@@ -185,25 +196,27 @@ def divide_vti(vti, scalar):
 
         if ncomponents == 1:
             for n in range(ntuples):
-                array.SetTuple1(n, array.GetTuple1(n)/scalar)
+                array.SetTuple1(n, array.GetTuple1(n) / scalar)
         elif ncomponents == 3:
             for n in range(ntuples):
                 tuple = array.GetTuple3(n)
-                array.SetTuple3(n, tuple[0]/scalar, tuple[1]/scalar,
-                                   tuple[2]/scalar)
+                array.SetTuple3(
+                    n, tuple[0] / scalar, tuple[1] / scalar, tuple[2] / scalar
+                )
         else:
             print("ERROR: Buy someone who knows python a beer")
 
+
 def main(argv):
     args = parse_args(argv)
-    filename = args[1]+"_"+args[2]+".vtu"
+    filename = args[1] + "_" + args[2] + ".vtu"
     pd = create_probe(filename)
     solution0 = probe(pd, filename)
-   
+
     d0 = int(args[2])
     d1 = int(args[3])
-    for i in range(d0+1, d1+1, 1):
-        filename = args[1]+"_"+str(i)+".vtu"
+    for i in range(d0 + 1, d1 + 1, 1):
+        filename = args[1] + "_" + str(i) + ".vtu"
         if verbose:
             print("Processing ", filename)
         solution1 = probe(pd, filename)
@@ -213,7 +226,7 @@ def main(argv):
     divide_vti(solution0, ndumps)
     write_sp(solution0)
 
+
 if __name__ == "__main__":
     main(sys.argv)
     sys.exit(-1)
-

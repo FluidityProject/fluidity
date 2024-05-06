@@ -20,7 +20,7 @@
 *Add Cond 18 *elems *canrepeat
 *Add Cond 19 *elems *canrepeat
 *Add Cond 20 *elems *canrepeat
-*set var nsurfaces(int)=CondNumEntities(int) 
+*set var nsurfaces(int)=CondNumEntities(int)
 $MeshFormat
 2 0 8
 $EndMeshFormat
@@ -39,9 +39,8 @@ $Elements
 *format "%i %i %i %i %i %i"
 *LoopVar 2 2 *Cond(1,int) *Cond(1,int) *GlobalNodes
 *end elems
-*Set Cond region_ids *elems 
+*Set Cond region_ids *elems
 *loop elems
 *operation(nsurfaces+loopvar) *ElemsType 2 1 0 *ElemsConec
 *end elems
 $EndElements
-

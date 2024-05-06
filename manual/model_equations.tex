@@ -44,11 +44,11 @@ be included in the discretisation. {\fluidity} deals with the advection term in 
 so that $\beta=1$ corresponds to the conservative form of the equation and $\beta=0$ to the non-conservative.
 
 \subsubsection{Diffusion}\label{sec:MP-AdvdifEqn-diff}
-The diffusion term in \eqref{eq:general_scalar_eqn}, given by 
+The diffusion term in \eqref{eq:general_scalar_eqn}, given by
 \begin{equation}\label{eq:scalar_diffusion}
 \nabla\cdot(\kaptens\nabla c),
 \end{equation}
-represents the mixing of $c$ and may be due to 
+represents the mixing of $c$ and may be due to
 molecular mixing of individual particles via Brownian motion, or mixing via large scale (in comparison to the
 molecular scale) motion in the flow. For many applications \eqref{eq:scalar_diffusion} can be written in simpler forms. Often, diffusion is isotropic giving $\kaptens = \mathrm{diag}(\kappa,\kappa,\kappa)$ and thus the diffusion term
 may be written as
@@ -70,12 +70,12 @@ Note that the second-order terms defined above are often termed Laplacian diffus
 \index{source term}
 \index{reaction term}
 
-The absorption term in \eqref{eq:general_scalar_eqn} 
+The absorption term in \eqref{eq:general_scalar_eqn}
 \begin{equation}\label{eq:scalar_absorption}
 -\sigma c,
 \end{equation}
-has the effect of decreasing the magnitude of $c$ (note the minus sign and the fact 
-that $\sigma$ would typically be positive). It is sometimes termed Rayleigh friction. 
+has the effect of decreasing the magnitude of $c$ (note the minus sign and the fact
+that $\sigma$ would typically be positive). It is sometimes termed Rayleigh friction.
 
 The remaining term in \eqref{eq:general_scalar_eqn}
 \begin{equation}\label{eq:scalar_source}
@@ -91,7 +91,7 @@ are termed reactions and are common when dealing with chemistry or biology.
 \index{boundary conditions!scalar}
 
 To form a well-posed system upon which to attempt a numerical discretisation, the
-set of equations (discussed above) describing the behaviour of the 
+set of equations (discussed above) describing the behaviour of the
 system must be supplemented with appropriate boundary conditions.
 
 
@@ -139,12 +139,12 @@ where in general $h$ and $c_{a}$ can vary spatially and temporally. This is subs
 \index{conservation!equation}
 \index{momentum equation}
 
-A starting point for describing the physics of a continuum are the conservation equations. Fluid volumes deform in time as the fluid moves. If $\theta(\bmx,t)$ is the density of some quantity (\eg Temperature) associated with the fluid, the time evolution of that quantity in a fluid volume $V(t)$ is 
+A starting point for describing the physics of a continuum are the conservation equations. Fluid volumes deform in time as the fluid moves. If $\theta(\bmx,t)$ is the density of some quantity (\eg Temperature) associated with the fluid, the time evolution of that quantity in a fluid volume $V(t)$ is
 \begin{equation}\label{RTT}
  \ddt{}\left[\int_{V(t)}\theta(\bmx,t)\right]=
  \int_{V(t)}\left(\DDt{\theta}+\theta\nabla\cdot\bmu\right),
 \end{equation}
-which is the Reynolds' Transport theorem. In \eqref{RTT} $\bmx=(x,y,z)^T$ and $\bmu=(u,v,w)^T$ are three-dimensional position and velocity vectors respectively and 
+which is the Reynolds' Transport theorem. In \eqref{RTT} $\bmx=(x,y,z)^T$ and $\bmu=(u,v,w)^T$ are three-dimensional position and velocity vectors respectively and
 \begin{equation}\label{MatDiv}
  \DDt{}\equiv\frac{\partial}{\partial{t}}+\bmu\cdot\nabla,
 \end{equation}
@@ -246,12 +246,12 @@ It is convenient to separate the full stress tensor $\sigtens$ into an isotropic
 
 Two important classes of fluids are: (i) Newtonian fluids, where deviatoric strain rate $\left(\etens\right)$ is linearly proportional to deviatoric stress ($\tautens$); and (ii) non-Newtonian fluids, where deviatoric strain rate is non-linearly proportional to the deviatoric stress. At present \fluidity\ is only configured to deal with Newtonian fluids.
 
-For a Newtonian fluid the relation between deviatoric stress and deviatoric strain rate can be expressed as: 
+For a Newtonian fluid the relation between deviatoric stress and deviatoric strain rate can be expressed as:
 
 \begin{equation}
 \tautens = 2\mu \etens + \lambda(\nabla\cdot\bmu)\bmI,
 \end{equation}
-where 
+where
 \begin{equation}
  \etens = \frac{1}{2}(\nabla\bmu + (\nabla\bmu)^T),
 \end{equation}
@@ -337,13 +337,13 @@ Within \fluidity it is also possible to relate the density of sea water to the i
 
 If the modelled fluid is incompressible, or has a homogeneous viscosity, it is possible to simplify the stress term in the momentum equation. The complete form of this term, termed the '\emph{stress form}', is:
 \begin{equation}
-\nabla\cdot\sigtens = \nabla\cdot\left(-p \bmI + \tautens\right) = - \nabla p + 
+\nabla\cdot\sigtens = \nabla\cdot\left(-p \bmI + \tautens\right) = - \nabla p +
 \nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T - \frac{2}{3}(\nabla\cdot\bmu)\bmI \right)
 \end{equation}
 
 If the flow is incompressible, $\nabla\cdot\bmu=0$. It is now possible to simplify the above equation into the '\emph{partial stress form}':
 \begin{equation}
-\nabla\cdot\sigtens = - \nabla p + 
+\nabla\cdot\sigtens = - \nabla p +
 \nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right)
 \end{equation}
 
@@ -420,7 +420,7 @@ where the tangential components of stress are set to zero.
 \index{kinematic boundary condition}
 In the case of a free surface, the normal component of the velocity is related
 to the movement of the free surface through the \emph{kinematic boundary
-condition}. The free surface height $\eta\equiv\eta(x,y,t)$ is measured from 
+condition}. The free surface height $\eta\equiv\eta(x,y,t)$ is measured from
 the initial state of the fluid. The kinematic boundary condition is derived by
 stating that a fluid particle following the flow at the free surface, should
 remain at the free surface. In other words, its trajectory is described by
@@ -468,18 +468,18 @@ The details of the wetting and drying algorithm are described in \cite{Funke2011
 
 \section{Extensions, assumptions and derived equation sets}\label{sec:eqn_extensions}
 
-In certain scenarios it is desirable to simplify the equations of sections \ref{sec:MP-AdvdifEqn} and \ref {sec:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
+In certain scenarios it is desirable to simplify the equations of sections \ref{sec:MP-AdvdifEqn} and \ref {sec:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems.
 
 \subsection{Equations in a moving reference frame}\label{sec:coriolis}
 \index{Coriolis}
 Newton's second law holds in a fixed inertial reference frame, \ie
-fixed with respect to the distant stars. 
+fixed with respect to the distant stars.
 Examples of systems which one may wish to study with boundaries moving
 with respect to this fixed inertial frame include translating and spinning tanks
-and the rotating Earth. For these systems it is often convenient to rewrite the 
-underlying equations within the moving frame. Extra terms then need to be considered 
-which account for the fact that the acceleration of a fluid parcel relative to the 
-moving reference frame is different to the acceleration with respect to the fixed 
+and the rotating Earth. For these systems it is often convenient to rewrite the
+underlying equations within the moving frame. Extra terms then need to be considered
+which account for the fact that the acceleration of a fluid parcel relative to the
+moving reference frame is different to the acceleration with respect to the fixed
 inertial frame, and the latter is the one which allows us to invoke Newton's Laws.
 For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 
@@ -488,7 +488,7 @@ For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 \includegraphics[width=8.0cm]{misc_images/coordinates.pdf}
 \caption{Schematic of coordinates in a frame rotating with a sphere. The rotation is about a vector
 pointing from South to North pole. A point on the surface of the sphere $\bmx$ and its perpendicular
-distance from the axes of rotation $\bmx_{\perp}$ are shown. The latitude of $\bmx$ is given by $\phi$ 
+distance from the axes of rotation $\bmx_{\perp}$ are shown. The latitude of $\bmx$ is given by $\phi$
 and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes at a point $\bmx$ in the rotating
 frame: $\bmi$ points Eastwards, $\bmj$ points Northwards and $\bmk$ points in the radial outwards direction.}
 \end{figure}
@@ -502,7 +502,7 @@ just by replacing the material derivative in the momentum equation by
 where $\bmOmega$ is the angular velocity vector of the rotating
 system.
 
-Consider the Earth with a rotation vector in an inertial reference frame given by 
+Consider the Earth with a rotation vector in an inertial reference frame given by
 \begin{equation}\label{eq:on_sphere_rotation}
 \bmOmega=(0,0,\Omega)^T.
 \end{equation}
@@ -525,11 +525,11 @@ The acceleration terms in the three momentum equations now have the form
 \subsubsection{The `traditional' approximation}
 \index{traditional approximation}
 Define the Coriolis and reciprocal Coriolis parameters \citep{cushman1994} respectively by
-\begin{equation}\label{eq:coriolis_parameters} 
+\begin{equation}\label{eq:coriolis_parameters}
 f=2\Omega\sin\phi,\quad f^*=2\Omega\cos\phi.
 \end{equation}
 Due to dimensional considerations it is is usual to
-drop the $f^*$ term and hence simply assume that 
+drop the $f^*$ term and hence simply assume that
 \begin{equation}\label{eq:f_omega}
 \bmOmega=(0,0,f/2)^T,
 \end{equation}
@@ -547,22 +547,22 @@ If the Coriolis parameter $f$ is approximated by a constant value:
 \begin{equation}\label{eq:f-plane}
 f=f_0,
 \end{equation}
-this is termed the $f$-plane approximation, 
+this is termed the $f$-plane approximation,
 where $f_0 = 2\Omega\sin\phi_0$ at a latitude $\phi_0$.
-This is obviously only an applicable approximation in a domain of interest 
-that does not have large extent in latitude. 
+This is obviously only an applicable approximation in a domain of interest
+that does not have large extent in latitude.
 
 For slightly larger domains a more accurate approximation is to use
 \begin{equation}\label{eq:beta-plane}
 f = f_0 + \beta y,
 \end{equation}
 where $y$ is the local coordinate in the Northwards direction.
-Taking $\phi = \phi_0 + y/R_E$ and expanding \eqref{eq:coriolis_parameters} 
+Taking $\phi = \phi_0 + y/R_E$ and expanding \eqref{eq:coriolis_parameters}
 in a Taylor series yields
 \begin{equation*}
 f = f_0 +2\Omega\cos\phi_0\frac{y}{R_E}+\ldots,\quad \beta = \frac{2\Omega}{R_E}\cos\phi_0,
 \end{equation*}
-where $R_E\approx\unit[6378]{km}$. Typical values of these terms are: 
+where $R_E\approx\unit[6378]{km}$. Typical values of these terms are:
 \begin{equation*}
 \Omega = \frac{2\pi}{24\times 60\times 60} = 7.2722\times 10^{-5}\rads[],
 \end{equation*}
@@ -621,7 +621,7 @@ If the fluid is in a state of rest, the left hand-side is zero, giving:
 \ppx[z]{p} = -\rho g
 \end{equation}
 This is known as hydrostatic balance. If the pressure $p_{\text{top}}$ at the top of the domain
-is given, e.g., an atmospheric pressure or a given ice load, 
+is given, e.g., an atmospheric pressure or a given ice load,
 the hydrostatic pressure can be computed as
 \begin{equation} \label{eq:hydrostatic_pressure}
   p(x,y,z) = p_{\text{top}}(x,y) + \int_{z=z}^{\eta(x,y)} \rho g dz,
@@ -635,14 +635,14 @@ water above a point at a given height $z$. For a constant density this simplifie
 \end{equation}
 
 If we consider the general case, that is not in hydrostatic balance and where
-the density is not constant, but we have a small perturbation density 
+the density is not constant, but we have a small perturbation density
 $\rho'$, we may still write:
 \begin{equation}
   p(x,y,z) = p_0(z) + p'(x,y,z) = -\rho_0 g z + p'(x,y,z).
 \end{equation}
 Here, we have separated the pressure $p_0=-\rho_0 g z$, due to the weight of a fluid of reference density $\rho_0$ below a reference level at $z=0$ near the top, from a perturbation pressure $p'$. This
 perturbation pressure still contains the hydrostatic pressure due to the
-perturbation density, and non-hydrostatic parts of the pressure. In the 
+perturbation density, and non-hydrostatic parts of the pressure. In the
 case of a free surface at $z=\eta$, the additional weight of $\rho g\eta$, that
 is not taken into account in $p_0$ is also included in $p'$.
 
@@ -659,14 +659,14 @@ $\rho'\bmg$.
 \index{free surface}
 In many models with a free surface, the $\rho_0 g\eta$ part of pressure (known
 in ocean models as barotropic pressure), is subtracted from the pressure as
-well, 
+well,
 and treated separately. Since this part still depends on the horizontal
 coordinates, its 3D gradient does not simply balance with the buoyancy, and a
 horizontal gradient $\rho_0g\nabla_{\text{H}}\eta$ remains, which is added as
-an extra term in the momentum equation in such models. 
+an extra term in the momentum equation in such models.
 In \fluidity{}
 however, we keep this part in the perturbation pressure and it is therefore
-solved for in conjunction with the non-hydrostatic parts of pressure. 
+solved for in conjunction with the non-hydrostatic parts of pressure.
 
 In this approach, care has to be taken when applying boundary conditions. If a
 pressure boundary condition of $p=\patm$ is enforced at $z=\eta$, then the
@@ -715,7 +715,7 @@ regarding the validity of the Boussinesq approximation is given in \cite{Gray197
 \subsubsection{Bulk parameterisations for oceans}
 \index{boundary conditions!bulk parameterisations}
 
-In order to simulate real-world ocean scenarios, realistic boundary conditions for the momentum, freshwater and heat fluxes 
+In order to simulate real-world ocean scenarios, realistic boundary conditions for the momentum, freshwater and heat fluxes
 must be applied to the upper ocean surface. \fluidity can apply such boundary conditions in the form of the bulk formulae of \citet{large2004},
 COARE 3.0 \citep{fairall2003} and \citet{kara2005} in combination with the ERA-40 reanalysis data \citep{Uppala2005}.
 
@@ -730,8 +730,8 @@ freshwater $F$, and the momentum $\overrightarrow\tau=\left(\tau_u,\tau_v\right)
 \overrightarrow{\tau}\rho^{-1} =
 \left(\tau_u,\tau_v\right)\rho^{-1}
 \end{align}
-where $\rho$ is the ocean density, $C_p$ is the heat capacity (4000 Jk$S^{-1}$K$^{-1}$) 
-and $S_0$ is a reference ocean salinity, which is the current sea surface salinity. 
+where $\rho$ is the ocean density, $C_p$ is the heat capacity (4000 Jk$S^{-1}$K$^{-1}$)
+and $S_0$ is a reference ocean salinity, which is the current sea surface salinity.
 These fluxes are then applied as upper-surface Neumann boundary conditions on
 the appropriate fields.
 
@@ -746,12 +746,12 @@ h=\sum_{i}A_{i}\cos(\sigma_{i} t -\phi_{i})
 +\sum_{k}A_{k}\cos(\sigma_{k} t -\phi_{k}),
 \label{eq:co-oscillating-tide}
 \end{equation}
-where $h$ is the free surface height (m), $A$ is the amplitude of the tidal 
-constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constituent 
-(radians) \citep{Wells2008}. 
- 
-The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude 
-and phase applied across the entire length of the boundary, or it can be variable as delimited via an 
+where $h$ is the free surface height (m), $A$ is the amplitude of the tidal
+constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constituent
+(radians) \citep{Wells2008}.
+
+The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude
+and phase applied across the entire length of the boundary, or it can be variable as delimited via an
 interpolation of different amplitudes and phases at a series of points spread along the boundary \citep{Wells2008}.
 Within \fluidity, co-oscillating boundary tides can be applied through \eg the FES2004 data set (see \ref{sec:tides_in_the_med}).
 
@@ -759,8 +759,8 @@ Within \fluidity, co-oscillating boundary tides can be applied through \eg the F
 \index{body forces!astronomical tides}
 \label{astronomical}
 
-Astronomical forcing can also be applied to a fluid as a body force\footnote{Note that use of the word body force in this context should not be confused with the application of a body force through the options tree discussed later in \ref{chap:configuration}. The astronomical forcing is applied separately.}. 
-The astronomical tidal potential is calculated at each node of the finite element mesh using the 
+Astronomical forcing can also be applied to a fluid as a body force\footnote{Note that use of the word body force in this context should not be confused with the application of a body force through the options tree discussed later in \ref{chap:configuration}. The astronomical forcing is applied separately.}.
+The astronomical tidal potential is calculated at each node of the finite element mesh using the
 multi-constituent equilibrium theory of tides equation:
   \begin{eqnarray}
 \eta_{eq}\left(\lambda,\theta,t\right)&=&\sin^{2}\theta\sum_{i}A_{i}\cos\left(\sigma_{i}t+\chi_{i}+2\lambda\right)\nonumber\\
@@ -774,31 +774,31 @@ is the frequency of the tidal constituent (s$^{\text{-1}}$), $t$ is universal st
 time (s) and $A$ is the equilibrium amplitude of the tidal constituent (m). Subscript
 $i$ represents the semi-diurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
 the diurnal constituents (\eg K$_{\text{1}}$) and subscript $k$ the long period
-constituents (\eg M$_{\text{f}}$; \citealp{Wells2008}).   
-The overall forcing 
-is applied as the product of the gradient of the resulting equilibrium tidal potential and the acceleration due 
+constituents (\eg M$_{\text{f}}$; \citealp{Wells2008}).
+The overall forcing
+is applied as the product of the gradient of the resulting equilibrium tidal potential and the acceleration due
 to gravity (g) \citep{Mellor1996, Kantha2000, Wells2007}.
-The multi-constituent equilibrium theory of tides is flexible in that it enables astronomical tides to be forced as 
-individual constituents 
+The multi-constituent equilibrium theory of tides is flexible in that it enables astronomical tides to be forced as
+individual constituents
 (e.g. M$_{2}$ or S$_{2}$) or as a combination of different constituents (e.g. M$_{2}$ + S$_{2}$) \citep{Wells2008}.
 
-As there is no interest in calculating the tide for an exact date, the astronomical argument 
-is typically excluded from the multi-constituent theory of tides equation for ICOM applications meaning that all satellites 
+As there is no interest in calculating the tide for an exact date, the astronomical argument
+is typically excluded from the multi-constituent theory of tides equation for ICOM applications meaning that all satellites
 start at 0$^{\circ}$ latitude \citep{Wells2008}.
 
 The astronomical tidal potential can be modified to account for the deformation of the solid Earth
 (the body tide) if desired. The multi-constituent equilibrium theory of tides equation includes the effects of the
-solid Earth deformation, adding this to the overall free surface height. 
+solid Earth deformation, adding this to the overall free surface height.
 This is fine
-when validating model results against measurements that record the overall elevation of the 
+when validating model results against measurements that record the overall elevation of the
 Earth's oceans (e.g. satellite altimeter readings and surface tide gauges). If however, the model
 is validated against measurements that do not include the effects of the Earth's body tide
 such as with pelagic pressure gauges, then a correction to the equilibrium tidal potential
-is required. This can be applied as: 
+is required. This can be applied as:
 \begin{equation}
 \eta=(1+k-h)\eta_{eq},
 \label{eq:body-tide}
-\end{equation}    
+\end{equation}
 where $\eta$ is the corrected tidal potential, $\eta_{eq}$ is the uncorrected equilibrium tidal potential
 and $k$ (0.3) and $h$ (0.61) are Love numbers (after \citealp{Love1909}).
 Both $k$ and $h$ are dimensionless measures of the elastic behaviour of the solid Earth. $k$ accounts for the enhancement to the
@@ -834,7 +834,7 @@ integrated, vertically, from the bottom $z=b$ to the free surface $z=\eta$:
   -\bmu_H\big|_{z=b}\cdot\nabla_H b + \int_{z=b}^{z=\eta} \nabla_H\cdot\bmu_H \\
   &=
   \bmu_H\big|_{z=\eta}\cdot\nabla_H \eta
-  -\bmu_H\big|_{z=b}\cdot\nabla_H b 
+  -\bmu_H\big|_{z=b}\cdot\nabla_H b
   + \int_{z=b}^{z=\eta} \nabla\cdot\bmu-\frac{\partial w}{\partial z} \\
   &=
   \left[\bmu_H\cdot\nabla_H \eta + w\right]_{z=\eta}
@@ -885,9 +885,9 @@ where $\rho_i$ is the density of each material.  For incompressible materials $\
 
 In an $n$-material problem, the multi-material approach requires that $n-1$ advection equations are solved, to describe the transport of the volume fraction of all but one of the materials.  The volume fraction of the remaining material can be derived from the other volume fractions by
 \begin{equation}\label{diagnosticvolfrac}
-\phi_{n} = 1 - \sum_{i=1}^{n-1}\phi_{i}. 
+\phi_{n} = 1 - \sum_{i=1}^{n-1}\phi_{i}.
 \end{equation}
-The transport of the $i^{th}$ volume fraction is given by  
+The transport of the $i^{th}$ volume fraction is given by
 \begin{equation}
 \ppt{\phi_i} + \bmu\cdot\nabla\phi_i = 0,
 \end{equation}

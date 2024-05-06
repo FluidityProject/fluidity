@@ -1,5 +1,5 @@
 !    Copyright (C) 2012 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -52,7 +52,7 @@ subroutine test_tensor_spherical_polar_2_cartesian
                                  ! a sinlge point.
   logical :: fail
 
-  !Extract the vector fields of position in vtu file in polar coordinates and 
+  !Extract the vector fields of position in vtu file in polar coordinates and
   ! cartesian coordiantes
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
   mesh => extract_mesh(state, "Mesh")
@@ -78,7 +78,7 @@ subroutine test_tensor_spherical_polar_2_cartesian
   fail = any(difference%val > 1e-8)
   call report_test("[Tensor change of basis: Spherical-polar to Cartesian.]", &
                    fail, .false., "Tensor components not transformed correctly.")
-  
+
   call deallocate(difference)
 
 end subroutine

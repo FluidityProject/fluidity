@@ -413,7 +413,7 @@ if test "x$PETSC_DIR" == "x"; then
   fi
 fi
 # Check again incase we failed.
-if test "x$PETSC_DIR" == "x"; then 
+if test "x$PETSC_DIR" == "x"; then
   AC_MSG_WARN( [No PETSC_DIR set - do you need to load a petsc module?] )
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
@@ -428,9 +428,9 @@ CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
 # first check we have the right petsc version
-AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
+AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"],
   [AC_MSG_ERROR([Unknown petsc major version])])
-AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"], 
+AC_COMPUTE_INT(PETSC_VERSION_MINOR, "PETSC_VERSION_MINOR", [#include "petscversion.h"],
   [AC_MSG_ERROR([Unknown petsc minor version])])
 AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"."$PETSC_VERSION_MINOR"])
 # if major<3 or minor<8
@@ -477,7 +477,7 @@ implicit none
       PetscScalar, dimension(1) :: v
       PetscScalar one,neg_one
       Vec         x,b,u
-      Mat         A 
+      Mat         A
       KSP         ksp
 
       call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
@@ -494,12 +494,12 @@ implicit none
       call MatSetFromOptions(A,ierr)
 
       call MatGetOwnershipRange(A,Istart,Iend,ierr)
-      
+
       do 10, II0=Istart,Iend-1
         II = II0
         v = -1.0
         i = II0/n
-        j = II0 - i*n  
+        j = II0 - i*n
         if (i.gt.0) then
           JJ = II - n
           call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)

@@ -50,15 +50,15 @@ scalar_boundary_conditions =
             }|
             ## Sediment reentrainment boundary. Any sediment in the correct
             ## sediment class will be rentrained back into the flow
-            ## depending on the bed shear stress and the parameters of the 
+            ## depending on the bed shear stress and the parameters of the
             ## sediment grain
             element type {
                attribute name { "sediment_reentrainment" },
                ## Select algorithm to calculate reentrainment by (see the manual for more detail)
                element algorithm { "Garcia_1991" | "Generic" },
-               ## Viscosity value to use within this algorithm. This allows the user to override 
-               ## use of the material viscosity used for the rest of the simulation for calculating 
-               ## sediment reentrainment. 
+               ## Viscosity value to use within this algorithm. This allows the user to override
+               ## use of the material viscosity used for the rest of the simulation for calculating
+               ## sediment reentrainment.
                element viscosity { real }?,
                # Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
                # still set)
@@ -75,10 +75,10 @@ scalar_boundary_conditions =
                "low_Re"
                }
             }|
-            ## Flux boundary condition. Currently only works with a control_volume 
+            ## Flux boundary condition. Currently only works with a control_volume
             ## discretisation.
             ##
-            ## This weakly enforces the total (advective plus diffusive) flux across 
+            ## This weakly enforces the total (advective plus diffusive) flux across
             ## a boundary when solving the advection-diffusion equation.
             element type {
                attribute name { "flux" },
@@ -89,7 +89,7 @@ scalar_boundary_conditions =
 )
 
 
-robin_bc_scalar = 
+robin_bc_scalar =
    (
       ##  A robin boundary condition of the form
       ##  C1*T + n.(k*grad(T)) = C0
@@ -98,7 +98,7 @@ robin_bc_scalar =
       ##  T the scalar field value on the surface,
       ##  C0 is the input order zero coefficient and
       ##  C1 is the input order one coefficient.
-      ##  THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+      ##  THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME
       ##  (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.
       element type {
          attribute name { "robin" },
@@ -112,7 +112,7 @@ robin_bc_scalar =
          element order_one_coefficient {
             input_choice_real
          }
-      }      
+      }
    )
 
 
@@ -159,8 +159,8 @@ prognostic_scalar_field =
          }
       )+,
       scalar_boundary_conditions*,
-      ## Choice of subgridscale model to apply to this field. 
-      ## Note that the selected parameterisation must be switched 
+      ## Choice of subgridscale model to apply to this field.
+      ## Note that the selected parameterisation must be switched
       ## on for this material phase.
       ##
       ## At this time, do not switch on this option if you are using Mellor-Yamada.
@@ -171,14 +171,14 @@ prognostic_scalar_field =
          element subgridscale_parameterisation {
             attribute name { "GLS"}
          }|
-         ## Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+         ## Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy
          ## source terms for this field in the k_eps code.
          ##
          ## TURBULENT DIFFUSIVITY
          ##
-         ## To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+         ## To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon).
          ##
-         ## The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+         ## The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated
          ## by the k-epsilon turbulence model.
          ##
          ## D = D_bg  nu_t / Pr
@@ -186,7 +186,7 @@ prognostic_scalar_field =
          ## where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
          ##
          ## A background diffusivity can either be set globally
-         ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+         ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is
          ## applied upon. If it is set globally and locally, the local background diffusivity is used.
          ##
          ## BUOYANCY EFFECTS
@@ -203,27 +203,27 @@ prognostic_scalar_field =
          ## This is only implemented for cases where velocity is discontinuous and this scalar field is discontiuous.
          ##
          ## The turbulent diffusion term is identical to the molecular diffusion term but takes its value of diffusivity
-         ## from the LES eddy viscosity, scaled by a Prandtl number. 
+         ## from the LES eddy viscosity, scaled by a Prandtl number.
          ##
          ## k_T = nu_T / Pr
          ##
          ## where k_T = turbulent diffusivity, nu_T = eddy viscosity and Pr = prandtl number
          ##
-         ## See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an 
+         ## See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an
          ## overflow of fresh water", Kirkpatrick 2005
          element subgridscale_parameterisation {
             attribute name { "LES"},
-            ## Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+            ## Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity.
             ## Default = 1.0, i.e. SGS viscosity = SGS diffusivity
             element PrandtlNumber { real }?,
-            ## Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+            ## Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number.
             ##
             ## See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007
             element Ri_c { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
-         }         
+         }
       )?,
       ## Buoyancy adjustment (vertical stabilization) schemes.
       element buoyancy_adjustment {
@@ -232,7 +232,7 @@ prognostic_scalar_field =
          ##
          ## Note this scheme currently only applies to tracer fields represented in discontinuous spaces.
          element by_vertical_diffusion{
-            ## Scaling amplitude of the applied diffusion. 
+            ## Scaling amplitude of the applied diffusion.
             ## If left unspecified, the default value of 1.0 is applied.
             element amplitude  {
                 real
@@ -264,15 +264,15 @@ prognostic_scalar_field =
                mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
-                  internal_algorithm 
+                  internal_algorithm
                ),
                diagnostic_tensor_field
             }
          )
       }?,
-      ## Source term. If the scalar field to be 
-      ## solved for is subcycled then variations 
-      ## in this source field across the subcycled 
+      ## Source term. If the scalar field to be
+      ## solved for is subcycled then variations
+      ## in this source field across the subcycled
       ## time steps are not considered.
       element scalar_field {
          attribute name { "Source" },
@@ -286,16 +286,16 @@ prognostic_scalar_field =
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm
                ),
-               ## Add the source field directly to the 
-               ## matrix system right hand side. To be 
-               ## consistent this term should be tested 
-               ## using the function space that 
+               ## Add the source field directly to the
+               ## matrix system right hand side. To be
+               ## consistent this term should be tested
+               ## using the function space that
                ## is used for the spatial discretisation.
                element add_directly_to_rhs {
                   comment
                }?,
                diagnostic_scalar_field_no_adapt
-            } 
+            }
          )
       }?,
       ## Absorption term
@@ -316,12 +316,12 @@ prognostic_scalar_field =
          )
       }?,
       ## Velocity at which this substance sinks through the water column.
-      ## 
+      ##
       ## This velocity is in the direction of gravity so if the substance
       ## floats or swims upwards, this field should be negative.
       ##
-      ## This should be on the same mesh as the velocity field unless you are 
-      ## using a DG discretisation and projecting the velocity to contiuous, in 
+      ## This should be on the same mesh as the velocity field unless you are
+      ## using a DG discretisation and projecting the velocity to contiuous, in
       ## which case it should be on a continuous mesh.
       element scalar_field {
          attribute name { "SinkingVelocity" },
@@ -480,11 +480,11 @@ prognostic_velocity_field =
                     ##
                     ##  /   2*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz
                     ##  |   N_a,x*N_b,y*mu_xy                                             ...
-                    ##  \   N_a,x*N_b,z*mu_xz 
+                    ##  \   N_a,x*N_b,z*mu_xz
                     ##
-                    ##      N_a,y*N_b,x*mu_xy 
+                    ##      N_a,y*N_b,x*mu_xy
                     ##  ... N_a,x*N_b,x*mu_xy + 2*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz   ...
-                    ##      N_a,y*N_b,z*mu_yz 
+                    ##      N_a,y*N_b,z*mu_yz
                     ##
                     ##      N_a,z*N_b,x*mu_xz                                             \
                     ##  ... N_a,z*N_b,y*mu_yz                                             |
@@ -576,7 +576,7 @@ prognostic_velocity_field =
                               internal_algorithm,
                               velocity_mesh_choice,
                               diagnostic_tensor_field,
-                              element mass_matrix {  
+                              element mass_matrix {
                               (
                                     element use_lumped_mass_matrix { element use_submesh { empty }? }
                                     |
@@ -693,7 +693,7 @@ prognostic_velocity_field =
                               internal_algorithm,
                               velocity_mesh_choice,
                               diagnostic_tensor_field,
-                              element mass_matrix {  
+                              element mass_matrix {
                               (
                                     element use_lumped_mass_matrix { element use_submesh { empty }? }
                                     |
@@ -714,7 +714,7 @@ prognostic_velocity_field =
                               internal_algorithm,
                               velocity_mesh_choice,
                               diagnostic_tensor_field,
-                              element mass_matrix {  
+                              element mass_matrix {
                               (
                                     element use_lumped_mass_matrix { element use_submesh { empty }? }
                                     |
@@ -741,7 +741,7 @@ prognostic_velocity_field =
                  ## Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
                  ## and evaluate it at the gauss points.
                  ##
-                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection
                  ## for the buoyancy terms.
                  element radial_gravity_direction_at_gauss_points {
                    comment
@@ -774,7 +774,7 @@ prognostic_velocity_field =
                            real
                         }?
                      }|
-                     ## Classical scheme from Bassi and Rebay 
+                     ## Classical scheme from Bassi and Rebay
                      ## (JCP 131 267-179 1997)
                      ## Partial stress form is available for inhomogenous isotropic viscosities
                      element bassi_rebay {
@@ -787,13 +787,13 @@ prognostic_velocity_field =
                      }|
                      ## Classical interior penalty scheme
                      ## see, e.g., SIAM Journal on Numerical Analysis
-                     ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+                     ## Vol. 39, No. 5 (2002), pp. 1749-1779
                      element interior_penalty {
                         ## Penalty_parameter
                         ## The penalty term Int [u][v] dS on element boundaries
                         ## is scaled by C = C_0 h**p
                         ## This option specifies the C_0
-                        ## There is a theoretical lower bound for 
+                        ## There is a theoretical lower bound for
                         ## stability and hence convergence
                         element penalty_parameter {
                            real
@@ -812,7 +812,7 @@ prognostic_velocity_field =
                            element use_face_integral {
                               empty
                            }|
-                           ## Use difference between element centre 
+                           ## Use difference between element centre
                            ## and neighbour centre
                            ## Use 2x distance to face centre on boundaries
                            element use_element_centres {
@@ -931,7 +931,7 @@ prognostic_velocity_field =
                   ##         /                                        /
                   ##      /                                                /
                   ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
-                  ##      /                                                /                  
+                  ##      /                                                /
                   ## where beta is set in conservative_advection, N is
                   ## a shape function (uppercase
                   ## subscripts indicate nodes A or B while lowercase
@@ -1015,7 +1015,7 @@ prognostic_velocity_field =
                  ## Align the gravity opposite to the radial direction (-(x,y) in 2d, -(x,y,z) in 3d)
                  ## and evaluate it at the gauss points.
                  ##
-                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection 
+                 ## NOTE: this ignores whatever values are set under /physical_parameters/gravity/vector_field::GravityDirection
                  ## for the buoyancy terms.
                  element radial_gravity_direction_at_gauss_points {
                    comment
@@ -1057,8 +1057,8 @@ prognostic_velocity_field =
          ##  =1.  -- implicit
          ##
          ##  Specification of this parameter will only affect
-         ##  solution procedure when a free-surface is present or 
-         ##  compressible projection or equation type Shallow Water is used. 
+         ##  solution procedure when a free-surface is present or
+         ##  compressible projection or equation type Shallow Water is used.
          ##  If left unspecified
          ##  the code defaults to theta_pg = theta.
          element theta_pressure_gradient {
@@ -1074,8 +1074,8 @@ prognostic_velocity_field =
          ##  =1.  -- implicit
          ##
          ##  Specification of this parameter will only affect
-         ##  solution procedure when a free-surface is present or 
-         ##  compressible projection or equation type Shallow Water is used. 
+         ##  solution procedure when a free-surface is present or
+         ##  compressible projection or equation type Shallow Water is used.
          ##  If left unspecified
          ##  the code defaults to theta_divergence = theta.
          element theta_divergence {
@@ -1099,13 +1099,13 @@ prognostic_velocity_field =
       ## If parallel must be less than the total number of nodes of the first processor.
       ##
       ## WARNING: This only makes sense if you are solving a Stokes
-      ## equation (i.e. excluding mass and advection terms in the 
+      ## equation (i.e. excluding mass and advection terms in the
       ## spatial_discretisation above) with all Neumann or periodic boundaries.
-      ## 
+      ##
       ##
       ## Note: it is also an option to remove the null-space of the residual vector. This
       ## option is available under solvers but only removes a single null space so will
-      ## only work if your Stokes velocities are coupled in some way (not generally the 
+      ## only work if your Stokes velocities are coupled in some way (not generally the
       ## case unless using stress form viscosity and/or coriolis).
       (
          element reference_node {
@@ -1244,7 +1244,7 @@ prognostic_velocity_field =
       ##
       ## Note: When in spherical geometry the absorption is now automatically rotated.
       ## The input values below correspond to setting the diagonal of the absorption matrix
-      ## in the rotated frame of reference. The columns correspond to phi, theta and r 
+      ## in the rotated frame of reference. The columns correspond to phi, theta and r
       ## respectively.
       element vector_field {
          attribute name { "Absorption" },
@@ -1254,7 +1254,7 @@ prognostic_velocity_field =
                mesh_choice?,
                prescribed_vector_field_no_adapt
             }|
-            element diagnostic { 
+            element diagnostic {
                mesh_choice?,
                (
                   vector_python_diagnostic_algorithm |
@@ -1295,7 +1295,7 @@ prognostic_velocity_field =
       ## if running a planar simulation.
       element vertical_stabilization {
          ## A depth dependent absorption term to
-         ## increase stability in shallow regions 
+         ## increase stability in shallow regions
          ## given by n_grav*g*dt*rho/d
          element vertical_velocity_relaxation{
             ## This option scales the vertical velocity
@@ -1311,7 +1311,7 @@ prognostic_velocity_field =
          element implicit_buoyancy{
             ## Use this option to set a 'minimum' drho/dr_grav
             ## to be used in the implicit buoyancy calculation.
-            ## Note that the default value is zero. 
+            ## Note that the default value is zero.
             element min_gradient{
               real
             }?
@@ -1371,7 +1371,7 @@ prognostic_velocity_field =
                mesh_choice?,
                prescribed_scalar_field_no_adapt
             }|
-            element diagnostic { 
+            element diagnostic {
                diagnostic_scalar_field
             }
          )
@@ -1405,10 +1405,10 @@ prognostic_pressure_field =
                   empty
                }?,
                ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
-               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
-               ## considered when selecting the pressure solver options. This cannot be used with the standard p=0 
-               ## free surface model (but can be used with the zero normal stress free surface). It will not work with 
-               ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be
+               ## considered when selecting the pressure solver options. This cannot be used with the standard p=0
+               ## free surface model (but can be used with the zero normal stress free surface). It will not work with
+               ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian
                ## element type (the default).
                element test_continuity_with_cv_dual {
                   comment
@@ -1456,7 +1456,7 @@ prognostic_pressure_field =
       ## scheme
       element scheme {
          ## Use a poisson pressure equation to calculate a first guess at pressure
-         ## before the first momentum solve (in addition to the usual 
+         ## before the first momentum solve (in addition to the usual
          ## pressure correction after the momentum solve). Recommended in most
          ## runs to ensure correct results.
          element poisson_pressure_solution {
@@ -1478,8 +1478,8 @@ prognostic_pressure_field =
             ## cg and to use the full momentum matrix in the projection if
             ## you so desire.
             element full_schur_complement {
-              ( 
-                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+              (
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
                 ## Use the full mass matrix.
                 ##
                 ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
@@ -1491,7 +1491,7 @@ prognostic_pressure_field =
                     linear_solver_options_sym
                   }
                 }|
-                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
                 ## Use the full momentum matrix.
                 ##
                 ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
@@ -1697,7 +1697,7 @@ prognostic_geostrophic_pressure_field =
       interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # Vertical balance pressure field, this is a copy of prognostic_scalar_field above
 # removing all options that don't apply (mainly advection related)
 prognostic_vertical_balance_pressure_field =
@@ -1719,7 +1719,7 @@ prognostic_vertical_balance_pressure_field =
             attribute name { "dirichlet" },
             input_choice_real_plus_boundary_forcing
          }
-      }+,      
+      }+,
       ## Disables checkpointing of this field
       element exclude_from_checkpointing {
         comment
@@ -1734,7 +1734,7 @@ prognostic_vertical_balance_pressure_field =
       interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # Hydrostatic pressure field, this is a copy of prognostic_scalar_field above
 # removing all options that don't apply (mainly advection related)
 prognostic_hydrostatic_pressure_field =
@@ -1755,7 +1755,7 @@ prognostic_hydrostatic_pressure_field =
           element continuous_galerkin {
             advection_stabilisation_options,
             ## By default when the gradient of the HydrostaticPressure is
-            ## subtracted from the rhs of the momentum equation, it is 
+            ## subtracted from the rhs of the momentum equation, it is
             ## integrated by parts.  This is the most general case as the
             ## HydrostaticPressure can be discontinuous.
             ## Use this option to turn off this behaviour, which will
@@ -1891,7 +1891,7 @@ prognostic_foam_velocity_potential_field =
       interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
-   
+
 # stream function, this is a copy of prognostic_scalar_field above
 # removing all options that don't apply (mainly advection related)
 prognostic_stream_function_field =
@@ -1954,14 +1954,14 @@ prognostic_multipath_stream_function_field =
          element surface_ids {
             integer_vector
          },
-         ## Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  
+         ## Secondary boundaries have a value given by the flux between this boundary and the primary boundary.
          element secondary_boundary{
-            ## A point on or behind the primary boundary *from* which the flux line should extend. 
+            ## A point on or behind the primary boundary *from* which the flux line should extend.
             ## Note: Path should not go through periodic boundary
             element primary_point {
                real_dim_vector
             },
-            ## A point on or behind the secondary boundary *to* which the flux line should extend. 
+            ## A point on or behind the secondary boundary *to* which the flux line should extend.
             ## Note: Path should not go through periodic boundary
             element secondary_point {
                real_dim_vector
@@ -2001,7 +2001,7 @@ scalar_equation_choice =
          ## Select the equation used to solve for this field.
          ## Advection Diffusion is the norm for scalar fields.
          ## Works for all discretisation types.
-         element equation { 
+         element equation {
             attribute name { "AdvectionDiffusion" },
             empty
          }|
@@ -2093,7 +2093,7 @@ equation_coefficients =
         coefficient_discretisation_options?
       }
    )
-   
+
 coefficient_discretisation_options =
   (
     ## Provide discretisation options for the coefficient density field.

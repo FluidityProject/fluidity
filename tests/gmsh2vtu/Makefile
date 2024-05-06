@@ -1,4 +1,4 @@
 input: clean
 
 clean:
-	rm -f *.vtu 
+	rm -f *.vtu

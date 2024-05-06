@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -148,7 +148,7 @@ C - INTNND is the no. of nodes in the interpolation mesh
 C - INTNEL is the no. of elements in the interpolation mesh
 C - INTSZL is the size of the element-node list for the interpolation mesh
 C - INTENL is the element-node list for the interpolation mesh
-C - INTENB is the base pointer for the interpolation mesh 
+C - INTENB is the base pointer for the interpolation mesh
 C - INTNDX is the X coordinates for the nodes of the interpolation mesh
 C - INTNDY is the Y coordinates for the nodes of the interpolation mesh
 C - INTNDZ is the Z coordinates for the nodes of the interpolation mesh
@@ -157,7 +157,7 @@ C - OLDFLD is the field data (for the interpolation mesh)
 C - NFREE contains a list of the number of freedoms for each field
 C - TOTFRE is the sum of the freedoms over all the fields
 C - NFIELD is the number of fields (so OLDFLD has length INTNND*TOTFRE)
-C 
+C
 C Another couple of paramaters to be sent into the subroutine:
 C
 C - XPCTEL is the expected number of elements (guestimated by SPAERR)
@@ -293,7 +293,7 @@ c
         if(gather(i).le.0) ierr=54546
       end do
       if(ierr.eq.54546) then
-         ewrite(-1, '(a)') 
+         ewrite(-1, '(a)')
      :        '*** ADPTVY: GOT BAD NODE IN GATHER'
       end if
 c
@@ -328,7 +328,7 @@ c
             goto 999
          end if
       else
-         ewrite(3,'(a,2i6)') 
+         ewrite(3,'(a,2i6)')
      :        '--- ADPTVY: NSELM,MXSFID=',
      :        nselm,mxsfid
       end if
@@ -401,9 +401,9 @@ C
      :        'Made NELBAS: '
          ewrite(3,'(8i8)')
      :        (INTARR(NELBAS+i),i=0,min(15,nnod))
-         ewrite(3,'(a)') 
+         ewrite(3,'(a)')
      :        'Made NELIST: '
-         ewrite(3,'(8i8)') 
+         ewrite(3,'(8i8)')
      :        (INTARR(NELIST+i),i=0,intarr(nelbas+min(15,nnod)+1))
       end if
 C
@@ -421,13 +421,13 @@ C
      :             GEOM3D, INTARR(EELIST) )
 C
       if( debug ) then
-         ewrite(3,'(a)') 
+         ewrite(3,'(a)')
      :        'Made ECLIST:'
-         ewrite(3,'(8i7)') 
+         ewrite(3,'(8i7)')
      :        (INTARR(EELIST+i),i=0,4*min(NELM,15)-1)
       end if
 C
-      ewrite(2,'(A)') 
+      ewrite(2,'(A)')
      :     'Checking consistency of elements...'
       CALL CHKCNSTNCY( NNOD, NELM, ENLBAS, ENLIST, SZENLS,
      :                 GEOM3D, INTARR(EELIST), NODX, NODY, NODZ )
@@ -477,7 +477,7 @@ C
       IF( ABSOLUTEMXNODS .GT. 0 )
      :         MXNODS = min(MXNODS, ABSOLUTEMXNODS*10/9)
 C
-      ewrite(1,'(A,I10,A)') 
+      ewrite(1,'(A,I10,A)')
      :     '--- ADPTVY: Space set aside for',
      :     MXNODS,' nodes'
 C
@@ -513,7 +513,7 @@ C
       NSWPS  = MAX( NSWEEP, 0 )
 C
       IF( NSWPS .EQ. 0 ) THEN
-         ewrite(1,'(a)') 
+         ewrite(1,'(a)')
      :        '--- ADPTVY: Number of sweeps is zero'
          DUNSTG = .TRUE.
          GOTO 600
@@ -805,11 +805,11 @@ C
       CALL GETSIZ( INTARR(BIGLST), RLARR(NODLST),
      :             NWNNOD, NWNELM, NWSZEN, NWSZNN, NWNSEL, NWSZSN )
 C
-      ewrite(1,'(a)') 
+      ewrite(1,'(a)')
      :     '--- ADPTVY: FINISHED ADAPTING MESH'
-      ewrite(1,'(a,2i8)') 
+      ewrite(1,'(a,2i8)')
      :     'TOPNOD,TOPBIG:',TOPNOD,TOPBIG
-      ewrite(1,'(a,3i8)') 
+      ewrite(1,'(a,3i8)')
      :     'NODS,ELEMS,SURFS:',NWNNOD,NWNELM,NWNSEL
 C
       NWNODX = NODLST + (TOPNOD+1)*SIZNOD
@@ -834,7 +834,7 @@ C - number of moments.
 C - OLDFLD has length TOTM*NNOD and NEWFLD should have length TOTM*NEWNND.
 C - INTFLD can be called as many times as necessary for appropriate fields.
 C
-      ewrite(1,'(a)') 
+      ewrite(1,'(a)')
      :     '--- ADPTVY: Interpolating fields...'
 c      pause
       CALL INTFLD( INTARR(BIGLST), RLARR(NODLST),
@@ -896,7 +896,7 @@ C - for the adapted mesh is returned in NODX, NODY and NODZ, and the
 C - interpolated error metrics are returned in NEWMTX if SIZMTX is sent
 C - as 9*NWNNOD (otherwise SIZMTX should be sent as 1).
 C
-      ewrite(1,'(a)') 
+      ewrite(1,'(a)')
      :     '--- ADPTVY: Forming new fixed mesh data...'
 C
       IF( NWSFID + NWNSEL .GE. INTSIZ ) THEN
@@ -907,7 +907,7 @@ c         IERR = -5010
 c         GOTO 999
 c      END IF
 C
-        ewrite(0, '(a)') 
+        ewrite(0, '(a)')
      :  '*** ADPTVY: INTEGER ARRAY TOO SMALL FOR NEW MESH, REALLOCATING'
         allocate( tmparr(nwsfid+nwnsel-nwndlc) )
 C
@@ -975,14 +975,14 @@ c
          do i = 1, nwnelm+1
             intsum = intsum + intarr(nwenlb+i-1)
          end do
-         ewrite(3,'(a,i8)') 
+         ewrite(3,'(a,i8)')
      :        'Sum of ENLBAS: ',intsum
 c
          intsum = 0
          do i = 1, nwszen
             intsum = intsum + intarr(nwenls+i-1)
          end do
-         ewrite(3,'(a,2i8)') 
+         ewrite(3,'(a,2i8)')
      :        'Sum of ENLIST: ',intsum,nwszen
 c
       end if
@@ -990,7 +990,7 @@ c
 C     Finalize AdaptProgress module
       call finalize(NWNNOD)
 
-      ewrite(1,'(a)') 
+      ewrite(1,'(a)')
      :     '--- ADPTVY: Finished successfully'
 c
   999 IF( IERR .NE. 0 ) THEN
@@ -1001,7 +1001,7 @@ C
       END
 C
 C
-C     
+C
       LOGICAL FUNCTION ADAPT_FALSE()
       ADAPT_FALSE = .FALSE.
       RETURN
@@ -1106,7 +1106,7 @@ C
 C
       MAXBIG = NUMINTS/SIZBIG
 C
-      ewrite(1,*) 
+      ewrite(1,*)
      :     '--- Set aside space for about ',MAXBIG*2/9,
      :     ' elements'
       RETURN
@@ -1124,7 +1124,7 @@ C
       INCLUDE 'blkerr.i'
 C
       MXNODS = NUMRLS/SIZNOD
-      ewrite(1,*) 
+      ewrite(1,*)
      :     '--- Set aside space for ',MXNODS,' nodes'
 C
       RETURN

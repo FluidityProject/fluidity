@@ -8,7 +8,7 @@ mesh_info =
                attribute name { "gmsh" },
                comment
             }|
-            ## Read the mesh from a vtu. Note that the mesh will have no 
+            ## Read the mesh from a vtu. Note that the mesh will have no
             ## surface or region IDs.
             element format {
               attribute name { "vtu" },
@@ -16,7 +16,7 @@ mesh_info =
             }|
             ## ExodusII mesh format.
             ##
-            ##<b>Note: Only works for serial mesh files and 
+            ##<b>Note: Only works for serial mesh files and
             ## Checkpoints are dumped in the GMSH file format.</b>
             element format {
                attribute name { "exodusii" },
@@ -30,7 +30,7 @@ mesh_info =
          from_file_mesh_stat_options,
          comment
       }|
-      ## Make mesh from existing mesh. 
+      ## Make mesh from existing mesh.
       element from_mesh {
          mesh_choice,
          element mesh_shape {
@@ -42,7 +42,7 @@ mesh_info =
                ## Pn element type. "bubble" adds bubble functions that
                ## vanish on the element boundaries, and
                ## trace defines an element that is only defined on faces
-               ## and is undefined on the element interior (used for 
+               ## and is undefined on the element interior (used for
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
                  "lagrangian" | "bubble" | "trace"
@@ -112,7 +112,7 @@ mesh_info =
             ## <b>Don't turn this on by hand!</b>
             ## This option gets set by the periodise tool, to indicate
             ## that this mesh should have the periodic boundary conditions
-            ## <b>removed</b>. See the discussion on the wiki about 
+            ## <b>removed</b>. See the discussion on the wiki about
             ## parallel periodic boundary conditions.
             element remove_periodicity {
                empty
@@ -197,7 +197,7 @@ mesh_stat_options_enabled_default =
    )
 
 # Diagnostic statistics options for meshed, with disabled by default
-mesh_stat_options_disabled_default = 
+mesh_stat_options_disabled_default =
    (
       exclude_mesh_from_stat|
       include_mesh_in_stat
@@ -316,7 +316,7 @@ next_layer_regional_extrusion_options =
       }?
    )
 
-extrusion_options = 
+extrusion_options =
    (
       ## Depth over which to extrude
       ## top will be at z=0
@@ -331,12 +331,12 @@ extrusion_options =
       element sizing_function {
          input_choice_real_plus_list,
       ## If your sizing function only varies in depth enable this option.
-      ## Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it. 
+      ## Do not use if your function depends on x and/or y as it takes a column of depth values and re-uses it.
          element varies_only_in_depth {empty}?
       },
       ## To prevent infinitesimally thin bottom layer if sizing function
       ## is an integer multiple of total depth, the bottom layer needs
-      ## to have at least this fraction of the layer depth above it. 
+      ## to have at least this fraction of the layer depth above it.
       ##
       ## Default is 1e-3.
       element minimum_bottom_layer_fraction {
@@ -350,7 +350,7 @@ extrusion_options =
    )
 
 # Most common mesh choices
-mesh_choice = 
+mesh_choice =
    (
       element mesh {
          attribute name { xsd:string }

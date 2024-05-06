@@ -15,7 +15,7 @@ subroutine compute_temperature_goal
   use mpi
   use interpolation_error
   implicit none
-  
+
   type(state_type) :: state, state_array(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions
@@ -70,7 +70,7 @@ subroutine compute_temperature_goal
   state_array(1) = state
   write(0,*) "goal_temp(state) == ", goal_temp(state_array)
   call form_goal_metric(state_array, metric, goal_temp, goal_temp_grad, opts)
-  call form_gradation_metric(positions, metric) 
+  call form_gradation_metric(positions, metric)
   call vtk_write_fields("data/goal_error_adapted", 0, positions, mesh, &
                         vfields=(/velocity/), tfields=(/metric/))
   call adapt_state(state, metric)
@@ -90,10 +90,10 @@ subroutine compute_temperature_goal
     call deallocate(metric); call allocate(metric, mesh, "Metric")
     state_array(1) = state
     call form_goal_metric(state_array, metric, goal_temp, goal_temp_grad, opts)
-    call form_gradation_metric(positions, metric) 
+    call form_gradation_metric(positions, metric)
     call vtk_write_fields("data/goal_error_adapted", i+1, positions, mesh, sfields=(/temperature/), &
                           vfields=(/velocity/), tfields=(/metric/))
-    call adapt_state(state, metric) 
+    call adapt_state(state, metric)
   end do
 
   mesh => extract_mesh(state, "Mesh")
@@ -101,7 +101,7 @@ subroutine compute_temperature_goal
   velocity => extract_vector_field(state, "Velocity")
   temperature => extract_scalar_field(state, "Temperature")
 
-  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/temperature/), vfields=(/velocity/)) 
+  call vtk_write_fields("data/goal_error_adapted", i+2, positions,  mesh, sfields=(/temperature/), vfields=(/velocity/))
 
   state_array(1) = state
   write(0,*) "goal_temp(state) == ", goal_temp(state_array)

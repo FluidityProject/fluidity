@@ -5,11 +5,11 @@
   <tags>flml parallel</tags>
 
   <problem_definition length="short" nprocs="3">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp; 
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l Slab-detachment Parallel_NP3_Slab-detachment &amp;&amp;
 mpiexec ../../bin/fluidity -v2 -l Parallel_NP3_Slab-detachment.flml </command_line>
   </problem_definition>
 
-<variables>  
+<variables>
 
 <variable name="solvers_converged" language="python">
 import os
@@ -24,7 +24,7 @@ viscosities = probe_visc()
 </variable>
 
 <variable name="viscous_dissipation" language="python">
-from fluidity_tools import stat_parser as stat 
+from fluidity_tools import stat_parser as stat
 viscous_dissipation = stat("Benchmark_Case_1a.stat")["Mantle"]["ViscousDissipation"]["integral"][-1]
 </variable>
 </variables>
@@ -62,8 +62,3 @@ assert(abs(viscous_dissipation-90.0) &lt; 10.0)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

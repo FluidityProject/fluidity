@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-
-import numpy, vtktools
+import vtktools
 
 basename = "Subduction_Mesh"
 
+
 def get_num_gmsh_nodes():
-    gmshfile = basename+".msh"
-    f        = open(gmshfile,'rb')
-    lines    = f.readlines()
+    gmshfile = basename + ".msh"
+    f = open(gmshfile, "rb")
+    lines = f.readlines()
     return int(lines[5])
 
+
 def get_num_vtu_nodes():
-    vtufile  = basename+".vtu"
-    vtudata  = vtktools.vtu(vtufile)
+    vtufile = basename + ".vtu"
+    vtudata = vtktools.vtu(vtufile)
     vtu_locs = vtudata.GetLocations()
     return int(vtu_locs.shape[0])

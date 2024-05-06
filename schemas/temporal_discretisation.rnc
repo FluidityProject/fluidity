@@ -45,7 +45,7 @@ temporal_control_volume_options =
                   element cv_l2_norm {
                     empty
                   }
-               )               
+               )
             }?
          }?,
          (
@@ -72,7 +72,7 @@ temporal_control_volume_options =
          ## Only works if a control volume or coupled_cv spatial discretisation is selected.
          ## Time discretisation of upwind discretisation off which the
          ## higher order solution is pivotted.
-         ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+         ##  - pivot_theta = 1 - implicit pivot (default if not set and
          ##                      best choice if not intentionally modifying
          ##                      scheme to be explicit)
          ##  - pivot_theta = 0 - explicit pivot
@@ -82,16 +82,16 @@ temporal_control_volume_options =
       }
    )
 
-temporal_discontinuous_galerkin_options = 
+temporal_discontinuous_galerkin_options =
    (
       ## This enables DG-specific timestepping options, such as
-      ## explicit advection subcycling. 
+      ## explicit advection subcycling.
       element discontinuous_galerkin {
          (
             ## Use timestep subcycling to solve this equation.
             ## Specify the maximum courant number per subcycle.
             element maximum_courant_number_per_subcycle {
-               real, 
+               real,
                dg_field_based_cfl_number_options
             }|
             ## Use timestep subcycling to solve this equation.

@@ -3,7 +3,7 @@ FLMLMODEL = top_hat_cv
 default: input
 
 input:
-	
+
 clean: clean-mesh clean-run-debug
 clean-mesh:
 	rm -f line.edge line.ele line.node

@@ -36,11 +36,11 @@ extern "C" {
   void sspev_(char *, char *, int *, const float [],  float [],  float [],  int *,  float [], int *);
   void dspev_(char *, char *, int *, const double [], double [], double [], int *, double [], int *);
 
-  void sgemm_(const char *, const char *, const int *, const int *, const int *, 
-              const float *, const float [], const int *, 
+  void sgemm_(const char *, const char *, const int *, const int *, const int *,
+              const float *, const float [], const int *,
               const float [], const int *, const float *, float [], const int *);
-  void dgemm_(const char *, const char *, const int *, const int *, const int *, 
-              const double *, const double [], const int *, 
+  void dgemm_(const char *, const char *, const int *, const int *, const int *,
+              const double *, const double [], const int *,
               const double [], const int *, const double *, double [], const int *);
 }
 #endif

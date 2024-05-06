@@ -3,4 +3,4 @@ input: clean
 	cp src/2d_square.msh .
 
 clean:
-	rm -rf *.d.* *.stat *.vtu *.convergence *.edge *.node *.face *.ele *checkpoint* matrixdump* src/2d_square.msh *.log 
+	rm -rf *.d.* *.stat *.vtu *.convergence *.edge *.node *.face *.ele *checkpoint* matrixdump* src/2d_square.msh *.log

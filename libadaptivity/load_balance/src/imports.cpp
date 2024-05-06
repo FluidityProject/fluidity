@@ -57,7 +57,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 			   const int SNLIST[], const int SURFID[], const int snloc,
 			   const int ATOREC[], const int SCATER[],
 			   const int ATOSEN[], const int GATHER[]){
-  
+
   deleted_vol_elems.clear();
   deleted_sur_elems.clear();
 
@@ -68,14 +68,14 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
   size_t flen = field_len;
   for(size_t n=0; n<(unsigned)NNOD; n++){
     Node node;
-    
+
     node.set_gnn( n );
     node.set_current_owner( MyRank );
-    
+
     // Nodewise field values.
     for(size_t f = 0; f<flen; f++)
       node.append_field(field + stride*f + n, 1);
-    
+
     // Position.
     switch(dim){
       case 3:
@@ -87,12 +87,12 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
       default:
         ERROR("Invalid dimension");
     }
-    
+
     // Nodewise metric used for adaptivity. This is handled seperately
     // from fields as it can be used to control the
     // graph-partitioning.
     node.set_metric(metric + n*dim*dim, dim*dim);
-    
+
     CHECK(node);
     add_node(node);
   }
@@ -100,35 +100,35 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 
   //
   // Correct owner information for halo nodes.
-  // (j = ATOREC[i]-1) is a base pointer to a list 
-  // of nodes to be received from partition i 
+  // (j = ATOREC[i]-1) is a base pointer to a list
+  // of nodes to be received from partition i
   // SCATTER[j] - 1 is the node in question.
   //
   vector< vector<unsigned> > halo( NProcs ); // This is handy later
   for(unsigned p=0; p<(unsigned)NProcs; p++){
-    
+
     for(int j=(ATOREC[p]-1);j<(ATOREC[p+1]-1);j++){
       unsigned haloNode = SCATER[j] - 1;
 
       assert(j<ATOREC[NProcs]-1);          // Crap out!
       assert(haloNode<(unsigned)NNOD);     // Crap out!
-      
+
       node_list[ haloNode ].set_current_owner( p );
       node_list[ haloNode ].set_flags( NODE_HALO ) ;
       halo[p].push_back( haloNode );
     }
   }
   do_node_headcount();
-  
+
   // Establish UNNing for native nodes
   {
     // Set up universal node numbering offset.
     find_nodes_per_rank( num_nodes("native") );
-    
+
     unn_offsets[0] = 0;
     for(int i = 0; i<NProcs; i++)
       unn_offsets[i+1] = unn_offsets[i] + nodes_per_rank[i];
-    
+
     unsigned cnt=0;
     for(unsigned i=0; i<(unsigned)NNOD; i++){
       if(node_list[i].get_current_owner() == MyRank){
@@ -137,29 +137,29 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
       }
     }
   }
-  
+
   for(deque<Node>::iterator it=node_list.begin(); it!=node_list.end(); ++it){
     CHECK( (*it).get_gnn() );
     CHECK( (*it).get_current_owner() );
   }
-  
+
   //
   // Record the nodes that are shared.
-  // (j = ATOSEN[i]-1) is a base pointer to a list 
-  // of nodes to be sent to partition i 
+  // (j = ATOSEN[i]-1) is a base pointer to a list
+  // of nodes to be sent to partition i
   // GATHER[j] - 1 is the node in question.
   //
   ECHO( "Recording shared nodes...." );
 
   // shared_unns is created to maintain the order of the shared
-  // nodes so that the respective halo_node unn's can be correctly 
+  // nodes so that the respective halo_node unn's can be correctly
   // updated.
   vector< vector<unsigned> > shared_unns(NProcs);
   for(unsigned p=0; p<(unsigned)NProcs; p++){
     for(int j=(ATOSEN[p]-1);j<(ATOSEN[p+1]-1);j++){
       unsigned haloNode = GATHER[j] - 1;
       unsigned unn = node_list[haloNode].get_unn();
-      
+
       // Store such that the halo is always in order of increasing unn.
       shared_nodes[p].insert(unn);
       shared_unns[p].push_back( unn );
@@ -169,7 +169,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 
   ECHO("At this point the node data should be converted to the internal format.");
   ECHO("Now it is time to correct the UNN's for the halo nodes.");
-  
+
   //
   // Correct the UNN of the halo nodes (aka. SCATER nodes)
   //
@@ -177,7 +177,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
     vector<unsigned> halo_cnt( NProcs );
     for(int i = 0; i<NProcs; i++)
       halo_cnt[i] = halo[i].size();
-    
+
     vector< vector<unsigned> > halo_unns;
     halo_update(shared_unns, halo_cnt, halo_unns);
 
@@ -185,9 +185,9 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
     for(unsigned i=0; i<(unsigned)NProcs; i++){
 
       assert( halo[i].size() == halo_unns[i].size() );
-      
+
       const unsigned len = halo_unns[i].size();
-            
+
       for(unsigned j = 0; j<len; j++){
 	unsigned haloNode = halo[i][j];
 
@@ -197,7 +197,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 	halo_nodes[i].insert(halo_unns[i][j]);
       }
     }
-    
+
   }
 
   ECHO( "gnn" <<"\t" << "unn" << "\t" << "owner" << "\t" << "unn2gnn");
@@ -209,10 +209,10 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 
   ECHO("UNN's have been established. ");
   ECHO("Lets check UNN's. Printing the unn's of the nodes in gather");
-  
+
   for(unsigned i=0; i<(unsigned)NProcs; i++){
     ECHO("Rank " << i << ":\t");
-    
+
     ECHO("SCATER");
     for(int j = (ATOREC[i]-1); j< (ATOREC[i+1]-1); j++)
       ECHO("\t\t(gnn="<<SCATER[j]-1 <<") "<< node_list[SCATER[j]-1].get_unn());
@@ -220,7 +220,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
     for(int j = (ATOSEN[i]-1); j< (ATOSEN[i+1]-1); j++)
       ECHO("\t\t(gnn="<< GATHER[j]-1 <<")"<< node_list[GATHER[j]-1].get_unn());
   }
-  
+
   unsigned eid=0;
   { // convert volume element information
     ECHO( "Write volume elements to internal format. " );
@@ -232,7 +232,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
       CHECK(e);
       elem.set_flags(ELM_DEFAULT|ELM_VOLUME);
       bool wanted = false; // Maybe it's not even this domain!
-      
+
       { // write element node list with UNN's
 	int cnt = nloc;
 	int pos = e*nloc;                                // Note: no -1 here
@@ -247,7 +247,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 	}
 	elem.set_enlist( nl );
       }
-      
+
       if( !wanted ){
 	deleted_vol_elems.insert(e);
 	continue;
@@ -260,14 +260,14 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 
       ECHO("Adding volume element:");
       CHECK(elem);
-      
+
       add_element( elem );
     }
   }
-  
+
   { // convert surface element information
     ECHO( "Write surface elements to internal format. " );
-    
+
     Element elem;
     for(int e=0; e<NSELM; e++){
       elem.set_flags(ELM_DEFAULT|ELM_SURFACE);
@@ -292,7 +292,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
 
 	elem.set_enlist( nl );
       }
-      
+
       elem.set_eid(eid++);
 
       // add surface id's
@@ -309,7 +309,7 @@ void Mesh::import_fluidity(const int dim, const int NNOD, const int NELM, const 
     }
   do_element_headcount();
   }
- 
+
 
   ECHO( "Finished translating fluidity stuff to internal format.");
 
@@ -325,69 +325,69 @@ void Mesh::import_pressure(const int NNOD, const int NELM,
 			   const int ATOSEN[], const int GATHER[]){
   // Make space for the pressure node list
   MFnode_list.clear();
-  
+
   if(NNOD==0){
-    
+
     // So the pressure mesh is the same as the velocity mesh so we can
     // just recreate it after we're finished.
     return;
-    
+
   }else{
-    
+
     // Set up UNNing for pressure nodes. As the number of pressure
     // nodes is always less or equal to the number of velocity nodes, and
     // the pressure node unn need not be contineous, the same offsets
-    // will be used.    
+    // will be used.
     unsigned offset = 0;
     for(int i = 0; i<MyRank; i++)
       offset += nodes_per_rank[i];
-    
+
     ECHO( "Reading pressure nodes into internal format... " );
 
     { // Map nodal information to internal format.
       for(unsigned n=0; n<(unsigned)NNOD; n++){
 	PressureNode node;
-	
+
 	node.set_gnn( n );
 	node.set_unn( offset + n );
-	
+
 	if(nfields>0){
 	  vector<samfloat_t> flds(nfields);
 	  memcpy(&(flds[0]), pressure+n*nfields, nfields*sizeof(samfloat_t));
 	  node.set_pressure( flds );
 	}
-	
+
 	MFnode_list.push_back( node );
       }
     }
     ECHO( "Read." );
-    
+
     // shared_unns is created to maintain the order of the shared
-    // nodes so that the respective halo_node unn's can be correctly 
+    // nodes so that the respective halo_node unn's can be correctly
     // updated.
     vector< vector<unsigned> > shared_unns(NProcs);
     for(unsigned p=0; p<(unsigned)NProcs; p++){
       for(int j=(ATOSEN[p]-1);j<(ATOSEN[p+1]-1);j++){
-	
+
 	unsigned haloNode = GATHER[j] - 1;
 	unsigned unn = MFnode_list[haloNode].get_unn();
-	
+
 	// Store such that the halo is always in order of increasing unn.
 	shared_unns[p].push_back( unn );
       }
     }
-    
+
     //
     // Correct the UNN of the halo nodes (aka. SCATER nodes)
     //
-    {    
+    {
       vector<unsigned> halo_cnt( NProcs );
       for(int i = 0; i<NProcs; i++)
 	halo_cnt[i] = ATOREC[i+1] - ATOREC[i];
-      
+
       vector< vector<unsigned> > halo_unns;
       halo_update(shared_unns, halo_cnt, halo_unns);
-      
+
       // Write in the correct UNN's
       for(unsigned i=0; i<(unsigned)NProcs; i++){
 	unsigned len = halo_unns[i].size();
@@ -397,15 +397,15 @@ void Mesh::import_pressure(const int NNOD, const int NELM,
 	}
       }
     }
-    
-    unsigned eid=0;    
+
+    unsigned eid=0;
     { // insert pressure node list into volume elements
       for(int e=0; e<NELM; e++){
-	
+
 	// Don't bother with elements that were deleted
 	if(deleted_vol_elems.find(e) != deleted_vol_elems.end())
 	  continue;
-	
+
 	int cnt = ENLBAS[e+1]-ENLBAS[e];
 	int pos = ENLBAS[e];                                // Note: no -1 here
 	vector<unn_t> nl(cnt);
@@ -415,11 +415,11 @@ void Mesh::import_pressure(const int NNOD, const int NELM,
 	  assert(nodeNum<NNOD ); // or crap out
 	  nl[ n ] = MFnode_list[nodeNum].get_unn();
 	}
-	
+
 	element_list[eid++].set_MFenlist( nl );
       }
     }
-    
+
     //
     // Fluidity doesn't have surface pressure elements
     //
@@ -428,14 +428,3 @@ void Mesh::import_pressure(const int NNOD, const int NELM,
   deleted_vol_elems.clear();
   deleted_sur_elems.clear();
 }
-
-
-
-
-
-
-
-
-
-
-

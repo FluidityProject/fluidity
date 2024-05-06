@@ -22,7 +22,7 @@ subroutine test_mesh_conformity
   conformity = piecewise_constant_field(mesh, "MeshConformity")
 
   call compute_mesh_conformity(metric, X, conformity)
-  
+
   fail = (node_val(conformity, 1) > 1e-7)
   call report_test("[test_mesh_conformity]", fail, .false., "Perfect meshes give zero.")
 

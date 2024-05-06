@@ -82,7 +82,7 @@ h5priv_end_throttle (
 	if (f->props->throttle > 0) {
 		int token;
 		if (f->myproc + f->props->throttle < f->nprocs) {
-			// pass token to next proc 
+			// pass token to next proc
 			h5_debug (
 				"throttle: passing token to %lld",
 				(long long int)(f->myproc + f->props->throttle));

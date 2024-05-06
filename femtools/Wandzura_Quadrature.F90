@@ -333,8 +333,8 @@ module wandzura_quadrature
   !
   !  Discussion:
   !
-  !    Given the vertices of an order 3 physical triangle and a point 
-  !    (XSI,ETA) in the reference triangle, the routine computes the value 
+  !    Given the vertices of an order 3 physical triangle and a point
+  !    (XSI,ETA) in the reference triangle, the routine computes the value
   !    of the corresponding image point (X,Y) in physical space.
   !
   !    This routine is also appropriate for an order 4 triangle,
@@ -374,8 +374,8 @@ module wandzura_quadrature
   !
   !  Parameters:
   !
-  !    Input, real ( kind = 8 ) NODE_XY(2,3), the coordinates of the vertices.  
-  !    The vertices are assumed to be the images of (0,0), (1,0) and 
+  !    Input, real ( kind = 8 ) NODE_XY(2,3), the coordinates of the vertices.
+  !    The vertices are assumed to be the images of (0,0), (1,0) and
   !    (0,1) respectively.
   !
   !    Input, integer ( kind = 4 ) N, the number of objects to transform.
@@ -573,14 +573,14 @@ module wandzura_quadrature
   !    in clockwise order, the area will be negative!
   !
   !    If you cannot guarantee counterclockwise order, and you need to
-  !    have the area positive, then you can simply take the absolute value 
+  !    have the area positive, then you can simply take the absolute value
   !    of the result of this routine.
   !
   !    An earlier version of this routine always returned the absolute
   !    value of the computed area.  I am convinced now that that is
-  !    a less useful result!  For instance, by returning the signed 
-  !    area of a triangle, it is possible to easily compute the area 
-  !    of a nonconvex polygon as the sum of the (possibly negative) 
+  !    a less useful result!  For instance, by returning the signed
+  !    area of a triangle, it is possible to easily compute the area
+  !    of a nonconvex polygon as the sum of the (possibly negative)
   !    areas of triangles formed by node 1 and successive pairs of vertices.
   !
   !  Licensing:
@@ -647,7 +647,7 @@ module wandzura_quadrature
   !
   !    Input, integer ( kind = 4 ) POINT_NUM, the number of points.
   !
-  !    Input, real ( kind = 8 ) POINT_XY(2,POINT_NUM), the coordinates of the 
+  !    Input, real ( kind = 8 ) POINT_XY(2,POINT_NUM), the coordinates of the
   !    points.
   !
   !    Input, integer ( kind = 4 ) POINT_SHOW,
@@ -1129,22 +1129,22 @@ module wandzura_quadrature
 
     return
   end subroutine
-  
+
   subroutine wandzura_rule_sp(rule, order_num, xy, w)
     integer, intent(in) :: rule
     integer, intent(in) :: order_num
     real(kind = c_float), dimension(2, order_num), intent(out) :: xy
     real(kind = c_float), dimension(order_num), intent(out) :: w
-    
+
     real(kind = c_double), dimension(2, order_num) :: lxy
     real(kind = c_double), dimension(order_num) :: lw
-    
+
     call wandzura_rule(rule, order_num, lxy, lw)
     xy = lxy
-    w = lw 
-  
+    w = lw
+
   end subroutine wandzura_rule_sp
-  
+
   subroutine wandzura_rule_orig ( rule, order_num, xy, w )
 
   !*****************************************************************************80
@@ -1174,7 +1174,7 @@ module wandzura_quadrature
   !
   !    Input, integer ( kind = 4 ) RULE, the index of the rule.
   !
-  !    Input, integer ( kind = 4 ) ORDER_NUM, the order (number of points) 
+  !    Input, integer ( kind = 4 ) ORDER_NUM, the order (number of points)
   !    of the rule.
   !
   !    Output, real ( kind = 8 ) XY(2,ORDER_NUM), the points of the rule.
@@ -1251,7 +1251,7 @@ module wandzura_quadrature
 
         write ( *, '(a)' ) ' '
         write ( *, '(a)' ) 'WANDZURA_RULE - Fatal error!'
-        write ( *, '(a,i8,a,i8)' ) '  Illegal SUBORDER(', s, ') = ', suborder(s) 
+        write ( *, '(a,i8,a,i8)' ) '  Illegal SUBORDER(', s, ') = ', suborder(s)
         stop
 
       end if
@@ -1330,10 +1330,10 @@ module wandzura_quadrature
   !
   !    Input, integer ( kind = 4 ) RULE, the index of the rule.
   !
-  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders 
+  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders
   !    of the rule.
   !
-  !    Output, integer ( kind = 4 ) SUBORDER(SUBORDER_NUM), the suborders 
+  !    Output, integer ( kind = 4 ) SUBORDER(SUBORDER_NUM), the suborders
   !    of the rule.
   !
     implicit none
@@ -1468,7 +1468,7 @@ module wandzura_quadrature
   !
   !    Input, integer ( kind = 4 ) RULE, the index of the rule.
   !
-  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders 
+  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders
   !    of the rule.
   !
   !    Output, real ( kind = 8 ) SUBORDER_XYZ(3,SUBORDER_NUM),
@@ -1544,7 +1544,7 @@ module wandzura_quadrature
         0.2741281803136436D-01, &
         0.2651003659870330D-01, &
         0.2921596213648611D-01, &
-        0.1058460806624399D-01, & 
+        0.1058460806624399D-01, &
         0.3614643064092035D-02, &
         0.8527748101709436D-02, &
         0.1391617651669193D-01, &
@@ -1597,7 +1597,7 @@ module wandzura_quadrature
         0.1279933187864826D-01, &
         0.1725807117569655D-01, &
         0.1867294590293547D-01, &
-        0.2281822405839526D-01  & 
+        0.2281822405839526D-01  &
       /)
 
     else if ( rule == 5 ) then
@@ -1632,32 +1632,32 @@ module wandzura_quadrature
       /), (/ i4_3, suborder_num /) )
 
       suborder_w(1:suborder_num) = (/ &
-        0.8005581880020417D-02, &  
-        0.1594707683239050D-01, &  
-        0.1310914123079553D-01, &  
-        0.1958300096563562D-01, &  
-        0.1647088544153727D-01, &  
-        0.8547279074092100D-02, &  
-        0.8161885857226492D-02, &  
-        0.6121146539983779D-02, &  
-        0.2908498264936665D-02, &  
-        0.6922752456619963D-03, &  
-        0.1248289199277397D-02, &  
-        0.3404752908803022D-02, &  
-        0.3359654326064051D-02, &  
-        0.1716156539496754D-02, &  
-        0.1480856316715606D-02, &  
-        0.3511312610728685D-02, &  
-        0.7393550149706484D-02, &  
-        0.7983087477376558D-02, &  
-        0.4355962613158041D-02, &  
-        0.7365056701417832D-02, &  
-        0.1096357284641955D-01, &  
-        0.1174996174354112D-01, &  
-        0.1001560071379857D-01, &  
-        0.1330964078762868D-01, &  
-        0.1415444650522614D-01, &  
-        0.1488137956116801D-01  & 
+        0.8005581880020417D-02, &
+        0.1594707683239050D-01, &
+        0.1310914123079553D-01, &
+        0.1958300096563562D-01, &
+        0.1647088544153727D-01, &
+        0.8547279074092100D-02, &
+        0.8161885857226492D-02, &
+        0.6121146539983779D-02, &
+        0.2908498264936665D-02, &
+        0.6922752456619963D-03, &
+        0.1248289199277397D-02, &
+        0.3404752908803022D-02, &
+        0.3359654326064051D-02, &
+        0.1716156539496754D-02, &
+        0.1480856316715606D-02, &
+        0.3511312610728685D-02, &
+        0.7393550149706484D-02, &
+        0.7983087477376558D-02, &
+        0.4355962613158041D-02, &
+        0.7365056701417832D-02, &
+        0.1096357284641955D-01, &
+        0.1174996174354112D-01, &
+        0.1001560071379857D-01, &
+        0.1330964078762868D-01, &
+        0.1415444650522614D-01, &
+        0.1488137956116801D-01  &
       /)
 
     else if ( rule == 6 ) then
@@ -1702,42 +1702,42 @@ module wandzura_quadrature
       /), (/ i4_3, suborder_num /) )
 
       suborder_w(1:suborder_num) = (/ &
-        0.1557996020289920D-01, & 
-        0.3177233700534134D-02, & 
-        0.1048342663573077D-01, & 
-        0.1320945957774363D-01, & 
-        0.1497500696627150D-01, & 
-        0.1498790444338419D-01, & 
-        0.1333886474102166D-01, & 
-        0.1088917111390201D-01, & 
-        0.8189440660893461D-02, & 
-        0.5575387588607785D-02, & 
-        0.3191216473411976D-02, & 
-        0.1296715144327045D-02, & 
-        0.2982628261349172D-03, & 
-        0.9989056850788964D-03, & 
-        0.4628508491732533D-03, & 
-        0.1234451336382413D-02, & 
-        0.5707198522432062D-03, & 
-        0.1126946125877624D-02, & 
-        0.1747866949407337D-02, & 
-        0.1182818815031657D-02, & 
-        0.1990839294675034D-02, & 
-        0.1900412795035980D-02, & 
-        0.4498365808817451D-02, & 
-        0.3478719460274719D-02, & 
-        0.4102399036723953D-02, & 
-        0.4021761549744162D-02, & 
-        0.6033164660795066D-02, & 
-        0.3946290302129598D-02, & 
-        0.6644044537680268D-02, & 
-        0.8254305856078458D-02, & 
-        0.6496056633406411D-02, & 
-        0.9252778144146602D-02, & 
-        0.9164920726294280D-02, & 
-        0.1156952462809767D-01, & 
-        0.1176111646760917D-01, & 
-        0.1382470218216540D-01  & 
+        0.1557996020289920D-01, &
+        0.3177233700534134D-02, &
+        0.1048342663573077D-01, &
+        0.1320945957774363D-01, &
+        0.1497500696627150D-01, &
+        0.1498790444338419D-01, &
+        0.1333886474102166D-01, &
+        0.1088917111390201D-01, &
+        0.8189440660893461D-02, &
+        0.5575387588607785D-02, &
+        0.3191216473411976D-02, &
+        0.1296715144327045D-02, &
+        0.2982628261349172D-03, &
+        0.9989056850788964D-03, &
+        0.4628508491732533D-03, &
+        0.1234451336382413D-02, &
+        0.5707198522432062D-03, &
+        0.1126946125877624D-02, &
+        0.1747866949407337D-02, &
+        0.1182818815031657D-02, &
+        0.1990839294675034D-02, &
+        0.1900412795035980D-02, &
+        0.4498365808817451D-02, &
+        0.3478719460274719D-02, &
+        0.4102399036723953D-02, &
+        0.4021761549744162D-02, &
+        0.6033164660795066D-02, &
+        0.3946290302129598D-02, &
+        0.6644044537680268D-02, &
+        0.8254305856078458D-02, &
+        0.6496056633406411D-02, &
+        0.9252778144146602D-02, &
+        0.9164920726294280D-02, &
+        0.1156952462809767D-01, &
+        0.1176111646760917D-01, &
+        0.1382470218216540D-01  &
       /)
 
     else
@@ -1794,7 +1794,7 @@ module wandzura_quadrature
   !
   !    Input, integer ( kind = 4 ) RULE, the index of the rule.
   !
-  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders 
+  !    Input, integer ( kind = 4 ) SUBORDER_NUM, the number of suborders
   !    of the rule.
   !
   !    Output, real ( kind = 8 ) SUBORDER_XY(2,SUBORDER_NUM),
@@ -1870,7 +1870,7 @@ module wandzura_quadrature
          0.2741281803136436D-01, &
          0.2651003659870330D-01, &
          0.2921596213648611D-01, &
-         0.1058460806624399D-01, & 
+         0.1058460806624399D-01, &
          0.3614643064092035D-02, &
          0.8527748101709436D-02, &
          0.1391617651669193D-01, &
@@ -1923,7 +1923,7 @@ module wandzura_quadrature
          0.1279933187864826D-01, &
          0.1725807117569655D-01, &
          0.1867294590293547D-01, &
-         0.2281822405839526D-01  & 
+         0.2281822405839526D-01  &
       /)
 
     else if ( rule == 5 ) then
@@ -1958,32 +1958,32 @@ module wandzura_quadrature
       /), (/ i4_2, suborder_num /) )
 
       suborder_w(1:suborder_num) = (/ &
-         0.8005581880020417D-02, &  
-         0.1594707683239050D-01, &  
-         0.1310914123079553D-01, &  
-         0.1958300096563562D-01, &  
-         0.1647088544153727D-01, &  
-         0.8547279074092100D-02, &  
-         0.8161885857226492D-02, &  
-         0.6121146539983779D-02, &  
-         0.2908498264936665D-02, &  
-         0.6922752456619963D-03, &  
-         0.1248289199277397D-02, &  
-         0.3404752908803022D-02, &  
-         0.3359654326064051D-02, &  
-         0.1716156539496754D-02, &  
-         0.1480856316715606D-02, &  
-         0.3511312610728685D-02, &  
-         0.7393550149706484D-02, &  
-         0.7983087477376558D-02, &  
-         0.4355962613158041D-02, &  
-         0.7365056701417832D-02, &  
-         0.1096357284641955D-01, &  
-         0.1174996174354112D-01, &  
-         0.1001560071379857D-01, &  
-         0.1330964078762868D-01, &  
-         0.1415444650522614D-01, &  
-         0.1488137956116801D-01  & 
+         0.8005581880020417D-02, &
+         0.1594707683239050D-01, &
+         0.1310914123079553D-01, &
+         0.1958300096563562D-01, &
+         0.1647088544153727D-01, &
+         0.8547279074092100D-02, &
+         0.8161885857226492D-02, &
+         0.6121146539983779D-02, &
+         0.2908498264936665D-02, &
+         0.6922752456619963D-03, &
+         0.1248289199277397D-02, &
+         0.3404752908803022D-02, &
+         0.3359654326064051D-02, &
+         0.1716156539496754D-02, &
+         0.1480856316715606D-02, &
+         0.3511312610728685D-02, &
+         0.7393550149706484D-02, &
+         0.7983087477376558D-02, &
+         0.4355962613158041D-02, &
+         0.7365056701417832D-02, &
+         0.1096357284641955D-01, &
+         0.1174996174354112D-01, &
+         0.1001560071379857D-01, &
+         0.1330964078762868D-01, &
+         0.1415444650522614D-01, &
+         0.1488137956116801D-01  &
       /)
 
     else if ( rule == 6 ) then
@@ -2028,42 +2028,42 @@ module wandzura_quadrature
       /), (/ i4_2, suborder_num /) )
 
       suborder_w(1:suborder_num) = (/ &
-         0.1557996020289920D-01, & 
-         0.3177233700534134D-02, & 
-         0.1048342663573077D-01, & 
-         0.1320945957774363D-01, & 
-         0.1497500696627150D-01, & 
-         0.1498790444338419D-01, & 
-         0.1333886474102166D-01, & 
-         0.1088917111390201D-01, & 
-         0.8189440660893461D-02, & 
-         0.5575387588607785D-02, & 
-         0.3191216473411976D-02, & 
-         0.1296715144327045D-02, & 
-         0.2982628261349172D-03, & 
-         0.9989056850788964D-03, & 
-         0.4628508491732533D-03, & 
-         0.1234451336382413D-02, & 
-         0.5707198522432062D-03, & 
-         0.1126946125877624D-02, & 
-         0.1747866949407337D-02, & 
-         0.1182818815031657D-02, & 
-         0.1990839294675034D-02, & 
-         0.1900412795035980D-02, & 
-         0.4498365808817451D-02, & 
-         0.3478719460274719D-02, & 
-         0.4102399036723953D-02, & 
-         0.4021761549744162D-02, & 
-         0.6033164660795066D-02, & 
-         0.3946290302129598D-02, & 
-         0.6644044537680268D-02, & 
-         0.8254305856078458D-02, & 
-         0.6496056633406411D-02, & 
-         0.9252778144146602D-02, & 
-         0.9164920726294280D-02, & 
-         0.1156952462809767D-01, & 
-         0.1176111646760917D-01, & 
-         0.1382470218216540D-01  & 
+         0.1557996020289920D-01, &
+         0.3177233700534134D-02, &
+         0.1048342663573077D-01, &
+         0.1320945957774363D-01, &
+         0.1497500696627150D-01, &
+         0.1498790444338419D-01, &
+         0.1333886474102166D-01, &
+         0.1088917111390201D-01, &
+         0.8189440660893461D-02, &
+         0.5575387588607785D-02, &
+         0.3191216473411976D-02, &
+         0.1296715144327045D-02, &
+         0.2982628261349172D-03, &
+         0.9989056850788964D-03, &
+         0.4628508491732533D-03, &
+         0.1234451336382413D-02, &
+         0.5707198522432062D-03, &
+         0.1126946125877624D-02, &
+         0.1747866949407337D-02, &
+         0.1182818815031657D-02, &
+         0.1990839294675034D-02, &
+         0.1900412795035980D-02, &
+         0.4498365808817451D-02, &
+         0.3478719460274719D-02, &
+         0.4102399036723953D-02, &
+         0.4021761549744162D-02, &
+         0.6033164660795066D-02, &
+         0.3946290302129598D-02, &
+         0.6644044537680268D-02, &
+         0.8254305856078458D-02, &
+         0.6496056633406411D-02, &
+         0.9252778144146602D-02, &
+         0.9164920726294280D-02, &
+         0.1156952462809767D-01, &
+         0.1176111646760917D-01, &
+         0.1382470218216540D-01  &
       /)
 
     else

@@ -91,7 +91,7 @@ Command::Command (char* acCmdline)
     while (pkList)
     {
         m_apcArgument[i--] = pkList->m_pcItem;
-        
+
         Argument* pkSave = pkList->m_pkNext;
         WM4_DELETE pkList;
         pkList = pkSave;

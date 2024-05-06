@@ -30,7 +30,7 @@ subroutine compute_anisotropic_gradation
   call set(metric, 1, id * 1000000)  ! an isotropic edge length of 0.001
 
   call allocate(gamma, positions%mesh, "Gamma", FIELD_TYPE_NORMAL)
-  call set_from_function(gamma, set_gamma, positions) 
+  call set_from_function(gamma, set_gamma, positions)
 
   call form_anisotropic_gradation_metric(metric, positions, gamma_field=gamma)
   call vtk_write_state("data/anisotropic_gradation", 0, state=(/state/))

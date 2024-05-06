@@ -21,7 +21,7 @@ subroutine test_submesh
   do dim = 2,3
     write(0,*)
     write(0,*) 'dim = ', dim
-   
+
     if(dim==3) then
       vertices = 4
     elseif(dim==2) then
@@ -102,7 +102,7 @@ subroutine test_submesh
         write(0,*) "dim ", j
         write(0,*) ele_val(parx, i, j)
       end do
-    end do 
+    end do
     write(0,*) 'ParLump'
     write(0,*) parlump%val
     write(0,*) 'sum = ', sum(parlump%val)
@@ -116,7 +116,7 @@ subroutine test_submesh
         write(0,*) "dim ", j
         write(0,*) ele_val(highx, i, j)
       end do
-    end do 
+    end do
     write(0,*) 'HighLump'
     write(0,*) highlump%val
     write(0,*) 'sum = ', sum(highlump%val)
@@ -168,6 +168,6 @@ subroutine test_submesh
     call deallocate(parlump)
     call deallocate(highlump)
     call deallocate(baselump)
-  end do  
+  end do
 
-end subroutine test_submesh 
+end subroutine test_submesh

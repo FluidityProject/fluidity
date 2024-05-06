@@ -895,4 +895,3 @@ h5t_remove_tag (
 	TRY (ret_value = remove_tag (tagset, face_id, elem_idx));
 	H5_RETURN (ret_value);
 }
-

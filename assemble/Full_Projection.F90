@@ -1,5 +1,5 @@
 !  Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -51,13 +51,13 @@
     implicit none
 
 #include "petsc_legacy.h"
-    
+
     private
-    
+
     public petsc_solve_full_projection
-    
+
   contains
-    
+
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
       state, inner_mesh, auxiliary_matrix)
@@ -65,13 +65,13 @@
 
       ! Solve Schur complement problem the nice way (using petsc) !!
       ! Arguments that come in:
-      type(scalar_field), intent(inout) :: x ! Fluidity Solution vector 
+      type(scalar_field), intent(inout) :: x ! Fluidity Solution vector
       type(scalar_field), intent(inout)  :: rhs ! Fluidity RHS vector
       type(petsc_csr_matrix), intent(inout) :: inner_m ! Inner matrix of schur complement
       type(block_csr_matrix), intent(in) :: ctp_m, ct_m ! Fluidity Compressible / Incompressible Divergence matrices.
       ! Fluidity Preconditioner matrix. If preconditioner matrix is set as LumpedSchurComplement, this array comes in as
-      ! CMC where M is the inverse_lumped mass (ideal for Full_CMC solve). However, if preconditioner matrix is specified 
-      ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full 
+      ! CMC where M is the inverse_lumped mass (ideal for Full_CMC solve). However, if preconditioner matrix is specified
+      ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat
@@ -83,16 +83,16 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
 
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
-      Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
+      Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G)
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
-      
+
       character(len=OPTION_PATH_LEN) solver_option_path, name
       integer literations
       type(petsc_numbering_type) petsc_numbering
       logical lstartfromzero
-      
+
       ewrite(2,*) 'Entering Full Projection Solve:'
-      ewrite(2,*) 'Inner matrix of Schur complement: ',inner_m%name 
+      ewrite(2,*) 'Inner matrix of Schur complement: ',inner_m%name
 
       ! Start from zero? For now, always true.
       ewrite(2,*) 'Note: startfromzero hard-coded to .true.'
@@ -125,20 +125,20 @@
       ewrite(2,*) 'Copying PETSc solution vector into designated Fluidity array'
       ! Copy back the result into the fluidity solution array (x) using the PETSc numbering:
       call petsc2field(y, petsc_numbering, x, rhs)
-      
+
       ewrite(2,*) 'Destroying all PETSc objects'
       ! Destroy all PETSc objects and the petsc_numbering:
       call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, solver_option_path)
-      
+
       ewrite(2,*) 'Leaving PETSc_solve_full_projection'
-      
+
     end subroutine petsc_solve_full_projection
 
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
          velocity, state, inner_mesh, auxiliary_matrix)
-         
+
 !--------------------------------------------------------------------------------------------------------
 
       !  Sets up things needed to call petsc_solve_core. The following arrays/arguments go out:
@@ -200,10 +200,10 @@
       Mat G ! PETSc Gradient matrix (transpose of G_t_incomp)
       Mat S ! PETSc Stabilization matrix (auxiliary_matrix)
       Mat pmat ! PETSc preconditioning matrix
-      
+
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
       integer, dimension(:,:), pointer :: save_gnn2unn
-      type(integer_set), dimension(velocity%dim):: boundary_row_set      
+      type(integer_set), dimension(velocity%dim):: boundary_row_set
       integer reference_node, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
@@ -235,7 +235,7 @@
          call get_option(trim(option_path)//&
               '/prognostic/reference_node', reference_node)
          if (GetProcNo()==1) then
-            ewrite(2,*) 'Imposing_reference_pressure_node'        
+            ewrite(2,*) 'Imposing_reference_pressure_node'
             allocate(ghost_nodes(1:1))
             ghost_nodes(1) = reference_node
             call set(rhs,reference_node,0.0) ! Modify RHS accordingly
@@ -289,12 +289,12 @@
            ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
            ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
 
-      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m
       ! corresponding to dirichlet bcs have not been zeroed
       ! This is because lifting the dirichlet bcs from the continuity
       ! equation into ct_rhs would require maintaining the lifted contributions.
       ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
-      ! which means that we can't recompute those contributions as the columns 
+      ! which means that we can't recompute those contributions as the columns
       ! are already zeroed. Thus instead we only zero the corresponding rows and columns
       ! when copying into the div and grad matrices used in the Schur complement solve.
       ! The lifting of bc values in the continuity equation is already taken care of, as
@@ -313,7 +313,7 @@
         call deallocate(boundary_row_set(i))
       end do
 
-      ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
+      ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
       G_t_comp=block_csr2petsc(div_matrix_comp, petsc_numbering_p, petsc_numbering_u)
       G_t_incomp=block_csr2petsc(div_matrix_incomp, petsc_numbering_p, petsc_numbering_u)
@@ -340,18 +340,18 @@
               nnodes=size(auxiliary_matrix,2), nfields=1, &
               halo=auxiliary_matrix%sparsity%column_halo, &
               ghost_nodes=ghost_nodes_aux)
-         
+
          S=csr2petsc(auxiliary_matrix, petsc_numbering_aux, petsc_numbering_aux)
-         
+
          call deallocate(petsc_numbering_aux)
          deallocate(ghost_nodes_aux)
       end if
-      
+
       ! Need to assemble the petsc matrix before we use it:
       call assemble(inner_M)
 
       ! Build Schur complement:
-      ewrite(2,*) 'Building Schur complement'                
+      ewrite(2,*) 'Building Schur complement'
       if(have_auxiliary_matrix) then
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       else
@@ -360,7 +360,7 @@
          S%v = 0
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
       end if
-      
+
       if (have_option(trim(inner_option_path)//"/solver")) then
         ! for FullMass solver/ is required - and this is the first time we use these options
         ! for FullMomentum solver/ is optional - if present the specified nullspace options are possibly different
@@ -441,23 +441,22 @@
 
       call attach_null_space_from_options(A, solver_option_path, pmat=pmat, petsc_numbering=petsc_numbering_p)
       call create_ksp_from_options(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
-      
+
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,
       ! since the schur complement depends on them. As a result, even though they're destroyed
       ! here, the PETSc reference count ensures that they are not wiped from memory.
-      ! In other words, references to these arrays remain intact. 
+      ! In other words, references to these arrays remain intact.
 
       call MatDestroy(G_t_comp,ierr) ! Destroy Compressible Divergence Operator.
       call MatDestroy(G_t_incomp, ierr) ! Destroy Incompressible Divergence Operator.
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
       if(have_preconditioner_matrix) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
-      
+
       call deallocate( petsc_numbering_u )
-      ! petsc_numbering_p is passed back and destroyed there      
+      ! petsc_numbering_p is passed back and destroyed there
 
     end subroutine petsc_solve_setup_full_projection
 
   end module Full_Projection
-  

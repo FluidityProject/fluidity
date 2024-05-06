@@ -19,7 +19,7 @@ OnSurface=[]
 for i in range(ugrid.GetNumberOfPoints()):
   p=ugrid.GetPoints().GetPoint(i)
   OnSurface.append(1.0*(p[0]==p[1]))
-  
+
 OnSurface=numpy.array(OnSurface)</variable>
     <variable name="SurfaceDivergence" language="python">import vtk
 import numpy
@@ -33,7 +33,7 @@ SurfaceDivergence=[]
 
 for i in range(ugrid.GetNumberOfPoints()):
   SurfaceDivergence.append(ugrid.GetPointData().GetArray('SurfaceDivergence').GetValue(i))
-  
+
 SurfaceDivergence=numpy.array(SurfaceDivergence)</variable>
   </variables>
   <pass_tests>

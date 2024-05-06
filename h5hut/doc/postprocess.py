@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-from lxml import etree
-from lxml.html import builder as E
 import os
 import re
+
+from lxml import etree
+from lxml.html import builder as E
 
 tree   = etree.parse('tagfile')
 tags = tree.xpath ('//member[@kind="function"]')

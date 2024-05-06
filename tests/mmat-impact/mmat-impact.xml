@@ -6,8 +6,8 @@
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l 2material_impact.flml || true &amp;&amp; fluidity 2material_impact_9_checkpoint.flml </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
@@ -18,13 +18,13 @@ import vtktools
 firstvtu=vtktools.vtu('2material_impact_0.vtu')
 initialmaterialmass=firstvtu.GetScalarField('Material1::MaterialMass')
 suminitialmaterialmass=sum(initialmaterialmass)
-    </variable>    
+    </variable>
     <variable name="sumfinalmaterialmass" language="python">
 import vtktools
 finalvtu=vtktools.vtu('2material_impact_10.vtu')
 finalmaterialmass=finalvtu.GetScalarField('Material1::MaterialMass')
 sumfinalmaterialmass=sum(finalmaterialmass)
-    </variable>    
+    </variable>
     <variable name="checkpointinitialmat1vfrac" language="python">
 import vtktools
 vtu=vtktools.vtu('2material_impact_9.vtu')
@@ -32,7 +32,7 @@ vtu_checkpoint=vtktools.vtu('2material_impact_checkpoint_0.vtu')
 vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
 mat1vfrac=vtu_diff.GetScalarField("Material1::MaterialVolumeFraction")
 checkpointinitialmat1vfrac=max(mat1vfrac)
-    </variable>    
+    </variable>
 <!--    <variable name="checkpointinitialmat1dens" language="python">
 import vtktools
 vtu=vtktools.vtu('2material_impact_1.vtu')
@@ -40,7 +40,7 @@ vtu_checkpoint=vtktools.vtu('2material_impact_checkpoint_0.vtu')
 vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
 mat1dens=vtu_diff.GetScalarField("Material1::MaterialDensity")
 checkpointinitialmat1dens=max(mat1dens)
-    </variable>    
+    </variable>
     <variable name="checkpointinitialmat2dens" language="python">
 import vtktools
 vtu=vtktools.vtu('2material_impact_1.vtu')
@@ -50,19 +50,19 @@ mat2dens=vtu_diff.GetScalarField("Material2::MaterialDensity")
 checkpointinitialmat2dens=max(mat2dens)
     </variable>    -->
   </variables>
-    <pass_tests>  
+    <pass_tests>
     <test name="check material mass is conserved" language="python">
    assert abs(sumfinalmaterialmass-suminitialmaterialmass) &lt; 1e-3
-    </test>    
+    </test>
     <test name="check checkpointing - volumefraction" language="python">
    assert abs(checkpointinitialmat1vfrac) &lt; 1e-10
-    </test>    
+    </test>
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
     </test>
 <!--    <test name="check checkpointing - materialdensity1" language="python">
    assert abs(checkpointinitialmat1dens) &lt; 1e-10
-    </test>    
+    </test>
     <test name="check checkpointing - materialdensity2" language="python">
    assert abs(checkpointinitialmat2dens) &lt; 1e-10
     </test>    -->

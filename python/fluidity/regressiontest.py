@@ -1,27 +1,30 @@
 #!/usr/bin/env python3
-import sys
-import os
 import copy
-import random
-import xml.dom.minidom
-import traceback
-import time
 import glob
+import os
+import random
+import sys
 import threading
+import time
 import traceback
+import xml.dom.minidom
 from io import StringIO
 
 try:
     from junit_xml import TestCase
 except ImportError:
-    class TestCase(object):
-        def __init__(self,*args,**kwargs):
+
+    class TestCase:
+        def __init__(self, *args, **kwargs):
             pass
-        def add_failure_info(self,*args,**kwargs):
+
+        def add_failure_info(self, *args, **kwargs):
             pass
+
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
+
     def __init__(self, filename, verbose=False, replace=None, genpbs=False):
         """Read a regression test from filename and record its details."""
         self.name = ""
@@ -35,16 +38,16 @@ class TestProblem:
         self.warn_tests = []
         self.pass_status = []
         self.warn_status = []
-        self.filename = filename.split('/')[-1]
+        self.filename = filename.split("/")[-1]
         self.genpbs = genpbs
-        self.xml_reports=[]
+        self.xml_reports = []
         # add dir to import path
         sys.path.insert(0, os.path.dirname(filename))
 
         dom = xml.dom.minidom.parse(filename)
-    
+
         probtag = dom.getElementsByTagName("testproblem")[0]
-    
+
         for child in probtag.childNodes:
             try:
                 tag = child.tagName
@@ -56,35 +59,54 @@ class TestProblem:
             elif tag == "problem_definition":
                 self.length = child.getAttribute("length")
                 self.nprocs = int(child.getAttribute("nprocs"))
-                xmlcmd = child.getElementsByTagName("command_line")[0].childNodes[0].nodeValue
+                xmlcmd = (
+                    child.getElementsByTagName("command_line")[0]
+                    .childNodes[0]
+                    .nodeValue
+                )
                 if self.command is not None:
-                  self.command_line = self.command(xmlcmd)
+                    self.command_line = self.command(xmlcmd)
             elif tag == "variables":
                 for var in child.childNodes:
-                    try: 
-                        self.variables.append(Variable(name=var.getAttribute("name"), language=var.getAttribute("language"),
-                                      code=var.childNodes[0].nodeValue.strip()))
+                    try:
+                        self.variables.append(
+                            Variable(
+                                name=var.getAttribute("name"),
+                                language=var.getAttribute("language"),
+                                code=var.childNodes[0].nodeValue.strip(),
+                            )
+                        )
                     except AttributeError:
                         continue
             elif tag == "pass_tests":
                 for test in child.childNodes:
                     try:
-                        self.pass_tests.append(Test(name=test.getAttribute("name"), language=test.getAttribute("language"),
-                                           code=test.childNodes[0].nodeValue.strip()))
+                        self.pass_tests.append(
+                            Test(
+                                name=test.getAttribute("name"),
+                                language=test.getAttribute("language"),
+                                code=test.childNodes[0].nodeValue.strip(),
+                            )
+                        )
                     except AttributeError:
                         continue
             elif tag == "warn_tests":
                 for test in child.childNodes:
                     try:
-                        self.warn_tests.append(Test(name=test.getAttribute("name"), language=test.getAttribute("language"),
-                                           code=test.childNodes[0].nodeValue.strip()))
+                        self.warn_tests.append(
+                            Test(
+                                name=test.getAttribute("name"),
+                                language=test.getAttribute("language"),
+                                code=test.childNodes[0].nodeValue.strip(),
+                            )
+                        )
                     except AttributeError:
                         continue
 
         self.random_string()
 
     def log(self, str):
-        if self.verbose == True:
+        if self.verbose is True:
             print(self.filename[:-4] + ": " + str)
 
     def random_string(self):
@@ -98,11 +120,21 @@ class TestProblem:
         self.random = str
 
     def call_genpbs(self, dir):
-        cmd = "genpbs \"" + self.filename[:-4] + "\" \"" + self.command_line + "\" \"" + str(self.nprocs) + "\" \"" + self.random + "\""
-        self.log("cd "+dir+"; "+cmd)
-        ret = os.system("cd "+dir+"; "+cmd)
+        cmd = (
+            'genpbs "'
+            + self.filename[:-4]
+            + '" "'
+            + self.command_line
+            + '" "'
+            + str(self.nprocs)
+            + '" "'
+            + self.random
+            + '"'
+        )
+        self.log("cd " + dir + "; " + cmd)
+        ret = os.system("cd " + dir + "; " + cmd)
 
-        if ret != 0: 
+        if ret != 0:
             self.log("Calling genpbs failed.")
             raise Exception
 
@@ -121,91 +153,103 @@ class TestProblem:
         self.log("Cleaning")
 
         try:
-          os.stat("Makefile")
-          self.log("Calling 'make clean':")
-          ret = os.system("make clean")
-          if not ret == 0:
-            self.log("No clean target")
+            os.stat("Makefile")
+            self.log("Calling 'make clean':")
+            ret = os.system("make clean")
+            if not ret == 0:
+                self.log("No clean target")
         except OSError:
-          self.log("No Makefile, not calling make")
+            self.log("No Makefile, not calling make")
 
     def run(self, dir):
         self.log("Running")
 
-        run_time=0.0
-        start_time=time.process_time()
-        wall_time=time.time()
+        run_time = 0.0
+        start_time = time.process_time()
+        wall_time = time.time()
 
         try:
-          os.stat(dir+"/Makefile")
-          self.log("Calling 'make input':")
-          ret = os.system("cd "+dir+"; make input")
-          assert(ret == 0)
+            os.stat(dir + "/Makefile")
+            self.log("Calling 'make input':")
+            ret = os.system("cd " + dir + "; make input")
+            assert ret == 0
         except OSError:
-          self.log("No Makefile, not calling make")
+            self.log("No Makefile, not calling make")
 
         if self.genpbs:
             ret = self.call_genpbs(dir)
-            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
+            self.log(
+                "cd "
+                + dir
+                + "; qsub "
+                + self.filename[:-4]
+                + ".pbs: "
+                + self.command_line
+            )
+            os.system("cd " + dir + "; qsub " + self.filename[:-4] + ".pbs")
         else:
-          self.log(self.command_line)
-          os.system("cd "+dir+"; "+self.command_line)
-          run_time=time.process_time()-start_time
+            self.log(self.command_line)
+            os.system("cd " + dir + "; " + self.command_line)
+            run_time = time.process_time() - start_time
 
-        self.xml_reports.append(TestCase(self.name,
-                                            '%s.%s'%(self.length,
-                                                     self.filename[:-4]),
-                                           elapsed_sec=time.time()-wall_time))
+        self.xml_reports.append(
+            TestCase(
+                self.name,
+                "{}.{}".format(self.length, self.filename[:-4]),
+                elapsed_sec=time.time() - wall_time,
+            )
+        )
 
         return run_time
-        
-    def fl_logs(self, nLogLines = None):
-      logs = glob.glob("fluidity.log*")
-      errLogs = glob.glob("fluidity.err*")
-      
-      if nLogLines is None or nLogLines > 0:
-        for filename in logs:
-          log = open(filename, "r").read().split("\n")
-          if not nLogLines is None:
-            log = log[-nLogLines:]
-          self.log("Log: " + filename)
-          for line in log:
-            self.log(line)
-          
-      for filename in errLogs:
-        self.log("Log: " + filename)
-        log = open(filename, "r").read().split("\n")
-        for line in log:
-          self.log(line)
-      
-      return
+
+    def fl_logs(self, nLogLines=None):
+        logs = glob.glob("fluidity.log*")
+        errLogs = glob.glob("fluidity.err*")
+
+        if nLogLines is None or nLogLines > 0:
+            for filename in logs:
+                log = open(filename).read().split("\n")
+                if nLogLines is not None:
+                    log = log[-nLogLines:]
+                self.log("Log: " + filename)
+                for line in log:
+                    self.log(line)
+
+        for filename in errLogs:
+            self.log("Log: " + filename)
+            log = open(filename).read().split("\n")
+            for line in log:
+                self.log(line)
+
+        return
 
     def test(self):
         def Trim(string):
-          if len(string) > 4096:
-            return string[:4096] + " ..."
-          else:
-            return string
-    
+            if len(string) > 4096:
+                return string[:4096] + " ..."
+            else:
+                return string
+
         varsdict = {}
         self.log("Assigning variables:")
         for var in self.variables:
-            tmpdict  = {}
+            tmpdict = {}
             try:
-              var.run(tmpdict)
-            except:
-              self.log("failure.")
-              self.pass_status.append('F')
-              tc=TestCase(self.name,
-                          '%s.%s'%(self.length,
-                                   self.filename[:-4]))
-              tc.add_failure_info("Failure" )
-              self.xml_reports.append(tc)
-              return self.pass_status
+                var.run(tmpdict)
+            except Exception:
+                self.log("failure.")
+                self.pass_status.append("F")
+                tc = TestCase(
+                    self.name, "{}.{}".format(self.length, self.filename[:-4])
+                )
+                tc.add_failure_info("Failure")
+                self.xml_reports.append(tc)
+                return self.pass_status
 
             varsdict[var.name] = tmpdict[var.name]
-            self.log("Assigning %s = %s" % (str(var.name), Trim(str(varsdict[var.name]))))
+            self.log(
+                "Assigning {} = {}".format(str(var.name), Trim(str(varsdict[var.name])))
+            )
 
         if len(self.pass_tests) != 0:
             self.log("Running failure tests: ")
@@ -215,20 +259,20 @@ class TestProblem:
                 original_stdout = sys.stdout
                 sys.stdout = log
                 status = test.run(varsdict)
-                tc=TestCase(test.name,
-                            '%s.%s'%(self.length,
-                                     self.filename[:-4]))
-                if status == True:
+                tc = TestCase(
+                    test.name, "{}.{}".format(self.length, self.filename[:-4])
+                )
+                if status is True:
                     self.log("success.")
-                    self.pass_status.append('P')
-                elif status == False:
+                    self.pass_status.append("P")
+                elif status is False:
                     self.log("failure.")
-                    self.pass_status.append('F')
-                    tc.add_failure_info(  "Failure" )
+                    self.pass_status.append("F")
+                    tc.add_failure_info("Failure")
                 else:
                     self.log("failure (info == %s)." % status)
-                    self.pass_status.append('F')
-                    tc.add_failure_info(  "Failure", status )
+                    self.pass_status.append("F")
+                    tc.add_failure_info("Failure", status)
                 self.xml_reports.append(tc)
                 sys.stdout = original_stdout
                 log.seek(0)
@@ -240,21 +284,23 @@ class TestProblem:
             for test in self.warn_tests:
                 self.log("Running %s:" % test.name)
                 status = test.run(varsdict)
-                if status == True:
+                if status is True:
                     self.log("success.")
-                    self.warn_status.append('P')
-                elif status == False:
+                    self.warn_status.append("P")
+                elif status is False:
                     self.log("warning.")
-                    self.warn_status.append('W')
+                    self.warn_status.append("W")
                 else:
                     self.log("warning (info == %s)." % status)
-                    self.warn_status.append('W')
+                    self.warn_status.append("W")
 
-        self.log(''.join(self.pass_status + self.warn_status))
+        self.log("".join(self.pass_status + self.warn_status))
         return self.pass_status + self.warn_status
+
 
 class TestOrVariable:
     """Tests and variables have a lot in common. This code unifies the commonalities."""
+
     def __init__(self, name, language, code):
         self.name = name
         self.language = language
@@ -264,35 +310,40 @@ class TestOrVariable:
         func = getattr(self, "run_" + self.language)
         return func(varsdict)
 
+
 class Test(TestOrVariable):
     """A test for the model output"""
-    def run_bash(self, varsdict):
 
+    def run_bash(self, varsdict):
         varstr = ""
         for var in varsdict.keys():
-            varstr = varstr + ("export %s=\"%s\"; " % (var, varsdict[var]))
+            varstr = varstr + 'export {}="{}"; '.format(var, varsdict[var])
 
         retcode = os.system(varstr + self.code)
-        if retcode == 0: return True
-        else: return False
-    
+        if retcode == 0:
+            return True
+        else:
+            return False
+
     def run_python(self, varsdict):
         tmpdict = copy.copy(varsdict)
         try:
-          exec(self.code, tmpdict)
-          return True
+            exec(self.code, tmpdict)
+            return True
         except AssertionError:
-          # in case of an AssertionError, we assume the test has just failed
-          return False
-        except:
-          # tell us what else went wrong:
-          traceback.print_exc()
-          return False
+            # in case of an AssertionError, we assume the test has just failed
+            return False
+        except Exception:
+            # tell us what else went wrong:
+            traceback.print_exc()
+            return False
+
 
 class Variable(TestOrVariable):
     """A variable definition for use in tests"""
+
     def run_bash(self, varsdict):
-        cmd = "bash -c \"%s\"" % self.code
+        cmd = 'bash -c "%s"' % self.code
         fd = os.popen(cmd, "r")
         exec(self.name + "=" + fd.read(), varsdict)
         if self.name not in varsdict.keys():
@@ -302,11 +353,11 @@ class Variable(TestOrVariable):
         try:
             print(self.code)
             exec(self.code, varsdict)
-        except:
+        except Exception:
             print("Variable computation raised an exception")
             print("-" * 80)
-            for (lineno, line) in enumerate(self.code.split('\n')):
-              print("%3d  %s" % (lineno+1, line))
+            for lineno, line in enumerate(self.code.split("\n")):
+                print("%3d  %s" % (lineno + 1, line))
             print("-" * 80)
             traceback.print_exc()
             print("-" * 80)
@@ -318,13 +369,14 @@ class Variable(TestOrVariable):
             print("self.name not found: does the variable define the right name?")
             raise Exception
 
-class ThreadIterator(list):
-    '''A thread-safe iterator over a list.'''
-    def __init__(self, seq):
-        self.list=list(seq)
 
-        self.lock=threading.Lock()
-        
+class ThreadIterator(list):
+    """A thread-safe iterator over a list."""
+
+    def __init__(self, seq):
+        self.list = list(seq)
+
+        self.lock = threading.Lock()
 
     def __iter__(self):
         return self
@@ -333,16 +385,15 @@ class ThreadIterator(list):
         return self.next()
 
     def next(self):
-
-        if len(self.list)==0:
+        if len(self.list) == 0:
             raise StopIteration
-        
+
         self.lock.acquire()
-        ans=self.list.pop()
+        ans = self.list.pop()
         self.lock.release()
 
         return ans
-        
+
 
 if __name__ == "__main__":
     prob = TestProblem(filename=sys.argv[1], verbose=True)

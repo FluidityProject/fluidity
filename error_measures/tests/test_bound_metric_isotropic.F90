@@ -1,6 +1,5 @@
 subroutine test_bound_metric_isotropic
 
-  use global_parameters, only: current_debug_level
   use node_boundary, only: pseudo2d_coord
   use metric_assemble
   use adapt_state_module
@@ -23,14 +22,14 @@ subroutine test_bound_metric_isotropic
   type(tensor_field) :: hessian
   logical :: fail
   integer :: i
-  real :: x, y, z 
+  real :: x, y, z
 
   pseudo2d_coord = 3
   call vtk_read_state("data/1x1square-delaunay.vtu", state)
 
   mesh => extract_mesh(state, "Mesh")
   positions => extract_vector_field(state, "Coordinate")
-  call allocate(field, mesh, "Field") 
+  call allocate(field, mesh, "Field")
 
   do i=1,mesh%nodes
     x = positions%val(1,i)

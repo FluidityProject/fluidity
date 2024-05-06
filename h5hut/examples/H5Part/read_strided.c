@@ -23,7 +23,7 @@ int
 main (
         int argc, char* argv[]
         ){
-	
+
         // initialize MPI & H5hut
         MPI_Init (&argc, &argv);
         MPI_Comm comm = MPI_COMM_WORLD;
@@ -47,7 +47,7 @@ main (
 	printf ("[proc %d]: particles in view: %lld\n", comm_rank, (long long)num_particles);
 	printf ("[proc %d]: total number of particles: %lld\n",
 		comm_rank, (long long unsigned)num_particles_total);
-	
+
         // set number of particles and memory stride
         H5PartSetNumParticlesStrided (file, num_particles, 6);
 

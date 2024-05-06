@@ -1,5 +1,5 @@
 subroutine test_constant_fields
-  
+
   use fields
   use vtk_interfaces
   use state_module
@@ -27,7 +27,7 @@ subroutine test_constant_fields
 
   call allocate(sfield, mesh, "ScalarField", FIELD_TYPE_CONSTANT)
   call set(sfield, 1.0)
-  
+
   fail = .false.
   if (node_count(sfield) /= node_count(mesh)) then
     fail = .true.

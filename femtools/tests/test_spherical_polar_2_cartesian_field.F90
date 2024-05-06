@@ -22,7 +22,7 @@ subroutine test_spherical_polar_2_cartesian_field
   CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
   PolarCoordinate => extract_vector_field(state, "PolarCoordinate")
 
-  !Apply transformation to polar-coordinate field obtained from vtu file and 
+  !Apply transformation to polar-coordinate field obtained from vtu file and
   ! compare with cartesian position-vector.
   call allocate(difference, 3 , mesh, 'difference')
   call spherical_polar_2_cartesian(PolarCoordinate, difference)
@@ -31,7 +31,7 @@ subroutine test_spherical_polar_2_cartesian_field
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change of whole field: Spherical-polar to Cartesian.]", &
                    fail, .false., "Position vector components not transformed correctly.")
-  
+
   call deallocate(difference)
 
 end subroutine

@@ -44,7 +44,7 @@ void integer_set_fetch_c(Pvoid_t* i, int* idx, int* val)
   Word_t index = *idx, value;
   int worked;
   Pvoid_t ptr = (Pvoid_t) *i;
-  J1BC(worked, ptr, index, value); 
+  J1BC(worked, ptr, index, value);
   assert(worked == 1);
   *val = value;
   *i = ptr;
@@ -55,7 +55,7 @@ void integer_set_remove_c(Pvoid_t* i, int* idx, int* status)
   Word_t index = *idx;
   int stat;
   Pvoid_t ptr = (Pvoid_t) *i;
-  J1U(stat, ptr, index); 
+  J1U(stat, ptr, index);
   *status = stat;
   *i = ptr;
 }
@@ -65,7 +65,7 @@ void integer_set_has_value_c(Pvoid_t* i, int* val, int* present)
   Word_t value = *val;
   int wpresent;
   Pvoid_t ptr = (Pvoid_t) *i;
-  J1T(wpresent, ptr, value); 
+  J1T(wpresent, ptr, value);
   *present = wpresent;
 }
 
@@ -107,7 +107,7 @@ void integer_hash_table_fetch_c(Pvoid_t* i, int* k, int* v)
   Word_t key = *k, value;
   PWord_t pvalue = &value;
   Pvoid_t ptr = (Pvoid_t) *i;
-  JLG(pvalue, ptr, key); 
+  JLG(pvalue, ptr, key);
   if (pvalue == NULL)
   {
     fprintf(stderr, "Error: hash table has no key %d\n", *k);
@@ -122,7 +122,7 @@ void integer_hash_table_remove_c(Pvoid_t* i, int* k, int* status)
   Word_t key = *k;
   int stat;
   Pvoid_t ptr = (Pvoid_t) *i;
-  JLD(stat, ptr, key); 
+  JLD(stat, ptr, key);
   *status = stat;
   *i = ptr;
 }
@@ -132,7 +132,7 @@ void integer_hash_table_has_key_c(Pvoid_t* i, int* k, int* present)
   Word_t key = *k, value;
   PWord_t pvalue = &value;
   Pvoid_t ptr = (Pvoid_t) *i;
-  JLG(pvalue, ptr, key); 
+  JLG(pvalue, ptr, key);
   *present = (pvalue != NULL);
   *i = ptr;
 }
@@ -143,7 +143,7 @@ void integer_hash_table_fetch_pair_c(Pvoid_t* i, int* idx, int* key, int* val)
   Word_t index; /* what Judy calls index is what I am calling key */
   PWord_t pvalue;
   Pvoid_t ptr = (Pvoid_t) *i;
-  JLBC(pvalue, ptr, nth, index); 
+  JLBC(pvalue, ptr, nth, index);
   assert(pvalue != NULL);
   *key = index;
   *val = *pvalue;

@@ -307,7 +307,7 @@
   delta_mu = 1e4
   if(X[0] &lt; 0.5):
     mu = mu_ref
-  else: 
+  else:
     mu = delta_mu
   for i in range(2):
     for j in range(2):

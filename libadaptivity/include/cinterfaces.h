@@ -31,7 +31,7 @@
 
 // Methods
 extern "C" {
-#define adptvy_fc F77_FUNC(adptvy, ADPTVY) 
+#define adptvy_fc F77_FUNC(adptvy, ADPTVY)
   void adptvy_fc(int intBuffer[], const int *intBuffer_size, void *floatBuffer, const int *floatBuffer_size,
                  const int *Geom3D, const int *SRFGMY, const int *USEQ,
                  const int *NNodes, const int *NElements, const int *NSElements, const int *mxnods,
@@ -42,7 +42,7 @@ extern "C" {
                  const int *ref_NNodes, const int *ref_NElements, const int *ref_sizeENList, const int *ref_ENList, const int *ref_ENLBasePtr,
                  const void *ref_X, const void *ref_Y, const void *ref_Z,
                  const void *Metric, const void *fields, const int *NFREE, const int *TOTFRE, const int *NFIELD,
-                 const int *XPCTEL, 
+                 const int *XPCTEL,
                  int *newNNodes, int *newNElements, int *newNSElements,
                  int *NWSZEN, int *NWSZSN, int *NWSZNN, int *NWNDLC, int *NWSROW,
                  int *NWENLB, int *NWENLS, int *NWSNLB, int *NWSNLS, int *NWSFID,
@@ -52,15 +52,15 @@ extern "C" {
                  const void *DOTOP, const void *minChance, const int *AdaptIter, const int AdaptOpts[], const int *TWOSTG, const int *TOGTHR,
                  int Gather[], int Scatter[], int *NGather, int *NScatter, int *NPrivateNodes,
                  int ATOSEN[], int ATOREC[], const int *NProcs, const int *debug_level, const int *dbg, const int *chcnsy);
-  
+
 #define get_predicted_nelements_fc F77_FUNC(get_predicted_nelements, GET_EXPECTED_NELEMENTS)
-  int get_predicted_nelements_fc(const void *, const void *, const void *, const void *, 
+  int get_predicted_nelements_fc(const void *, const void *, const void *, const void *,
                                  const int *, const int *, const int *, const int *);
-  
+
 #define adaptmem_fc F77_FUNC(adaptmem, ADAPTMEM)
-  int adaptmem_fc(const int *, const int *, const int *, const int *, const int *, 
+  int adaptmem_fc(const int *, const int *, const int *, const int *, const int *,
                   const int *, const int *, const int *, const int *,const  int *, const int *);
-  
+
 #define adapt_false_fc F77_FUNC(adapt_false, ADAPT_FALSE)
   int adapt_false_fc();
 

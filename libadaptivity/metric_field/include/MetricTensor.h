@@ -72,7 +72,7 @@ class MetricTensor{
   MetricTensor(const MetricTensor&);
 
   /// Overloaded assignment operator.
-  const MetricTensor& operator=(const MetricTensor &); 
+  const MetricTensor& operator=(const MetricTensor &);
 
   /// Overloaded write operator.
   friend std::ostream &operator<< (std::ostream&, const MetricTensor&);
@@ -83,7 +83,7 @@ class MetricTensor{
 
   /// Average desired edge length
   double average_length() const;
-  
+
   /// Calculates metric tensor that circumscribes this tensor and
   /// input, M. This limits the minimum edge lengths anisotropically.
   int circumscribe(const MetricTensor& M);
@@ -139,10 +139,10 @@ class MetricTensor{
 
   /// Disable verbose mode.
   void verbose_off();
-  
+
   /// Enable verbose mode.
   void verbose_on();
-  
+
   /// Dump a copy of the metric as vtkPolyData. Must be configured with VTK support.
   int write_vtk(const char *filename) const;
 
@@ -152,7 +152,7 @@ class MetricTensor{
   static bool verbose;
 
   /// BLAS [DS]PEV abstraction
-  int blas_spev(char jobz, char uplo, int N, const double ap[],  
+  int blas_spev(char jobz, char uplo, int N, const double ap[],
 		double eigenvalues[],  double eigenvectors[],  int ldz,  double work[]) const;
 
   /// Cofactor of index i, j
@@ -179,7 +179,7 @@ class MetricTensor{
   int inv(double&, double&, double&,
           double&, double&, double&,
 	  double&, double&, double&) const;
-  
+
   /// Convert i, j index into lower-triangle index
   int lookup(size_t i, size_t j) const;
 

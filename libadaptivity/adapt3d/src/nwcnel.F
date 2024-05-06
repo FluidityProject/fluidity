@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -472,11 +472,11 @@ C
             END IF
 C
             IF( BIGLST(3,ELM1) .GE. 0 ) THEN
-C - swap the faces (3 and 4 of ELM1) 
+C - swap the faces (3 and 4 of ELM1)
                I = BIGLST(3,ELM1)
                BIGLST(3,ELM1) = ELM2
                BIGLST(4,ELM1) = 1 + I*2
-C - also swap edges 2/4 with 3/6 (of ELM1) to keep it consistent 
+C - also swap edges 2/4 with 3/6 (of ELM1) to keep it consistent
                NXT = BIGLST(NXTBIG,ELM1)
                I = BIGLST(2,NXT)
                BIGLST(2,NXT) = BIGLST(3,NXT)
@@ -486,11 +486,11 @@ C - also swap edges 2/4 with 3/6 (of ELM1) to keep it consistent
                BIGLST(4,NXT) = BIGLST(2,NXT2)
                BIGLST(2,NXT2) = I
             ELSE IF( BIGLST(2,ELM1) .GE. 0 ) THEN
-C - swap the faces (2 and 4 of ELM1) 
+C - swap the faces (2 and 4 of ELM1)
                I = BIGLST(2,ELM1)
                BIGLST(2,ELM1) = ELM2
                BIGLST(4,ELM1) = 1 + I*2
-C - also swap edges 1/5 with 2/6 (of ELM1) to keep it consistent 
+C - also swap edges 1/5 with 2/6 (of ELM1) to keep it consistent
                NXT = BIGLST(NXTBIG,ELM1)
                I = BIGLST(1,NXT)
                BIGLST(1,NXT) = BIGLST(2,NXT)
@@ -500,11 +500,11 @@ C - also swap edges 1/5 with 2/6 (of ELM1) to keep it consistent
                BIGLST(1,NXT2) = BIGLST(2,NXT2)
                BIGLST(2,NXT2) = I
             ELSE IF( BIGLST(1,ELM1) .GE. 0 ) THEN
-C - swap the faces (1 and 4 of ELM1) 
+C - swap the faces (1 and 4 of ELM1)
                I = BIGLST(1,ELM1)
                BIGLST(1,ELM1) = ELM2
                BIGLST(4,ELM1) = 1 + I*2
-C - also swap edges 1/3 with 4/5 (of ELM1) to keep it consistent 
+C - also swap edges 1/3 with 4/5 (of ELM1) to keep it consistent
                NXT = BIGLST(NXTBIG,ELM1)
                I = BIGLST(1,NXT)
                BIGLST(1,NXT) = BIGLST(4,NXT)

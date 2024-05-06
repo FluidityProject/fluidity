@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -53,7 +53,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    type(vector_field), intent(inout):: rhs
    type(state_type), intent(in):: state
    type(scalar_field), intent(in) :: density
-   
+
    type(vector_field), pointer:: velocity, nl_velocity, position, old_velocity
    type(scalar_field), pointer:: drag_coefficient, distance_top, distance_bottom
    character(len=OPTION_PATH_LEN) bctype
@@ -65,9 +65,9 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
-     
+
    ewrite(1,*) 'Inside drag_surface'
-   
+
    velocity => extract_vector_field(state, "Velocity")
    ! velocity at the beginning of the time step
    old_velocity => extract_vector_field(state, "OldVelocity")
@@ -78,7 +78,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    have_distance_bottom = stat == 0
    distance_top => extract_scalar_field(state, "DistanceToTop", stat)
    have_distance_top = stat == 0
-   
+
    call get_option("/timestepping/timestep", dt)
    call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", &
                       theta)
@@ -86,14 +86,14 @@ subroutine drag_surface(bigm, rhs, state, density)
           stat=stat)
    have_gravity = stat == 0
    parallel_dg=continuity(velocity)<0 .and. IsParallel()
-                      
+
    sngi=face_ngi(velocity, 1)
    snloc=face_loc(velocity,1)
-   
+
    allocate(faceglobalnodes(1:snloc), &
      face_detwei(1:sngi), coefficient(1:sngi), &
      drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
-   
+
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
    do i=1, nobcs
       call get_boundary_condition(velocity, i, type=bctype, &
@@ -109,16 +109,16 @@ subroutine drag_surface(bigm, rhs, state, density)
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
          do j=1, size(surface_element_list)
-           
+
             sele=surface_element_list(j)
             if (parallel_dg) then
               if (.not. element_owned(velocity, face_ele(velocity, sele))) cycle
             end if
 
             call transform_facet_to_physical(position, sele, face_detwei)
-            
+
             faceglobalnodes=face_global_nodes(nl_velocity, sele)
-            
+
             if(have_option(trim(velocity%option_path)//&
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/linear_drag')) then
               ! drag coefficient: C_D
@@ -133,28 +133,28 @@ subroutine drag_surface(bigm, rhs, state, density)
                  coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))
                end if
             end if
-               
+
             ! density to turn this into a momentum absorption term
             ! (of course this will just be 1 with boussinesq)
             density_face_gi = face_val_at_quad(density, sele)
-               
+
             drag_mat=shape_shape(face_shape(velocity, sele), &
                face_shape(velocity, sele), coefficient*face_detwei*density_face_gi)
-               
+
             do k=1, velocity%dim
                call addto(bigm, k, k, faceglobalnodes, faceglobalnodes, &
                   dt*theta*drag_mat)
                call addto(rhs, k, faceglobalnodes, &
                   -matmul(drag_mat, face_val(old_velocity, k, sele)) )
             end do
-            
+
          end do
-            
+
       end if
    end do
-     
+
    deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat)
-   
+
 end subroutine drag_surface
 
 end module drag_module

@@ -109,31 +109,37 @@
         x[k] = 1.0*i/b
         y[k] = 1.0*j/b
         k = k + 1
-        
+
   return reshape(concatenate((x,y)),(2,c)).T</string_value>
           </python>
         </initial_position>
         <attributes>
           <scalar_attribute name="Inside">
-            <constant>
-              <real_value rank="0">1</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">1</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute_array name="Buff">
             <dimension>
               <integer_value rank="0">3</integer_value>
             </dimension>
-            <constant>
-              <real_value rank="0">999</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">999</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute_array>
           <scalar_attribute_array name="InsideArray">
             <dimension>
               <integer_value rank="0">3</integer_value>
             </dimension>
-            <constant>
-              <real_value rank="0">1</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">1</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute_array>
         </attributes>
       </particle_subgroup>
@@ -155,31 +161,37 @@
         x[k] = 1.0*i/b
         y[k] = 1.0*j/b
         k = k + 1
-        
+
   return reshape(concatenate((x,y)),(2,c)).T</string_value>
           </python>
         </initial_position>
         <attributes>
           <scalar_attribute name="Inside">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">0</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute>
           <scalar_attribute_array name="Buff">
             <dimension>
               <integer_value rank="0">3</integer_value>
             </dimension>
-            <constant>
-              <real_value rank="0">999</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">999</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute_array>
           <scalar_attribute_array name="InsideArray">
             <dimension>
               <integer_value rank="0">3</integer_value>
             </dimension>
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
+            <attribute_value>
+              <constant>
+                <real_value rank="0">0</real_value>
+              </constant>
+            </attribute_value>
           </scalar_attribute_array>
         </attributes>
       </particle_subgroup>

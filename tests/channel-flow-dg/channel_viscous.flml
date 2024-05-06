@@ -224,7 +224,7 @@
             <string_value type="code" language="python" lines="20">import channel_viscous
 global sol
 sol=channel_viscous.solution(channel_viscous.forcing)
-        
+
 def val(X,t):
         return (sol(X), 0.0)</string_value>
           </python>

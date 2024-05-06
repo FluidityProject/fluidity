@@ -4,8 +4,8 @@
   <owner userid="jhill1"/>
   <tags>tool</tags>
   <problem_definition length="short" nprocs="1">
-      <command_line>fluidity rename_cp.flml; 
-                    fluidity rename_cp_all.flml; 
+      <command_line>fluidity rename_cp.flml;
+                    fluidity rename_cp_all.flml;
                     fluidity rename_checkpoint_5_checkpoint.flml;
                     rename_checkpoint rename_checkpoint 5 -s;</command_line>
     <!-- Checks the the rename_checkpoint script performs correctly -->

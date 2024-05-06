@@ -1,4 +1,4 @@
-!! test matrix-free PETSc solve 
+!! test matrix-free PETSc solve
 !! WE SOLVE MINUS LAPLACE EQUATION!
 #include "fdebug.h"
 
@@ -50,7 +50,7 @@
     end if
 
     read(unit, epsilon_data)
-    close(unit) 
+    close(unit)
 
     positions=read_mesh_files("cube_unstructured", &
          quad_degree=QUAD_DEGREE, format="gmsh")
@@ -133,7 +133,7 @@
       topdis => extract_scalar_field(state,"DistanceToTop",stat=stat)
       if(stat/=0) then
          FLExit('DistanceToTop is not present')
-      end if      
+      end if
       call get_boundary_condition(topdis,1,&
            surface_element_list=top_surface_element_list)
       call create_surface_mesh(top_surface_mesh, &
@@ -155,12 +155,12 @@
       call allocate(error, psi%mesh, "Error")
       call zero(error)
 
-      inquire(file="exact.py",exist=file_exists)  
+      inquire(file="exact.py",exist=file_exists)
       if (.not.file_exists) then
           ewrite(-1,*) "Looking for file", "exact.py"
           FLExit('Couldnt find file')
       end if
-      unit=free_unit() 
+      unit=free_unit()
       open(unit, file="exact.py", action="read",&
            & status="old")
       read(unit, '(a)', end=43) func
@@ -181,14 +181,14 @@
            rtol=1.0e-100, atol=1.0e-30, max_its=1000, &
            start_from_zero=.true.)
 
-      exact%val = exact%val - exact%val(top_surface_node_list(1)) 
+      exact%val = exact%val - exact%val(top_surface_node_list(1))
       exact%val(top_surface_node_list(1)) = 0.0
 
       call mult(rhs%val,A,exact%val)
 
       call zero(psi)
 
-      ! supplying the prolongator to petsc_solve makes 'mg' 
+      ! supplying the prolongator to petsc_solve makes 'mg'
       ! use the vertical_lumping option
       vprolongator = &
            vertical_prolongator_from_free_surface(state, psi%mesh)
@@ -249,7 +249,7 @@
     end subroutine get_laplacian
 
 subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
-     vertical,H0) 
+     vertical,H0)
   use unittest_tools
   use solvers
   use fields
@@ -264,7 +264,7 @@ subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
   logical, intent(in) :: vertical
   type(scalar_field), optional, intent(in) :: H0
   integer, intent(in) :: ele
-  
+
   ! Locations of quadrature points
   real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
   ! H0 at quadrature points
@@ -273,21 +273,21 @@ subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
   real, dimension(ele_loc(psi,ele), &
        ele_ngi(psi,ele), positions%dim) :: dshape_psi
   ! Coordinate transform * quadrature weights.
-  real, dimension(ele_ngi(positions,ele)) :: detwei    
+  real, dimension(ele_ngi(positions,ele)) :: detwei
   ! Node numbers of psi element.
   integer, dimension(:), pointer :: ele_psi
   ! Shape functions.
   type(element_type), pointer :: shape_psi
-  ! Local Laplacian matrix 
+  ! Local Laplacian matrix
   real, dimension(ele_loc(psi, ele), ele_loc(psi, ele)) :: psi_mat
   ! tensor
   real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) :: &
        tau_quad
   integer :: i
-  
+
   ele_psi=>ele_nodes(psi, ele)
   shape_psi=>ele_shape(psi, ele)
-  
+
   !tau_quad = 0.0
   !tau_quad(3,3,:) = 1.0
   !if(.not.vertical .or. positions%dim==2) then
@@ -297,7 +297,7 @@ subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
 
   ! Locations of quadrature points.
   X_quad=ele_val_at_quad(positions, ele)
-  
+
   ! value of H0 at quadrature points
   if(present(H0)) then
      H0_quad=ele_val_at_quad(H0, ele)
@@ -308,15 +308,14 @@ subroutine assemble_laplacian_element_contribution(A, positions, psi, ele, &
   ! Transform derivatives and weights into physical space.
   call transform_to_physical(positions, ele, shape_psi, dshape=dshape_psi,&
        & detwei=detwei)
-  
+
   ! Local assembly:
   !psi_mat=dshape_tensor_dshape(dshape_psi, tau_quad, dshape_psi, detwei)
   psi_mat=dshape_dot_dshape(dshape_psi, dshape_psi, detwei*H0_quad)
-  
+
   ! Global assembly:
   call addto(A, ele_psi, ele_psi, psi_mat)
-  
+
 end subroutine assemble_laplacian_element_contribution
 
   end subroutine test_pressure_solve
-

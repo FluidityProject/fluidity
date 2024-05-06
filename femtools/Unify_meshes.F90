@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -89,7 +89,7 @@ module unify_meshes_module
         do i=1,size(old_nodes)
           call set(union, new_nodes(i), node_val(meshes(mesh), old_nodes(i)))
         end do
-        
+
         ele_accum = ele_accum + 1
       end do
     end do
@@ -98,7 +98,7 @@ module unify_meshes_module
 
   subroutine unify_meshes_quadratic(posA, posB, posC)
   ! Given two volume-disjoint discontinuous positions fields,
-  ! unify them together. For example, this is useful for 
+  ! unify them together. For example, this is useful for
   ! stitching together the supermesh.
   ! For now, we assume the element types (triangles/quads etc)
   ! are the same.

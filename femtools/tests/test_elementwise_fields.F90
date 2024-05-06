@@ -20,7 +20,7 @@ subroutine test_elementwise_fields
 
   call insert(state, elementwise, "Element numbering")
   call vtk_write_state("data/elementwise", 0, state=state)
-  
+
   call report_test("[elementwise fields]", .false., .false., "If it doesn't crash you're on to a winner")
 
   call deallocate(state)

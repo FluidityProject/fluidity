@@ -19,7 +19,7 @@ subroutine test_form_metric
   logical :: fail, warn
 
   id = get_matrix_identity(3)
-  
+
   call vtk_read_state("data/test_spr.vtu", state)
   mesh => extract_mesh(state, "Mesh")
   position_field => extract_vector_field(state, "Coordinate")
@@ -43,7 +43,7 @@ subroutine test_form_metric
   warn = .false.
 
   call form_metric(state, metric, field)
-  
+
   do i=1,mesh%nodes
     if (.not. mat_zero(id - metric%val(:, :, i))) then
       fail = .true.

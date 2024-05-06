@@ -38,7 +38,7 @@ USA
 // options[2]:  1 // homogenious processing power
 //              2 // hetrogenious processing power
 // options[3]:  1 // no node weights
-//              2 // calculate edge weights based on the projected 
+//              2 // calculate edge weights based on the projected
 //                   density of nodes in the future
 // options[4]:  1 // no edge weights
 //              2 // calculate edge weights optimizing for adaptivity
@@ -74,17 +74,17 @@ using namespace std;
 Mesh *mesh = NULL;
 vector<int> decomp_opts;
 vector<int> noddom;
-  
-extern "C"{  
+
+extern "C"{
   void sam_init_fc(
-                   const int* dim, const int *NNodes,  const int *NElems, const int *NSElems, 
+                   const int* dim, const int *NNodes,  const int *NElems, const int *NSElems,
                    const int GATHER[], const int ATOSEN[],
                    const int SCATER[], const int ATOREC[],
                    const int* ncolga, const int* nscate, const int* nprocs,
                    const int ENLIST[], const int *nloc,
                    const int SNLIST[], const int SURFID[], const int *snloc,
                    const samfloat_t NODX[], const samfloat_t NODY[], const samfloat_t NODZ[],
-                   samfloat_t Metric[],     const samfloat_t FIELDS[], const int *NFIELDS, 
+                   samfloat_t Metric[],     const samfloat_t FIELDS[], const int *NFIELDS,
                    const int options[], const samfloat_t *fxnl_tol){
 #ifdef HAVE_MPI
     if(mesh != NULL)
@@ -96,11 +96,11 @@ extern "C"{
 
     CHECK( options[5] );
     mesh->mixed_formulation(options[5] == 2);
-  
-  
+
+
     if( mesh->mixed_formulation() )
       ECHO("Mixed-formulation capabilities have been enabled.");
-  
+
     // Slurp in Fluiditys' mesh
     ECHO("Importing mesh");
     mesh->import_fluidity(*dim, *NNodes, *NElems, *NSElems, *NNodes,
@@ -117,11 +117,11 @@ extern "C"{
       decomp_opts[i] = options[i];
 
     mesh->set_functional_tol(*fxnl_tol);
-  
+
     if( (options[2] == 2)&&(options[3] == 2) ){
-      cout<<"WARNING: It has been requested to load balance the mesh on a system with "          
+      cout<<"WARNING: It has been requested to load balance the mesh on a system with "
           << "heterogeneous point-to-point bandwidth and heterogeneous processing power."
-          << "This is a non-trivial request. SAM promises to do his best, but don't "     
+          << "This is a non-trivial request. SAM promises to do his best, but don't "
           << "expect wonders."<< endl;
     }
 #endif
@@ -132,17 +132,17 @@ extern "C"{
   {
 #ifdef HAVE_MPI
     assert(mesh != NULL);
-    
+
     // Graph partitioning.
     ECHO("Partitioning mesh...");
     noddom = mesh->decomp( decomp_opts );
     ECHO("...partitioned.");
-  
+
     // Migrate Mesh according to noddom.
     ECHO("Migrating mesh...");
     mesh->migrate( noddom );
     ECHO("...migrated.");
-  
+
     if(mesh->mixed_formulation()){
       mesh->invent_pressure_mesh();
       mesh->formHalo2();
@@ -203,16 +203,16 @@ extern "C"{
         i++;
       }
     }
-    
+
     int num_elements = mesh->element_list.size();
     vector<int> elm_owner(num_elements);
     for(int i=0;i<num_elements;i++){
       vector<unn_t> enl(mesh->element_list[i].get_enlist());
-      
+
       vector<unn_t>::iterator it=enl.begin();
       int gnn = mesh->unn2gnn(*it);
       elm_owner[i] = mesh->node_list[gnn].get_future_owner();
-      
+
       for(;it!=enl.end();++it){
         gnn = mesh->unn2gnn(*it);
         elm_owner[i] = min(elm_owner[i], (int)mesh->node_list[gnn].get_future_owner());
@@ -229,7 +229,7 @@ extern "C"{
         unsigned char type = mesh->element_list[e].get_flags();
         if( type & ELM_VOLUME ){
           vector<unn_t> enl(mesh->element_list[e].get_enlist());
-                    
+
           if(elm_owner[e]==MyRank){
             for(vector<unn_t>::const_iterator it=enl.begin(); it!=enl.end(); ++it){
               ENLIST[i++] = mesh->unn2gnn(*it) + 1;
@@ -246,8 +246,8 @@ extern "C"{
       }
     }
 
-    { 
-      // Compress surface element-node list and write the surface id's.    
+    {
+      // Compress surface element-node list and write the surface id's.
       mesh->do_element_headcount();
 #ifndef NDEBUG
       int NewNSElems = mesh->num_elements("surface");
@@ -259,7 +259,7 @@ extern "C"{
         unsigned char type = mesh->element_list[e].get_flags();
         if( type & ELM_SURFACE ){
           assert(pos<NewNSElems);
-          
+
           vector<unn_t> enl( mesh->element_list[e].get_enlist() );
           const vector<int>& ifields = mesh->element_list[e].get_ifields();
           if(elm_owner[e]==MyRank){
@@ -271,7 +271,7 @@ extern "C"{
             for(vector<unn_t>::const_iterator it = enl.begin(); it != enl.end(); ++it){
               halo_elements.push_back(mesh->unn2gnn(*it) + 1);
             }
-            halo_element_ids.push_back(ifields[0]);            
+            halo_element_ids.push_back(ifields[0]);
           }
         }
       }
@@ -285,11 +285,11 @@ extern "C"{
 #endif
     return;
   }
-  
+
   void sam_export_halo_fc(int* colgat, int* atosen, int* scater, int* atorec, const int* ncolga, const int* nscate, const int* nprocs, int* pnodes, int* nnodes){
 #ifdef HAVE_MPI
     assert(mesh != NULL);
-    
+
     mesh->export_halo(colgat, atosen, scater, atorec, ncolga, nscate, nprocs);
 
     *pnodes = mesh->node_list.psize();
@@ -301,23 +301,23 @@ extern "C"{
   void sam_export_phalo_fc(int* pcolgat, int* patosen, int* pscater, int* patorec, const int* pncolga, const int* pnscate, const int* nprocs, int* ppnodes, int* pnnodes){
 #ifdef HAVE_MPI
     assert(mesh != NULL);
-    
+
     mesh->export_phalo(pcolgat, patosen, pscater, patorec, pncolga, pnscate, nprocs);
     *ppnodes = mesh->MFnode_list.psize();
     *pnnodes = mesh->MFnode_list.size();
 #endif
     return;
   }
-  
+
   void sam_cleanup_fc(void){
     if(mesh != NULL){
       delete mesh;
       mesh = NULL;
-      
+
       decomp_opts.clear();
     }
     noddom.clear();
-    
+
     return;
   }
 
@@ -332,26 +332,26 @@ extern "C"{
 #endif
     return;
   }
-  
+
   void sam_pop_field_fc(samfloat_t* field_data, int *nnodes){
 #ifdef HAVE_MPI
     assert(mesh != NULL);
-    
+
     assert(mesh->node_list.size() == (size_t)*nnodes);
     for (size_t i=0;i<mesh->node_list.size();i++){
       field_data[i] = mesh->node_list[i].pop_field();
     }
 #endif
     return;
-  }  
-  
+  }
+
   void sam_export_node_ownership_fc(int* node_ownership, int* nnodes){
     assert(noddom.size() == *nnodes);
-      
+
     for(int i = 0;i < *nnodes;i++){
       node_ownership[i] = noddom[i];
     }
-    
+
     return;
   }
 }

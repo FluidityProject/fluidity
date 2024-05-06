@@ -24,7 +24,7 @@ run:
 \item MPI2 implementation (tested OpenMPI version 1.6.5)
 \item PETSc (tested version 3.8)
 \item ParMetis (tested version 3.2, 4.x not supported)
-\item Python (build tested version 2.7.5) 
+\item Python (build tested version 2.7.5)
 \item NumPy (build tested version 1.8.1)
 \item VTK (tested version 5.10.1, 6.x not supported)
 \item Zoltan (build tested version 3.8)
@@ -415,7 +415,7 @@ with the following configure:
 /path/to/gcc/source/configure --build=x86_64-linux-gnu
 --prefix=$WORKING/fluidity --with-gmp=$WORKING/fluidity
 --with-mpfr=$WORKING/fluidity --with-mpc=$WORKING/fluidity
---enable-checking=release --enable-languages=c,c++,fortran 
+--enable-checking=release --enable-languages=c,c++,fortran
 --disable-multilib --program-suffix=-4.8.2
 \end{lstlisting}
 
@@ -563,18 +563,18 @@ export PETSC_DIR=$PWD
 Then configure with the following all on one line:
 
 \begin{lstlisting}[language=bash]
-./configure --prefix=$WORKING/fluidity 
-   --download-fblaslapack=1 --download-blacs=1 --download-scalapack=1 
+./configure --prefix=$WORKING/fluidity
+   --download-fblaslapack=1 --download-blacs=1 --download-scalapack=1
    --download-ptscotch=1 --download-mumps=1 --download-hypre=1
    --download-suitesparse=1 --download-ml=1 --with-fortran-interfaces=1
 \end{lstlisting}
 
 This set of configuration options provides you with the additional
-multigrid preconditioners hypre and ml, and direct solvers umfpack 
+multigrid preconditioners hypre and ml, and direct solvers umfpack
 from SuiteSparse and mumps. These are not strictly necessary to run
 Fluidity, but have been found useful in different applications. NOTE:
 you should NOT build PETSc with parmetis
-(so no --download/with-parmetis=1) as the version used by PETSc 
+(so no --download/with-parmetis=1) as the version used by PETSc
 (parmetis 4.x) leads to incorrect behaviour in Fluidity. Therefore, the above
 configuration options uses ptscotch as an alternative.
 
@@ -582,7 +582,7 @@ When configure completes, it should supply you with a 'make all' command line,
 including various configuration variables. Copy and paste this into your
 terminal and run it. Once it completes, it will supply you with a further 'make
 install' command line containing other variables; do the same with this, copy
-and pasting it into your terminal and running it. 
+and pasting it into your terminal and running it.
 
 Finally, reset the environment variables back to normal:
 
@@ -596,7 +596,7 @@ sure you have built BLAS and LAPACK with \lstinline[language=bash]+-fPIC+.
 \subsubsection{Zoltan}
 \label{sec:required_libraries_numerical_zoltan}\index{Zoltan}
 
-Zoltan (fully tested with version 3.8) is available as a tarball from  
+Zoltan (fully tested with version 3.8) is available as a tarball from
 \url{http://www.cs.sandia.gov/~kddevin/Zoltan_Distributions/zoltan_distrib_v3.8.tar.gz}
 
 Uncompress the tarball, then make a build directory and change into it:
@@ -643,7 +643,7 @@ functionality. \fluidity is not yet tested with Python3. Python extensions
 required are: setuptools for \fluidity builds, Python-4suite and Python-XML for
 options file parsing, and NumPy for custom function use within \fluidity.
 
-If you do not have a working version of Python it can be built from source. 
+If you do not have a working version of Python it can be built from source.
 
 \subsubsection{Readline}
 \label{sec:required_libraries_python_readline}\index{Python!readline}
@@ -670,7 +670,7 @@ running the standard make and install.
 \label{sec:required_libraries_python_zlib}\index{Python!zLib}
 
 zLib (tested version 1.2.8) is not strictly needed for Python to build but is
-useful for many automated package scripts. Download zLib from 
+useful for many automated package scripts. Download zLib from
 \url{http://zlib.net/} and build in the source directory with the standard
 configure, make, and make install.
 
@@ -704,7 +704,7 @@ Ensure that the python you run is the python which you have just installed, as
 opposed to an alternative system version.
 
 Once this step is complete, remember to reset CFLAGS and LDFLAGS to the
-recommended environment versions; assuming you put the code earlier in this 
+recommended environment versions; assuming you put the code earlier in this
 appendix into your .bashrc you should be able to simply do this by logging out
 and in again, or restarting your terminal.
 
@@ -789,14 +789,14 @@ VTK_USE_GEOVIS                  OFF
 VTK_USE_INFOVIS                 OFF
 VTK_USE_N_WAY_ARRAYS            OFF
 VTK_USE_PARALLEL                OFF
-VTK_USE_QT                      OFF 
+VTK_USE_QT                      OFF
 VTK_USE_RENDERING               OFF
 VTK_USE_TEXT_ANALYSIS           OFF
 VTK_USE_VIEWS                   OFF
 VTK_WRAP_JAVA                   OFF
 VTK_WRAP_PYTHON                 ON
 VTK_WRAP_PYTHON_SIP             OFF
-VTK_WRAP_TCL                    OFF 
+VTK_WRAP_TCL                    OFF
 \end{lstlisting}
 
 Then:
@@ -813,7 +813,7 @@ Finally, run the standard make and install.
 \label{sec:required_libraries_gmsh}\index{gmsh!installing}
 
 GMSH is strongly recommended for mesh conversion and creation and is tested
-with version 2.8.4. It can be downloaded from the 'source' link at 
+with version 2.8.4. It can be downloaded from the 'source' link at
 \url{http://geuz.org/gmsh/#Download}.
 
 Uncompress the downloaded tarball, then make a build directory and change into
@@ -866,7 +866,7 @@ NetCDF and NetCDF-fortran are required for reading datafiles in NetCDF format,
 and are tested with NetCDF version 4.2.1.1 and NetCDF-fortran version 4.2. They
 is recommended to be configured with f77, f90, c, cxx, and utilities enabled,
 and with \lstinline[language=bash]+--enable-shared+ added to the standard
-configure. 
+configure.
 
 NetCDF can be downloaded from \url{http://www.unidata.ucar.edu/downloads/netcdf/}
 
@@ -892,7 +892,7 @@ should be sufficient for a GCC-based build on Linux.
 
 UDUnits can be downloaded from \url{http://www.unidata.ucar.edu/downloads/udunits/index.jsp}
 
-Legacy support should be present for UDUnits 1.x but this is no longer tested 
+Legacy support should be present for UDUnits 1.x but this is no longer tested
 hence is used at your own risk.
 
 \subsubsection{Trang}

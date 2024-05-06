@@ -13,7 +13,7 @@ subroutine test_matmul_t
 
   call allocate(A_d, 3, 3)
   call allocate(B_d, 3, 3)
-  
+
   do k=1,5
     write(buf,'(i0)') k
     fail = .false.
@@ -32,7 +32,7 @@ subroutine test_matmul_t
     end do
 
     C_d = matmul_T(A_d,B_d)
-    
+
     C=dense(C_d)
 
     call deallocate(C_d)

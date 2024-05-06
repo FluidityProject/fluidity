@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -45,7 +45,7 @@ implicit none
 private
 public synthetic_eddy_method, add_sem_bc, initialise_sem_memory
 
-  
+
 type eddy
    !!< Store eddy info, for synthetic eddy method
    real, dimension(:),pointer:: xeddy
@@ -63,7 +63,7 @@ type(eddy),dimension(:),pointer,save:: eddies
 
 contains
 
-  subroutine synthetic_eddy_method(surface_field, surface_field1,  & 
+  subroutine synthetic_eddy_method(surface_field, surface_field1,  &
        surface_field2, surface_field3, bc_position, bc_path_i, ns)
 
       ! declarations
@@ -127,7 +127,7 @@ contains
       call get_option(trim(bc_path_i),nots)
 
       ! calculate min&max turbulence lengthscale
-      lx => surface_field3%val(1,:)  
+      lx => surface_field3%val(1,:)
       ly => surface_field3%val(2,:)
       lz => surface_field3%val(3,:)
 
@@ -146,7 +146,7 @@ contains
       bcnod=surface_field%mesh%nodes
 
       ! coordinates of nodes
-      x => bc_position%val(1,:)  
+      x => bc_position%val(1,:)
       y => bc_position%val(2,:)
       z => bc_position%val(3,:)
 
@@ -227,7 +227,7 @@ contains
             allocate(cords(nots,3))
             call random_seed()
             call random_number(cords)
-            
+
             do i=1,nots
                eddies(ns)%xeddy(i)=xminb+(xmaxb-xminb)*cords(i,1)
                eddies(ns)%yeddy(i)=yminb+(ymaxb-yminb)*cords(i,2)
@@ -280,7 +280,7 @@ contains
          area(ns)=tarea
          initeddy(ns)=.false.
       endif
-      
+
       ewrite(3,*) 'surface info'
       ewrite(3,*) 'x min&max',xmin,xmax,dxp
       ewrite(3,*) 'y min&max',ymin,ymax,dyp
@@ -382,7 +382,7 @@ contains
                eddies(ns)%xeddy(i)=xmaxb+(xmaxb-xminb)*tmpcord(1)
                eddies(ns)%yeddy(i)=yminb+(ymaxb-yminb)*tmpcord(2)
                eddies(ns)%zeddy(i)=eddies(ns)%zeddy(i)+ratio*dzb
-               
+
                eddies(ns)%eu(i)=esign()
                eddies(ns)%ev(i)=esign()
                eddies(ns)%ew(i)=esign()
@@ -398,17 +398,17 @@ contains
 
          call mpi_bcast(eddies(ns)%eu(1:nots),nots,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
          call mpi_bcast(eddies(ns)%ev(1:nots),nots,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
-         call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)        
+         call mpi_bcast(eddies(ns)%ew(1:nots),nots,mpi_integer,0,MPI_COMM_FEMTOOLS,ierr)
       endif
-#endif 
+#endif
 
       !ewrite(3,*) 'eddy coordinates & signs'
       !do i=1,nots
       !   ewrite(3,*) i,                                                    &
-      !        eddies(ns)%xeddy(i),eddies(ns)%yeddy(i),eddies(ns)%zeddy(i), & 
+      !        eddies(ns)%xeddy(i),eddies(ns)%yeddy(i),eddies(ns)%zeddy(i), &
       !        eddies(ns)%eu(i),eddies(ns)%ev(i),eddies(ns)%ew(i)
       !enddo
-      
+
       ! calculate fluctuating component
       allocate(ufl(bcnod))
       allocate(vfl(bcnod))
@@ -462,7 +462,7 @@ contains
             ewrite(3,*) 'WARNING: there is a negative value in Re_ww'
             resww=1.e-5
          end if
-         
+
          a11 = sqrt(resuu)
          a21 = 0.
          a22 = sqrt(resvv)
@@ -535,16 +535,16 @@ contains
       call random_number(i)
 
       if (i<0.5) then
-        esign = -1        
+        esign = -1
       else
         esign = +1
       endif
 
-      return 
+      return
      end function esign
-     
+
      !----------------------------------------------------------
-     
+
      subroutine initialise_sem_memory(ns,nots)
 
        logical,save::initialise_memory=.false.
@@ -559,17 +559,17 @@ contains
           allocate(eddies(nsem))
           initialise_memory=.true.
        endif
-       
+
        if(initeddymem(ns))then
           allocate(eddies(ns)%xeddy(nots));allocate (eddies(ns)%yeddy(nots));allocate(eddies(ns)%zeddy(nots))
           allocate(eddies(ns)%eu(nots))   ;allocate(eddies(ns)%ev(nots))    ;allocate(eddies(ns)%ew(nots))
           initeddymem(ns)=.false.
        endif
-       
+
      end subroutine initialise_sem_memory
-     
+
      !----------------------------------------------------------
-     
+
      subroutine add_sem_bc(have_sem_bc)
 
        logical:: have_sem_bc
@@ -577,9 +577,8 @@ contains
        if (have_sem_bc) then
           sem_bc_count=sem_bc_count+1
        end if
-       
+
      end subroutine add_sem_bc
-     
-     
+
+
    end module synthetic_bc
-   

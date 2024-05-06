@@ -11,7 +11,7 @@
   program read_file_attribs
     use H5hut
     implicit none
-#if defined(PARALLEL_IO)    
+#if defined(PARALLEL_IO)
     include 'mpif.h'
 #endif
 
@@ -45,7 +45,7 @@
     ! H5hut file id
     integer*8 :: file_id
 
-    ! H5hut API status return 
+    ! H5hut API status return
     integer*8 status
 
     ! type of attribute

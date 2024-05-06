@@ -199,23 +199,23 @@
             <string_value type="code" language="python" lines="20">def val(X,t):
    # get the 1d coord
    x = X[0]
-   
+
    # define the analytic input
    x_left      = 0.0
    x_right     = 10.0
    src         = 1.234
    bc_right_r0 = 3.14
-   bc_right_r1 = 0.78  
-   
-   T_inf = bc_right_r0 / bc_right_r1   
+   bc_right_r1 = 0.78
+
+   T_inf = bc_right_r0 / bc_right_r1
    gamma = bc_right_r1
-   
+
    # calc the analytic solution
    T = (src/2.0)*(x_right**2 - x**2) \
      + (src*x_left)*(x - x_right) \
      + (src/gamma)*(x_right - x_left) \
-     + T_inf 
-   
+     + T_inf
+
    return T</string_value>
           </python>
         </value>

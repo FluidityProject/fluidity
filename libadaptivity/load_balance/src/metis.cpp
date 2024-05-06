@@ -43,14 +43,14 @@ using std::vector;
 using std::set;
 using csr::Graph;
 
-// METIS_PartGraphRecursive(int *, idxtype *, idxtype *, 
-//                          idxtype *, idxtype *, int *, 
+// METIS_PartGraphRecursive(int *, idxtype *, idxtype *,
+//                          idxtype *, idxtype *, int *,
 //                          int *, int *, int *, int *, idxtype *);
 void Graph::PartGraphRecursive(int nparts, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
@@ -59,47 +59,47 @@ void Graph::PartGraphRecursive(int nparts, vector<int>& noddom){
   options[3] = 1; // Early-Exit Boundary FM refinment
   options[4] = 0; // always set to 0
 
-  METIS_PartGraphRecursive(&ncnt,  
-			   bptr.begin(), edges.begin(), 
+  METIS_PartGraphRecursive(&ncnt,
+			   bptr.begin(), edges.begin(),
 			   NULL, NULL, &wflag, &cflag,
 			   &nparts, options,
 			   &edgecut, noddom.begin());
 
 }
- 
-// METIS_PartGraphKway(int *, idxtype *, idxtype *, 
-//                     idxtype *, idxtype *, int *, 
+
+// METIS_PartGraphKway(int *, idxtype *, idxtype *,
+//                     idxtype *, idxtype *, int *,
 //                     int *, int *, int *, int *, idxtype *);
 void Graph::PartGraphKway(int nparts, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
   options[1] = 3; // Sorted heavy edge matching
   options[2] = 1; // Multilevel recursive bisection
-  options[3] = 3; /* Random boundary refinment that also minimizes 
+  options[3] = 3; /* Random boundary refinment that also minimizes
 		     the connectivity among the subdomains. */
   options[4] = 0; // always set to 0
-  
-  METIS_PartGraphKway(&ncnt,  
-		      bptr.begin(), edges.begin(), 
+
+  METIS_PartGraphKway(&ncnt,
+		      bptr.begin(), edges.begin(),
 		      NULL, NULL, &wflag, &cflag,
 		      &nparts, options,
 		      &edgecut, noddom.begin());
 
 }
 
-// METIS_PartGraphVKway(int *, idxtype *, idxtype *, 
-//                      idxtype *, idxtype *, int *, 
+// METIS_PartGraphVKway(int *, idxtype *, idxtype *,
+//                      idxtype *, idxtype *, int *,
 //                      int *, int *, int *, int *, idxtype *);
 void Graph::PartGraphVKway(int nparts, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
@@ -107,23 +107,23 @@ void Graph::PartGraphVKway(int nparts, vector<int>& noddom){
   options[2] = 1; // Multilevel recursive bisection
   options[3] = 1; // Random boundary refinment
   options[4] = 0; // always set to 0
-  
-  METIS_PartGraphVKway(&ncnt,  
-		       bptr.begin(), edges.begin(), 
+
+  METIS_PartGraphVKway(&ncnt,
+		       bptr.begin(), edges.begin(),
 		       NULL, NULL, &wflag, &cflag,
 		       &nparts, options,
 		       &edgecut, noddom.begin());
 
 }
 
-// METIS_mCPartGraphRecursive(int *, int *, idxtype *, idxtype *, 
-//                            idxtype *, idxtype *, int *, 
+// METIS_mCPartGraphRecursive(int *, int *, idxtype *, idxtype *,
+//                            idxtype *, idxtype *, int *,
 //                            int *, int *, int *, int *, idxtype *);
 void Graph::mCPartGraphRecursive(int nparts, int ncon, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
@@ -132,47 +132,47 @@ void Graph::mCPartGraphRecursive(int nparts, int ncon, vector<int>& noddom){
   options[3] = 1; // Early-Exit Boundary FM refinment
   options[4] = 0; // always set to 0
 
-  METIS_mCPartGraphRecursive(&ncnt, &ncon,  
-			     bptr.begin(), edges.begin(), 
+  METIS_mCPartGraphRecursive(&ncnt, &ncon,
+			     bptr.begin(), edges.begin(),
 			     NULL, NULL, &wflag, &cflag,
 			     &nparts, options,
 			     &edgecut, noddom.begin());
 
 }
 
-// METIS_mCPartGraphKway(int *, int *, idxtype *, idxtype *, 
-//                       idxtype *, idxtype *, int *, 
+// METIS_mCPartGraphKway(int *, int *, idxtype *, idxtype *,
+//                       idxtype *, idxtype *, int *,
 //                       int *, int *, int *, int *, idxtype *);
 void Graph::mCPartGraphKway(int nparts, int ncon, vector<float>& vcon, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
   options[1] = 3; // Sorted heavy edge matching
   options[2] = 1; // Multilevel recursive bisection
-  options[3] = 3; /* Random boundary refinment that also minimizes 
+  options[3] = 3; /* Random boundary refinment that also minimizes
 		     the connectivity among the subdomains. */
   options[4] = 0; // always set to 0
-  
+
   METIS_mCPartGraphKway(&ncnt, &ncon,
-			bptr.begin(), edges.begin(), 
+			bptr.begin(), edges.begin(),
 			NULL, NULL, &wflag, &cflag,
 			&nparts, vcon.begin(), options,
 			&edgecut, noddom.begin());
 
 }
 
-// METIS_WPartGraphRecursive(int *, idxtype *, idxtype *, 
-//                          idxtype *, idxtype *, int *, 
+// METIS_WPartGraphRecursive(int *, idxtype *, idxtype *,
+//                          idxtype *, idxtype *, int *,
 //                          int *, int *, float *,int *, int *, idxtype *);
 void Graph::WPartGraphRecursive(int nparts, vector<float>& pweights, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
@@ -181,47 +181,47 @@ void Graph::WPartGraphRecursive(int nparts, vector<float>& pweights, vector<int>
   options[3] = 1; // Early-Exit Boundary FM refinment
   options[4] = 0; // always set to 0
 
-  METIS_WPartGraphRecursive(&ncnt,  
-			    bptr.begin(), edges.begin(), 
+  METIS_WPartGraphRecursive(&ncnt,
+			    bptr.begin(), edges.begin(),
 			    NULL, NULL, &wflag, &cflag,
 			    &nparts, pweights.begin(), options,
 			    &edgecut, noddom.begin());
 
 }
 
-// METIS_WPartGraphKway(int *, idxtype *, idxtype *, 
-//                     idxtype *, idxtype *, int *, 
+// METIS_WPartGraphKway(int *, idxtype *, idxtype *,
+//                     idxtype *, idxtype *, int *,
 //                     int *, int *, float *, int *, int *, idxtype *);
 void Graph::WPartGraphKway(int nparts, const vector<float>& pweights, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
   options[1] = 3; // Sorted heavy edge matching
   options[2] = 1; // Multilevel recursive bisection
-  options[3] = 3; /* Random boundary refinment that also minimizes 
+  options[3] = 3; /* Random boundary refinment that also minimizes
 		     the connectivity among the subdomains. */
   options[4] = 0; // always set to 0
-  
-  METIS_WPartGraphKway(&ncnt,  
-		       bptr.begin(), edges.begin(), 
+
+  METIS_WPartGraphKway(&ncnt,
+		       bptr.begin(), edges.begin(),
 		       NULL, NULL, &wflag, &cflag,
 		       &nparts, (float *)(pweights.begin()), options,
 		       &edgecut, noddom.begin());
 
 }
 
-// METIS_WPartGraphVKway(int *, idxtype *, idxtype *, 
-//                       idxtype *, idxtype *, int *, 
+// METIS_WPartGraphVKway(int *, idxtype *, idxtype *,
+//                       idxtype *, idxtype *, int *,
 //                       int *, int *, float *, int *, int *, idxtype *);
 void Graph::WPartGraphVKway(int nparts, vector<float>& pweights, vector<int>& noddom){
-  
+
   int wflag = 0, cflag = 0, edgecut;
   int options[5];
-  
+
   int ncnt = nnodes;
 
   options[0] = 1; // Read remaining options
@@ -229,16 +229,16 @@ void Graph::WPartGraphVKway(int nparts, vector<float>& pweights, vector<int>& no
   options[2] = 1; // Multilevel recursive bisection
   options[3] = 1; // Random boundary refinment
   options[4] = 0; // always set to 0
-  
-  METIS_WPartGraphVKway(&ncnt,  
-			bptr.begin(), edges.begin(), 
+
+  METIS_WPartGraphVKway(&ncnt,
+			bptr.begin(), edges.begin(),
 			NULL, NULL, &wflag, &cflag,
 			&nparts, pweights.begin(), options,
 			&edgecut, noddom.begin());
 
 #ifndef PARMETIS_V3
-  METIS_WPartGraphVKway(&ncnt,  
-			bptr.begin(), edges.begin(), 
+  METIS_WPartGraphVKway(&ncnt,
+			bptr.begin(), edges.begin(),
 			&nparts, pweights.begin(), options,
 			&edgecut, noddom.begin());
 #endif
@@ -248,7 +248,7 @@ void Graph::WPartGraphVKway(int nparts, vector<float>& pweights, vector<int>& no
 void Graph::NodeND(vector<int>& perm, vector<int>& iperm){
   int cflag = 0;
   int options[8];
-  
+
   int ncnt = nnodes;
   options[0] = 1;
   options[1] = 3;
@@ -258,22 +258,8 @@ void Graph::NodeND(vector<int>& perm, vector<int>& iperm){
   options[5] = 1;
   options[6] = 0;
   options[7] = 1;
-  
-  
-  METIS_NodeND(&ncnt, bptr.begin(), edges.begin(), 
+
+
+  METIS_NodeND(&ncnt, bptr.begin(), edges.begin(),
 	       &cflag, options, perm.begin(), iperm.begin());
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

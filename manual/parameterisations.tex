@@ -44,15 +44,15 @@ with
 \nu_H = \sqrt{k}lS_{H}+\nu_H^0,
 \label{eq:diff}
 \end{equation}
-Here, we follow the notation of \citet{umlauf2003}, where $u$ and $v$ are the 
-horizontal components of the Reynolds-averaged velocity along the $x$- and $y$-axes, 
-$w$ is the vertical velocity along the vertical $z$-axis, positive upwards, and 
-$u'$, $v'$ and $w'$ are the components of the turbulent fluctuations about the 
-mean velocity. $\nu_H^0$ is the background diffusivity, $\nu_M^0$ is the background viscosity, 
+Here, we follow the notation of \citet{umlauf2003}, where $u$ and $v$ are the
+horizontal components of the Reynolds-averaged velocity along the $x$- and $y$-axes,
+$w$ is the vertical velocity along the vertical $z$-axis, positive upwards, and
+$u'$, $v'$ and $w'$ are the components of the turbulent fluctuations about the
+mean velocity. $\nu_H^0$ is the background diffusivity, $\nu_M^0$ is the background viscosity,
 $S_{M}$ and $S_{H}$ are often referred to as stability functions, $k$ is the turbulent kinetic energy,
-and $l$ is a length-scale. When using GLS the values of $\nu_M$ and $\nu_H$ become the 
-vertical components of the tensors $\tautens$ and $\kaptens_T$ 
-in equation \ref{boussinesq} respectively. Other tracer fields, such as 
+and $l$ is a length-scale. When using GLS the values of $\nu_M$ and $\nu_H$ become the
+vertical components of the tensors $\tautens$ and $\kaptens_T$
+in equation \ref{boussinesq} respectively. Other tracer fields, such as
 salinity use the same diffusivity as temperature, i.e. $\kaptens_T = \kaptens_S$.
 
 The generic length scale turbulence closure model \citep{umlauf2003} is based
@@ -64,9 +64,9 @@ generic second quantity, $\Psi$. The TKE equation is:
 \label{eq:tke_one}
 \end{equation}
 
-\noindent 
+\noindent
 where $\sigma_k$ is the turbulence Schmidt number for $k$, $u_i$ are the
-velocity components ($u$, $v$ and $w$ in the $x$, $y$ and $z$ directions 
+velocity components ($u$, $v$ and $w$ in the $x$, $y$ and $z$ directions
 respectively), and $P$ and $B$ represent production by shear and buoyancy
 which are defined as:
 \begin{equation}
@@ -78,7 +78,7 @@ P=-\overline{u'w'}\frac{\partial u}{\partial z}-\overline{v'w'}
 B=-\frac{g}{\rho_0}\overline{\rho'w'}=-\nu_HN^2, \quad N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z}
 \end{equation}
 
-Here $N$ is the buoyancy frequency; $u$ and $v$ are the horizontal velocity 
+Here $N$ is the buoyancy frequency; $u$ and $v$ are the horizontal velocity
 components. The dissipation is modelled using a rate of dissipation term:
 \begin{equation}
 \epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}}
@@ -223,7 +223,7 @@ The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1
 the model parameters chosen and can be related to traditional stability functions \citep{umlauf2005}.
 
 \fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001},
-each of which can be used in conjunction with any of $gen$, $k-\epsilon$, and $k-\omega$ closures; and CanutoA and KanthaClayson94 available with the $k-kl$ 
+each of which can be used in conjunction with any of $gen$, $k-\epsilon$, and $k-\omega$ closures; and CanutoA and KanthaClayson94 available with the $k-kl$
 closure scheme.
 
 \par{\textbf{Boundary conditions}\\}
@@ -247,12 +247,12 @@ as:
 \Psi=\left(c_\mu^0\right)^{p}l^nk^m
 \end{equation}
 
-At the top of the viscous sublayer the value of $\Psi$ can be determined from equation \ref{eq:psi}, 
+At the top of the viscous sublayer the value of $\Psi$ can be determined from equation \ref{eq:psi},
 specifying $l=\kappa z$ and $k$ from equation \ref{eq:k_dir_bc}, giving:
 \begin{equation}
 \Psi=\left(c_\mu^0\right)^{p-2m}\kappa^n\left(u_s^*\right)^{2m}\left(\kappa z_s\right)^n
 \end{equation}
-where $z_s$ is the distance from the boundary surface (either surface or bottom) and $u_s^*$ is the 
+where $z_s$ is the distance from the boundary surface (either surface or bottom) and $u_s^*$ is the
 friction at the surface or bottom respectively.
 
 Calculating the corresponding Neumann  conditions by differentiating with respect to $z$, yields:
@@ -448,7 +448,7 @@ diffusivity of mass.
 \par{\textbf{Time discretisation and coupling}\\}
 The $k$ and $\epsilon$ equations are coupled and are highly non-linear. In Fluidity, the
 equations are linearised and decoupled using available values from previous iterations
-and time steps as follows.  
+and time steps as follows.
 
 Being consistent with all advection diffusion equations in Fluidity, the density and
 velocity values used are defined by non-linear relaxation of the available values for
@@ -458,7 +458,7 @@ for the remainder of this section.
 
 Two discretisations are used for $k$ and $\epsilon$. % The time-discretisation of the
 % advection diffusion equations for $k$ and $\epsilon$ differs from the discretisation
-% described in section\ref{sec:ND_time_disct_adv_diff} due to 
+% described in section\ref{sec:ND_time_disct_adv_diff} due to
 The coupled, non-linear source terms and eddy viscosity are calculated using a
 discretisation of $k$ and $\epsilon$ similar to the non-linear relaxation of $\mathbf{u}$
 and $\rho$. i.e. based upon values from the previous non-linear iteration,
@@ -588,7 +588,7 @@ equations. All three subgrid-scale models implemented in \fluidity\ are based on
 similar to the viscous stress:
 \begin{equation}
 \tau_{{ij}_a} = \tau_{ij} - \delta_{ij} \frac 1 3 \tau_{kk} = -2 \nu_\tau \overline{S}_{ij}
-\label{eqn:eddy_viscosity_concept} 
+\label{eqn:eddy_viscosity_concept}
 \end{equation}
 where only the anisotropic part of $\tau_{ij}$ is treated explicitly. This is usual practise, as the isotropic
 part can be added to the pressure. In addition, this allows for the diagonal components of $\tau_{ij}$
@@ -631,9 +631,9 @@ inertial sub-range of the spectrum:
 \label{eqn:production_equals_dissipation}
 \end{equation}
 Equations \eqref{eqn:eddy_viscosity_concept}, \eqref{eqn:mixing_length} and
-\eqref{eqn:production_equals_dissipation} give: 
+\eqref{eqn:production_equals_dissipation} give:
 \begin{equation}
-\nu_\tau = C_s^2 \ l^2 \ \left| \mathcal{\overline{S}} \right| 
+\nu_\tau = C_s^2 \ l^2 \ \left| \mathcal{\overline{S}} \right|
 \end{equation}
 where $C_s$ is the \emph{Smagorinsky coefficient} and $\left | \mathcal{\overline{S}} \right |$ is the local strain
 rate (the second invariant of the strain-rate tensor):
@@ -667,7 +667,7 @@ where $n$ is the dimension of the problem, and $V$ is the volume (if $n=3$) or a
 \end{equation}
 
 \par
-The options for this model are available under the spud path 
+The options for this model are available under the spud path
 \lstinline+.../les_model/second_order+. The following options are available to the user:
 \begin{itemize}
 \item \lstinline+.../les_model/second_order/smagorinsky_coefficient+\ : (Compulsory) The user can here
@@ -687,14 +687,14 @@ The options for this model are available under the spud path
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
 \par
-Currently the only option for this model allows the specification of the Smagorinsky coefficient. This option 
+Currently the only option for this model allows the specification of the Smagorinsky coefficient. This option
 is available at the spud path \lstinline+.../les_model/fourth_order/smagorinsky_coefficient+\ , see the
 corresponding option of the second-order dissipation model above for more information.
 
 \par{\textbf{Dynamic Smagorinsky model}\\}
 \label{sec:dynamic_smag_LES}
 
-The most important disadvantage of Smagorinsky-type models such as discussed in sections 
+The most important disadvantage of Smagorinsky-type models such as discussed in sections
 \ref{sec:second_order_diss_LES} and \ref{sec:fourth_order_diss_LES} is the behaviour of the
 eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed
 channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the
@@ -759,7 +759,7 @@ the germano identity above. The Smagorinsky model is here written as:
 \end{equation}
 
 Where $C=C_s^2$ is used, for convenience. The Germano identity is used in conjuction with equation
-\eqref{eqn:smag_model} and after contraction with the strain rate tensor \eqref{eqn:defin_strain_rate_tensor} 
+\eqref{eqn:smag_model} and after contraction with the strain rate tensor \eqref{eqn:defin_strain_rate_tensor}
 an expression for the model coefficient $C$ is derived (see \cite{germano1991,germano1992} for details):
 
 \begin{equation}\label{germanocoeff}
@@ -806,7 +806,7 @@ Equations \eqref{germanocoeff} and \eqref{lillycoeff} require the calculation of
 \overline{u}_i = \left( 1 - \alpha^2 \nabla^2 \right) \tilde{\overline{u}}_i
 \end{equation}
 where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope2000}. In \fluidity\ equation \eqref{invhelm} is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\tilde{\overline{u}}_i = \overline{u}_i$. Similar problems must be solved for calculation of
-$\widetilde{ | \overline S | \overline S_{ij}}$ in equations \eqref{germanocoeff}, \eqref{germanovisc} and \eqref{eqn:lilly_m_tensor} 
+$\widetilde{ | \overline S | \overline S_{ij}}$ in equations \eqref{germanocoeff}, \eqref{germanovisc} and \eqref{eqn:lilly_m_tensor}
 
 \par
 The options available to the user are located under path \lstinline+.../les_model/dynamic_les+.
@@ -852,7 +852,7 @@ T_b = aS_b+b + cP,
 \label{last}
 \end{equation}
 where $a=-0.0573 ^\circ C$, $b=0.0832 ^\circ C$ and $c=-7.53e^{-8}~^\circ C~Pa^{-1} $.
-The three unknowns $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}). 
+The three unknowns $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}).
 
 \subsection{Boundary condition at ice surface}
 At the ice surface, heat and salt fluxes to the ocean based on the melt rate are

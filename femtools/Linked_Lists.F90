@@ -7,10 +7,10 @@ module linked_lists
 
   ! Define a linked list for integers
   TYPE inode
-     INTEGER :: value               
+     INTEGER :: value
      TYPE (inode), POINTER :: next=>null() ! next node
   END TYPE inode
-  
+
   TYPE ilist
      integer :: length=0
      TYPE (inode), POINTER :: firstnode=>null()
@@ -38,13 +38,13 @@ module linked_lists
      real :: value
      type (rnode), pointer :: next=>null() ! next node
   end type rnode
-  
+
   type rlist
      integer :: length=0
      type (rnode), pointer :: firstnode=>null()
      type(rnode), pointer ::  lastnode => null()
   end type rlist
-  
+
   interface insert_ascending
      module procedure iinsert_ascending
   end interface
@@ -64,11 +64,11 @@ module linked_lists
   interface flush_list
      module procedure flush_ilist, flush_elist, flush_rlist
   end interface
-  
+
   interface flush_lists
     module procedure flush_ilist_array
   end interface flush_lists
-  
+
   interface pop
      module procedure ipop, epop_fn, rpop
   end interface
@@ -96,11 +96,11 @@ module linked_lists
   interface has_value_sorted
     module procedure ihas_value_sorted
   end interface
-  
+
   interface print_list
     module procedure iprint, eprint
   end interface
-  
+
   interface intersect_ascending
     module procedure intersect_ascending_ilist
   end interface intersect_ascending
@@ -138,7 +138,7 @@ contains
     ! Check if the list contains the value.
     type(ilist), intent(in) :: list
     integer, intent(in) :: value
-    
+
     type(inode), pointer :: node
 
     ihas_value = .false.
@@ -159,7 +159,7 @@ contains
     ! Duplicate values are discarded!
     type(ilist), intent(inout) :: list
     integer, intent(in) :: value
-    
+
     logical, optional :: discard
 
     type(inode), pointer :: this_node, next_node
@@ -172,11 +172,11 @@ contains
        list%firstnode%value=value
        ! The following should not be necessary
        list%firstnode%next=>null()
-       
+
        list%length=1
        return
     end if
-       
+
     this_node=>list%firstnode
     next_node=>list%firstnode%next
 
@@ -185,9 +185,9 @@ contains
        allocate(list%firstnode)
 
        list%firstnode%next=>this_node
-       
+
        list%firstnode%value=value
-       
+
        list%length=list%length+1
        return
     end if
@@ -203,7 +203,7 @@ contains
        end if
 
        if (.not.associated(next_node)) then
-          ! We have hit then end of the chain. 
+          ! We have hit then end of the chain.
           allocate(this_node%next)
 
           if (this_node%value<value) then
@@ -212,10 +212,10 @@ contains
              this_node%next%value=this_node%value
              this_node%value=value
           end if
-          
+
           ! The following should not be necessary
           this_node%next%next=>null()
-          
+
           list%length=list%length+1
           return
        end if
@@ -224,11 +224,11 @@ contains
        if (next_node%value>value) then
           ! Need to insert the value here.
           allocate(this_node%next)
-          
+
           this_node%next%next=>next_node
-       
+
           this_node%next%value=value
-       
+
           list%length=list%length+1
           return
        end if
@@ -247,7 +247,7 @@ contains
     type(ilist), intent(inout) :: list
     integer, intent(in) :: i
     type(inode), pointer :: node
-    
+
     ! Special case for zero length lists.
     if (list%length==0) then
        allocate(list%firstnode)
@@ -255,19 +255,19 @@ contains
        list%firstnode%value=i
        ! The following should not be necessary
        list%firstnode%next=>null()
-       
+
        list%length=1
        list%lastnode => list%firstnode
        return
     end if
-       
+
     node => list%lastnode
     allocate(node%next)
     node%next%value = i
 
     ! The following should not be necessary
     node%next%next => null()
-          
+
     list%length = list%length+1
     list%lastnode => node%next
     return
@@ -302,31 +302,31 @@ contains
       call flush_rlist(lists(i))
     end do
   end subroutine flush_rlist_v
-  
+
   subroutine flush_ilist_array(lists)
     ! Remove all entries from an array of lists
-    
+
     type(ilist), dimension(:), intent(inout) :: lists
-    
+
     integer :: i
-    
+
     do i = 1, size(lists)
       call flush_list(lists(i))
     end do
-  
+
   end subroutine flush_ilist_array
 
   function ipop(list)
     ! Pop the first value off list.
     integer :: ipop
     type(ilist), intent(inout) :: list
-    
+
     type(inode), pointer :: firstnode
-    
+
     ipop=list%firstnode%value
-    
+
     firstnode=>list%firstnode
-    
+
     list%firstnode=>firstnode%next
 
     deallocate(firstnode)
@@ -339,7 +339,7 @@ contains
     ! Pop the last value off list.
     integer :: ipop_last
     type(ilist), intent(inout) :: list
-    
+
     type(inode), pointer :: prev_node => null(), node
     integer :: i
 
@@ -359,7 +359,7 @@ contains
     integer :: ifetch
     type(ilist), intent(inout) :: list
     integer, intent(in) :: j
-    
+
     type(inode), pointer :: node
     integer :: i
 
@@ -375,7 +375,7 @@ contains
     ! Return a vector containing the contents of ilist
     type(ilist), intent(in) :: list
     integer, dimension(list%length) :: vector
-    
+
     type(inode), pointer :: this_node
     integer :: i
 
@@ -383,7 +383,7 @@ contains
 
     do i=1,list%length
        vector(i)=this_node%value
-       
+
        this_node=>this_node%next
     end do
 
@@ -392,7 +392,7 @@ contains
   subroutine einsert(list, i, j)
     type(elist), intent(inout) :: list
     integer, intent(in) :: i, j
-    
+
     ! Special case for zero length lists.
     if (list%length==0) then
        allocate(list%firstnode)
@@ -401,12 +401,12 @@ contains
        list%firstnode%j=j
        ! The following should not be necessary
        list%firstnode%next=>null()
-       
+
        list%length=1
        list%lastnode=>list%firstnode
        return
     end if
-       
+
 
     allocate(list%lastnode%next)
     list%lastnode%next%i = i
@@ -414,7 +414,7 @@ contains
 
     ! The following should not be necessary
     list%lastnode%next%next => null()
-          
+
     list%length = list%length+1
     list%lastnode => list%lastnode%next
     return
@@ -454,14 +454,14 @@ contains
     ! Pop the first value off list.
     integer, intent(out) :: i, j
     type(elist), intent(inout) :: list
-    
+
     type(edgenode), pointer :: firstnode
-    
+
     i=list%firstnode%i
     j=list%firstnode%j
-    
+
     firstnode=>list%firstnode
-    
+
     list%firstnode=>firstnode%next
 
     deallocate(firstnode)
@@ -553,16 +553,16 @@ contains
       node => node%next
     end do
   end subroutine
-  
+
   function intersect_ascending_ilist(list1, list2) result(intersection)
     !!< Assumes that list1 and list2 are already sorted
     type(ilist), intent(in) :: list1
     type(ilist), intent(in) :: list2
-    
+
     type(ilist) :: intersection
-    
+
     type(inode), pointer :: node1 => null(), node2 => null()
-    
+
     node1 => list1%firstnode
     node2 => list2%firstnode
     do while(associated(node1) .and. associated(node2))
@@ -578,14 +578,14 @@ contains
         end if
       end if
     end do
-    
+
   end function intersect_ascending_ilist
 
   subroutine copy_ilist(copy_list, list)
     !!< Make a deep copy of list
     type(ilist), intent(out) :: copy_list
     type(ilist), intent(in) :: list
-    
+
     type(inode), pointer :: node, copy_node
 
     if (list%length==0) return
@@ -602,12 +602,12 @@ contains
        allocate(copy_node%next)
        copy_node=>copy_node%next
        copy_node%value=node%value
-       
+
        copy_list%length=copy_list%length+1
-       
+
        node=>node%next
     end do
-    
+
   end subroutine copy_ilist
 
   subroutine copy_ilist_array(copy_lists, lists)
@@ -622,12 +622,12 @@ contains
     end do
 
   end subroutine copy_ilist_array
-  
+
     subroutine rinsert(list, value)
     type(rlist), intent(inout) :: list
     real, intent(in) :: value
     type(rnode), pointer :: node
-    
+
     ! Special case for zero length lists.
     if (list%length==0) then
        allocate(list%firstnode)
@@ -635,22 +635,22 @@ contains
        list%firstnode%value=value
        ! The following should not be necessary
        list%firstnode%next=>null()
-       
+
        list%length=1
        list%lastnode => list%firstnode
        return
     end if
-       
+
     node => list%lastnode
     allocate(node%next)
     node%next%value = value
 
     ! The following should not be necessary
     node%next%next => null()
-          
+
     list%length = list%length+1
     list%lastnode => node%next
-    
+
   end subroutine rinsert
 
   subroutine flush_rlist(list)
@@ -669,13 +669,13 @@ contains
     ! Pop the first value off list.
     real :: rpop
     type(rlist), intent(inout) :: list
-    
+
     type(rnode), pointer :: firstnode
-    
+
     rpop=list%firstnode%value
-    
+
     firstnode=>list%firstnode
-    
+
     list%firstnode=>firstnode%next
 
     deallocate(firstnode)
@@ -688,7 +688,7 @@ contains
     ! Return a vector containing the contents of rlist
     type(rlist), intent(in) :: list
     real, dimension(list%length) :: vector
-    
+
     type(rnode), pointer :: this_node
     integer :: i
 
@@ -696,7 +696,7 @@ contains
 
     do i=1, list%length
        vector(i)=this_node%value
-       
+
        this_node=>this_node%next
     end do
 

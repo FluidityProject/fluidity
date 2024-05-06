@@ -15,7 +15,7 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name = "end_times" language = "python">
-    
+
 from lxml import etree
 
 ################################################################################################
@@ -47,8 +47,8 @@ def Getflmlvalue(flml_name, xpath):
   return child.text
 
 ################################################################################################
-    
-    
+
+
 from fluidity_tools import stat_parser
 stat = stat_parser('test_metric_advection_parallel.stat')
 end_times = [stat["ElapsedTime"]["value"][-1]]

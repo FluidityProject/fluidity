@@ -25,7 +25,7 @@ public :: local_node_map, get_dg_inverse_mass_matrix, get_lumped_mass,&
 !! Parameters choosing how dirichlet boundary conditions are set
 integer, public, parameter :: DIRICHLET_NONE=0, &
      DIRICHLET_ONES_ON_DIAGONAL=1, &
-     & DIRICHLET_BIG_SPRING=2, & 
+     & DIRICHLET_BIG_SPRING=2, &
      & DIRICHLET_WEAK=3
 
 interface get_dg_inverse_mass_matrix
@@ -41,7 +41,7 @@ end interface
 interface dg_apply_mass
    module procedure csr_dg_apply_mass_scalar, block_csr_dg_apply_mass_vector
 end interface
-  
+
 interface dg_add_mass
    module procedure csr_dg_add_mass
 end interface
@@ -52,7 +52,7 @@ interface construct_inverse_mass_matrix_dg
 end interface
 
 contains
-  
+
   function local_node_map(m, m_f, bdy, bdy_2) result(local_glno)
     ! Fill in the number map for the DG double element.
     type(element_type), intent(in) :: m, m_f
@@ -68,7 +68,7 @@ contains
        local_glno(bdy(i),1)=i
     end forall
 
-    ! Remaining spots go to elements. 
+    ! Remaining spots go to elements.
     j=m_f%loc
     do i=1, m%loc
        if(local_glno(i,1)==0) then
@@ -84,7 +84,7 @@ contains
        local_glno(bdy_2(i),2)=i
     end forall
 
-    ! Remaining spots go to elements. 
+    ! Remaining spots go to elements.
     j=m%loc
     do i=1, m%loc
        if(local_glno(i,2)==0) then
@@ -122,7 +122,7 @@ contains
     else
        l_dirichlet_flag = DIRICHLET_NONE
     end if
-    
+
     if(l_dirichlet_flag.ne.DIRICHLET_NONE) then
        if(present(dirichlet_list)) then
           allocate( internal_dirichlet_list( node_count(dg_mesh) ) )
@@ -130,7 +130,7 @@ contains
           internal_dirichlet_list(dirichlet_list) = .true.
        end if
     end if
-    
+
     if(l_dirichlet_flag==DIRICHLET_BIG_SPRING) then
       ewrite(2,*) 'INFINITY = ', INFINITY
       ewrite(2,*) 'sqrt(INFINITY) = ', sqrt(INFINITY)
@@ -142,11 +142,11 @@ contains
       sparsity=make_sparsity_dg_mass(dg_mesh)
 
       call allocate(inverse_mass, sparsity, name="DGInverseMass")
-      
+
       ! Drop the extra reference to sparsity.
       call deallocate(sparsity)
     end if
-    
+
     allocate( factor_at_quad(1:ele_ngi(positions,1)) )
 
     do ele = 1, dg_mesh%elements
@@ -160,7 +160,7 @@ contains
           factor_at_quad=factor_at_quad* &
              ele_val_at_quad(absorption_factor, ele)
        end if
-       
+
        if(present(dirichlet_list).and. &
             & (l_dirichlet_flag.ne.DIRICHLET_NONE)) then
           e_nodes => ele_nodes(dg_mesh,ele)
@@ -171,7 +171,7 @@ contains
           call csr_assemble_local_dg_inverse_mass_matrix(inverse_mass, &
                dg_mesh,positions, factor_at_quad, ele)
        end if
-       
+
     end do
 
   end subroutine csr_get_dg_inverse_mass_matrix
@@ -206,7 +206,7 @@ contains
     call transform_to_physical(positions,ele,detwei=detwei)
     detwei=detwei*factor_at_quad
     local_mass = shape_shape(shape_dg,shape_dg,detwei)
-    
+
     if(present(dirichlet_list)) then
        do i = 1, size(dirichlet_list)
           if(dirichlet_list(i)) then
@@ -226,7 +226,7 @@ contains
     end if
 
     call invert(local_mass)
-    
+
     call set(inverse_mass,ele_dg,ele_dg,local_mass)
 
   end subroutine csr_assemble_local_dg_inverse_mass_matrix
@@ -266,7 +266,7 @@ contains
     assert(dg_mesh%continuity==-1)
 
     allocate( factor_at_quad(1:ele_ngi(density,1)) )
-    
+
     do ele = 1, dg_mesh%elements
 
        if (present(density)) then
@@ -278,7 +278,7 @@ contains
           factor_at_quad=factor_at_quad* &
              ele_val_at_quad(absorption_factor, ele)
        end if
-       
+
        if(present(dirichlet_list).and. &
             & (l_dirichlet_flag.ne.DIRICHLET_NONE)) then
           e_nodes => ele_nodes(dg_mesh,ele)
@@ -365,7 +365,7 @@ contains
     else
        l_dirichlet_flag = 0
     end if
-    
+
     if(present(dirichlet_list).and.(l_dirichlet_flag.ne.0)) then
        allocate( internal_dirichlet_list( node_count(mesh) ) )
        internal_dirichlet_list = .false.
@@ -455,8 +455,8 @@ contains
     else
       last_row = size(mass,1)
     end if
-    
-    do 
+
+    do
        if(row>last_row) exit
        nloc=row_length(mass, row)
        inv_mass%val(colm_pos+1:colm_pos+nloc**2) &
@@ -475,7 +475,7 @@ contains
       ! rest is zeroed
       inv_mass%val(colm_pos+1:)=0.0
     end if
- 
+
   end subroutine csr_dg_inverse_mass_from_mass
 
   subroutine csr_dg_apply_mass_scalar(mass, field)
@@ -488,11 +488,11 @@ contains
 
     row=0
     colm_pos=0
-    
+
     do
        if(row>=size(mass,1)) exit
        nloc=row_length(mass, row+1)
-       
+
        field%val(row+1:row+nloc) = &
             matmul(reshape(mass%val(colm_pos+1:colm_pos+nloc**2), &
             &             (/nloc,nloc/)), &
@@ -501,7 +501,7 @@ contains
        row=row+nloc
        colm_pos=colm_pos+nloc**2
     end do
-    
+
   end subroutine csr_dg_apply_mass_scalar
 
   subroutine block_csr_dg_apply_mass_vector(block_mass, v_field)
@@ -518,21 +518,21 @@ contains
        call dg_apply_mass(mass_comp,s_field)
     end do
   end subroutine block_csr_dg_apply_mass_vector
-  
+
   subroutine csr_dg_add_mass(matrix, mass)
     !!< Add mass to matrix. This is an optimised addto operation.
     type(csr_matrix), intent(inout) :: matrix
     type(csr_matrix), intent(in) :: mass
 
     integer :: row, colm_pos, nloc
-    
+
     row=0
     colm_pos=0
-    
-    do 
+
+    do
        if(row>=size(mass,1)) exit
        nloc=row_length(mass, row+1)
-       
+
        call addto(matrix, row_m_ptr(mass, row+1), row_m_ptr(mass, row+1), &
             reshape(mass%val(colm_pos+1:colm_pos+nloc**2), &
             &             (/nloc,nloc/)))
@@ -540,7 +540,7 @@ contains
        row=row+nloc
        colm_pos=colm_pos+nloc**2
     end do
-    
+
   end subroutine csr_dg_add_mass
 
   subroutine construct_inverse_mass_matrix_dg_scalar(inverse_mass, sfield, x)
@@ -549,14 +549,14 @@ contains
     type(csr_matrix), intent(out):: inverse_mass
     type(scalar_field), intent(inout) :: sfield
     type(vector_field), intent(inout) :: x
-      
+
     integer, allocatable, dimension(:) :: sfield_bc_type
     integer, allocatable, dimension(:) :: dirichlet_list
     logical :: dirichlet
     integer i, count
-    
+
     ewrite(1,*) 'Construct the DG inverse mass matrix for a scalar field'
-    
+
     allocate(sfield_bc_type(node_count(sfield)))
     call get_boundary_condition_nodes(sfield, (/"dirichlet"/), sfield_bc_type)
     if(any(sfield_bc_type==1)) then
@@ -564,9 +564,9 @@ contains
     else
       dirichlet = .false.
     end if
-    
+
     if (dirichlet) then
-      
+
       allocate(dirichlet_list(sum(sfield_bc_type)))
       count = 0
       do i = 1, size(sfield_bc_type)
@@ -575,22 +575,22 @@ contains
             dirichlet_list(count) = i
         end if
       end do
-        
+
       call get_dg_inverse_mass_matrix(inverse_mass,sfield%mesh, &
               x, &
               dirichlet_list=dirichlet_list, &
               dirichlet_flag=DIRICHLET_BIG_SPRING)
-      
+
       deallocate(dirichlet_list)
-    
+
     else
-    
+
       ! the mass matrix has no dirichlet modifications
       call get_dg_inverse_mass_matrix(inverse_mass,sfield%mesh, &
                                         x)
-      
+
     end if
-    
+
   end subroutine construct_inverse_mass_matrix_dg_scalar
 
   subroutine construct_inverse_mass_matrix_dg_vector(inverse_mass, vfield, x)
@@ -600,16 +600,16 @@ contains
     !! and inverses u%dim times, when diagonal mass blocks are different)
     type(block_csr_matrix), intent(out):: inverse_mass
     type(vector_field), intent(inout) :: vfield, x
-      
+
     type(csr_sparsity):: sparsity
     type(csr_matrix):: inverse_mass_block
     integer, allocatable, dimension(:,:) :: vfield_bc_type
     integer, allocatable, dimension(:) :: dirichlet_list
     logical :: dirichlet
     integer i, dim, count
-    
+
     ewrite(1,*) 'Construct the DG inverse mass matrix for a vector field'
-    
+
     allocate(vfield_bc_type(vfield%dim, node_count(vfield)))
     call get_boundary_condition_nodes(vfield, (/"dirichlet"/), vfield_bc_type)
     if(any(vfield_bc_type==1)) then
@@ -617,18 +617,18 @@ contains
     else
       dirichlet = .false.
     end if
-    
+
     if (dirichlet) then
-      
+
       assert(vfield%mesh%continuity==-1)
       sparsity=make_sparsity_dg_mass(vfield%mesh)
       call allocate(inverse_mass, sparsity, (/ vfield%dim, vfield%dim /), &
         name="DGInverseMass", diagonal=.true.)
       ! Drop the extra reference to sparsity.
       call deallocate(sparsity)
-      
+
       do dim=1, vfield%dim
-        
+
          allocate(dirichlet_list(sum(vfield_bc_type(dim,:))))
          count = 0
          do i = 1, size(vfield_bc_type(dim,:))
@@ -637,20 +637,20 @@ contains
                 dirichlet_list(count) = i
             end if
          end do
-           
+
           inverse_mass_block=block(inverse_mass, dim, dim)
           call get_dg_inverse_mass_matrix(inverse_mass_block,vfield%mesh, &
                   x, &
                   dirichlet_list=dirichlet_list, &
                   dirichlet_flag=DIRICHLET_BIG_SPRING, &
                   allocate_matrix=.false.)
-          
+
           deallocate(dirichlet_list)
-      
+
       end do
-    
+
     else
-    
+
       ! the mass matrix is the same for all components
       assert(vfield%mesh%continuity==-1)
       sparsity=make_sparsity_dg_mass(vfield%mesh)
@@ -658,13 +658,13 @@ contains
         name="DGInverseMass", diagonal=.true., equal_diagonal_blocks=.true.)
       ! Drop the extra reference to sparsity.
       call deallocate(sparsity)
-      
+
       inverse_mass_block=block(inverse_mass, 1,1)
       call get_dg_inverse_mass_matrix(inverse_mass_block,vfield%mesh, &
                                         x)
-      
+
     end if
-    
+
   end subroutine construct_inverse_mass_matrix_dg_vector
 
 end module dgtools

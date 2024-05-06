@@ -8,8 +8,8 @@
         <command_line>fluidity -v2 -l forcing-ncar.flml;
                       fluidity -v2 -l forcing-ncar_inst.flml;
         </command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -40,15 +40,15 @@ import fluidity_tools
 FinalSalinityMinNcarInst = fluidity_tools.stat_parser("forcing-ncar_inst.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
 
-</variables>   
+</variables>
 
 
-  <pass_tests> 
+  <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
     <test name="Ncar: Final time is 1440 seconds" language="python">
-assert FinalTimeNcarOrig ==1440 
+assert FinalTimeNcarOrig ==1440
     </test>
     <test name="Times match" language="python">
 assert (abs(FinalTimeNcarOrig - FinalTimeNcarInst)/FinalTimeNcarOrig &lt; 1e-10)

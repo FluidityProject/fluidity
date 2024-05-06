@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -118,7 +118,7 @@ contains
       income = merge(1.0,0.0,inflow)
 
       cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
-      
+
       downwind_val = income*field_ele(iloc) + (1.-income)*field_ele(oloc)
       donor_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
       if(inflow) then
@@ -309,7 +309,7 @@ contains
                                 cv_options%limiter, cfl_donor, cv_options%limiter_slopes)
 
     end if
-    
+
     if(present(save_pos)) then
       save_pos = l_save_pos
     end if
@@ -413,7 +413,7 @@ contains
     real :: old_sibling_downwind_val, old_sibling_donor_val
     real, dimension(2) :: parent_target_vals, old_parent_target_vals
     integer :: l_save_pos
-    
+
     if(present(save_pos)) then
       l_save_pos = save_pos
     else
@@ -437,9 +437,9 @@ contains
     else
       upwind_val = val(upwind_values, nodes(iloc), nodes(oloc), save_pos=l_save_pos)
     end if
-    
+
     parent_target_vals = (/cv_options%sum_target_max, cv_options%sum_target_min/)
-    
+
     face_val = limit_val_coupled(upwind_val, donor_val, downwind_val, face_val, &
                              sibling_donor_val, sibling_face_val, &
                              parent_target_vals, &
@@ -458,7 +458,7 @@ contains
     else
       old_upwind_val = val(old_upwind_values, nodes(iloc), nodes(oloc), save_pos=l_save_pos)
     end if
-    
+
     old_parent_target_vals = (/cv_options%sum_target_max, cv_options%sum_target_min/)
 
     old_face_val = limit_val_coupled(old_upwind_val, old_donor_val, old_downwind_val, old_face_val, &
@@ -477,7 +477,7 @@ contains
                              parent_target_vals, &
                              limiter, cfl_donor, limiter_slopes)
 
-    ! given an upwind, downwind, donor and face value of a field and its sibling 
+    ! given an upwind, downwind, donor and face value of a field and its sibling
     ! decide if the field face value needs to be limited and do so if necessary
 
     real, intent(in) :: upwind_val, donor_val, downwind_val, face_val, cfl_donor
@@ -491,7 +491,7 @@ contains
     real :: nvd_denom, nvd_donor, nvd_face
     real :: nvd_sibling_donor, nvd_sibling_face
     real, dimension(2) :: nvd_parent_targets
-    
+
     real, dimension(2) :: monotonicity_bounds
     real, dimension(2) :: downwind_lines, limited_lines
     real :: upwind_line
@@ -511,15 +511,15 @@ contains
     downwind_lines = nvd_parent_targets - nvd_sibling_face
     monotonicity_bounds = nvd_parent_targets-nvd_sibling_donor
     upwind_line = nvd_donor + nvd_sibling_donor - nvd_sibling_face
-    
+
     select case(limiter)
     case(CV_LIMITER_SWEBY)
-    
+
       limited_lines = limiter_slopes(2)*(nvd_donor + nvd_sibling_donor - nvd_parent_targets) &
                      + nvd_parent_targets - nvd_sibling_face
-                    
+
     case default ! unless Sweby is specified use ULTIMATE (even if limiter type is NONE)
-   
+
       limited_lines = (1./cfl_donor)*(nvd_donor + nvd_sibling_donor - nvd_parent_targets) &
                       + nvd_parent_targets - nvd_sibling_face
     end select

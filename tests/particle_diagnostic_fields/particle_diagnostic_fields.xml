@@ -5,7 +5,7 @@
   <owner userid="drhodrid"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>        
+    <command_line>
 ../../bin/fluidity -v3 -l particle-diagnostic-fields.flml
     </command_line>
   </problem_definition>
@@ -136,7 +136,7 @@ assert MinTemptest &lt; 0.01
     </test>
     <test name="Templ2" language="python">
 assert Templ2norm &gt; 0.12
-assert Templ2norm &lt; 0.14    
+assert Templ2norm &lt; 0.14
     </test>
     <test name="Tempint" language="python">
 assert Tempintegral &gt; 0.03

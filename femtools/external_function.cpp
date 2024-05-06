@@ -1,5 +1,5 @@
 /*  Copyright (C) 2006 Imperial College London and others.
-    
+
     Please see the AUTHORS file in the main source directory for a full list
     of copyright holders.
 
@@ -9,7 +9,7 @@
     Imperial College London
 
     amcgsoftware@imperial.ac.uk
-    
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation,
@@ -76,9 +76,9 @@ typedef struct {
 
 void *generic_writer(void *args){
   MSG<<"0: void *generic_writer(void *args)\n";
-  
+
   w_args *a = (w_args *)args;
-  
+
   MSG<<"0: Write input to pipe - "<<a->input<<endl;
   fstream in;
   in.open(a->input,ios_base::out);
@@ -86,14 +86,14 @@ void *generic_writer(void *args){
     in<<a->x[i]<<" "<<a->y[i]<<" "<<a->z[i]<<endl;
   }
   in.close();
-  
+
   MSG<<"0: Finished writing\n";
 }
 
 void *scalar_generic_reader(void *args){
   MSG<<"1: void *scalar_generic_reader(void *args)\n";
   scalar_r_args *a = (scalar_r_args *)args;
-  
+
   MSG<<"1: Read output through pipe - "<<a->output<<endl;
   fstream out;
   out.open(a->output,ios_base::in);
@@ -106,9 +106,9 @@ void *scalar_generic_reader(void *args){
 
 void *generic_exec(void *args){
   MSG<<"2: void *generic_exec(void *args)\n";
-  
+
   e_args *a = (e_args *)args;
-  
+
   MSG<<"2: Run generic function:\n";
   char command[4098];
   sprintf(command, "%s < %s > %s", a->generic, a->input, a->output);
@@ -120,7 +120,7 @@ void *generic_exec(void *args){
 
 extern "C" {
 #define set_from_external_function_scalar_fc F77_FUNC(set_from_external_function_scalar, SET_FROM_EXTERNAL_FUNCTION_SCALAR)
-  
+
   void set_from_external_function_scalar_fc(const char *fgeneric, const int *generic_len, const int *count,
 #ifdef DOUBLEP
                                             const double *x, const double *y, const double *z,
@@ -136,10 +136,10 @@ extern "C" {
     // Create a unique fifo's
     string output(tmpnam(NULL));
     mkfifo(output.c_str(), S_IWUSR|S_IRUSR);
-    
+
     string input(tmpnam(NULL));
     mkfifo(input.c_str(), S_IWUSR|S_IRUSR);
-    
+
     pthread_t wthread;
     w_args wargs;
     wargs.x = x;
@@ -148,7 +148,7 @@ extern "C" {
     wargs.count = *count;
     wargs.input = input.c_str();
     pthread_create (&wthread, NULL, generic_writer, &wargs);
-    
+
     pthread_t rthread;
     scalar_r_args rargs;
     rargs.scalar = scalar;
@@ -166,7 +166,7 @@ extern "C" {
     pthread_join (wthread, NULL);
     pthread_join (rthread, NULL);
     pthread_join (ethread, NULL);
-    
+
     *stat = eargs.stat;
 
     // Delete fifo's
@@ -182,11 +182,11 @@ int main(int argc, char **argv){
   double y[]={5, 6, 7, 8, 9};
   double z[]={8, 7, 6, 5, 4};
   double scalar[5];
-  
+
   int count=5;
   set_from_external_function_scalar_fc(generic, &count,
                                       x, y, z, scalar);
-  
+
   for(size_t i=0;i<count;i++)
     cout<<x[i]<<", "<<y[i]<<", "<<z[i]<<", "<<scalar[i]<<endl;
 }

@@ -17,7 +17,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 import vtktools
 from numpy import sqrt,exp, pi, cos, sin, zeros, array
 
-# read in the final .vtu 
+# read in the final .vtu
 u=vtktools.vtu("ekman_1.vtu")
 uvw_num=u.GetField("Velocity")
 uvw_num[:,2]=0.0

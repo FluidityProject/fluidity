@@ -9,7 +9,7 @@ default: input
 input: clean
 	cp src/*.msh .
 
-clean: clean-mesh clean-run-debug 
+clean: clean-mesh clean-run-debug
 	rm -fr *.halo *.msh *checkpoint* *.detectors.h5part square-convection_* fluidity.[le]*
 clean-mesh:
 	rm -f $(MESH).msh

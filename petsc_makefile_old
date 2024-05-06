@@ -1,4 +1,4 @@
-# little Makefile used to get the required LIBS and include flags 
+# little Makefile used to get the required LIBS and include flags
 # out of petsc, using:
 #
 # make -f petsc_makefile getlinklibs

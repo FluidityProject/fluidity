@@ -176,10 +176,10 @@ refine_tet (
           orientated cells. This can easily be shown with triangle:
 
          0
-          * 
-               
+          *
+
                      *4
-          2*                 
+          2*
                                *2
                      *
             *        5
@@ -190,7 +190,7 @@ refine_tet (
           the comparision returns X(0) < X(1), but X(0) == X(2). This happens,
           if
              X(0) - X(1) < 2*epsilon
-          The refined triangle (0,2,4) would be stored as (2,0,4), if we try 
+          The refined triangle (0,2,4) would be stored as (2,0,4), if we try
           to sort the vertices. The orientation of (2,0,4) is clockwise! But
           we assume that (0,2,4), (2,1,5) and (4,5,2) have the same orientation
           as the parent and (2,4,5) the opposite orientation.

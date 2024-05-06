@@ -21,7 +21,7 @@ program read_setnparticles
 
   ! H5hut verbosity level
   integer*8, parameter         :: h5_verbosity = H5_VERBOSE_DEFAULT
-  
+
   integer   :: comm_size = 1
   integer   :: comm_rank = 0
   integer*8 :: file, h5_ierror

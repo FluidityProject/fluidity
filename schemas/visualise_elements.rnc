@@ -39,7 +39,7 @@ start =
             ## Quadrature
             element quadrature {
                ## Quadrature degree
-               ## 
+               ##
                ## note: this specifies the degree of quadrature not
                ## the number of gauss points
                element degree {
@@ -160,7 +160,7 @@ mesh_info =
    )
 
 # Most common mesh choices
-mesh_choice = 
+mesh_choice =
    (
       element mesh {
          attribute name { "TracerMesh" }
@@ -173,7 +173,7 @@ mesh_choice =
       }
    )
 
-coordinate_mesh_choice = 
+coordinate_mesh_choice =
    (
       element mesh {
          attribute name { "CoordinateMesh" }
@@ -227,7 +227,7 @@ scalar_field_choice =
                mesh_choice
             }
          )
-      }   
+      }
    )
 
 # This is the choice of additional scalar field to be solved for
@@ -248,7 +248,7 @@ tracer_field_choice =
                mesh_choice
             }
          )
-      }   
+      }
    )
 
 
@@ -343,9 +343,9 @@ input_choice_real_dim_vector_contents =
    element python {
       python_code
    }
-      
-region_ids = 
-   ( 
+
+region_ids =
+   (
       ## Optional region ids to associate different values
       ## to different regions of the mesh.
       ## Leave unselected if you`re not using multiple regions or

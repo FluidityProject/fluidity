@@ -1,5 +1,5 @@
 !    Copyright (C) 2010 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -47,7 +47,7 @@ module streamfunction
   use solvers
   use boundary_conditions
   use sparsity_patterns_meshes
-  
+
   implicit none
 
   private
@@ -67,7 +67,7 @@ contains
     type(scalar_field), intent(inout) :: streamfunc
 
     type(ilist) :: tmp_face_list
-    
+
     integer :: bc_count
     character(len=OPTION_PATH_LEN) :: option_path
     real, dimension(2) :: start, end, dx,  face_c
@@ -77,17 +77,17 @@ contains
     real :: dx2, c1, c2
 
     bc_count=get_boundary_condition_count(streamfunc)
-       
+
     if(.not.(allocated(flux_face_list))) then
        allocate(flux_face_list(bc_count))
-       CALL nullify(flux_face_list) 
+       CALL nullify(flux_face_list)
        allocate(flux_normal(2, bc_count))
     end if
 
 
     bc_loop: do i=1, bc_count
        call get_boundary_condition(streamfunc, i, option_path=option_path)
-       
+
        if (have_option(trim(option_path)//"/primary_boundary")) then
           ! No path on the primary boundary.
 
@@ -98,20 +98,20 @@ contains
 
           cycle bc_loop
        end if
-       
+
        ! We must be on a secondary boundary.
        call get_option(trim(option_path)//"/secondary_boundary/primary_point"&
-            &, start) 
+            &, start)
        call get_option(trim(option_path)//"/secondary_boundary/secondary_point"&
-            &, end) 
-       
+            &, end)
+
        dx=-abs(start-end)
-       
+
        dx2=dot_product(dx,dx)
 
        do ele1=1, element_count(streamfunc)
           neigh=>ele_neigh(X, ele1)
-          
+
           do e2=1,size(neigh)
              ele2=neigh(e2)
              ! Don't do boundaries
@@ -133,7 +133,7 @@ contains
 
              c1=cross_product2(sum(ele_val(X,ele1),2)/ele_loc(X,ele1)-start, dx)
              c2=cross_product2(sum(ele_val(X,ele2),2)/ele_loc(X,ele2)-start, dx)
-                
+
              if(C1<0 .and. C2>=0) then
                 continue
              else if (C1>=0 .and. C2<0) then
@@ -152,7 +152,7 @@ contains
           deallocate(flux_face_list(i)%ptr)
        end if
        allocate(flux_face_list(i)%ptr(tmp_face_list%length))
-       
+
        flux_face_list(i)%ptr=list2vector(tmp_face_list)
        call flush_list(tmp_face_list)
 
@@ -160,40 +160,40 @@ contains
        dx=start-end
        dx=dx/sqrt(dx2)
        flux_normal(:,i)=(/-dx(2), dx(1)/)
-       
+
     end do bc_loop
-    
+
   end subroutine find_stream_paths
 
   function boundary_value(X, U, bc_num)
     !!< Calculate the value of the streamfunction on the boundary provided
     !!< by integrating the velocity flux across a line between this
-    !!< boundary and the primary boundary. 
+    !!< boundary and the primary boundary.
     real :: boundary_value
     type(vector_field), intent(in) :: X, U
     integer, intent(in) :: bc_num
-    
+
     integer :: face, i
 
     boundary_value=0.0
 
     do i=1, size(flux_face_list(bc_num)%ptr)
        face=flux_face_list(bc_num)%ptr(i)
-       
+
        boundary_value=boundary_value + face_flux(face, X, U, bc_num)
-              
+
     end do
 
     ! for parallel so each partitition calculates the bit of the flux that it owns and they sum along the boundary so they all have the correct bd. condition
     call allsum(boundary_value)
-    
+
   contains
 
     function face_flux(face, X, U, bc_num)
       real :: face_flux
       integer, intent(in) :: face, bc_num
       type(vector_field), intent(in) :: X, U
-      
+
       real, dimension(face_ngi(U, face)) :: detwei
       real, dimension(U%dim,face_ngi(U, face)) :: normal, U_quad
       integer :: gi
@@ -201,7 +201,7 @@ contains
       call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
 
       U_quad=face_val_at_quad(U,face)
-      
+
       face_flux=0.0
 
       do gi=1, size(detwei)
@@ -215,10 +215,10 @@ contains
   end function boundary_value
 
   subroutine calculate_stream_function_multipath_2d(state, streamfunc)
-    !!< Calculate the stream function for a 
+    !!< Calculate the stream function for a
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: streamfunc
-    
+
     integer :: i, ele, stat
     type(vector_field), pointer :: X, U
     type(csr_sparsity), pointer :: psi_sparsity
@@ -233,23 +233,23 @@ contains
     X => extract_vector_field(state, "Coordinate", stat)
     if(present_and_nonzero(stat)) return
     U => extract_vector_field(state, "Velocity", stat)
-    if(present_and_nonzero(stat)) return    
+    if(present_and_nonzero(stat)) return
 
     if (X%dim/=2) then
        FLExit("Streamfunction is only valid in 2d")
     end if
     ! No discontinuous stream functions.
     if (continuity(streamfunc)<0) then
-       FLExit("Streamfunction must be a continuous field")    
+       FLExit("Streamfunction must be a continuous field")
     end if
 
     if (last_adapt<eventcount(EVENT_ADAPTIVITY)) then
        last_adapt=eventcount(EVENT_ADAPTIVITY)
        call find_stream_paths(X, streamfunc)
     end if
-    
-    
-    
+
+
+
     psi_mat = extract_csr_matrix(state, "StreamFunctionMatrix", stat = stat)
     if(stat == 0) then
       mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
@@ -259,7 +259,7 @@ contains
     end if
     if(stat /= 0) then
       psi_sparsity => get_csr_sparsity_firstorder(state, streamfunc%mesh, streamfunc%mesh)
-    
+
       call allocate(psi_mat, psi_sparsity, name="StreamFunctionMatrix")
       call zero(psi_mat)
 
@@ -267,7 +267,7 @@ contains
       call zero(rhs)
 
       do ele=1, element_count(streamfunc)
-       
+
         call calculate_streamfunc_ele(rhs, ele, X, U, psi_mat = psi_mat)
 
       end do
@@ -275,12 +275,12 @@ contains
       call insert(state, psi_mat, psi_mat%name)
    else
       call incref(psi_mat)
-   
+
       call allocate(rhs, streamfunc%mesh, "StreamFunctionRHS")
       call zero(rhs)
 
       do ele=1, element_count(streamfunc)
-       
+
         call calculate_streamfunc_ele(rhs, ele, X, U)
 
       end do
@@ -292,7 +292,7 @@ contains
        surface_field=>extract_surface_field(streamfunc, i, "value")
 
        flux_val=boundary_value(X,U,i)
-     
+
        call set(surface_field, flux_val)
 
     end do
@@ -307,18 +307,18 @@ contains
     call deallocate(psi_mat)
 
   contains
-    
+
     subroutine calculate_streamfunc_ele(rhs, ele, X, U, psi_mat)
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: X,U
       integer, intent(in) :: ele
       type(csr_matrix), optional, intent(inout) :: psi_mat
-      
+
       ! Transformed gradient function for velocity.
       real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
       ! Ditto for the stream function, psi
       real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), mesh_dim(rhs))&
-           & :: dpsi_t 
+           & :: dpsi_t
 
       ! Local vorticity_matrix
       real, dimension(2, ele_loc(rhs, ele), ele_loc(U, ele)) ::&
@@ -328,7 +328,7 @@ contains
 
       ! Variable transform times quadrature weights.
       real, dimension(ele_ngi(U,ele)) :: detwei
-      
+
       type(element_type), pointer :: U_shape, psi_shape
       integer, dimension(:), pointer :: psi_ele
       integer :: i
@@ -336,7 +336,7 @@ contains
       U_shape=> ele_shape(U, ele)
       psi_shape=> ele_shape(rhs, ele)
       psi_ele=>ele_nodes(rhs, ele)
-      
+
       ! Transform U derivatives and weights into physical space.
       call transform_to_physical(X, ele, U_shape, dshape=du_t, detwei=detwei)
       ! Ditto psi.
@@ -348,17 +348,17 @@ contains
       end if
 
       lvorticity_mat=shape_curl_shape_2d(psi_shape, du_t, detwei)
-      
+
       lvorticity=0.0
       do i=1,2
          lvorticity=lvorticity &
               +matmul(lvorticity_mat(i,:,:), ele_val(U, i, ele))
       end do
-      
+
       call addto(rhs, psi_ele, -lvorticity)
-      
+
     end subroutine calculate_streamfunc_ele
 
   end subroutine calculate_stream_function_multipath_2d
-  
+
 end module streamfunction

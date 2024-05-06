@@ -1,5 +1,5 @@
 !    Copyright (C) 2008 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -56,7 +56,7 @@ contains
     ! Arguments
     type(state_type), intent(inout)             :: state
     logical, intent(in)                         :: have_eddy_visc, have_filter_width, have_coeff
-    
+
     ! Local variables
     logical, dimension(2)                       :: have_diagnostic_tfield
     logical, dimension(1)                       :: have_diagnostic_sfield
@@ -67,11 +67,11 @@ contains
     integer                                     :: i
 
     ewrite(2,*) "Initialising optional LES diagnostic fields"
-    
+
     have_diagnostic_tfield = (/have_eddy_visc, have_filter_width/)
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
-    
+
     diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
          tfield => extract_tensor_field(state, diagnostic_tfield_names(i))
@@ -102,7 +102,7 @@ contains
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: les_coef_gi, detwei
     real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in)   :: mesh_size_gi, les_tensor_gi
     logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff
-    
+
     ! Local variables
     type(tensor_field), pointer                                 :: tfield
     type(scalar_field), pointer                                 :: sfield
@@ -137,7 +137,7 @@ contains
     ! Arguments
     type(state_type), intent(inout) :: state
     logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff
-    
+
     ! Local variables
     logical, dimension(2)                       :: have_diagnostic_tfield
     logical, dimension(1)                       :: have_diagnostic_sfield
@@ -152,15 +152,15 @@ contains
     type(scalar_field)                          :: inv_lumped_mass
     logical                                     :: lump_mass = .false.
     logical                                     :: use_submesh = .false.
-    
+
     ewrite(2,*) "Solving for optional LES diagnostic fields"
-        
+
     u => extract_vector_field(state, "Velocity")
-    
+
     have_diagnostic_tfield = (/have_eddy_visc, have_filter_width/)
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
-    
+
     diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
          tfield => extract_tensor_field(state, diagnostic_tfield_names(i))
@@ -168,7 +168,7 @@ contains
             &"/use_lumped_mass_matrix")
          use_submesh = have_option(trim(tfield%option_path)//"/diagnostic/mass_matrix"//&
             &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
-            
+
          if(lump_mass) then
             if(use_submesh) then
                lumped_mass => get_lumped_mass_on_submesh(state, tfield%mesh)
@@ -185,10 +185,10 @@ contains
          end if
       end if
     end do diagnostic_tfield_loop
-    
+
     have_diagnostic_sfield = (/have_coeff/)
     diagnostic_sfield_names(1) = "SmagorinskyCoefficient"
-    
+
     diagnostic_sfield_loop: do i = 1, size(diagnostic_sfield_names)
       if(have_diagnostic_sfield(i)) then
          sfield => extract_scalar_field(state, diagnostic_sfield_names(i))
@@ -196,7 +196,7 @@ contains
             &"/use_lumped_mass_matrix")
          use_submesh = have_option(trim(sfield%option_path)//"/diagnostic/mass_matrix"//&
             &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
-            
+
          if(lump_mass) then
             if(use_submesh) then
                lumped_mass => get_lumped_mass_on_submesh(state, sfield%mesh)
@@ -215,7 +215,7 @@ contains
     end do diagnostic_sfield_loop
 
   end subroutine les_solve_diagnostic_fields
-  
+
   subroutine leonard_tensor(nu, positions, fnu, tnu, leonard, strainprod, alpha, gamma, path)
 
     ! Unfiltered velocity
@@ -330,7 +330,7 @@ contains
   end function les_strain_rate
 
   function les_viscosity_strength(du_t, relu)
-    !! Computes the strain rate modulus for the LES model 
+    !! Computes the strain rate modulus for the LES model
     !! derivative of velocity shape function (nloc x ngi x dim)
     real, dimension(:,:,:), intent(in):: du_t
     !! relative velocity (nonl. vel.- grid vel.) (dim x nloc)
@@ -382,7 +382,7 @@ contains
        g=0.5*matmul(s,s)
        g=g+transpose(g)
        forall(i=1:dim) g(i,i)=0.
-       
+
        vis=sqrt( 2*sum( g**2 ) )
 
        wale_viscosity_strength(gi)=vis

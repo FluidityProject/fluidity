@@ -42,14 +42,14 @@ program periodise
   end if
 
   call load_options(trim(filename))
-  
+
   ! for extruded meshes, if no checkpointed extruded mesh is present, don't bother
   ! extruding (this may be time consuming or not fit on the input_nprocs)
-  skip_initial_extrusion = option_count('/geometry/mesh/from_mesh/extrude')>0 .and. & 
+  skip_initial_extrusion = option_count('/geometry/mesh/from_mesh/extrude')>0 .and. &
     option_count('/geometry/mesh/from_mesh/extrude/checkpoint_from_file')==0
-        
+
   ! ! Below is a (partial) copy of the first bit of populate_state
-  
+
   ! Find out how many states there are
   nstates=option_count("/material_phase")
   allocate(states(1:nstates))
@@ -58,11 +58,11 @@ program periodise
   end do
 
   call insert_external_mesh(states, save_vtk_cache = .true.)
-  
+
   call insert_derived_meshes(states, skip_extrusion=skip_initial_extrusion)
-  
+
   ! !  End populate_state calls
-  
+
   call check_valid_input(states, external_filename, external_name, periodic_name)
 
   external_mesh => extract_mesh(states(1), trim(external_name))
@@ -81,7 +81,7 @@ program periodise
     FLAbort("Just remapped from a higher order to a lower order continuous field!")
   end if
   ! we've allowed it to remap from periodic to unperiodic
-  
+
   call postprocess_periodic_mesh(external_mesh, external_positions, periodic_mesh, periodic_positions)
 
   ! Dump out the periodic mesh to disk:
@@ -157,7 +157,7 @@ program periodise
     ! The periodic sub-branch of the options tree has useful information that
     ! we don't want to lose just yet. So set the external mesh to be periodic
     ! first, and then overwrite
-    
+
     call get_option(external_path // '/from_file/format/name',mesh_format)
 
     call delete_option(external_path // '/from_file', stat=stat)

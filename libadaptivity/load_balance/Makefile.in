@@ -46,7 +46,7 @@ ARFLAGS = @ARFLAGS@
 
 INSTALL = @INSTALL@
 
-CPPFLAGS= -I./include -I../include @CPPFLAGS@ 
+CPPFLAGS= -I./include -I../include @CPPFLAGS@
 
 CFLAGS	= $(CPPFLAGS) @CFLAGS@
 CXXFLAGS= $(CPPFLAGS) @CXXFLAGS@
@@ -61,7 +61,7 @@ OBJS = 	main.o      Node.o      Element.o Mesh.o    imports.o      \
 	formHalo2.o ParMetis.o  mtetin.o  mtetin.o  PressureNode.o \
 	fixate.o    flstripH2.o fluidity_sam.o  		                     \
 	c++debuglog.o invent_pressure_mesh.o errorHandling.o graph_partitioning.o \
-  functional_2d.o 
+  functional_2d.o
 else
 OBJS = fluidity_sam.o
 endif
@@ -95,10 +95,9 @@ install:
 	$(INSTALL) $(LIB) @prefix@/lib/
 
 clean:
-	rm -f *.o $(LIB) core so_locations config.status config.log 
+	rm -f *.o $(LIB) core so_locations config.status config.log
 	rm -rf *.cache lib/lib*
 
 formHalo2.o: formHalo2.cpp include/comTools.h
 fixate.o:    fixate.cpp include/comTools.h
 packing.o:   packing.cpp include/comTools.h
-

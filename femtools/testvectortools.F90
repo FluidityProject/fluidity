@@ -8,7 +8,7 @@ program testvectortools
   integer :: i,j,k
 
   ident=0.0
-  
+
   forall(i=1:N) ident(i,i)=1.0
 
   k=0
@@ -18,15 +18,15 @@ program testvectortools
         A(i,j)=-1
      end do
   end do
-  
+
   forall(i=1:N)  A(i,i)=N
 
   Ainv=A
-  
+
   call invert(Ainv)
 
   print *,'Error in invert:', maxval(abs(matmul(A,Ainv)-ident))
-  
+
   Ainv=A
 
   call cholesky_factor(Ainv)

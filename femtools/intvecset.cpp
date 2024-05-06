@@ -71,4 +71,3 @@ void F77_FUNC_(intvec_destroy_set,INTVEC_DESTROY_SET)(unsigned int* idx)
     IVS.pop_back();
   }
 }
-

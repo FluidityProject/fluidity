@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation; either
@@ -25,9 +25,9 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h" 
+#include "fdebug.h"
 
-module mba3d_integration 
+module mba3d_integration
 
   use iso_c_binding, only: c_double
   use fldebug
@@ -47,13 +47,13 @@ module mba3d_integration
 #endif
 
   implicit none
-  
+
   private
 
   public :: adapt_mesh_mba3d, mba3d_integration_check_options
-  
+
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
-  
+
 contains
 
   subroutine adapt_mesh_mba3d(input_positions, metric, output_positions, force_preserve_regions)
@@ -61,18 +61,18 @@ contains
     !!< mesh in output_positions (which is allocated by this routine).
     !!< input_positions and output_positions are the Coordinate fields of
     !!< the old and new meshes respectively.
-    
+
     type(vector_field), intent(in) :: input_positions
     type(tensor_field), intent(in) :: metric
     type(vector_field), intent(out) :: output_positions
     logical, intent(in), optional :: force_preserve_regions
-    
+
     ! Linear tets only
     integer, parameter :: dim = 3, nloc = 4, snloc = 3
 
     integer :: i, max_coplanar_id
     integer, dimension(:), allocatable :: boundary_ids, coplanar_ids, sndgln
-    real, parameter :: limit_buffer = 5.0, memory_buffer = 2.0 
+    real, parameter :: limit_buffer = 5.0, memory_buffer = 2.0
     type(element_type) :: output_shape
     type(mesh_type) :: output_mesh
     type(quadrature_type) :: output_quad
@@ -100,7 +100,7 @@ contains
     integer :: iprint, ierr
 
     ewrite(1, *) "In adapt_mesh_mba_3d"
-    
+
     assert(input_positions%dim == 3)
     assert(ele_loc(input_positions, 1) == 4)
 #ifdef DDEBUG
@@ -156,7 +156,7 @@ contains
     if(maxval(lbf(:nf)) >= maxf - 100) then
       FLAbort("Exceeded max surface ID allowed by libmba3d")
     end if
-    
+
     allocate(lbe(maxe))
     if(associated(input_positions%mesh%region_ids).and.&
        (have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
@@ -189,7 +189,7 @@ contains
     allocate(iev(nev))
 
     flagauto = .true.
-    status = 0 
+    status = 0
 
     ewrite(2, *) "Forming group (Q) arguments"
 
@@ -310,7 +310,7 @@ contains
     ! Construct the new positions
     call allocate(output_positions, dim, output_mesh, name = input_positions%name)
     call deallocate(output_mesh)
-               
+
     do i = 1, dim
       output_positions%val(i,:) = xyp(i, :np)
     end do
@@ -327,11 +327,11 @@ contains
     ewrite(1, *) "Exiting adapt_mesh_mba3d"
 
   end subroutine adapt_mesh_mba3d
-  
+
   subroutine mba3d_integration_check_options
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
     integer :: dim, stat
-    
+
     if(.not. have_option(base_path) .or. .not. have_option(base_path // "/adaptivity_library/libmba3d")) then
       ! Nothing to check
       return
@@ -340,7 +340,7 @@ contains
 #ifndef HAVE_MBA_3D
     FLExit("Cannot use libmba3d without the libmba3d library. Reconfigure with --enable-mba3d")
 #endif
-  
+
     call get_option("/geometry/dimension", dim, stat)
     if(stat /= SPUD_NO_ERROR) then
       ! This isn't the place to complain about this error
@@ -350,7 +350,7 @@ contains
     else if(isparallel()) then
       FLExit("libmba3d can only be used in serial")
     end if
-  
+
   end subroutine mba3d_integration_check_options
 
 end module mba3d_integration

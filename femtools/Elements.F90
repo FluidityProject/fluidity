@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -41,7 +41,7 @@ module elements
      integer :: loc !! Number of nodes.
      integer :: ngi !! Number of gauss points.
      integer :: degree !! Polynomial degree of element.
-     !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
+     !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces.
      !! n is loc x ngi, dn is loc x ngi x dim
      !! n_s is loc x sngi, dn_s is loc x sngi x dim
      !! NOTE that both n_s and dn_s need to be reoriented before use so that they align with the arbitrary facet node ordering.
@@ -70,7 +70,7 @@ module elements
     !!< but Superconvergence.F90 depends on Elements.F90. So Elements.F90
     !!< cannot depend on Superconvergence.F90. (Fortran is a real pain.)
     !! Number of superconvergent points
-    integer :: nsp 
+    integer :: nsp
     !! Locations of superconvergent points in local coordinates
     !! allocated to nsp x loc
     real, pointer :: l(:, :)
@@ -83,8 +83,8 @@ module elements
   end type superconvergence_type
 
   type constraints_type
-     !!< A type to encode the constraints from the local Lagrange basis for 
-     !!< (Pn)^d vector-valued elements to another local basis, possibly for 
+     !!< A type to encode the constraints from the local Lagrange basis for
+     !!< (Pn)^d vector-valued elements to another local basis, possibly for
      !!< a proper subspace. This new basis must have DOFs consisting
      !!< of either normal components on faces corresponding to a Lagrange
      !!< basis for the normal component when restricted to each face,
@@ -100,8 +100,8 @@ module elements
      integer :: loc
      !! Number of constraints
      integer :: n_constraints
-     !! basis of functions that are orthogonal to the 
-     !! constrained vector space 
+     !! basis of functions that are orthogonal to the
+     !! constrained vector space
      !! dimension n_constraints x loc x dim
      real, pointer :: orthogonal(:,:,:)=> null()
   end type constraints_type
@@ -163,10 +163,10 @@ module elements
 contains
 
   subroutine allocate_element(element, ele_num, ngi, ngi_s, type, stat)
-    !!< Allocate memory for an element_type. 
+    !!< Allocate memory for an element_type.
     type(element_type), intent(inout) :: element
     !! Number of quadrature points
-    integer, intent(in) :: ngi    
+    integer, intent(in) :: ngi
     !! Element numbering
     type(ele_numbering_type), intent(in) :: ele_num
     !! Stat returns zero for success and nonzero otherwise.
@@ -272,7 +272,7 @@ contains
     constraint%loc = element%loc
     constraint%degree = element%degree
 
-    select case (type) 
+    select case (type)
     case (CONSTRAINT_BDFM)
        select case(element%numbering%family)
        case (FAMILY_SIMPLEX)
@@ -332,7 +332,7 @@ contains
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element
     integer, intent(out), optional :: stat
-    
+
     integer :: lstat, tstat
     integer :: i,j
 
@@ -396,7 +396,7 @@ contains
   subroutine deallocate_constraints(constraint, stat)
     type(constraints_type), intent(inout) :: constraint
     integer, intent(out), optional :: stat
-    
+
     integer :: lstat
 
     lstat = 0
@@ -418,17 +418,17 @@ contains
     !!< wrapper function which allows local_coords to be called on an element
     !!< instead of on an element numbering.
     integer, intent(in) :: n
-    type(element_type), intent(in) :: element    
+    type(element_type), intent(in) :: element
     real, dimension(size(element%numbering%number2count, 1)) :: coords
-    
+
     coords=local_coords(n, element%numbering)
 
   end function element_local_coords
-  
+
   function element_local_coord_count(element) result (n)
     !!< Return the number of local coordinates associated with element.
     integer :: n
-    type(element_type), intent(in) :: element    
+    type(element_type), intent(in) :: element
 
     n=size(element%numbering%number2count, 1)
 
@@ -436,13 +436,13 @@ contains
 
   function element_local_vertices(element) result (vertices)
     !!< Given an element numbering, return the local node numbers of its
-    !!< vertices. This is just a wrapper hich allows local_vertices to 
+    !!< vertices. This is just a wrapper hich allows local_vertices to
     !!< be called on an element instead of on an element numbering.
     type(element_type), intent(in) :: element
     integer, dimension(element%numbering%vertices) :: vertices
-    
+
     vertices=local_vertices(element%numbering)
-    
+
   end function element_local_vertices
 
   function element_boundary_numbering(element, boundary)
@@ -451,8 +451,8 @@ contains
     integer, intent(in) :: boundary
     type(element_type), intent(in) :: element
     integer, dimension(boundary_num_length(element%numbering, .false.)) ::&
-         & element_boundary_numbering 
-    
+         & element_boundary_numbering
+
     element_boundary_numbering=boundary_numbering(element%numbering,&
          & boundary)
 
@@ -462,13 +462,13 @@ contains
     !!< Return true if the two elements are equivalent.
     logical :: element_equal
     type(element_type), intent(in) :: element1, element2
-    
+
     element_equal = element1%dim==element2%dim &
          .and. element1%loc==element2%loc &
          .and. element1%ngi==element2%ngi &
          .and. element1%numbering==element2%numbering &
          .and. element1%quadrature==element2%quadrature
-    
+
   end function element_equal
 
   pure function eval_shape_node(shape, node,  l) result(eval_shape)
@@ -560,14 +560,14 @@ contains
 
   pure function eval_dshape_node(shape, node,  l) result(eval_dshape)
     !!< Evaluate the derivatives of the shape function for location node at local
-    !!< coordinates l 
+    !!< coordinates l
     type(element_type), intent(in) :: shape
     integer, intent(in) :: node
     real, dimension(:), intent(in) :: l
     real, dimension(shape%dim) :: eval_dshape
 
     select case(shape%numbering%family)
-       
+
     case (FAMILY_SIMPLEX)
 
        eval_dshape=eval_dshape_simplex(shape, node,  l)
@@ -578,12 +578,12 @@ contains
 
     case default
        ! Invalid element family. Return a really big number to stuff things
-       ! quickly. 
+       ! quickly.
 
        eval_dshape=huge(0.0)
 
     end select
-    
+
   end function eval_dshape_node
 
   function eval_dshape_all_nodes(shape, l) result(eval_dshape)
@@ -614,7 +614,7 @@ contains
 
   pure function eval_dshape_simplex(shape, loc,  l) result (eval_dshape)
     !!< Evaluate the derivatives of the shape function for location loc at local
-    !!< coordinates l 
+    !!< coordinates l
     !!<
     !!< This version of the function applies to members of the simplex
     !!< family including the interval.
@@ -622,7 +622,7 @@ contains
     integer, intent(in) :: loc
     real, dimension(shape%dim+1), intent(in) :: l
     real, dimension(shape%dim) :: eval_dshape
-    
+
     integer :: i,j
     ! Derivative of the dependent coordinate with respect to the other
     ! coordinates:
@@ -633,7 +633,7 @@ contains
 
     do i=1,shape%dim
        ! Directional derivatives.
-       
+
        ! The derivative has to take into account the dependent
        ! coordinate. In 3D:
        !
@@ -643,28 +643,28 @@ contains
        !  --- = P2P3| ---P4 + ---*---P1|
        !  dL1       \ dL1     dL1 dL4  /
        !
-       
+
        ! Expression in brackets.
        eval_dshape(i)=eval(shape%dspoly(i,loc), l(i))&
             *eval(shape%spoly(shape%dim+1,loc),l(shape%dim+1))&
             + dl4dl(i)&
             *eval(shape%dspoly(shape%dim+1,loc), l(shape%dim+1)) &
             *eval(shape%spoly(i,loc),l(i))
-             
+
        ! The other terms
        do j=1,shape%dim
           if (j==i) cycle
-          
+
           eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,loc), l(j))
        end do
-       
+
     end do
 
   end function eval_dshape_simplex
 
   pure function eval_dshape_cube(shape, loc,  l) result (eval_dshape)
     !!< Evaluate the derivatives of the shape function for location loc at local
-    !!< coordinates l 
+    !!< coordinates l
     !!<
     !!< This version of the function applies to members of the hypercube
     !!< family. Note that this does NOT include the interval.
@@ -683,27 +683,27 @@ contains
             eval_dshape(i)=eval_dshape(i)*eval(shape%dspoly(j,loc), l(j))
           else
             eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,loc), l(j))
-          end if          
+          end if
        end do
-    
+
     end do
 
   end function eval_dshape_cube
 
   pure function diffl4(vertices, dimension)
     ! Derivative of the dependent coordinate with respect to the other
-    ! coordinates. 
+    ! coordinates.
     integer, intent(in) :: vertices, dimension
     real, dimension(dimension) :: diffl4
 
     if (vertices==dimension+1) then
-       ! Simplex. Dependent coordinate depends on all other coordinates. 
+       ! Simplex. Dependent coordinate depends on all other coordinates.
        diffl4=-1.0
-       
+
     else if (vertices==2**dimension) then
        ! Hypercube. The dependent coordinate is redundant.
        diffl4=0.0
-    
+
     else if (vertices==6.and.dimension==3) then
        ! Wedge. First coordinate is independent.
        diffl4=(/0.0,-1.0,-1.0/)
@@ -713,7 +713,7 @@ contains
        ! things up quickly.
        diffl4=huge(0.0)
     end if
-       
+
   end function diffl4
 
   subroutine make_constraints(constraint,family)
@@ -796,17 +796,17 @@ contains
 
     !BDFM1 constraint requires that normal components are linear.
     !This means that the normal components at the edge centres
-    !need to be constrained to the average of the normal components 
+    !need to be constrained to the average of the normal components
     !at each end of the edge.
 
     !DOFS    FACES
-    ! 3      
+    ! 3
     ! 5 2    1 3
     ! 6 4 1   2
 
     !constraint equations are:
     ! (0.5 u_3 - u_5 + 0.5 u_6).n_1 = 0
-    ! (0.5 u_1 - u_4 + 0.5 u_6).n_2 = 0    
+    ! (0.5 u_1 - u_4 + 0.5 u_6).n_2 = 0
     ! (0.5 u_1 - u_2 + 0.5 u_3).n_3 = 0
 
     !face local nodes to element local nodes
@@ -822,7 +822,7 @@ contains
     !coefficients in each face
     c = (/ 0.5,-1.,0.5 /)
 
-    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient
     !for basis function loc, dimension dim1 in equation i.
 
     constraint%orthogonal = 0.
@@ -850,17 +850,17 @@ contains
     end if
 
     !RT0 constraint requires that normal components are constant.
-    !This means that both the normal components at each end of the 
+    !This means that both the normal components at each end of the
     !edge need to have the same value.
 
     !DOFS    FACES
-    ! 2      
+    ! 2
     !        1 3
     ! 3   1   2
 
     !constraint equations are:
     ! (u_2 - u_3).n_1 = 0
-    ! (u_1 - u_3).n_2 = 0    
+    ! (u_1 - u_3).n_2 = 0
     ! (u_1 - u_2).n_3 = 0
 
     !face local nodes to element local nodes
@@ -876,7 +876,7 @@ contains
     !constraint coefficients
     c = (/ 1., -1. /)
 
-    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient
     !for basis function loc, dimension dim1 in equation i.
 
     constraint%orthogonal = 0.
@@ -907,7 +907,7 @@ contains
     end if
 
     !RT0 constraint requires that normal components are constant.
-    !This means that both the normal components at each end of the 
+    !This means that both the normal components at each end of the
     !edge need to have the same value.
 
     !DOFS    FACES
@@ -917,7 +917,7 @@ contains
 
     !constraint equations are:
     ! (u_1 - u_2).n_1 = 0
-    ! (u_2 - u_4).n_2 = 0    
+    ! (u_2 - u_4).n_2 = 0
     ! (u_3 - u_4).n_3 = 0
     ! (u_3 - u_1).n_4 = 0
 
@@ -933,7 +933,7 @@ contains
     n(3,:) = (/  0.,  1. /)
     n(4,:) = (/ -1.,  0. /)
 
-    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient
     !for basis function loc, dimension dim1 in equation i.
 
     !constraint coefficients

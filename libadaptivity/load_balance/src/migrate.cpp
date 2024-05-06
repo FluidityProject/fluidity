@@ -46,44 +46,44 @@ void Mesh::migrate(const vector<int> noddom){
   unsigned paranoid_element = 0;
 
   //
-  // write in new node decomposition  
+  // write in new node decomposition
   //
   {
     unsigned ncnt = num_nodes("total");
     assert(ncnt == noddom.size());       // if this assertion is wrong, there is a bug
-    
+
     for(unsigned i = 0; i<ncnt; i++)
       node_list[i].set_future_owner( noddom[i] );
   }
-  
+
   //
-  // Based on a new domain decomposition; 
+  // Based on a new domain decomposition;
   // + calculate the submesh at remains on this processor
   // + calculate the submeshs that have to be sent to other processors
   //
   MI5 intelligance_report(num_nodes("total"), num_elements("total")); // Initalize.
   intelligance_report.spy( *this ); // Do calculation based on *this mesh
-  
+
   //
   // Using the result of the above calculation;
-  // + Pack each of the submeshs that have to be sent, 
+  // + Pack each of the submeshs that have to be sent,
   //   and send them to their respective destinations.
-  // + Wait and receive any submeshs that may have been 
-  //   sent to this processor. The received graphs are appended 
+  // + Wait and receive any submeshs that may have been
+  //   sent to this processor. The received graphs are appended
   //   to the origional
-  // 
+  //
   { // This scope contains packing, sending, receiving and unpacking.
     packing meshpack(intelligance_report, *this);    // Initalize packing.
     meshpack.pack(intelligance_report,    *this);    // Pack submeshes
-    
-    
+
+
     { // In the interest of memory conservation, the node_list is contracted now.
-      
+
       deque<unsigned> free_space;
       unsigned stay_cnt = intelligance_report.new_owned_nodes.size();
       unsigned pos      = 0;
 
-      // We never need free spaces beyond the number of nodes that will be 
+      // We never need free spaces beyond the number of nodes that will be
       // actually staying.
       for(unsigned i = 0; i<stay_cnt; i++){
 
@@ -94,7 +94,7 @@ void Mesh::migrate(const vector<int> noddom){
         }
 
       }
-     
+
       unsigned cnt=0;
       unsigned free_cnt = free_space.size();
       for(unsigned i = stay_cnt-1; cnt<free_cnt; i--){
@@ -104,14 +104,14 @@ void Mesh::migrate(const vector<int> noddom){
       node_list.shrink( stay_cnt );
 
     }
-    
+
     { // In the interest of memory conservation, the element_list is contracted now.
-      
+
       deque<unsigned> free_space;
       unsigned stay_cnt = intelligance_report.new_elements.size();
       unsigned pos      = 0;
-      
-      // We never need free spaces beyond the number of elements that will be 
+
+      // We never need free spaces beyond the number of elements that will be
       // actually staying.
       for(unsigned i = 0; i<stay_cnt; i++){
 
@@ -129,24 +129,24 @@ void Mesh::migrate(const vector<int> noddom){
       for(unsigned i = stay_cnt-1; cnt<free_cnt; i--){
         element_list[ free_space[cnt] ] = element_list[ intelligance_report.new_elements[i] ];
         cnt++;
-     } 
+     }
       element_list.shrink( stay_cnt );
       paranoid_element = stay_cnt;
     }
-    
+
     // Now everything is prepared to scommunicate all the data.
     meshpack.send();
-    
+
     // Unpack all the data received
     ECHO("Unpacking submeshes.");
     meshpack.unpack(intelligance_report, *this);
     ECHO("Submeshes unpacked.");
 
     meshpack.clear();
-    
+
     // At this point, all the submeshes have been redistributed.
   }
-  
+
   //
   // Re-arrange element list
   //
@@ -156,7 +156,7 @@ void Mesh::migrate(const vector<int> noddom){
   // Clean-up node list
   //
   fixate_nodes(intelligance_report.new_halo_nodes);
-  
+
   //
   // For mixed formulation
   //
@@ -165,7 +165,7 @@ void Mesh::migrate(const vector<int> noddom){
     ECHO("Fixating migrated pressure mesh...");
     // Clean-up pressure-node list
     fixate_pressure();
-    
+
     // Obtain aditional nodes required for halo II
     formHalo2();
     ECHO("...fixated pressure mesh.");
@@ -173,21 +173,6 @@ void Mesh::migrate(const vector<int> noddom){
 #endif
 
   ECHO("Finished main migration routine.");
-  
+
   return;
 } // end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

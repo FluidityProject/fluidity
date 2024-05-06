@@ -37,7 +37,7 @@ CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../../include
 
 CXX = @CXX@ -I../../include
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include 
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../../include
 
 LDFLAGS  = @LDFLAGS@
 
@@ -51,7 +51,7 @@ DISABLED_TESTS=
 # the test programs to be built:
 TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(basename $(wildcard *.F90)))
 
-unittest: $(TEST_BINARIES) 
+unittest: $(TEST_BINARIES)
 	ln -sf $(addprefix ../../parameterisation/tests/,$(TEST_BINARIES)) ../../bin/tests/
 
 

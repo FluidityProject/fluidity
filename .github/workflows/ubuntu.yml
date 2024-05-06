@@ -17,32 +17,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal", "Build Impish" ]
+        name: [ "Build Bionic", "Build Focal", "Build Jammy", "Build Jammy OMP" ]
         include:
-        
+
           - name: "Build Bionic"
             release: bionic
-    
+
           - name: "Build Focal"
             release: focal
-    
-          - name: "Build Impish"
-            release: impish
+
+          - name: "Build Jammy"
+            release: jammy
+
+          - name: "Build Jammy OMP"
+            release: jammy-omp
 
     steps:
 
-      - name: Check Out Repo 
-        uses: actions/checkout@v2
+      - name: Check Out Repo
+        uses: actions/checkout@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          
+
       - name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: docker/actions/Dockerfile.actions.${{ matrix.release }}
@@ -54,34 +57,24 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
-    if: always()
+    if: success() || failure()
 
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Unit Bionic", "Short Bionic", "Medium Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Impish", "Short Impish", "Medium Impish" ]
+        name: [ "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Jammy", "Short Jammy", "Medium Jammy" ]
         include:
-        
-          - name: "Unit Bionic"
-            release: bionic
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-          
+
           - name: "Short Bionic"
             release: bionic
             command: "make THREADS=2 test"
             output: "test_results.xml"
 
-          - name: "Medium Bionic"
-            release: bionic
-            command: "make THREADS=2 mediumtest"
-            output: "test_results_medium.xml"
-
           - name: "Unit Focal"
             release: focal
             command: "make unittest"
             output: "test_results_unittests.xml"
-          
+
           - name: "Short Focal"
             release: focal
             command: "make THREADS=2 test"
@@ -92,18 +85,18 @@ jobs:
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
-          - name: "Unit Impish"
-            release: impish
+          - name: "Unit Jammy"
+            release: jammy
             command: "make unittest"
             output: "test_results_unittests.xml"
-          
-          - name: "Short Impish"
-            release: impish
+
+          - name: "Short Jammy"
+            release: jammy
             command: "make THREADS=2 test"
             output: "test_results.xml"
 
-          - name: "Medium Impish"
-            release: impish
+          - name: "Medium Jammy"
+            release: jammy
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
@@ -115,13 +108,13 @@ jobs:
          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
           name: tests_xml_outputs
 
       - name: ${{ matrix.name }} JUnit
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v3
         with:
           report_paths: ${{ matrix.release }}-${{ matrix.output }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -133,7 +126,7 @@ jobs:
     name: longtest-${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build
-    if: always()
+    if: success() || failure()
 
     strategy:
       fail-fast: false
@@ -143,7 +136,7 @@ jobs:
                "gyre_parallel",
                "Stokes_square_convection_1e4_vv_p1p1",
                "Stokes_square_convection_1e4_p1p1_Ra_Test",
-               "Stokes_square_convection_1e4_vv_gauss_p2p1", 
+               "Stokes_square_convection_1e4_vv_gauss_p2p1",
                "viscous_fs_drunkensailor",
                "cylinder-3d-drag",
                "viscosity_2d_p0_adaptive_parallel",
@@ -245,16 +238,16 @@ jobs:
       - name: ${{ matrix.name }} Longtesting
         run: |
          chmod 777 .
-         docker pull fluidity/actions:focal-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:focal-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:jammy-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:jammy-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: test_results_${{ matrix.name }}.xml
           name: tests_xml_outputs
 
       - name: ${{ matrix.name }} JUnit
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v3
         with:
           report_paths: test_results_${{ matrix.name }}.xml
           github_token: ${{ secrets.GITHUB_TOKEN }}

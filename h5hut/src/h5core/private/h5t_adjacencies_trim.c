@@ -463,4 +463,3 @@ get_adjacencies (
 struct h5t_adjacency_methods h5tpriv_trim_adjacency_methods = {
 	get_adjacencies
 };
-

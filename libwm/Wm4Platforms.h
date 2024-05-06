@@ -96,7 +96,7 @@ typedef long long Integer64;
 // when member data and functions involving templates or inlines occur.  To
 // avoid the warning, WM4_FOUNDATION_ITEM can be applied only to those items
 // that really need to be exported.
-#pragma warning( disable : 4251 ) 
+#pragma warning( disable : 4251 )
 
 typedef __int64 Integer64;
 

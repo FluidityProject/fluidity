@@ -34,12 +34,13 @@ void usage(int argc, char **argv){
 // access those, and we can't access the command-line from fortran
 // We read those here and stick them in the PETSc options database to be
 // read from fortran
-  
+
   char flml_extension[]=".flml";
   char *flml_file=NULL;
+  [[maybe_unused]]
   PetscErrorCode ierr;
   PetscBool      flg;
-  
+
   // if it's already specified as a PETSc option, we do nothing:
   ierr = PetscOptionsHasName(NULL, "prns_","-flml",&flg);
   if (flg) {
@@ -65,7 +66,7 @@ void usage(int argc, char **argv){
     }
     ierr = PetscOptionsInsertString(NULL, my_PETSc_options.c_str() );
   }
-  
+
   // -l option needs to be dealt with in c++ already
   ierr = PetscOptionsHasName(NULL, "","-l",&flg);
   if (flg) {
@@ -109,19 +110,20 @@ int main(int argc, char **argv){
 
 #ifdef HAVE_PETSC
   static char help[] = "Use -help to see the help.\n\n";
+  [[maybe_unused]]
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help);
   // PetscInitializeFortran needs to be called when initialising PETSc from C, but calling it from Fortran
   ierr = PetscInitializeFortran();
-  
+
   usage(argc, argv);
-  
+
 #ifdef HAVE_PYTHON
   // Initialize the Python Interpreter
   python_init_();
 #endif
-  
+
   petsc_readnsolve_();
-  
+
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter
   python_end_();
@@ -131,10 +133,10 @@ int main(int argc, char **argv){
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif
- 
+
   return 0;
 #else
-  cerr << "ERROR: Not configured with PETSc, so petsc_readnsolve is not gonna work!" << endl; 
+  cerr << "ERROR: Not configured with PETSc, so petsc_readnsolve is not gonna work!" << endl;
   return 1;
 #endif
 

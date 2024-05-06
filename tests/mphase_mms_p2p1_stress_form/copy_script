@@ -3,12 +3,12 @@
 n=4
 for F in A B C
 do
-    echo creating set $F with n_ele=$n	
+    echo creating set $F with n_ele=$n
 
-    cp MMS_X.flml MMS_$F.flml 
+    cp MMS_X.flml MMS_$F.flml
     sed s/MMS_X/MMS_$F/ MMS_$F.flml > MMS_$F.flml.cp
 
-    sed s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo	
+    sed s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo
 
     n=$((n*2))
 done

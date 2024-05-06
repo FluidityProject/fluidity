@@ -37,16 +37,16 @@
 #define TAG_HALO 1
 
 int event2internal(const int NNOD, const int PNOD, const int NELM,
-		   const int field_len, 
+		   const int field_len,
 		   const int *ITYP, const int *IAVR, const int *IMAT, const int *ISOR,
-		   const coord_t *X, const coord_t *Y, const coord_t *Z, 
+		   const coord_t *X, const coord_t *Y, const coord_t *Z,
 		   const metric_t *metric, const field_t *field,
 		   const int *ENLIST, const int *ENLBAS, const int SZENLS,
 		   const int *NELIST, const int *NELBAS, const int SZNELS,
 		   const int *ATOREC, const int *SCATER, const int NSCAT,
 		   const int *ATOSEN, const int *GATHER, const int NGATH,
 		   const int TOTUNS, const char ZeroOffset){
-  
+
   int i, j, cnt;
   int MyRank, NProcs, noffset, *NperP;
   MPI_Request *hSendRequest=0, *hRecvRequest=0;
@@ -83,7 +83,7 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
   NumNodes  = NNOD;
   NumPNodes = PNOD;
   NumElems  = NELM;
-  
+
   /* Allocate space for the node list.
    */
   if((node_list = (node_t *)malloc(NNOD*sizeof(node_t)))==NULL){
@@ -92,7 +92,7 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
   }
   node_list_len = NNOD;
 
-  /* Write node data. 
+  /* Write node data.
    */
   for(i=0;i<NNOD;i++){
 
@@ -103,14 +103,14 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
     }
 
     node_list[i].NCE = NELBAS[i+1]-NELBAS[i];
-    if( (node_list[i].elems = 
+    if( (node_list[i].elems =
 	 (int *)malloc(node_list[i].NCE*sizeof(int)))==NULL ){
       perror("malloc");
       return(-2);
     }
-    memcpy(node_list[i].elems, NELIST+NELBAS[i]-ZeroOffset, 
+    memcpy(node_list[i].elems, NELIST+NELBAS[i]-ZeroOffset,
 	   node_list[i].NCE*sizeof(int));
-        
+
     /* Nodewise field values.
      */
     node_list[i].nfields = TOTUNS;
@@ -119,19 +119,19 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
       perror("malloc");
       return(-3);
     }
-    memcpy(node_list[i].fields, field+i*field_len, 
+    memcpy(node_list[i].fields, field+i*field_len,
 	   field_len*sizeof(field_t));
-    
+
     node_list[i].x[0] = X[i];
     node_list[i].x[1] = Y[i];
 #ifndef MESH_2D
     node_list[i].x[2] = Z[i];
 #endif
-    
+
     /* Nodewise metric used for adaptivity
      */
 #ifdef USING_ADAPTIVITY
-    memcpy(&node_list[i].METRIC[0], metric+i*9, 
+    memcpy(&node_list[i].METRIC[0], metric+i*9,
 	   9*sizeof(metric_t));
 #endif
   }
@@ -141,7 +141,7 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
   for(i=0;i<NProcs;i++)
     for(j=ATOREC[i]-ZeroOffset;j<ATOREC[i+1]-ZeroOffset;j++)
       node_list[SCATER[j]-ZeroOffset].owner=i;
-    
+
   /* Write halo. */
   meshNGATH = NGATH;
   if( (meshATOSEN = (int *)realloc(meshATOSEN, (NProcs+1)*sizeof(int)))==NULL){
@@ -171,7 +171,7 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
   for(i=0;i<NProcs;i++){                /* GNN of scatter */
     cnt = meshATOSEN[i+1]-meshATOSEN[i];
     if(cnt>0){
-      MPI_Irecv(meshGather+meshATOSEN[i], cnt, MPI_LONG, i, TAG_HALO, 
+      MPI_Irecv(meshGather+meshATOSEN[i], cnt, MPI_LONG, i, TAG_HALO,
 		MPI_COMM_WORLD, hRecvRequest+i);
     }else{
       hRecvRequest[i] = MPI_REQUEST_NULL;
@@ -180,7 +180,7 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
   for(i=0;i<NProcs;i++){
     cnt = meshATOSEN[i+1]-meshATOSEN[i];
     if(cnt>0){
-      MPI_Isend(meshScatter+meshATOSEN[i], cnt, MPI_LONG, i, TAG_HALO, 
+      MPI_Isend(meshScatter+meshATOSEN[i], cnt, MPI_LONG, i, TAG_HALO,
 		MPI_COMM_WORLD, hSendRequest+i);
     }else{
       hSendRequest[i] = MPI_REQUEST_NULL;
@@ -197,33 +197,33 @@ int event2internal(const int NNOD, const int PNOD, const int NELM,
     return(-4);
   }
   element_list_len = NELM;
-  
+
   for(i=0;i<NELM;i++){
-        
+
     /* Number of nodes in element */
-    element_list[i].NodeCnt = 
+    element_list[i].NodeCnt =
       ENLBAS[i+1]-ENLBAS[i];
 
     element_list[i].property[0] = ITYP[i];
-    element_list[i].property[1] = IAVR[i]; /* Element region (material) 
+    element_list[i].property[1] = IAVR[i]; /* Element region (material)
 				       information. AKA ELMREG */
     element_list[i].property[2] = IMAT[i];
     element_list[i].property[3] = ISOR[i];
-    
+
 #ifdef USING_DISCONTINUOUS
     /* We need to fill in these values in teh case of discontinuous methods.
        int nfields;
        field_t *fields;
     */
 #endif
-    /* A pointer into ElemNodeLIST indicating 
+    /* A pointer into ElemNodeLIST indicating
        the start of the node list for this element. */
-    if( (element_list[i].nodes = 
+    if( (element_list[i].nodes =
 	 (unn_t *)malloc(element_list[i].NodeCnt*sizeof(unn_t)))==NULL){
       perror("malloc");
       return(-3);
     }
-    memcpy(element_list[i].nodes, ENLIST+ENLBAS[i]-ZeroOffset, 
+    memcpy(element_list[i].nodes, ENLIST+ENLBAS[i]-ZeroOffset,
 	   element_list[i].NodeCnt*sizeof(int));
   }
 

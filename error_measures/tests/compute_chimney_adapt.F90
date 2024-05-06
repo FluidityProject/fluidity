@@ -26,7 +26,7 @@ subroutine compute_chimney_adapt
   use field_options
   use smoothing_module
   implicit none
-  
+
   type(state_type) :: state, dummy(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions
@@ -71,7 +71,7 @@ subroutine compute_chimney_adapt
   call adaptivity_options(state, permeability, TEMP_ERROR, TEMP_REL, TEMP_MIN)
   permeability_old = permeability
   call smooth_scalar(permeability_old, positions, permeability, alpha)
-  
+
   call allocate(tmp_metric, mesh, "Metric")
   call insert(state, tmp_metric, "Metric")
   call deallocate(tmp_metric)
@@ -119,13 +119,13 @@ subroutine compute_chimney_adapt
 
     call adaptivity_options(state, porosity, TEMP_ERROR, TEMP_REL, TEMP_MIN)
     call adaptivity_options(state, permeability, TEMP_ERROR, TEMP_REL, TEMP_MIN)
-    
+
     call deallocate(metric); call allocate(metric, mesh, "Metric")
     dummy(1) = state
     call assemble_metric(dummy, metric, opts)
     state = dummy(1)
     call vtk_write_state("/tmp/reservoir_adapt", i, state=(/state/))
-    call adapt_state(state, metric) 
+    call adapt_state(state, metric)
   end do
 
   mesh => extract_mesh(state, "Mesh")

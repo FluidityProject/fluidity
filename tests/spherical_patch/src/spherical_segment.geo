@@ -13,7 +13,7 @@ Function DrawParallel
  BSpline(newParallelID) = {firstPointOnParallel, newPointOnParallel-(pointsOnParallel-1):newPointOnParallel, lastPointOnParallel};
 Return
 
-//The coordinates of various points on the Surface of the Earth are converted to radians 
+//The coordinates of various points on the Surface of the Earth are converted to radians
 //and stereographic coordinatesbelow.
 
 //Point A is located 2 deg 00'W, 48 deg 45'N.
@@ -110,4 +110,3 @@ General.Color.Background = {255,255,255};
 General.Color.BackgroundGradient = {255,255,255};
 General.Color.Foreground = Black;
 Mesh.Color.Lines = {0,0,0};
-

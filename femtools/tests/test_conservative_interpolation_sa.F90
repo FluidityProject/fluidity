@@ -11,7 +11,7 @@ subroutine test_conservative_interpolation_sa
   use solvers
   use state_module
   use supermesh_assembly
-  
+
   implicit none
 
   interface
@@ -60,7 +60,7 @@ subroutine test_conservative_interpolation_sa
 
   positionsA = read_mesh_files("data/pslgA", quad_degree=4, format="gmsh")
   positionsB = read_mesh_files("data/pslgB", quad_degree=4, format="gmsh")
-  
+
   field_element = make_element_shape(positionsA%mesh%shape%loc, positionsA%mesh%shape%dim, 2, positionsA%mesh%shape%quadrature)
   donor_mesh = make_mesh(positionsA%mesh, field_element, continuity=0, name="DonorMesh")
   target_mesh = make_mesh(positionsA%mesh, field_element, continuity=0, name="TargetMesh")
@@ -81,7 +81,7 @@ subroutine test_conservative_interpolation_sa
     call set_solver_options(fieldC(field), ksptype='cg', pctype='eisenstat', rtol=1.0e-7, max_its=10000)
     fieldC(field)%option_path = "/fieldC" // int2str(field)
   end do
-  
+
   call insert(stateA, positionsA, "Coordinate")
   call insert(stateA, positionsA%mesh, "CoordinateMesh")
   call insert(stateB, positionsB, "Coordinate")
@@ -98,15 +98,15 @@ subroutine test_conservative_interpolation_sa
   do field=1,no_field
     call zero(fieldB(field))
     call zero(fieldC(field))
-    
+
     call insert(stateA(1), fieldA(field), name=trim(fieldA(field)%name))
     call insert(stateB(1), fieldB(field), name=trim(fieldB(field)%name))
     call insert(stateC(1), fieldC(field), name=trim(fieldC(field)%name))
   end do
-  
+
   call galerkin_projection_scalars(stateA, positionsA, stateB, positionsB)
   call interpolation_galerkin(stateA, positionsA, stateC, positionsB)
-  
+
   call deallocate(stateA(1))
   call deallocate(stateB(1))
   call deallocate(stateC(1))
@@ -128,7 +128,7 @@ subroutine test_conservative_interpolation_sa
       write(0,*) "integralB - integralA == ", integralB - integralA
     end if
   end do
-  
+
   call deallocate(target_mesh)
   call deallocate(donor_mesh)
   call deallocate(field_element)
@@ -139,7 +139,7 @@ subroutine test_conservative_interpolation_sa
     call deallocate(fieldB(field))
     call deallocate(fieldC(field))
   end do
-    
+
   call report_test_no_references()
 
 end subroutine test_conservative_interpolation_sa

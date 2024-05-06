@@ -50,7 +50,7 @@ ARFLAGS = @ARFLAGS@
 
 UNROLL_LOOPS = @UNROLL_LOOPS@
 
-LIB = ../lib/lib$(FLUIDITY).a 
+LIB = ../lib/lib$(FLUIDITY).a
 
 F90LIB = libfemtools.a
 
@@ -67,7 +67,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Linked_Lists.o	\
   Sparsity_Patterns.o Sparsity_Patterns_Meshes.o State.o Tensors.o \
   Superconvergence.o Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
-  ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
+  Diagnostic_variables.o	\
   Diagnostic_Fields.o SampleNetCDF_fortran.o \
   AuxilaryOptions.o MeshDiagnostics.o VTK_interfaces.o Surface_Labels.o	\
   ISCopyIndices.o Colouring.o \
@@ -98,7 +98,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
   Wandzura_Quadrature.o Grundmann_Moeller_Quadrature.o Bound_field.o \
   Halos_Diagnostics.o Mixing_Statistics.o projections.o Memory_Diagnostics.o \
-  Sparse_Tools_Petsc.o C_Interfaces.o C_Interfaces_Fortran.o Tetrahedron_intersection.o \
+  Sparse_Tools_Petsc.o Tetrahedron_intersection.o \
   Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
@@ -121,7 +121,7 @@ F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS)  $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS)  $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -145,7 +145,7 @@ clean:
 
 ../include/version.h: version-info
 
-version-info: 
+version-info:
 	@$(MAKE) -C .. include/version.h
 
 .PHONY: version-info
@@ -160,11 +160,11 @@ Reference_count_interface_%.F90: Refcount_templates.F90 Refcount_interface_templ
 test_projections: projections.cpp
 	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
-Conservative_interpolation.o: Conservative_interpolation.F90 
+Conservative_interpolation.o: Conservative_interpolation.F90
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 
-FETools.o: FETools.F90 
+FETools.o: FETools.F90
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 
@@ -174,16 +174,16 @@ FETools.o: FETools.F90
 Reference_Counting.o: \
   Refcount_templates.F90 Refcount_interface_templates.F90
 
-test_element_numbering:test_element_numbering.F90 
+test_element_numbering:test_element_numbering.F90
 	$(FC) $(FCFLAGS) -o $@ $^
 
-testshapefunctions:testshapefunctions.F90 
+testshapefunctions:testshapefunctions.F90
 	$(FC) $(FCFLAGS) -o $@ $^
 
-testvectortools:testvectortools.F90 
+testvectortools:testvectortools.F90
 	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
 
-test_laplacian:test_laplacian.F90 
+test_laplacian:test_laplacian.F90
 	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
 
 include Makefile.dependencies

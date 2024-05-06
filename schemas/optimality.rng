@@ -75,7 +75,7 @@ configuration template</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="optimisation_algorithm">
-          <a:documentation>Minimize the functional using the LBFGS algorithm. 
+          <a:documentation>Minimize the functional using the LBFGS algorithm.
 Note: This optimisation algorithm will produce no (optimisation) stat file.</a:documentation>
           <attribute name="name">
             <value>L-BFGS-B</value>
@@ -143,7 +143,7 @@ in debugging mode (e.g. to check correctness of gradients produced with an adjoi
           </attribute>
           <choice>
             <element name="type">
-              <a:documentation>A default control from the model. 
+              <a:documentation>A default control from the model.
 This option is used when a default control was selected in the model
 (any control under /adjoint/controls/ in the model setup)</a:documentation>
               <attribute name="name">
@@ -153,7 +153,7 @@ This option is used when a default control was selected in the model
             </element>
             <element name="type">
               <attribute name="name">
-                <a:documentation>The custom control parameter is the most flexible option. 
+                <a:documentation>The custom control parameter is the most flexible option.
 It uses custom python functions for handling the controls input/ouput.</a:documentation>
                 <value>custom</value>
               </attribute>
@@ -175,7 +175,7 @@ Example:
 
  def update_control(m):
   import pickle
-  f = open('control_h.pkl', 'wb')    
+  f = open('control_h.pkl', 'wb')
   pickle.dump(m, f)
   f.close()</a:documentation>
                 <ref name="python_code"/>
@@ -204,7 +204,7 @@ Example:
         <a:documentation>Debugging options.</a:documentation>
         <optional>
           <element name="check_gradient">
-            <a:documentation>Check the functional gradient with respect to the parameters using finite differences. 
+            <a:documentation>Check the functional gradient with respect to the parameters using finite differences.
 The l2 error of the result is saved in the stat file as [functional name]_gradient_error</a:documentation>
             <empty/>
           </element>

@@ -1,10 +1,10 @@
 \chapter{Parallel}
 
-\fluidity\ is a fully-parallel program, capable of running on thousands of processors. 
-It uses the Message Passing Interface (MPI) library to communicate information between 
+\fluidity\ is a fully-parallel program, capable of running on thousands of processors.
+It uses the Message Passing Interface (MPI) library to communicate information between
 processors. Running \fluidity\ in parallel requires that MPI is available on your system
-and is properly configured. This chapter assumes that this is the case. The 
-terminology for parallel processing can sometime be confusing. Here, we use the 
+and is properly configured. This chapter assumes that this is the case. The
+terminology for parallel processing can sometime be confusing. Here, we use the
 term \emph{processor} to mean one physical CPU core and \emph{process} is one part
 of a parallel instance of \fluidity. Normally, the number of processors used matches
 the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run on 256 processors.
@@ -16,7 +16,7 @@ use to decompose the initial mesh into multiple parts, flredecomp. This can be m
 \begin{lstlisting}[language=bash]
 make fltools
 \end{lstlisting}
-inside your \fluidity\ folder.The flredecomp binary will then be created in the bin/ directory. 
+inside your \fluidity\ folder.The flredecomp binary will then be created in the bin/ directory.
 You can then decompose the initial mesh into multiple regions, one per process using the following command
 \begin{lstlisting}[language=bash]
 mpiexec -n [PARTS] flredecomp -i 1 -o [PARTS] [FLMLBASE] [NEWFLMLBASE]
@@ -94,12 +94,12 @@ $HOME/.bash_profile
 
 \begin{lstlisting}[language=bash]
  # .bashrc
- 
+
  # Source global definitions
  if [ -f /etc/bashrc ]; then
    . /etc/bashrc
  fi
- 
+
  export MODULEPATH=$MODULEPATH:$HOME/modules
 \end{lstlisting}
 

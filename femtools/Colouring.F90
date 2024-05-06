@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -44,15 +44,15 @@ module colouring
 
   public :: colour_sparsity, verify_colour_sparsity, verify_colour_ispsparsity
   public :: colour_sets, get_mesh_colouring,  mat_sparsity_to_isp_sparsity
-  
+
 contains
-  
 
 
-  ! Converts the matrix sparsity to an isp sparsity which can then be coloured to reduce the number 
+
+  ! Converts the matrix sparsity to an isp sparsity which can then be coloured to reduce the number
   ! of function evaluations needed to compute a (sparse) Jacobian via differencing.
   ! This function returns S^T*S if S is the given sparsity matrix.
-  ! The resulting sparsity matrix is symmetric. 
+  ! The resulting sparsity matrix is symmetric.
   function mat_sparsity_to_isp_sparsity(sparsity_in) result(sparsity_out)
     type(csr_sparsity), intent(in) :: sparsity_in
     type(csr_sparsity) :: sparsity_out
@@ -62,7 +62,7 @@ contains
     sparsity_out=matmul(sparsity_in_T, sparsity_in)
     call deallocate(sparsity_in_T)
 
-  end function mat_sparsity_to_isp_sparsity 
+  end function mat_sparsity_to_isp_sparsity
 
   ! Return a colouring of a mesh that is thread safe for a particular
   ! assembly type.  All elements with the same colour in the returned
@@ -88,18 +88,20 @@ contains
     integer, intent(in) :: colouring_type
     type(integer_set), dimension(:), pointer, intent(out) :: colouring
     type(mesh_type), pointer :: topology
+    integer :: i
+#ifdef _OPENMP
     type(csr_sparsity), pointer :: sparsity
     type(mesh_type) :: p0_mesh
     integer :: ncolours
     integer :: stat
-    integer :: i
     type(scalar_field) :: element_colours
+#endif
 
     topology => extract_mesh(state, topology_mesh_name)
 
     colouring => topology%colourings(colouring_type)%sets
     if (associated(colouring)) return
-    
+
     ! If we reach here then the colouring has not yet been constructed.
 
 #ifdef _OPENMP
@@ -151,11 +153,11 @@ contains
 
   end subroutine get_mesh_colouring
 
-  ! This routine colours a graph using the greedy approach. 
-  ! It takes as argument the sparsity of the adjacency matrix of the graph 
+  ! This routine colours a graph using the greedy approach.
+  ! It takes as argument the sparsity of the adjacency matrix of the graph
   ! (i.e. the matrix is node X nodes and symmetric for undirected graphs).
   subroutine colour_sparsity(sparsity, mesh, node_colour, no_colours)
-    type(csr_sparsity), intent(in) :: sparsity    
+    type(csr_sparsity), intent(in) :: sparsity
     type(mesh_type), intent(inout) :: mesh
     type(scalar_field), intent(out) :: node_colour
     integer, intent(out) :: no_colours
@@ -193,19 +195,19 @@ contains
        end do
        call deallocate(neigh_colours)
     end do
-    
+
   end subroutine colour_sparsity
 
-  ! Checks if a sparsity colouring is valid. 
+  ! Checks if a sparsity colouring is valid.
   function verify_colour_sparsity(sparsity, node_colour) result(valid)
     type(csr_sparsity), intent(in) :: sparsity
     type(scalar_field), intent(in) :: node_colour
     logical :: valid
-    integer :: i, node 
+    integer :: i, node
     real :: my_colour
     integer, dimension(:), pointer:: cols
-  
-    valid=.true. 
+
+    valid=.true.
     do node=1, size(sparsity, 1)
       cols => row_m_ptr(sparsity, node)
       my_colour=node_val(node_colour, node)
@@ -219,17 +221,17 @@ contains
   end function verify_colour_sparsity
 
   ! Checks if a sparsity colouring of a matrix is valid for isp.
-  ! This method checks that no two columns of the same colour have 
-  ! nonzeros at the same positions. 
+  ! This method checks that no two columns of the same colour have
+  ! nonzeros at the same positions.
   function verify_colour_ispsparsity(mat_sparsity, node_colour) result(valid)
     type(csr_sparsity), intent(in) :: mat_sparsity
     type(scalar_field), intent(in) :: node_colour
     logical :: valid
-    integer :: i, row 
+    integer :: i, row
     integer, dimension(:), pointer:: cols
     type(integer_set) :: neigh_colours
-  
-    valid=.true. 
+
+    valid=.true.
     do row=1, size(mat_sparsity, 1)
       call allocate(neigh_colours)
       cols => row_m_ptr(mat_sparsity, row)
@@ -244,9 +246,9 @@ contains
   end function verify_colour_ispsparsity
 
   ! with above colour_sparsity, we get map:node_id --> colour
-  ! now we want map: colour --> node_ids 
+  ! now we want map: colour --> node_ids
   function colour_sets(sparsity, node_colour, no_colours) result(clr_sets)
-    type(csr_sparsity), intent(in) :: sparsity    
+    type(csr_sparsity), intent(in) :: sparsity
     type(scalar_field), intent(in) :: node_colour
     integer, intent(in) :: no_colours
     type(integer_set), dimension(no_colours) :: clr_sets

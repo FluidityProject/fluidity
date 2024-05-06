@@ -136,8 +136,3 @@ assert(abs(VERTICAL_GRADIENT_TWO-27.3) &lt; 0.3)
 </warn_tests>
 
 </testproblem>
-
-
-
-
-

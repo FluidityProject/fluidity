@@ -19,5 +19,3 @@ setup(
       package_dir = {'fluidity': 'fluidity'},
       py_modules = ['fluidity_tools', 'vtktools']
      )
-
-

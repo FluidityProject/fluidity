@@ -1,25 +1,25 @@
 !!$ Copyright (C) 2004- Imperial College London and others.
-!!$   
+!!$
 !!$   Please see the AUTHORS file in the main source directory for a full
 !!$   list of copyright holders.
-!!$   
+!!$
 !!$   Adrian Umpleby
 !!$   Applied Modelling and Computation Group
 !!$   Department of Earth Science and Engineering
 !!$   Imperial College London
-!!$   
+!!$
 !!$   adrian@imperial.ac.uk
-!!$   
+!!$
 !!$   This library is free software; you can redistribute it and/or
 !!$   modify it under the terms of the GNU Lesser General Public
 !!$   License as published by the Free Software Foundation; either
 !!$   version 2.1 of the License.
-!!$   
+!!$
 !!$   This library is distributed in the hope that it will be useful,
 !!$   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !!$   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 !!$   Lesser General Public License for more details.
-!!$   
+!!$
 !!$   You should have received a copy of the GNU Lesser General Public
 !!$   License along with this library; if not, write to the Free Software
 !!$   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -29,7 +29,7 @@ module vtkfortran
   !!< This module merely contains explicit interfaces to allow the
   !!< convenient use of vtkfortran in fortran.
   use iso_c_binding
-  
+
   private
 
   ! Element types from VTK
@@ -47,7 +47,7 @@ module vtkfortran
   integer, public, parameter :: VTK_HEXAHEDRON=12
   integer, public, parameter :: VTK_WEDGE=13
   integer, public, parameter :: VTK_PYRAMID=14
-  
+
   integer, public, parameter :: VTK_QUADRATIC_EDGE=21
   integer, public, parameter :: VTK_QUADRATIC_TRIANGLE=22
   integer, public, parameter :: VTK_QUADRATIC_QUAD=23
@@ -70,7 +70,7 @@ module vtkfortran
      end subroutine vtkopen_c
      module procedure vtkopen_f90
   end interface
-  
+
   interface vtkclose
      ! Close the current vtk file.
      subroutine vtkclose() bind(c)
@@ -233,7 +233,7 @@ module vtkfortran
        integer(kind=c_int) :: len
      end SUBROUTINE VTKWRITEFTN_C
      SUBROUTINE VTKWRITEDTN_C(v1, v2, v3, v4, v5, v6, v7, v8, v9, name, len)&
-          & bind(c,name="vtkwritedtn") 
+          & bind(c,name="vtkwritedtn")
        use iso_c_binding
        implicit none
        REAL(c_double) :: v1(*)
@@ -270,7 +270,7 @@ module vtkfortran
        integer(kind=c_int) :: len
      end SUBROUTINE VTKWRITEFTC_C
      SUBROUTINE VTKWRITEDTC_C(v1, v2, v3, v4, v5, v6, v7, v8, v9, name,&
-          & len) bind(c,name="vtkwritedtc") 
+          & len) bind(c,name="vtkwritedtc")
        use iso_c_binding
        implicit none
        REAL(c_double) :: v1(*)
@@ -287,7 +287,7 @@ module vtkfortran
      end SUBROUTINE VTKWRITEDTC_C
      module procedure vtkwriteftc_f90, vtkwritedtc_f90
   end interface
- 
+
   interface vtksetactivescalars
     subroutine vtksetactivescalars_c(name, len) bind(c,name="vtksetactivescalars")
        use iso_c_binding
@@ -328,7 +328,7 @@ contains
     call vtkopen_c(outName, len(outName), vtkTitle, len(vtkTitle))
 
   end subroutine vtkopen_f90
-  
+
   subroutine vtkwriteisn_f90(vect, name)
     ! Wrapper routine with nicer interface.
     integer, intent(in) :: vect(*)
@@ -395,7 +395,7 @@ contains
 
     call vtkwritedvn_c(vx, vy, vz, name, len(name))
 
-  end subroutine vtkwritedvn_f90  
+  end subroutine vtkwritedvn_f90
 
   subroutine vtkwritefvc_f90(vx, vy, vz, name)
     REAL(c_float), intent(in) :: vx(*), vy(*), vz(*)
@@ -427,8 +427,8 @@ contains
 
     call vtkwritedtn_c(v1, v2, v3, v4, v5, v6, v7, v8, v9, name, len(name))
 
-  end subroutine vtkwritedtn_f90  
-  
+  end subroutine vtkwritedtn_f90
+
   subroutine vtkwriteftc_f90(v1, v2, v3, v4, v5, v6, v7, v8, v9, name)
     REAL(c_float), intent(in) :: v1(*), v2(*), v3(*), v4(*), v5(*), v6(*), v7(*), v8(*), v9(*)
     character(len=*) name
@@ -443,27 +443,27 @@ contains
 
     call vtkwritedtc_c(v1, v2, v3, v4, v5, v6, v7, v8, v9, name, len(name))
 
-  end subroutine vtkwritedtc_f90  
-  
+  end subroutine vtkwritedtc_f90
+
   subroutine vtksetactivescalars_f90(name)
     character(len=*) name
-    
+
     call vtksetactivescalars_c(name, len_trim(name))
-    
+
   end subroutine vtksetactivescalars_f90
 
   subroutine vtksetactivevectors_f90(name)
     character(len=*) name
-    
+
     call vtksetactivevectors_c(name, len_trim(name))
-    
+
   end subroutine vtksetactivevectors_f90
 
   subroutine vtksetactivetensors_f90(name)
     character(len=*) name
-    
+
     call vtksetactivetensors_c(name, len_trim(name))
-    
+
   end subroutine vtksetactivetensors_f90
 
 end module vtkfortran

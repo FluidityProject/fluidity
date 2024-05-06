@@ -21,7 +21,7 @@ if vtk.VTK_MAJOR_VERSION&gt;5:
   flt.SetInputData(ugrid)
 else:
   flt.SetInput(ugrid)
-  
+
 flt.SetTriangleQualityMeasure(vtk.VTK_QUALITY_RADIUS_RATIO)
 flt.Update()
 vgrid = flt.GetOutput()

@@ -1,6 +1,6 @@
 /*
  * Implementation of optparse.h
- * 
+ *
  * Roman Geus, 2005
  *
  */
@@ -29,15 +29,15 @@ Option::Option (string shrt, string lng, string dest,
 
 Option::~Option () {}
 
-bool 
+bool
 Option::is_allowed(std::string argument) {
     // Test type
     // FIXME: implement that
-    
+
     // Test allowed values
     if (allowed_args_ == "")
         return true;
-    
+
     size_t pos_begin = 0;
     do {
         size_t pos_comma = allowed_args_.find(',', pos_begin);
@@ -46,14 +46,14 @@ Option::is_allowed(std::string argument) {
         if (allowed_args_.substr(pos_begin, pos_comma-pos_begin) == argument)
             return true;
         pos_begin = pos_comma + 1;
-    } while(pos_begin < allowed_args_.size());    
+    } while(pos_begin < allowed_args_.size());
     return false;
 }
 
 /******************** OptionParser *******************/
 
 OptionParser::OptionParser (string usage)
-    : use_msg (usage) 
+    : use_msg (usage)
 { }
 
 OptionParser::~OptionParser () {}
@@ -61,10 +61,10 @@ OptionParser::~OptionParser () {}
 void
 OptionParser::add_option(string shrt_flag, string lng_flag, string destination,
                          string help, action_t act, type_t type, string dfault,
-                         string allowed_values) 
+                         string allowed_values)
 {
     Option option(shrt_flag, lng_flag, destination, help, act, dfault, type, allowed_values);
-    
+
     /* Add the option to our list of options. */
     opts.push_back(option);
 
@@ -109,7 +109,7 @@ OptionParser::parse_args (int argc, char **argv) {
 void
 OptionParser::help (ostream& os) {
     const size_t WORD_WRAP = 50;      // max width of last column
-    
+
     // Determine column width for short options
     size_t shrt_flag_max_len = 0;
     for (size_t i=0; i < opts.size(); ++ i) {
@@ -120,7 +120,7 @@ OptionParser::help (ostream& os) {
         if (buf.str().size() > shrt_flag_max_len)
             shrt_flag_max_len = buf.str().size();
     }
-    
+
     // Determine column width for long options
     size_t lng_flag_max_len = 0;
     for (size_t i=0; i < opts.size(); ++ i) {
@@ -131,12 +131,12 @@ OptionParser::help (ostream& os) {
         if (buf.str().size() > lng_flag_max_len)
             lng_flag_max_len = buf.str().size();
     }
-    
+
     os << use_msg << endl;
     for (size_t i=0; i < opts.size(); ++ i) {
         stringstream line;
         line << "  ";
-        
+
         // short option column
         stringstream shrt_buf;
         shrt_buf << opts[i].shrt_flag;
@@ -145,21 +145,21 @@ OptionParser::help (ostream& os) {
         line << ' ' << shrt_buf.str();
         for (size_t k = 0; k < shrt_flag_max_len-shrt_buf.str().size()+2; ++ k)
             line << ' ';
-            
+
         // long option column
         stringstream buf;
         buf << opts[i].lng_flag;
         if (opts[i].action == STORE)
-            buf << "=" << type2string(opts[i].type_);        
+            buf << "=" << type2string(opts[i].type_);
         line << buf.str();
         for (size_t k = 0; k < lng_flag_max_len-buf.str().size()+4; ++ k)
             line << ' ';
-        
+
         // help column
         os << line.str();
         size_t help_col = line.str().size();
         line.str("");
-        
+
         line << opts[i].help;
         bool is_allowed = opts[i].allowed_args_ != "";
         bool is_default = opts[i].action == STORE && opts[i].dfault_ != "";
@@ -182,13 +182,13 @@ OptionParser::help (ostream& os) {
                 line << "default=\'" << opts[i].dfault_ << "\'";
             line << ')';
         }
-        
+
         // split over several lines
         size_t begin_pos = 0;
         size_t last_pos = 0;
         size_t next_pos;
-        
-        do {        
+
+        do {
             next_pos = line.str().find_first_of(" ,", last_pos+1);
             if (next_pos == string::npos)
                 next_pos = line.str().size()-1;
@@ -202,7 +202,7 @@ OptionParser::help (ostream& os) {
             } else
                 last_pos = next_pos;
         } while (begin_pos != line.str().size());
-    }        
+    }
  }
 
 void
@@ -225,7 +225,7 @@ OptionParser::find_opt_short(int argc, char **argv, int &index) {
                 if (index >= argc-1)
                     throw OptionError(argv[index], "Missing option argument");
                 set_option(opts[i], argv[index+1]);
-                index++;                
+                index++;
                 break;
             default:
                 break;
@@ -233,7 +233,7 @@ OptionParser::find_opt_short(int argc, char **argv, int &index) {
             return;
         }
     }
-    
+
     /* If we haven't found a match this is not a known argument. */
     throw OptionError(argv[index], "Unknown option");
 }
@@ -250,7 +250,7 @@ OptionParser::find_opt_long(int argc, char **argv, int &index) {
         argument = arg_str.substr(equal_pos+1, string::npos);
     } else
         option = arg_str;
-    
+
     /* Step through our list of known options. */
     for (size_t i = 0; i < opts.size(); i++) {
         if (opts[i].lng_flag == option) {
@@ -276,7 +276,7 @@ OptionParser::find_opt_long(int argc, char **argv, int &index) {
             return;
         }
     }
-    
+
     /* If we haven't found a match this is not a known argument. */
     throw OptionError(option, "Unknown option");
 }

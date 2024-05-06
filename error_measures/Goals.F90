@@ -109,7 +109,7 @@ module goals
   subroutine goal_temp_grad(state, dep, adj)
     ! The derivative of the goal with respect to
     ! whatever variables it depends on.
-    ! Here it only depends on "Temperature", so 
+    ! Here it only depends on "Temperature", so
     ! other variables are ignored.
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: dep
@@ -150,9 +150,9 @@ module goals
       end do
 
       ! tmpA now represents grad(N_i) . kappa . grad(N_i)
-      
+
       do loc=1,ele_loc(adj, ele)
-        tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc)) 
+        tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc))
       end do
 
       ! tmpA now represents T_i . (grad(N_i) . kappa . grad(N_i))
@@ -463,9 +463,9 @@ module goals
     call LESVIS(node_count(nvelocity), ele_count(nvelocity), ele_loc(nvelocity, ele), &
               & nvelocity%mesh%ndglno, ele_ngi(nvelocity, ele), ele, gi, &
               & dn_t(:, :, 1), dn_t(:, :, 2), dn_t(:, :, 3), &
-              & nvelocity%val(1,:), nvelocity%val(2,:), nvelocity%val(3,:), & 
+              & nvelocity%val(1,:), nvelocity%val(2,:), nvelocity%val(3,:), &
               & gvelocity%val(1,:), gvelocity%val(2,:), gvelocity%val(3,:), &
-              & MXX, MXY, MXZ, MYY, MYZ, MZZ) 
+              & MXX, MXY, MXZ, MYY, MYZ, MZZ)
 
     kappa(1, 1) = mxx(gi)
     kappa(1, 2) = mxy(gi)
@@ -524,10 +524,10 @@ module goals
     call lesvis_d(node_count(nvelocity), ele_count(nvelocity), ele_loc(nvelocity, ele), &
               & nvelocity%mesh%ndglno, ele_ngi(nvelocity, ele), ele, gi, &
               & dn_t(:, :, 1), dn_t(:, :, 2), dn_t(:, :, 3), &
-              & nvelocity%val(1,:), nud, nvelocity%val(2,:), nvd, nvelocity%val(3,:), nwd, & 
+              & nvelocity%val(1,:), nud, nvelocity%val(2,:), nvd, nvelocity%val(3,:), nwd, &
               & gvelocity%val(1,:), gvelocity%val(2,:), gvelocity%val(3,:), &
               & lenxx, lenxy, lenxz, lenyy, lenyz, lenzz, &
-              & mxx, mxxd, mxy, mxyd, mxz, mxzd, myy, myyd, myz, myzd, mzz, mzzd) 
+              & mxx, mxxd, mxy, mxyd, mxz, mxzd, myy, myyd, myz, myzd, mzz, mzzd)
 
     kappa(1, 1) = mxxd
     kappa(1, 2) = mxyd
@@ -543,7 +543,7 @@ module goals
   subroutine goal_les_velocity_grad(state, dep, adj)
     ! The derivative of the goal with respect to
     ! whatever variables it depends on.
-    ! Here it only depends on "NonlinearVelocity", so 
+    ! Here it only depends on "NonlinearVelocity", so
     ! other variables are ignored.
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: dep
@@ -619,9 +619,9 @@ module goals
 
       ! tmpA now represents grad(N_i) . kappa . grad(N_i)
       ! tmpB now represents grad(N_i) . kappa_d . grad(N_i)
-      
+
       do loc=1,ele_loc(adj, ele)
-        tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc)) 
+        tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc))
         tmpB(loc, :) = tmpB(loc, :) * 0.5 * (node_val(field, nodelist(loc)))**2
       end do
 
@@ -642,7 +642,7 @@ module goals
   subroutine goal_les_temp_grad(state, dep, adj)
     ! The derivative of the goal with respect to
     ! whatever variables it depends on.
-    ! Here it only depends on "Temperature", so 
+    ! Here it only depends on "Temperature", so
     ! other variables are ignored.
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: dep
@@ -693,9 +693,9 @@ module goals
         end do
 
         ! tmpA now represents grad(N_i) . kappa . grad(N_i)
-        
+
         do loc=1,ele_loc(adj, ele)
-          tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc)) 
+          tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc))
         end do
 
         ! tmpA now represents T_i . (grad(N_i) . kappa . grad(N_i))
@@ -727,9 +727,9 @@ module goals
         end do
 
         ! tmpA now represents grad(N_i) . kappa . grad(N_i)
-        
+
         do loc=1,ele_loc(adj, ele)
-          tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc)) 
+          tmpA(loc, :) = tmpA(loc, :) * node_val(temp, nodelist(loc))
         end do
 
         ! tmpA now represents T_i . (grad(N_i) . kappa . grad(N_i))
@@ -748,7 +748,7 @@ module goals
   integer gi
   real tensxx,tensxy,tensxz,tensyy,tensyz,tenszz
   real nx(nloc,ngi),ny(nloc,ngi),nz(nloc,ngi)
-  
+
   real rn
   real udl,vdl,wdl
   integer iloc
@@ -762,9 +762,9 @@ module goals
      do 350 iloc=1,nloc
               rn=nx(iloc,gi)**2+ny(iloc,gi)**2+nz(iloc,gi)**2
               udl=1.*nx(iloc,gi)/rn
-              vdl=1.*ny(iloc,gi)/rn 
+              vdl=1.*ny(iloc,gi)/rn
               wdl=1.*nz(iloc,gi)/rn
-              
+
               tensxx=tensxx + udl*udl
               tensxy=tensxy + udl*vdl
               tensxz=tensxz + udl*wdl
@@ -772,14 +772,14 @@ module goals
               tensyz=tensyz + vdl*wdl
               tenszz=tenszz + wdl*wdl
 350     continue
-  return 
+  return
   end subroutine
 
      subroutine lesvis(nonods,totele,nloc,vondgl, ngi, ele,gi, &
  &             nx,ny,nz, &
  &             nu,nv,nw, ug,vg,wg, &
- &             mxxdtw,mxydtw,mxzdtw, & 
- &             myydtw,myzdtw,mzzdtw) 
+ &             mxxdtw,mxydtw,mxzdtw, &
+ &             myydtw,myzdtw,mzzdtw)
      integer nonods,totele,nloc,ngi, ele,gi
      integer vondgl(totele*nloc)
      real nx(nloc,ngi),ny(nloc,ngi),nz(nloc,ngi)
@@ -823,12 +823,12 @@ module goals
        myydtw(gi) = fourcs*vis*myydtw(gi)
        myzdtw(gi) = fourcs*vis*myzdtw(gi)
        mzzdtw(gi) = fourcs*vis*mzzdtw(gi)
-     return 
+     return
      end subroutine
 
 !        Generated by TAPENADE     (INRIA, Tropics team)
 !  Tapenade 2.2.3 (r2178) - 11/14/2007 15:07
-!  
+!
 !  Differentiation of lesvis in forward (tangent) mode:
 !   variations  of output variables: mxzdtw mxydtw mxxdtw myzdtw
 !                myydtw mzzdtw
@@ -930,7 +930,7 @@ subroutine lesvis_d(nonods, totele, nloc, vondgl, ngi, ele, gi, nx, ny, &
 end subroutine lesvis_d
 
   function goal_les_velocity_4th(state)
-    ! 0.5 * int( transpose(grad(T))   . kappa . grad(T) dv) -  
+    ! 0.5 * int( transpose(grad(T))   . kappa . grad(T) dv) -
     ! 0.5 * int( transpose(grad(T)_h) . kappa . grad(T)_h dV).
     ! kappa is the LES matrix.
     type(state_type), dimension(:), intent(in) :: state
@@ -1049,7 +1049,7 @@ end subroutine lesvis_d
   subroutine goal_les_velocity_4th_grad(state, dep, adj)
     ! The derivative of the goal with respect to
     ! whatever variables it depends on.
-    ! Here it only depends on "NonlinearVelocity", so 
+    ! Here it only depends on "NonlinearVelocity", so
     ! other variables are ignored.
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: dep
@@ -1125,9 +1125,9 @@ end subroutine lesvis_d
 
         ! tmpA now represents grad(N_i) . kappa . grad(N_i)
         ! tmpB now represents grad(N_i) . kappa_d . grad(N_i)
-        
+
         do loc=1,ele_loc(adj, ele)
-          tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc)) 
+          tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc))
           tmpB(loc, :) = tmpB(loc, :) * 0.5 * (node_val(field, nodelist(loc)))**2
         end do
 
@@ -1187,9 +1187,9 @@ end subroutine lesvis_d
 
         ! tmpA now represents grad(N_i) . kappa . grad(N_i)
         ! tmpB now represents grad(N_i) . kappa_d . grad(N_i)
-        
+
         do loc=1,ele_loc(adj, ele)
-          tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc)) 
+          tmpA(loc, :) = tmpA(loc, :) * node_val(field, nodelist(loc))
           tmpB(loc, :) = tmpB(loc, :) * 0.5 * (node_val(field, nodelist(loc)))**2
         end do
 
@@ -1324,7 +1324,7 @@ end subroutine lesvis_d
   subroutine goal_les_velocity_squared_grad(state, dep, adj)
     ! The derivative of the goal with respect to
     ! whatever variables it depends on.
-    ! Here it only depends on "NonlinearVelocity", so 
+    ! Here it only depends on "NonlinearVelocity", so
     ! other variables are ignored.
     type(state_type), dimension(:), intent(in) :: state
     character(len=*), intent(in) :: dep
@@ -1421,4 +1421,4 @@ end subroutine lesvis_d
       deallocate(field)
     end if
   end subroutine goal_les_velocity_squared_grad
-end module goals 
+end module goals

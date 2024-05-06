@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
+import os
+import sys
+import time
 
-import os, time, sys
 
 def is_job_running(jobid):
     outp = os.popen("qstat -an | grep %s" % jobid)
-    if outp.read() == '': return False
-    else: return True
+    if outp.read() == "":
+        return False
+    else:
+        return True
+
 
 pbsfile = sys.argv[1]
 
@@ -18,10 +23,10 @@ while is_job_running(jobid):
 
 file = open("compile.log")
 data = file.read()
-for line in data.split('\n'):
-    print(line + '\n')
+for line in data.split("\n"):
+    print(line + "\n")
 
 if "BUILD COMPLETE" in data:
-  sys.exit(0)
+    sys.exit(0)
 else:
-  sys.exit(1)
+    sys.exit(1)

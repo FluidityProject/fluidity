@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
+
 h5_err_t
 h5_has_file_attrib (
 	const h5_file_t, const char* const);

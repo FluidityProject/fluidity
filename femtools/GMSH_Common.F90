@@ -32,6 +32,8 @@
 
 module gmsh_common
 
+  use, intrinsic :: iso_fortran_env, only : int64
+
   character(len=3), parameter :: GMSHVersionStr = "2.1"
   integer, parameter :: asciiFormat = 0
   integer, parameter :: binaryFormat = 1
@@ -69,7 +71,7 @@ contains
     integer fd
     character(len=*) :: filename, readWriteStr
 
-    integer position
+    integer (int64) position
 
 
     inquire(fd, POS=position)
@@ -100,7 +102,7 @@ contains
     integer fd
     character(len=*) filename, readWriteStr
 
-    integer position
+    integer (int64) position
 
 
     inquire(fd, POS=position)
@@ -137,7 +139,7 @@ contains
     ! Quads
     case (3)
        nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron  
+    ! Hexahedron
     case (5)
        nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
     case default
@@ -171,7 +173,7 @@ contains
     ! Quads
     case (3)
        nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron  
+    ! Hexahedron
     case (5)
        nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
 

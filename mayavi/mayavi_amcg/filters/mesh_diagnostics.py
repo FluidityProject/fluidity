@@ -1,20 +1,15 @@
-## To Do:
-## Make stats fields read-only
-## More descriptive description
-
+# To Do:
+# Make stats fields read-only
+# More descriptive description
 # Author: Daryl Harrison
-
-# Enthought library imports
-from enthought.traits.api import Instance, Enum, Bool, Tuple, Float
-from enthought.traits.ui.api import View, Item, Group, TupleEditor
-from enthought.tvtk.api import tvtk
-
-# Local imports
-from enthought.mayavi.core.filter import Filter
-from enthought.mayavi.core.traits import DEnum
-from enthought.mayavi.core.dataset_manager import DatasetManager
 from numpy import array
-from sets import Set
+from traits.api import Bool, Enum, Float, Instance, Tuple
+from traitsui.api import Group, Item, TupleEditor, View
+from tvtk.api import tvtk
+
+from mayavi.core.dataset_manager import DatasetManager
+from mayavi.core.filter import Filter
+
 
 ################################################################################
 # `MeshDiagnostics` class.
@@ -37,54 +32,73 @@ class MeshDiagnostics(Filter):
 
     _mesh_quality_filter = Instance(tvtk.MeshQuality, args=(), allow_none=False)
 
-    tet_quality_measure = Enum('Edge ratio', 'Aspect ratio', 'Radius ratio', 'Min angle', 'Frobenius norm', 'Volume')
-    triangle_quality_measure = Enum('Edge ratio', 'Aspect ratio', 'Radius ratio', 'Min angle', 'Frobenius norm')
-    quad_quality_measure = Enum('Edge ratio', 'Aspect ratio', 'Radius ratio', 'Min angle', 'Med Frobenius norm', 'Max Frobenius norm')
-    hex_quality_measure = Enum('Edge ratio')
+    tet_quality_measure = Enum(
+        "Edge ratio",
+        "Aspect ratio",
+        "Radius ratio",
+        "Min angle",
+        "Frobenius norm",
+        "Volume",
+    )
+    triangle_quality_measure = Enum(
+        "Edge ratio", "Aspect ratio", "Radius ratio", "Min angle", "Frobenius norm"
+    )
+    quad_quality_measure = Enum(
+        "Edge ratio",
+        "Aspect ratio",
+        "Radius ratio",
+        "Min angle",
+        "Med Frobenius norm",
+        "Max Frobenius norm",
+    )
+    hex_quality_measure = Enum("Edge ratio")
 
-    tet_stats = triangle_stats = quad_stats = hex_stats = Tuple(Float,Float,Float,Float,Float)
+    tet_stats = triangle_stats = quad_stats = hex_stats = Tuple(
+        Float, Float, Float, Float, Float
+    )
 
     ######################################################################
     # The view.
     ######################################################################
-    stats_editor = TupleEditor(labels=['Minimum','Average','Maximum','Variance','Number of cells'])
-    traits_view = \
-        View(
-            Item(name='stiff_elements'),
+    stats_editor = TupleEditor(
+        labels=["Minimum", "Average", "Maximum", "Variance", "Number of cells"]
+    )
+    traits_view = View(
+        Item(name="stiff_elements"),
+        Group(
             Group(
-                Group(
-                    Item(name='tet_quality_measure'),
-                    Item(name='tet_stats', style='custom', editor=stats_editor),
-                    label='Tetrahedron quality measure',
-                    show_labels=False,
-                    show_border=True,
-                ),
-                Group(
-                    Item(name='triangle_quality_measure'),
-                    Item(name='triangle_stats', style='custom', editor=stats_editor),
-                    label='Triangle quality measure',
-                    show_labels=False,
-                    show_border=True,
-                ),
-                Group(
-                    Item(name='quad_quality_measure'),
-                    Item(name='quad_stats', style='custom', editor=stats_editor),
-                    label='Quadrilateral quality measure',
-                    show_labels=False,
-                    show_border=True,
-                ),
-                Group(
-                    Item(name='hex_quality_measure'),
-                    Item(name='hex_stats', style='custom', editor=stats_editor),
-                    label='Hexahedron quality measure',
-                    show_labels=False,
-                    show_border=True,
-                ),
-                enabled_when='stiff_elements==False',
-                show_border=False
+                Item(name="tet_quality_measure"),
+                Item(name="tet_stats", style="custom", editor=stats_editor),
+                label="Tetrahedron quality measure",
+                show_labels=False,
+                show_border=True,
             ),
-            width=300
-        )
+            Group(
+                Item(name="triangle_quality_measure"),
+                Item(name="triangle_stats", style="custom", editor=stats_editor),
+                label="Triangle quality measure",
+                show_labels=False,
+                show_border=True,
+            ),
+            Group(
+                Item(name="quad_quality_measure"),
+                Item(name="quad_stats", style="custom", editor=stats_editor),
+                label="Quadrilateral quality measure",
+                show_labels=False,
+                show_border=True,
+            ),
+            Group(
+                Item(name="hex_quality_measure"),
+                Item(name="hex_stats", style="custom", editor=stats_editor),
+                label="Hexahedron quality measure",
+                show_labels=False,
+                show_border=True,
+            ),
+            enabled_when="stiff_elements==False",
+            show_border=False,
+        ),
+        width=300,
+    )
 
     """
     Hexahedron quality measure    - EdgeRatio
@@ -118,8 +132,8 @@ class MeshDiagnostics(Filter):
             return
 
         self._mesh_quality_filter.set_input(self.inputs[0].outputs[0])
-        for type in ['tet','triangle','quad','hex']:
-            self._change_quality_measure(type, 'Edge ratio')
+        for type in ["tet", "triangle", "quad", "hex"]:
+            self._change_quality_measure(type, "Edge ratio")
         self._mesh_quality_filter.update()
         self._set_outputs([self._mesh_quality_filter.output])
 
@@ -131,45 +145,62 @@ class MeshDiagnostics(Filter):
     ######################################################################
 
     def _stiff_elements_changed(self, value):
-        if (value):
+        if value:
             self._find_stiff_elements()
             self._set_outputs([self._surface_grid])
         else:
             self._set_outputs([self._mesh_quality_filter.output])
 
     def _tet_quality_measure_changed(self, value):
-        self._change_quality_measure('tet', value)
+        self._change_quality_measure("tet", value)
 
     def _change_quality_measure(self, cell_type, quality_measure):
-        if (quality_measure == 'Volume'):
+        if quality_measure == "Volume":
             self._mesh_quality_filter.compatibility_mode = True
             self._mesh_quality_filter.volume = True
         else:
             self._mesh_quality_filter.compatibility_mode = False
             self._mesh_quality_filter.volume = False
-            quality_measure_names = {'Edge ratio':'edge_ratio', 'Aspect ratio':'aspect_ratio', 'Radius ratio':'radius_ratio',
-                   'Min angle':'min_angle', 'Frobenius norm':'frobenius_norm', 'Max Frobenius norm':'max_frobenius_norm',
-                   'Med Frobenius norm':'med_frobenius_norm'}
-            setattr(self._mesh_quality_filter, '%s_quality_measure' %cell_type, quality_measure_names.get(quality_measure))
+            quality_measure_names = {
+                "Edge ratio": "edge_ratio",
+                "Aspect ratio": "aspect_ratio",
+                "Radius ratio": "radius_ratio",
+                "Min angle": "min_angle",
+                "Frobenius norm": "frobenius_norm",
+                "Max Frobenius norm": "max_frobenius_norm",
+                "Med Frobenius norm": "med_frobenius_norm",
+            }
+            setattr(
+                self._mesh_quality_filter,
+                "%s_quality_measure" % cell_type,
+                quality_measure_names.get(quality_measure),
+            )
 
         self._mesh_quality_filter.update()
         self._set_outputs([self._mesh_quality_filter.output])
 
-        cell_type_fullnames = {'tet':'Tetrahedron', 'triangle':'Triangle', 'quad':'Quadrilateral', 'hex':'Hexahedron'}
-        stats = self._mesh_quality_filter.output.field_data.get_array('Mesh %s Quality' %cell_type_fullnames.get(cell_type))[0]
-        setattr(self, '%s_stats' %cell_type, stats)
+        cell_type_fullnames = {
+            "tet": "Tetrahedron",
+            "triangle": "Triangle",
+            "quad": "Quadrilateral",
+            "hex": "Hexahedron",
+        }
+        stats = self._mesh_quality_filter.output.field_data.get_array(
+            "Mesh %s Quality" % cell_type_fullnames.get(cell_type)
+        )[0]
+        setattr(self, "%s_stats" % cell_type, stats)
 
     def _find_stiff_elements(self):
-        if (self._first_time_stiff_elements):
+        if self._first_time_stiff_elements:
             self._first_time_stiff_elements = False
             self._surface_grid = type(self.inputs[0].outputs[0])()
             self._surface_grid.copy_structure(self.inputs[0].outputs[0])
 
-            if (self._surface_grid.points.data_type == 'double'):
+            if self._surface_grid.points.data_type == "double":
                 # tvtk.DataSetSurfaceFilter produces surface points as float
                 # so we need to convert input points from doubles to floats
                 # if necessary
-                float_points = array(self._surface_grid.points, 'float32')
+                float_points = array(self._surface_grid.points, "float32")
                 self._surface_grid.points = float_points
 
             self._dataset_manager = DatasetManager(dataset=self._surface_grid)
@@ -184,14 +215,14 @@ class MeshDiagnostics(Filter):
 
     def _add_stiff_elements(self, surface_points):
         stiff_elements = []
-        surface_points = Set(surface_points)
+        surface_points = set(surface_points)
 
         for i in range(self._surface_grid.number_of_cells):
             cell = self._surface_grid.get_cell(i)
-            points = Set(cell.points)
+            points = set(cell.points)
             val = int(points.issubset(surface_points))
             stiff_elements.append(val)
 
-        array_name = 'Stiff Elements'
-        self._dataset_manager.add_array(array(stiff_elements), array_name, 'cell')
-        self._dataset_manager.activate(array_name, 'cell')
+        array_name = "Stiff Elements"
+        self._dataset_manager.add_array(array(stiff_elements), array_name, "cell")
+        self._dataset_manager.activate(array_name, "cell")

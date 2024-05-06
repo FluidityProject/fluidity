@@ -87,8 +87,8 @@ contains
     ! dim x loc
     real, dimension(:, :), intent(in) :: posA, posB
     logical :: intersects
-    
-    interface 
+
+    interface
       function tri_tri_overlap_test_2d(p1, q1, r1, p2, q2, r2) result(f)
       real, dimension(2) :: p1, q1, r1, p2, q2, r2
       integer :: f
@@ -102,7 +102,7 @@ contains
     p2 = posB(:, 1); q2 = posB(:, 2); r2 = posB(:, 3)
     f = tri_tri_overlap_test_2d(p1, q1, r1, p2, q2, r2)
     intersects = (f == 1)
-    
+
   end function tri_predicate
 
   function tet_predicate(posA, posB) result(intersects)
@@ -121,7 +121,7 @@ contains
 
     f = tet_a_tet(posA, posB)
     intersects = (f == 1)
-    
+
   end function tet_predicate
 
   function bbox(pos) result(box)
@@ -140,7 +140,7 @@ contains
         box(i, 2) = max(pos(i, j), box(i, 2))
       end do
     end do
-    
+
   end function bbox
 
   function bbox_predicate(bboxA, bboxB) result(intersects)
@@ -161,12 +161,12 @@ contains
 
   function intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
-    
+
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positionsA, positionsB
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
-    
+
     integer :: i
 #if HAVE_LIBSUPERMESH
     integer :: j
@@ -195,7 +195,7 @@ contains
     type(ilist) :: seeds
     type(inode), pointer :: node
     type(ilist), dimension(:), allocatable :: sub_map_AB
-    
+
     ewrite(1, *) "In intersection_finder"
 
     ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
@@ -203,7 +203,7 @@ contains
 
     ! We cannot assume connectedness, so we may have to run the
     ! advancing front more than once (once per connected sub-domain)
-  
+
     seeds = advancing_front_intersection_finder_seeds(positionsA)
 
     allocate(sub_map_AB(size(map_AB)))
@@ -216,148 +216,148 @@ contains
           map_AB(i) = sub_map_AB(i)
         end if
       end do
-    
+
       node => node%next
     end do
-    
+
     deallocate(sub_map_AB)
     call deallocate(seeds)
 
     ewrite(1, *) "Exiting intersection_finder"
 #endif
-  
+
   end function intersection_finder
-  
+
   function connected(positions)
     !!< Return whether the supplied coordinate field is connected. Uses a simple
     !!< element advancing front.
-    
+
     type(vector_field), intent(in) :: positions
-    
+
     logical :: connected
-    
+
     integer :: ele, i
     type(csr_sparsity), pointer :: eelist
     logical, dimension(:), allocatable :: tested
     integer, dimension(:), pointer :: neigh
     type(ilist) :: next
-    
+
     eelist => extract_eelist(positions)
-    
+
     allocate(tested(ele_count(positions)))
     tested = .false.
-    
+
     assert(ele_count(positions) > 0)
     ele = 1
     tested(ele) = .true.
     neigh => row_m_ptr(eelist, ele)
     do i = 1, size(neigh)
       if(neigh(i) <= 0) cycle
-    
+
       call insert(next, neigh(i))
     end do
-    
+
     do while(next%length > 0)
       ele = pop(next)
       if(tested(ele)) cycle
-      
+
       tested(ele) = .true.
       neigh => row_m_ptr(eelist, ele)
       do i = 1, size(neigh)
         if(neigh(i) <= 0) cycle
         if(tested(neigh(i))) cycle
         ! Should check if neigh(i) is already in the list
-        
+
         call insert(next, neigh(i))
       end do
     end do
-    
+
     ! The mesh is connected iff we see all elements in the advancing front
     connected = all(tested)
-    
+
     deallocate(tested)
-    
+
   end function connected
-  
+
   function advancing_front_intersection_finder_seeds(positions) result(seeds)
     !!< Return a list of seeds for the advancing front intersection finder - one
     !!< seed per connected sub-domain.
-    
+
     type(vector_field), intent(in) :: positions
-    
+
     type(ilist) :: seeds
-    
+
     integer :: ele, first_ele, i
     type(csr_sparsity), pointer :: eelist
     logical, dimension(:), allocatable :: tested
     integer, dimension(:), pointer :: neigh
     type(ilist) :: next
-    
+
     eelist => extract_eelist(positions)
-    
+
     allocate(tested(ele_count(positions)))
     tested = .false.
-    
+
     first_ele = 1
     do while(first_ele /= 0)
       ele = first_ele
       assert(ele > 0)
       assert(ele <= ele_count(positions))
       assert(.not. tested(ele))
-      
+
       call insert(seeds, ele)
-      
+
       tested(ele) = .true.
       neigh => row_m_ptr(eelist, ele)
       do i = 1, size(neigh)
         if(neigh(i) <= 0) cycle
         if(tested(neigh(i))) cycle
-      
+
         call insert(next, neigh(i))
       end do
-      
+
       do while(next%length > 0)
         ele = pop(next)
         if(tested(ele)) cycle
-        
+
         tested(ele) = .true.
         neigh => row_m_ptr(eelist, ele)
         do i = 1, size(neigh)
           if(neigh(i) <= 0) cycle
           if(tested(neigh(i))) cycle
           ! Should check if neigh(i) is already in the list
-          
+
           call insert(next, neigh(i))
         end do
       end do
-      
+
       first_ele = next_false_loc(first_ele + 1, tested)
     end do
     assert(all(tested))
 
     deallocate(tested)
-    
+
   contains
-  
+
     pure function next_false_loc(start_index, logical_vector) result(loc)
       integer, intent(in) :: start_index
       logical, dimension(:), intent(in) :: logical_vector
-      
+
       integer :: loc
-      
+
       integer :: i
-      
+
       do i = start_index, size(logical_vector)
         if(.not. logical_vector(i)) then
           loc = i
           return
         end if
       end do
-      
+
       loc = 0
-      
+
     end function next_false_loc
-    
+
   end function advancing_front_intersection_finder_seeds
 
 #ifdef HAVE_LIBSUPERMESH
@@ -365,10 +365,10 @@ contains
     ! The positions and meshes of A and B
     type(vector_field), intent(in) :: positionsA
     type(vector_field), intent(in) :: positionsB
-    
+
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
-    
+
     integer :: i, j
     type(intersections), dimension(:), allocatable :: lmap_AB
 
@@ -390,7 +390,7 @@ contains
     call deallocate(lmap_AB)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
-    
+
   end function advancing_front_intersection_finder
 #else
   function advancing_front_intersection_finder(positionsA, positionsB, seed) result(map_AB)
@@ -420,7 +420,7 @@ contains
 
     ! workaround gfortran issue: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85750
     map_AB%length = 0.0
-      
+
     mesh_A => positionsA%mesh
     mesh_B => positionsB%mesh
 
@@ -514,7 +514,7 @@ contains
             call insert(in_list, ele_B)
           end if
 
-          ! Append all the neighbours of ele_B to possibles. 
+          ! Append all the neighbours of ele_B to possibles.
           neigh_B => row_m_ptr(eelist_B, ele_B)
           do i=1,size(neigh_B)
             neighbour = neigh_B(i)
@@ -558,21 +558,21 @@ contains
       end function advance_front
   end function advancing_front_intersection_finder
 #endif
-  
+
   function brute_force_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses a brute force
     !!< algorithm. For testing *only*. For practical applications, use the
     !!< linear algorithm.
-  
+
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positions_a, positions_b
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
-    
+
     integer :: i, j
-    
+
     ewrite(1, *) "In brute_force_intersection_finder"
-    
+
     do i = 1, ele_count(positions_a)
       do j = 1, ele_count(positions_b)
         if(bbox_predicate(bbox(ele_val(positions_a, i)), bbox(ele_val(positions_b, j)))) then
@@ -580,9 +580,9 @@ contains
         end if
       end do
     end do
-    
+
     ewrite(1, *) "Exiting brute_force_intersection_finder"
-    
+
   end function brute_force_intersection_finder
 
 #ifndef HAVE_LIBSUPERMESH
@@ -593,10 +593,10 @@ contains
 
   end subroutine rtree_intersection_finder_reset
 #endif
-  
+
   subroutine rtree_intersection_finder_set_input(old_positions)
     type(vector_field), intent(in) :: old_positions
-    
+
 #ifdef HAVE_LIBSUPERMESH
     call libsupermesh_rtree_intersection_finder_set_input( &
       & old_positions%val, &
@@ -604,7 +604,7 @@ contains
 #else
     real, dimension(node_count(old_positions) * old_positions%dim) :: tmp_positions
     integer :: node, dim
-    
+
     dim = old_positions%dim
 
     ! Ugh. We have to copy the memory because old_positions
@@ -617,7 +617,7 @@ contains
                                       & ele_loc(old_positions, 1), node_count(old_positions), &
                                       & ele_count(old_positions))
 #endif
-      
+
   end subroutine rtree_intersection_finder_set_input
 
   subroutine rtree_intersection_finder_find(new_positions, ele_B)
@@ -634,22 +634,22 @@ contains
 
     call crtree_intersection_finder_find(reshape(ele_val(new_positions, ele_B), (/dim*loc/)), dim, loc)
 #endif
-    
+
   end subroutine rtree_intersection_finder_find
-  
+
   function rtree_intersection_finder(positions_a, positions_b) result(map_ab)
     !!< As advancing_front_intersection_finder, but uses an rtree algorithm. For
     !!< testing *only*. For practical applications, use the linear algorithm.
-    
+
     ! The positions and meshes of A and B
     type(vector_field), intent(in), target :: positions_a, positions_b
     ! for each element in A, the intersecting elements in B
     type(ilist), dimension(ele_count(positions_a)) :: map_ab
-    
+
     integer :: i, j, id, nelms
 
     ewrite(1, *) "In rtree_intersection_finder"
-    
+
     call rtree_intersection_finder_set_input(positions_b)
     do i = 1, ele_count(positions_a)
       call rtree_intersection_finder_find(positions_a, i)
@@ -660,19 +660,19 @@ contains
       end do
     end do
     call rtree_intersection_finder_reset()
-    
+
     ewrite(1, *) "Exiting rtree_intersection_finder"
-    
+
   end function rtree_intersection_finder
-  
+
   subroutine verify_map(mesh_field_a, mesh_field_b, map_ab, map_ab_reference)
     !!< Verify the given intersection map against a reference map.
-    
+
     type(vector_field), intent(in) :: mesh_field_a
     type(vector_field), intent(in) :: mesh_field_b
     type(ilist), dimension(:), intent(in) :: map_ab
     type(ilist), dimension(:), intent(in) :: map_ab_reference
-  
+
     integer :: dim, i, j, loc
     real :: reference_intersection_volume, intersection_volume
     real, dimension(:), allocatable :: detwei
@@ -682,9 +682,9 @@ contains
     type(inode), pointer :: node
     type(vector_field) :: intersection
     logical :: empty_intersection
-    
+
     ewrite(1, *) "Entering verify_map"
-        
+
     assert(mesh_field_a%dim == mesh_field_b%dim)
     dim = mesh_field_a%dim
     select case(dim)
@@ -695,13 +695,13 @@ contains
       case default
         FLAbort("Can only verify intersection maps for dimension 2 or 3")
     end select
-    
+
     quad = make_quadrature(loc, mesh_field_a%dim ,degree = mesh_field_a%mesh%shape%quadrature%degree)
     shape = make_element_shape(loc, mesh_field_a%dim, mesh_field_a%mesh%shape%degree, quad)
     call deallocate(quad)
-    
+
     call intersector_set_dimension(mesh_field_a%dim)
-    
+
     do i = 1, ele_count(mesh_field_a)
       if(map_ab(i)%length /= map_ab_reference(i)%length) then
         ewrite(0, "(a,i0)") "For element ", i
@@ -709,7 +709,7 @@ contains
         ewrite(0, "(a,i0)") "Reference number of intersections: ", map_ab_reference(i)%length
         ewrite(0, *) "Warning: Number of intersection elements differs"
       end if
-      
+
       intersection_volume = 0.0
       node => map_ab(i)%firstnode
       do while(associated(node))
@@ -728,7 +728,7 @@ contains
         call deallocate(intersection)
         node => node%next
       end do
-      
+
       reference_intersection_volume = 0.0
       node => map_ab_reference(i)%firstnode
       do while(associated(node))
@@ -747,7 +747,7 @@ contains
         call deallocate(intersection)
         node => node%next
       end do
-      
+
       if(abs(intersection_volume - reference_intersection_volume)  > abs(max(relative_tolerance, relative_tolerance * intersection_volume))) then
         ewrite(-1, "(a,i0)") "For element ", i
         ewrite(-1, *) "Volume of test intersection: ", intersection_volume
@@ -755,13 +755,13 @@ contains
         FLAbort("Intersection volumes do not match")
       end if
     end do
-    
+
     call deallocate(shape)
-    
+
     ewrite(2, *) "Verification successful"
-    
+
     ewrite(1, *) "Exiting verify_map"
-  
+
   end subroutine verify_map
 
 #ifndef HAVE_LIBSUPERMESH

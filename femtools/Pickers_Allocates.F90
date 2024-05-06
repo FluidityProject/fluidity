@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -43,25 +43,25 @@ module pickers_allocates
   implicit none
 
   private
-  
+
   public :: allocate, initialise_picker, incref, has_references
-  
+
   interface allocate
     module procedure allocate_picker
   end interface allocate
-  
+
 contains
 
   subroutine allocate_picker(picker, positions, name)
     !!< Allocate a picker
-  
+
     type(picker_type), intent(out) :: picker
     type(vector_field), intent(in) :: positions
     character(len = *), optional, intent(in) :: name
-    
+
     call node_owner_finder_set_input(picker%picker_id, positions)
     ewrite(2, *) "New picker ID: ", picker%picker_id
-    
+
     if(present(name)) then
       call set_picker_name(picker, name)
     else
@@ -69,18 +69,18 @@ contains
     end if
 
     picker%last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
-      
+
     call addref(picker)
-           
+
   end subroutine allocate_picker
 
   subroutine initialise_picker(positions)
     !!< Initialise a picker for a Coordinate field
-  
+
     type(vector_field), intent(inout) :: positions
-    
+
     if(use_cached_picker(positions)) return
-    
+
     ewrite(2, *) "Initialising picker for field " // trim(positions%name)
     assert(associated(positions%picker))
     if(associated(positions%picker%ptr)) call remove_picker(positions)
@@ -88,7 +88,7 @@ contains
     call allocate(positions%picker%ptr, positions, name = trim(positions%name) // "Picker")
 
   contains
-  
+
     function use_cached_picker(positions)
       type(vector_field), intent(in) :: positions
 
@@ -107,7 +107,7 @@ contains
       end if
 
     end function use_cached_picker
-    
+
   end subroutine initialise_picker
 
 end module pickers_allocates

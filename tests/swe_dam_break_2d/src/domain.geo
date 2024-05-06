@@ -33,4 +33,3 @@ Plane Surface(888) = {5};
 Physical Line(333) = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 Physical Surface(999) = {888};
-

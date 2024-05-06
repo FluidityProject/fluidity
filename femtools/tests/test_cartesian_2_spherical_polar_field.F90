@@ -1,5 +1,5 @@
 !    Copyright (C) 2012 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -48,7 +48,7 @@ subroutine test_cartesian_2_spherical_polar_field
   CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
   PolarCoordinate => extract_vector_field(state, "PolarCoordinate")
 
-  !Apply transformation to Cartesian field obtained from vtu file and 
+  !Apply transformation to Cartesian field obtained from vtu file and
   ! compare with spherical-polar position-vector.
   call allocate(difference, 3 , mesh, 'difference')
   call cartesian_2_spherical_polar(CartesianCoordinate, difference)
@@ -57,7 +57,7 @@ subroutine test_cartesian_2_spherical_polar_field
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change of whole field: Cartesian to spherical-polar.]", &
                    fail, .false., "Position vector components not transformed correctly.")
-  
+
   call deallocate(difference)
 
 end subroutine

@@ -5,8 +5,8 @@
   <owner userid="drhodrid"/>
   <tags>flml parallel</tags>
   <problem_definition length="medium" nprocs="8">
-    <command_line>    
-mpiexec ../../bin/flredecomp -i 1 -o 8 particle-rayleigh-taylor-checkpoint particle-rayleigh-taylor-checkpoint-flredecomp;      
+    <command_line>
+mpiexec ../../bin/flredecomp -i 1 -o 8 particle-rayleigh-taylor-checkpoint particle-rayleigh-taylor-checkpoint-flredecomp;
 mpiexec ../../bin/fluidity -v3 -l particle-rayleigh-taylor-checkpoint-flredecomp.flml
 mpiexec ../../bin/fluidity -v3 -l particle_attributes_5_checkpoint.flml
     </command_line>
@@ -43,7 +43,7 @@ print ("Total wall time", Walltime)
   </variables>
   <pass_tests>
     <test name="Max RMS close to 3.1e-3" language="python">
-assert abs(max_rms-3.1e-3) &lt; 1.5e-4 
+assert abs(max_rms-3.1e-3) &lt; 1.5e-4
     </test>
     <test name="Max entrainment less than 0.5" language="python">
 assert max_ent &lt; 0.5
@@ -52,5 +52,3 @@ assert max_ent &lt; 0.5
   <warn_tests>
   </warn_tests>
 </testproblem>
-
-   

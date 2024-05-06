@@ -1,10 +1,10 @@
 input: default
 default: clean
 	gmsh -2 -bin square.geo -o square.msh
-clean: 
+clean:
 	rm -rf *.msh *.halo *.vtu *.pvtu *.log* *.err* *.stat blob_[012] *.detectors *.dat *flredecomp* lagrangian_2nd_*_? *.h5part
 
-logs: 
+logs:
 	mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml
 
 grep:
@@ -12,4 +12,3 @@ grep:
 
 debug:
 	mpirun -n 4 xterm -e gdb -x gdb_run --args ../../bin/fluidity -v2 -l lagrangian_detectors_rk.flml
-

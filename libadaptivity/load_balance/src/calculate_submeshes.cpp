@@ -40,26 +40,26 @@ using std::endl;
 #include "c++debug.h"
 
 void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
-  
+
   unsigned len_node_list = node_list.size();
   unsigned len_elem_list = element_list.size();
-  
-  // Given a node number, keep a list of partitions that 
+
+  // Given a node number, keep a list of partitions that
   // already know its particulars.
   deque< set<unsigned short> > nodeKnowers( len_node_list );
-  
-  // Given a node number, who will need to know this node in the 
+
+  // Given a node number, who will need to know this node in the
   // next round.
   deque< set<unsigned short> > nodeKnowers_next( len_node_list );
-  
-  // Given an element number, keep a list of partitions that 
+
+  // Given an element number, keep a list of partitions that
   // already know its particulars.
   deque< set<unsigned short> > elementKnowers( len_elem_list );
-  
-  // Given an element number, keep a list of partitions that 
+
+  // Given an element number, keep a list of partitions that
   // will need to know this node in the next round.
   deque< set<unsigned short> > elementKnowers_next( len_elem_list );
-  
+
     // List of nodes to be sent each rank.
   vector< deque<int> > nodes2send( NProcs );
 
@@ -71,35 +71,35 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
 
    // List of nodes that we are keeping.
   deque<int> new_owned_nodes;
-  
+
   // New halo nodes...They are being copied to that they
   // don't get overwritten!
   vector< map<unn_t, Node> > new_halo_nodes;
-  
+
   // List of elements that we are keeping.
   deque<int> new_elements;
 
   // In the case or halo nodes, there are some which may be
   // required, thus they are stored away in a cache.
   map<unn_t, Node> node_cache;
-    
+
   // Consider each element.
   unsigned num_managed_elements = 0;
   unsigned eid = 0;
   for(deque<Element>::iterator ie = element_list.begin(); ie != element_list.end(); ++ie){
     vector<bool> PPresent(NProcs, false);
     vector<bool> PFuture(NProcs, false);
-    
+
     // Consider all the nodes that are in this element, and note the
     //  current and future owners of these nodes.
-    vector<unn_t> nodes = (*ie).get_enlist();      
+    vector<unn_t> nodes = (*ie).get_enlist();
     set< unsigned > doms;
-    
+
     // What domains know this element
     for(vector<unn_t>::iterator in = nodes.begin(); in != nodes.end(); ++in)
       doms.insert( node_list[ unn2gnn(*in) ].get_current_owner() );
-    unsigned min_node_owner = *(doms.begin()); 
-    
+    unsigned min_node_owner = *(doms.begin());
+
     for(set<unsigned>::iterator it = doms.begin(); it != doms.end(); ++it){
       elementKnownBy_insert(eid, *it);
       PPresent[ *it ] = true;
@@ -125,10 +125,10 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
     // which will be used in the next round.
     if( PFuture[MyRank] )
       new_elements.push_back( eid );
-    
+
     if( min_node_owner == MyRank){ // ie. The element is our responcibility.
       num_managed_elements++;
-      
+
       // Another list containing elements that we have to send.
       for(unsigned p = 0; p<NProcs; p++){
         if( (PPresent[p] == false) && (PFuture[p]==true) ){
@@ -142,7 +142,7 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
     vector<unn_t> enl = get_enlist(eid);
     for(vector<unn_t>::iterator it = enl.begin(); it != enl.end(); ++it){
       gnn_t node = unn2gnn( *it );
-      
+
       for(unsigned p=0; p<NProcs; p++){
 	if( PPresent[ p ] )
 	  nodeKnownBy_insert(node,   p);
@@ -153,34 +153,34 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
 
     eid++;
   }
-  
-  
+
+
   // Determine the ranks that need to know a node
-  // but don't already know it. Also, make a count of the 
+  // but don't already know it. Also, make a count of the
   // number of nodes to be sent to each rank.
   vector< set<unsigned> > halo(NProcs);
-  
+
   for(unsigned n=0; n<len_node_list; n++){
-    
+
     vector<bool> PPresent(NProcs, false);
     vector<bool> PFuture( NProcs, false);
-    
+
     // Build the two bit maps.
     for( set<unsigned short>::iterator it = nodeKnowers[n].begin();      it != nodeKnowers[n].end();      ++it)
       PPresent[ *it ] = true;
     for( set<unsigned short>::iterator it = nodeKnowers_next[n].begin(); it != nodeKnowers_next[n].end(); ++it)
       PFuture[ *it ] = true;
-    
+
     unsigned owner = get_node_current_owner(n);
-    if( owner == MyRank )     // MyRank is responcible for sending 
+    if( owner == MyRank )     // MyRank is responcible for sending
       for(unsigned p=0; p<NProcs; p++)
 	if( (PPresent[p]==false) && (PFuture[p]==true) )
 	  nodes2send[ p ].push_back( n );
-    
+
     // Storing node for future?
     if( PFuture[ MyRank ]==true ){
       unsigned future_owner = get_node_future_owner(n);
-      
+
       if( future_owner == MyRank ){
 	// Note its position
 	new_owned_nodes.push_back( n );
@@ -191,17 +191,17 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
 	new_halo_nodes[ future_owner ][u] = get_node(n);
       }
     }else{
-      
-      // There is the possibility that some halo nodes will be appear 
-      // to be unnecessary in the future when infact they will be again 
-      // required as halo nodes, being part of previously unknown elements. 
+
+      // There is the possibility that some halo nodes will be appear
+      // to be unnecessary in the future when infact they will be again
+      // required as halo nodes, being part of previously unknown elements.
       // For this reason, these nodes are backed up so that they won't get
       // deleted in the clean-up phase.
-      
+
       if( owner != MyRank ){ // a halo
 	node_cache[ get_node_unn(n) ] = get_node(n);
       }
-      
+
     }
 
   }
@@ -209,13 +209,13 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
   // Fixed formulation.
   if( using_mixed_formulation() && (!MFnode_list.empty()) ){
     pnodes2send.resize(NProcs);
-    
+
     //
     // If an element, e, has to be sent to a process, d, then the
     // pressure nodes must also be sent.
     //
     for(unsigned d=0; d<NProcs; d++){
-      
+
       // Get the set of pressure nodes to be sent to d.
       set<unsigned> pnodes;
       for(deque<int>::const_iterator it = elems2send[d].begin(); it != elems2send[d].end(); ++it){
@@ -224,29 +224,14 @@ void Mesh::calculate_submeshes(vector<Mesh>& submeshes){
 	for(vector<unn_t>::const_iterator p = pns.begin(); p != pns.end(); ++p)
 	  pnodes.insert( *p );
       }
-      
+
       // Put set into store.
       for(set<unsigned>::const_iterator pn = pnodes.begin(); pn != pnodes.end(); pn++){
 	pnodes2send[d].push_back( *pn );
       }
-      
+
     }
   }
-  
-  ECHO("All necessary calculations for migration has been collected.");  
+
+  ECHO("All necessary calculations for migration has been collected.");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

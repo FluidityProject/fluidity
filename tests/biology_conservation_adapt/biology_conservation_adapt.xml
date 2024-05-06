@@ -23,7 +23,7 @@ phytoplankton1=d["water"]["Phytoplankton"]["integral"][0]
 from fluidity_tools import stat_parser
 d = stat_parser("biology_conservation.stat")
 phytoplankton2=d["water"]["Phytoplankton"]["integral"][-1]
-    </variable>    
+    </variable>
     <variable name="zooplankton1" language="python">
 from fluidity_tools import stat_parser
 d = stat_parser("biology_conservation.stat")

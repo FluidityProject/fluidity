@@ -19,7 +19,7 @@ subroutine test_metric_advection
   use interpolation_error
   use field_options
   implicit none
-  
+
   type(state_type) :: state, dummy(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions, velocity
@@ -62,7 +62,7 @@ subroutine test_metric_advection
   call deallocate(grid_velocity)
 
   velocity => extract_vector_field(state, "NonlinearVelocity")
-  call allocate(field, mesh, "Field") 
+  call allocate(field, mesh, "Field")
   call set_from_function(field, solution, positions)
 
   call adaptivity_options(state, field, FIELD_ERROR, FIELD_REL, FIELD_MIN)
@@ -88,7 +88,7 @@ subroutine test_metric_advection
     dummy(1) = state
     call assemble_metric(dummy, metric)
     state = dummy(1)
-    call adapt_state(state, metric) 
+    call adapt_state(state, metric)
   end do
 
   call vtk_write_state("data/metric_advection", 0, state=(/state/))
@@ -107,7 +107,7 @@ subroutine test_metric_advection
   dummy(1) = state
   call assemble_metric(dummy, metric)
   state = dummy(1)
-  call adapt_state(state, metric) 
+  call adapt_state(state, metric)
   call vtk_write_state("data/metric_advection", 1, state=(/state/))
 
 end subroutine test_metric_advection
@@ -131,4 +131,3 @@ function velocity_func(pos)
     velocity_func(1) = 0.0
   end if
 end function velocity_func
-

@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -132,11 +132,11 @@ module fields_data_types
      !! as part of the surface mesh, in this case the surface ids do have to agree and only one of each
      !! pair of facets is written when writing out the mesh.
      logical :: has_discontinuous_internal_boundaries=.false.
-     !! If internal facets are present in the surface mesh (and has_discontinuous_internal_boundaries==.false.) 
+     !! If internal facets are present in the surface mesh (and has_discontinuous_internal_boundaries==.false.)
      !! the surface facets are numbered such that 1:unique_surface_element_count visits each external facet
-     !! and each pair of internal facets only once (the order of this is typically determined by the 
+     !! and each pair of internal facets only once (the order of this is typically determined by the
      !! read-in input mesh in which internal facets are only also only present once)
-     !! The second facets of each pair of internal facets are numbered 
+     !! The second facets of each pair of internal facets are numbered
      !! unique_surface_element_count+1:surface_element_count (surface_element_count()==size(boundary_ids))
      !! For meshes with no internal facets: unique_surface_element_count==surface_element_count()
      !! For meshes with has_discontinuous_internal_boundaries no order is guaranteed and also
@@ -151,7 +151,7 @@ module fields_data_types
      integer, dimension(:), pointer :: node_list
   end type mesh_subdomain_mesh
 
-  type scalar_field 
+  type scalar_field
      !! Field value at points.
      real, dimension(:), pointer :: val
      !! Stride of val
@@ -297,19 +297,19 @@ module fields_data_types
      character(len=OPTION_PATH_LEN) :: option_path
 #endif
   end type vector_boundary_condition
-    
+
   ! container for pointer to array of scalar bcs. This is put in a separate
   ! container pointed at by the field so that we don't leak memory
   ! if we change the bcs on one copy of the field when there are more copies around
   type scalar_boundary_conditions_ptr
      type(scalar_boundary_condition), dimension(:), pointer:: boundary_condition => null()
   end type scalar_boundary_conditions_ptr
-  
+
   ! container for pointer to array of vector bcs. This is put in a separate
   ! container pointed at by the field so that we don't leak memory
   ! if we change the bcs on one copy of the field when there are more copies around
   type vector_boundary_conditions_ptr
      type(vector_boundary_condition), dimension(:), pointer:: boundary_condition => null()
   end type vector_boundary_conditions_ptr
-  
+
 end module fields_data_types

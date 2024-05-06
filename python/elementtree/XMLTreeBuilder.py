@@ -43,11 +43,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 # --------------------------------------------------------------------
-
 ##
 # Tools to build element trees from XML files.
 ##
-
 import ElementTree
 
 ##
@@ -59,15 +57,17 @@ import ElementTree
 #
 # @see elementtree.ElementTree
 
+
 class TreeBuilder(ElementTree.XMLTreeBuilder):
     pass
+
 
 ##
 # (experimental) An alternate builder that supports manipulation of
 # new elements.
 
-class FancyTreeBuilder(TreeBuilder):
 
+class FancyTreeBuilder(TreeBuilder):
     def __init__(self, html=0):
         TreeBuilder.__init__(self, html)
         self._parser.StartNamespaceDeclHandler = self._start_ns

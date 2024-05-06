@@ -16,7 +16,7 @@ s=stat_parser("Storegga-2d_presc.stat")
 stats_norm={}
 stats_norm["FS_l2norm"]=s["Water"]["FreeSurface"]["l2norm"][-1]
 stats_norm["VelMagL2norm"]=s["Water"]["Velocity%magnitude"]["l2norm"][-1]
-</variable>    
+</variable>
 <variable name="stats_cart" language="python">from fluidity_tools import stat_parser
 s=stat_parser("Storegga-2d_cart.stat")
 stats_cart={}
@@ -32,7 +32,7 @@ assert(solvers_converged)
     <test name="FreeSurface agrees" language="python">
 assert(abs(stats_cart["FS_l2norm"]-stats_norm["FS_l2norm"]) &lt; 0.5)
     </test>
-    <test name="Velocity agrees" language="python"> 
+    <test name="Velocity agrees" language="python">
 assert(abs(stats_cart["VelMagL2norm"]-stats_norm["VelMagL2norm"]) &lt; 0.5)
     </test>
   </pass_tests>

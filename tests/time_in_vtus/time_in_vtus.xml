@@ -6,8 +6,8 @@
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity time_in_vtus.flml</command_line>
-  </problem_definition>  
-  <variables>  
+  </problem_definition>
+  <variables>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -19,15 +19,15 @@ u=vtktools.vtu("time_in_vtus_4.vtu")
 Time = u.GetScalarField('Time')
 FinalTime = Time[0]
     </variable>
-  
-  </variables>    
 
-  <pass_tests> 
+  </variables>
+
+  <pass_tests>
     <test name="Solvers converged" language="python">
       assert(solvers_converged)
     </test>
     <test name="Final time is 1440 seconds" language="python">
-assert FinalTime == 1440 
+assert FinalTime == 1440
     </test>
 
   </pass_tests>

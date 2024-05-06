@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -26,7 +26,7 @@
 !    USA
 #include "fdebug.h"
 module sparse_tools_petsc
-  !!< This module is an extension to the sparse_tools module that 
+  !!< This module is an extension to the sparse_tools module that
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
   use FLDebug
@@ -47,13 +47,13 @@ module sparse_tools_petsc
   implicit none
 #include "petsc_legacy.h"
   private
-  
+
   type petsc_csr_matrix
      !! the matrix in PETSc format
      Mat :: M
      !! petsc numbering for rows and columns
      type(petsc_numbering_type) :: row_numbering, column_numbering
-     
+
      !! The halos associated with the rows and columns of the matrix.
      type(halo_type), pointer :: row_halo => null(), column_halo => null()
      !! Reference counting
@@ -71,14 +71,14 @@ module sparse_tools_petsc
   type petsc_csr_matrix_pointer
     type(petsc_csr_matrix), pointer :: ptr => null()
   end type petsc_csr_matrix_pointer
-  
-    
+
+
   interface allocate
      module procedure allocate_petsc_csr_matrix_from_sparsity, &
        allocate_petsc_csr_matrix_from_nnz, &
        allocate_petsc_csr_matrix_from_petsc_matrix
   end interface
-  
+
   interface deallocate
      module procedure deallocate_petsc_csr_matrix
   end interface
@@ -94,7 +94,7 @@ module sparse_tools_petsc
   interface blocks
      module procedure petsc_csr_blocks_withdim !, petsc_csr_blocks_nodim
   end interface
-  
+
   interface entries
      module procedure petsc_csr_entries
   end interface
@@ -116,7 +116,7 @@ module sparse_tools_petsc
   interface scale
      module procedure petsc_csr_scale
   end interface
-  
+
   interface extract_diagonal
      ! this one would be more logical in Sparse_Matrices_Fields
      ! but it depends on petsc headers
@@ -126,7 +126,7 @@ module sparse_tools_petsc
   interface mult_T
      module procedure petsc_csr_mult_T_vector, petsc_csr_mult_T_scalar_to_vector
   end interface
-    
+
   interface mult
      module procedure petsc_csr_mult_vector, petsc_csr_mult_vector_to_scalar
   end interface
@@ -174,7 +174,7 @@ contains
     logical:: ldiagonal
     integer, dimension(2):: lgroup_size
     integer:: nprows
-    
+
     ldiagonal=present_and_true(diagonal)
 
     if (present(group_size)) then
@@ -184,23 +184,23 @@ contains
     end if
 
     matrix%name = name
-    
+
     call allocate( matrix%row_numbering, &
       nnodes=size(sparsity,1), &
       nfields=blocks(1), &
       group_size=lgroup_size(1), &
       halo=sparsity%row_halo )
-      
+
     if (size(sparsity,1)==size(sparsity,2) .and. blocks(1)==blocks(2) .and. &
       lgroup_size(1)==lgroup_size(2) .and. &
       associated(sparsity%row_halo, sparsity%column_halo)) then
-        
+
       ! row and column numbering are the same
       matrix%column_numbering=matrix%row_numbering
       call incref(matrix%column_numbering)
-      
+
     else
-    
+
       ! create seperate column numbering
       call allocate( matrix%column_numbering, &
         nnodes=size(sparsity,2), &
@@ -208,13 +208,13 @@ contains
         group_size=lgroup_size(2), &
         halo=sparsity%column_halo )
     end if
-    
+
     if (.not. IsParallel()) then
 
       ! Create serial matrix:
       matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
-      
+
     else
 
       if (associated(sparsity%row_halo)) then
@@ -225,11 +225,11 @@ contains
           matrix%row_numbering%gnn2unn(nprows+1:,:)=-1
         end if
       end if
-        
+
       ! Create parallel matrix:
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
-      
+
       ! this is very important for assembly routines (e.g. DG IP viscosity)
       ! that try to add zeros outside the provided sparsity; if we go outside
       ! the provided n/o nonzeros the assembly will become very slow!!!
@@ -238,7 +238,7 @@ contains
     endif
 
     call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
-    
+
     ! this is very important for assembly routines (e.g. DG IP viscosity)
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
@@ -254,7 +254,7 @@ contains
 
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-    
+
     if (associated(sparsity%row_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
@@ -262,7 +262,7 @@ contains
       matrix%row_halo = sparsity%row_halo
       call incref(matrix%row_halo)
     end if
-    
+
     if (associated(sparsity%column_halo)) then
       ! these are also pointed to in the column_numbering
       ! but only refcounted here
@@ -273,7 +273,7 @@ contains
 
     allocate(matrix%ksp)
     matrix%ksp = PETSC_NULL_KSP
-    
+
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(matrix)
@@ -301,7 +301,7 @@ contains
     character(len=*), intent(in) :: name
     type(halo_type), pointer, optional:: halo, row_halo, column_halo
     !! If provided, the actual PETSc matrix will employ a block structure
-    !! where each local block consists of the degrees of freedom 
+    !! where each local block consists of the degrees of freedom
     !! of 'element_size' subsequent indices. Note that these blocks are
     !! something entirely different than the blocks of the previous 'blocks'
     !! argument, which only refer to dim argument in the set/addto interface
@@ -314,7 +314,7 @@ contains
     !! included in the element block (this might be a future option).
     !! If provided the arguments rows and columns change their meaning
     !! to be the number of element block rows and columns. The size of dnnz and onnz
-    !! is still nprows*blocks(1), but they now contain the number of 
+    !! is still nprows*blocks(1), but they now contain the number of
     !! nonzero element blocks in an element block row.
     integer, intent(in), optional:: element_size
     !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
@@ -333,9 +333,9 @@ contains
     integer:: nprows, npcols, urows, ucols
     integer:: index_rows, index_columns
     logical:: use_element_blocks
-    
+
     matrix%name = name
-    
+
     nullify( lrow_halo )
     nullify( lcolumn_halo )
     if (present(halo)) then
@@ -348,7 +348,7 @@ contains
     if(present(column_halo)) then
       lcolumn_halo => column_halo
     end if
-    
+
     if (present(element_size)) then
       index_rows=rows*element_size
       index_columns=columns*element_size
@@ -358,7 +358,7 @@ contains
       index_columns=columns
       use_element_blocks=.false.
     end if
-    
+
     if (present(group_size)) then
       lgroup_size=group_size
     else
@@ -370,17 +370,17 @@ contains
       nfields=blocks(1), &
       halo=lrow_halo, &
       group_size=lgroup_size(1) )
-      
+
     if (rows==columns .and. blocks(1)==blocks(2) .and. &
       associated(lrow_halo, lcolumn_halo) .and. &
       lgroup_size(1)==lgroup_size(2)) then
-        
+
       ! row and column numbering are the same
       matrix%column_numbering=matrix%row_numbering
       call incref(matrix%column_numbering)
-      
+
     else
-    
+
       ! create seperate column numbering
       call allocate( matrix%column_numbering, &
         nnodes=index_columns, &
@@ -388,10 +388,10 @@ contains
         halo=lcolumn_halo, &
         group_size=lgroup_size(2) )
     end if
-      
+
     urows=matrix%row_numbering%universal_length
     ucols=matrix%column_numbering%universal_length
-    
+
     if (IsParallel()) then
       nprows=matrix%row_numbering%nprivatenodes
       npcols=matrix%column_numbering%nprivatenodes
@@ -405,46 +405,46 @@ contains
     end if
 
     if (use_element_blocks .and. .not. IsParallel()) then
-      
+
       assert( size(dnnz)==urows/element_size )
-      
+
       ! Create serial block matrix:
       call MatCreateBAIJ(MPI_COMM_SELF, element_size, &
          urows, ucols, urows, ucols, &
          0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
-         
+
     elseif (use_element_blocks) then
-      
+
       assert( size(dnnz)==nprows*blocks(1)/element_size )
       assert( size(onnz)==nprows*blocks(1)/element_size )
-      
+
       call MatCreateBAIJ(MPI_COMM_FEMTOOLS, element_size, &
          nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          0, dnnz, 0, onnz, matrix%M, ierr)
-    
+
     else if (.not. IsParallel()) then
 
       assert( size(dnnz)==urows )
-      
+
       ! Create serial matrix:
       call MatCreateAIJ(MPI_COMM_SELF, urows, ucols, urows, ucols, &
          0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
       call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
-      
+
     else
-      
+
       assert( size(dnnz)==nprows*blocks(1) )
       assert( size(onnz)==nprows*blocks(1) )
-      
+
       call MatCreateAIJ(MPI_COMM_FEMTOOLS, nprows*blocks(1), npcols*blocks(2), &
          urows, ucols, &
          0, dnnz, 0, onnz, matrix%M, ierr)
       call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
-      
+
     endif
     call MatSetup(matrix%M, ierr)
-    
+
     if (.not. use_element_blocks) then
       ! this is very important for assembly routines (e.g. DG IP viscosity)
       ! that try to add zeros outside the provided sparsity; if we go outside
@@ -462,11 +462,11 @@ contains
 
     ! saves us from doing a transpose for block inserts
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-    
+
     if (.not. (present_and_true(use_inodes) .or. use_element_blocks)) then
       call MatSetOption(matrix%M, MAT_USE_INODES, PETSC_FALSE, ierr)
     end if
-    
+
     if (associated(lrow_halo)) then
       ! these are also pointed to in the row_numbering
       ! but only refcounted here
@@ -474,7 +474,7 @@ contains
       matrix%row_halo = lrow_halo
       call incref(matrix%row_halo)
     end if
-    
+
     if (associated(lcolumn_halo)) then
       ! these are also pointed to in the column_numbering
       ! but only refcounted here
@@ -485,13 +485,13 @@ contains
 
     allocate(matrix%ksp)
     matrix%ksp = PETSC_NULL_KSP
-    
+
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(matrix)
 
   end subroutine allocate_petsc_csr_matrix_from_nnz
-    
+
   subroutine allocate_petsc_csr_matrix_from_petsc_matrix(matrix, &
     M, row_numbering, column_numbering, name, use_inodes)
     !!< Allocates a petsc_csr_matrix using an already created real petsc matrix
@@ -499,7 +499,7 @@ contains
     !!< relation between the numbering used inside the petsc matrix and the
     !!< numbering to be used for the interface. References to those numberings
     !!< will be added. The supplied petsc matrix must be in assembled state.
-    !!< After this it should be possible to add new entries and zero the matrix 
+    !!< After this it should be possible to add new entries and zero the matrix
     !!< through the petsc_csr_matrix interface, but only if all nonzero
     !!< entries have been preallocated.
     type(petsc_csr_matrix), intent(out):: matrix
@@ -509,34 +509,34 @@ contains
     !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
     !! that's why we default to not use them
     logical, intent(in), optional:: use_inodes
-    
+
     MatType:: mat_type
     PetscErrorCode:: ierr
-      
+
     matrix%M=M
     matrix%name=name
     matrix%is_assembled=.true.
-    
+
     matrix%row_numbering=row_numbering
     call incref(matrix%row_numbering)
-    
+
     matrix%column_numbering=column_numbering
     call incref(matrix%column_numbering)
-    
+
     if (associated(row_numbering%halo)) then
       allocate(matrix%row_halo)
       matrix%row_halo = row_numbering%halo
       call incref(row_numbering%halo)
     end if
-    
+
     if (associated(column_numbering%halo)) then
       allocate(matrix%column_halo)
       matrix%column_halo = column_numbering%halo
       call incref(column_numbering%halo)
     end if
-    
+
     ! make sure the matrix options are consistent with petsc_csr_matrix interface
-    
+
     ! this is very important for assembly routines (e.g. DG IP viscosity)
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
@@ -566,9 +566,9 @@ contains
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(matrix)
-    
+
   end subroutine allocate_petsc_csr_matrix_from_petsc_matrix
-  
+
   subroutine deallocate_petsc_csr_matrix(matrix, stat)
     type(petsc_csr_matrix), intent(inout) :: matrix
     integer, intent(out), optional :: stat
@@ -581,19 +581,19 @@ contains
     if (has_references(matrix)) then
        goto 42
     end if
-    
+
     call MatDestroy(matrix%M, lstat)
     if (lstat/=0) goto 42
-    
+
     call deallocate(matrix%row_numbering)
-    
+
     call deallocate(matrix%column_numbering)
-    
+
     if (associated(matrix%row_halo)) then
        call deallocate(matrix%row_halo)
        deallocate(matrix%row_halo)
     end if
-    
+
     if (associated(matrix%column_halo)) then
        call deallocate(matrix%column_halo)
        deallocate(matrix%column_halo)
@@ -615,7 +615,7 @@ contains
       end if
     end if
     deallocate(matrix%ksp)
-    
+
 42  if (present(stat)) then
        stat=lstat
     else
@@ -633,10 +633,10 @@ contains
     integer, optional, intent(in) :: dim
 
     integer :: rows, cols
-    
+
     rows = size(matrix%row_numbering%gnn2unn)
     cols = size(matrix%column_numbering%gnn2unn)
-    
+
     if (.not.present(dim)) then
        petsc_csr_size = rows * cols
     else if (dim==1) then
@@ -647,7 +647,7 @@ contains
        ! not allowed to flabort in pure function
        petsc_csr_size = 0
     end if
-    
+
   end function petsc_csr_size
 
   function petsc_must_assemble_by_column_array(matrix, i) result(ret)
@@ -672,10 +672,10 @@ contains
     integer, optional, intent(in) :: dim
 
     integer :: rows, cols
-    
+
     rows = size(matrix%row_numbering%gnn2unn,1)
     cols = size(matrix%column_numbering%gnn2unn,1)
-    
+
     if (.not.present(dim)) then
        petsc_csr_block_size = rows * cols
     else if (dim==1) then
@@ -686,9 +686,9 @@ contains
        ! not allowed to flabort in pure function
        petsc_csr_block_size = 0
     end if
-    
+
   end function petsc_csr_block_size
-  
+
   pure function petsc_csr_blocks_withdim(matrix, dim) result (blocks)
     !!< Number of blocks
     integer :: blocks
@@ -696,10 +696,10 @@ contains
     integer, optional, intent(in) :: dim
 
     integer :: rows, cols
-    
+
     rows = size(matrix%row_numbering%gnn2unn,2)
     cols = size(matrix%column_numbering%gnn2unn,2)
-    
+
     if (.not.present(dim)) then
        blocks = rows * cols
     else if (dim==1) then
@@ -710,31 +710,31 @@ contains
        ! not allowed to flabort in pure function
        blocks = 0
     end if
-    
+
   end function petsc_csr_blocks_withdim
-  
+
 ! causes gfortran to complain about ambiguous generic interface:
-! 
+!
 !    pure function petsc_csr_blocks_nodim(matrix) result (blocks)
 !      !!< Number of blocks
 !      integer, dimension(2) :: blocks
 !      type(petsc_csr_matrix), intent(in) :: matrix
-!  
+!
 !      integer :: rows, cols
-!      
+!
 !      rows = size(matrix%row_numbering%gnn2unn,2)
 !      cols = size(matrix%column_numbering%gnn2unn,2)
-!      
+!
 !      blocks = (/ rows, cols /)
-!      
+!
 !    end function petsc_csr_blocks_nodim
 ! ============================================================================
-  
+
   function petsc_csr_entries(matrix) result (entries)
     !!< Return the number of (potentially) non-zero entries in matrix.
     integer :: entries
     type(petsc_csr_matrix), intent(in) :: matrix
-      
+
     double precision, dimension(MAT_INFO_SIZE):: matrixinfo
     PetscErrorCode:: ierr
 
@@ -743,18 +743,18 @@ contains
     entries=matrixinfo(MAT_INFO_NZ_USED)
 
   end function petsc_csr_entries
-  
+
   subroutine petsc_csr_zero(matrix)
     !!< Zero the entries of a csr matrix.
     type(petsc_csr_matrix), intent(inout) :: matrix
 
     PetscErrorCode:: ierr
-    
+
     call MatZeroEntries(matrix%M, ierr)
     matrix%is_assembled=.true.
-    
+
   end subroutine petsc_csr_zero
-  
+
   subroutine petsc_csr_addto(matrix, blocki, blockj, i, j, val)
     !!< Add value to matrix(blocki, blockj, i,j)
     type(petsc_csr_matrix), intent(inout) :: matrix
@@ -763,10 +763,10 @@ contains
 
     PetscErrorCode:: ierr
     integer:: row, col
-    
+
     row=matrix%row_numbering%gnn2unn(i,blocki)
     col=matrix%column_numbering%gnn2unn(j,blockj)
-    
+
     call MatSetValue(matrix%M, row, col, val, ADD_VALUES, ierr)
     matrix%is_assembled=.false.
 
@@ -778,58 +778,58 @@ contains
     integer, intent(in) :: blocki,blockj
     integer, dimension(:), intent(in) :: i,j
     real, dimension(size(i),size(j)), intent(in) :: val
-    
+
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
-    
+
     idxm=matrix%row_numbering%gnn2unn(i,blocki)
     idxn=matrix%column_numbering%gnn2unn(j,blockj)
-    
+
     call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, real(val, kind=PetscScalar_kind), &
         ADD_VALUES, ierr)
 
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_vaddto
-  
+
   subroutine petsc_csr_block_addto(matrix, i, j, val)
     !!< Adds a local matrix for all components of entry (i,j) in the matrix
-    
+
     type(petsc_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: i
     integer, intent(in) :: j
     real, dimension(:,:), intent(in) :: val
-    
+
     PetscInt, dimension(size(matrix%row_numbering%gnn2unn,2)):: idxm
     PetscInt, dimension(size(matrix%column_numbering%gnn2unn,2)):: idxn
     PetscErrorCode:: ierr
-    
+
     idxm=matrix%row_numbering%gnn2unn(i,:)
     idxn=matrix%column_numbering%gnn2unn(j,:)
-    
+
     call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
                   real(val, kind=PetscScalar_kind), ADD_VALUES, ierr)
 
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_block_addto
-  
+
   subroutine petsc_csr_blocks_addto(matrix, i, j, val)
     !!< Add the (blocki, blockj, :, :) th matrix of val onto the (blocki, blockj) th
     !!< block of the block csr matrix, for all blocks of the block csr matrix.
-    
+
     type(petsc_csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i
     integer, dimension(:), intent(in) :: j
     real, dimension(:,:,:,:), intent(in) :: val
-    
+
     PetscScalar, dimension(size(i), size(j)):: value
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
     integer:: blocki, blockj
-    
+
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
@@ -844,23 +844,23 @@ contains
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_blocks_addto
-  
+
   subroutine petsc_csr_blocks_addto_withmask(matrix, i, j, val, block_mask)
     !!< Add the (blocki, blockj, :, :) th matrix of val onto the (blocki, blockj) th
     !!< block of the block csr matrix, for all blocks of the block csr matrix.
-    
+
     type(petsc_csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i
     integer, dimension(:), intent(in) :: j
     real, dimension(:,:,:,:), intent(in) :: val
     logical, dimension(:,:), intent(in) :: block_mask
-    
+
     PetscScalar, dimension(size(i), size(j)):: value
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
     integer:: blocki, blockj
-    
+
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
@@ -877,17 +877,17 @@ contains
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_blocks_addto_withmask
-  
+
   subroutine petsc_csr_scale(matrix, scale)
     !!< Scale matrix by scale.
     type(petsc_csr_matrix), intent(inout) :: matrix
     real, intent(in) :: scale
-    
+
     PetscErrorCode:: ierr
-    
+
     call MatScale(matrix%M, real(scale ,kind=PetscScalar_kind), ierr)
     matrix%is_assembled=.false. ! I think?
-    
+
   end subroutine petsc_csr_scale
 
   subroutine petsc_csr_addto_diag(matrix, blocki, blockj, i, val)
@@ -908,9 +908,9 @@ contains
     integer, intent(in) :: blocki, blockj
     integer, dimension(:), intent(in) :: i
     real, dimension(size(i)), intent(in) :: val
-    
+
     integer:: k
-    
+
     ! can't think of a more efficient way
     do k=1, size(i)
       call addto(matrix, blocki, blockj, i(k), i(k), val(k))
@@ -925,17 +925,17 @@ contains
 
     type(petsc_csr_matrix), intent(inout) :: matrix
     type(vector_field), intent(inout) :: diagonal
-      
+
     PetscErrorCode:: ierr
     Vec:: diagonal_vec
-    
+
     assert( diagonal%dim==blocks(matrix,1) )
     assert( node_count(diagonal)==block_size(matrix,1))
     assert( block_size(matrix,1)==block_size(matrix,2))
     assert( blocks(matrix,1)==blocks(matrix,2))
-    
+
     call petsc_csr_assemble(matrix)
-    
+
     diagonal_vec=PetscNumberingCreateVec(matrix%row_numbering)
     call MatGetDiagonal(matrix%M, diagonal_vec, ierr)
 
@@ -944,42 +944,42 @@ contains
     call VecDestroy(diagonal_vec,ierr)
 
   end subroutine petsc_csr_extract_diagonal
-    
+
   subroutine petsc_csr_assemble(matrix)
     !!< if necessary assemble the matrix
     type(petsc_csr_matrix), intent(inout) :: matrix
-    
+
     PetscErrorCode:: ierr
-    
+
     call alland(matrix%is_assembled)
     if (.not. matrix%is_assembled) then
       call MatAssemblyBegin(matrix%M, MAT_FINAL_ASSEMBLY, ierr)
       call MatAssemblyEnd(matrix%M, MAT_FINAL_ASSEMBLY, ierr)
     end if
     matrix%is_assembled=.true.
-    
+
   end subroutine petsc_csr_assemble
-    
+
   subroutine ptap(c, a, p)
     !!< Perform the matrix multiplication A=P^T A P
     type(petsc_csr_matrix), intent(out):: c
     type(petsc_csr_matrix), intent(inout):: a
     type(petsc_csr_matrix), intent(inout):: p
-    
+
     PetscErrorCode:: ierr
-    
+
     call assemble(a)
     call assemble(p)
-    
+
     ! this creates the petsc ptap matrix and computes it
     call MatPTAP(a%M, p%M, MAT_INITIAL_MATRIX, 1.5_PETSCSCALAR_KIND, c%M, ierr)
-    
+
     ! rest of internals for c is copied from A
     c%row_numbering=a%row_numbering
     call incref(c%row_numbering)
     c%column_numbering=a%column_numbering
     call incref(c%column_numbering)
-    
+
     if (associated(a%row_halo)) then
       allocate(c%row_halo)
       c%row_halo = a%row_halo
@@ -994,39 +994,39 @@ contains
     else
       nullify(c%column_halo)
     end if
-    
+
     ! I think it is assembled now?
     c%is_assembled=.true.
-    
+
     ! make up a name
     c%name=trim(a%name)//"_"//trim(p%name)//"_ptap"
 
     allocate(c%ksp)
     c%ksp = PETSC_NULL_KSP
-    
+
     ! the new c get its own reference:
     nullify(c%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(c)
-    
+
   end subroutine ptap
-    
+
   subroutine petsc_csr_mult_vector(x, A, b)
     !!< Performs the matrix-vector multiplication x=Ab
     type(vector_field), intent(inout):: x
     type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
-    
+
     PetscErrorCode:: ierr
     Vec:: bvec, xvec
- 
+
     assert( node_count(x)==block_size(A, 1) )
     assert( node_count(b)==block_size(A, 2) )
     assert( x%dim==blocks(A,1) )
     assert( b%dim==blocks(A,2) )
 
     call petsc_csr_assemble(A)
-    
+
     ! copy b to petsc vector
     bvec=PetscNumberingCreateVec(A%column_numbering)
     call field2petsc(b, A%column_numbering, bvec)
@@ -1040,23 +1040,23 @@ contains
     ! destroy the PETSc vecs
     call VecDestroy(bvec, ierr)
     call VecDestroy(xvec, ierr)
-    
+
   end subroutine petsc_csr_mult_vector
-  
+
   subroutine petsc_csr_mult_vector_to_scalar(x, A, b)
     !!< Performs the matrix-scalar multiplication x=Ab
     type(scalar_field), intent(inout):: x
     type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
-    
+
     PetscErrorCode:: ierr
     Vec:: bvec, xvec
-    
+
     assert( node_count(x)==block_size(A, 1) )
     assert( node_count(b)==block_size(A, 2) )
     assert( 1==blocks(A,1) )
     assert( b%dim==blocks(A,2) )
-    
+
     call petsc_csr_assemble(A)
 
     ! copy b to petsc vector
@@ -1071,54 +1071,23 @@ contains
     ! destroy the PETSc vecs
     call VecDestroy(bvec, ierr)
     call VecDestroy(xvec, ierr)
-    
+
   end subroutine petsc_csr_mult_vector_to_scalar
-  
+
   subroutine petsc_csr_mult_T_vector(x, A, b)
     !!< Performs the matrix-vector multiplication x=Ab
     type(vector_field), intent(inout):: x
     type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
-    
+
     PetscErrorCode:: ierr
     Vec:: bvec, xvec
-    
+
     assert( node_count(x)==block_size(A, 2) )
     assert( node_count(b)==block_size(A, 1) )
     assert( x%dim==blocks(A,2) )
     assert( b%dim==blocks(A,1) )
 
-    call petsc_csr_assemble(A)    
-
-    ! copy b to petsc vector
-    bvec=PetscNumberingCreateVec(A%row_numbering)
-    call field2petsc(b, A%row_numbering, bvec)
-    ! creates PETSc solution vec of the right size:
-    xvec=PetscNumberingCreateVec(A%column_numbering)
-    ! perform the multiply
-    call MatMultTranspose(A%M, bvec, xvec, ierr)
-    ! copy answer back to vector_field
-    call petsc2field(xvec, A%column_numbering, x)
-    ! destroy the PETSc vecs
-    call VecDestroy(bvec, ierr)
-    call VecDestroy(xvec, ierr)
-    
-  end subroutine petsc_csr_mult_T_vector
-  
-  subroutine petsc_csr_mult_T_scalar_to_vector(x, A, b)
-    !!< Performs the matrix-scalar multiplication x=Ab
-    type(vector_field), intent(inout):: x
-    type(petsc_csr_matrix), intent(inout):: A
-    type(scalar_field), intent(in):: b
-    
-    PetscErrorCode:: ierr
-    Vec:: bvec, xvec
-    
-    assert( node_count(x)==block_size(A, 2) )
-    assert( node_count(b)==block_size(A, 1) )
-    assert( x%dim==blocks(A,2) )
-    assert( 1==blocks(A,1) )
-    
     call petsc_csr_assemble(A)
 
     ! copy b to petsc vector
@@ -1133,7 +1102,38 @@ contains
     ! destroy the PETSc vecs
     call VecDestroy(bvec, ierr)
     call VecDestroy(xvec, ierr)
-    
+
+  end subroutine petsc_csr_mult_T_vector
+
+  subroutine petsc_csr_mult_T_scalar_to_vector(x, A, b)
+    !!< Performs the matrix-scalar multiplication x=Ab
+    type(vector_field), intent(inout):: x
+    type(petsc_csr_matrix), intent(inout):: A
+    type(scalar_field), intent(in):: b
+
+    PetscErrorCode:: ierr
+    Vec:: bvec, xvec
+
+    assert( node_count(x)==block_size(A, 2) )
+    assert( node_count(b)==block_size(A, 1) )
+    assert( x%dim==blocks(A,2) )
+    assert( 1==blocks(A,1) )
+
+    call petsc_csr_assemble(A)
+
+    ! copy b to petsc vector
+    bvec=PetscNumberingCreateVec(A%row_numbering)
+    call field2petsc(b, A%row_numbering, bvec)
+    ! creates PETSc solution vec of the right size:
+    xvec=PetscNumberingCreateVec(A%column_numbering)
+    ! perform the multiply
+    call MatMultTranspose(A%M, bvec, xvec, ierr)
+    ! copy answer back to vector_field
+    call petsc2field(xvec, A%column_numbering, x)
+    ! destroy the PETSc vecs
+    call VecDestroy(bvec, ierr)
+    call VecDestroy(xvec, ierr)
+
   end subroutine petsc_csr_mult_T_scalar_to_vector
 
   subroutine lift_boundary_conditions(A, boundary_nodes, rhs)
@@ -1183,8 +1183,8 @@ contains
       call field2petsc(rhs, A%row_numbering, bvec)
 
       ! make a copy xvec - the boundary values are taken from xvec
-      ! I suspect supplying bvec twice to MatZeroRowsColumns wouldn't give the 
-      ! right answer as the entry associated with a boundary node might be modified 
+      ! I suspect supplying bvec twice to MatZeroRowsColumns wouldn't give the
+      ! right answer as the entry associated with a boundary node might be modified
       ! before being used as boundary value
       call VecDuplicate(bvec, xvec, ierr)
       call VecCopy(bvec, xvec, ierr)
@@ -1219,7 +1219,7 @@ contains
       if (size(node_list)>0) then ! work around bug in vecgetvalues for 0-lenght arrays
         call VecGetValues(diag, size(node_list), node_list, old_diagonal_values, ierr)
       end if
-       
+
       if (present(rhs)) then
         allocate(unscaled_rhs_values(1:size(node_list)))
         if (size(node_list)>0) then ! work around bug in vecgetvalues for 0-lenght arrays
@@ -1252,29 +1252,29 @@ contains
     end if
 
   end subroutine lift_boundary_conditions
-  
+
   subroutine dump_matrix(name,A)
     character(len=*), intent(in):: name
     type(petsc_csr_matrix):: A
     Vec:: x0, b
-    
+
     x0=PetscNumberingCreateVec(A%column_numbering)
     b=PetscNumberingCreateVec(A%row_numbering)
     call DumpMatrixEquation(name, x0, A%M, b)
-    
+
   end subroutine dump_matrix
-    
+
   function csr2petsc_csr(matrix, use_inodes) result (A)
     type(csr_matrix), intent(in):: matrix
     logical, intent(in), optional:: use_inodes
     type(petsc_csr_matrix):: A
-    
+
     Mat:: M
     type(petsc_numbering_type):: row_numbering, column_numbering
     logical, dimension(:), pointer:: inactive_mask
     integer, dimension(:), allocatable:: ghost_nodes
     integer:: i, j
-    
+
     inactive_mask => get_inactive_mask(matrix)
     ! create list of inactive, ghost_nodes
     if (associated(inactive_mask)) then
@@ -1289,7 +1289,7 @@ contains
     else
       allocate( ghost_nodes(1:0) )
     end if
-    
+
     ! note: the row/column_halo is passed as a pointer, and is allowed to be disassociated
     call allocate(row_numbering, size(matrix, 1), 1, &
         halo=matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
@@ -1300,29 +1300,29 @@ contains
       name=trim(matrix%name), use_inodes=use_inodes)
     call deallocate(row_numbering)
     call deallocate(column_numbering)
-    
+
   end function csr2petsc_csr
 
   subroutine dump_petsc_csr_matrix(matrix)
     !! Dumps a petsc_csr_matrix, along with dummy solution and RHS vectors,
     !! that can be used by petscreadnsolve.
-    
+
     type(petsc_csr_matrix), intent(inout) :: matrix
-    
+
     PetscErrorCode:: ierr
     Vec:: diagonal_vec
     integer, save:: index=1
-    
+
     call petsc_csr_assemble(matrix)
-    
+
     diagonal_vec=PetscNumberingCreateVec(matrix%row_numbering)
-    
+
     call DumpMatrixEquation('PetscCSRdump'//int2str(index), diagonal_vec, matrix%M, diagonal_vec)
     index=index+1
-    
+
     call VecDestroy(diagonal_vec, ierr)
 
   end subroutine dump_petsc_csr_matrix
-  
+
 #include "Reference_count_petsc_csr_matrix.F90"
 end module sparse_tools_petsc

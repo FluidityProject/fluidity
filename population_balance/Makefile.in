@@ -53,7 +53,7 @@ OBJS = DQMOM.o \
 	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib

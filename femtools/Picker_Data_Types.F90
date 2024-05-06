@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -36,9 +36,9 @@ module picker_data_types
   implicit none
 
   private
-  
+
   public :: picker_type, picker_ptr
-  
+
   !! Picker (spatial index interface) information
   type picker_type
     !! Name of this picker
@@ -51,7 +51,7 @@ module picker_data_types
     !! be generated
     integer :: last_mesh_movement = 0
   end type picker_type
-  
+
   type picker_ptr
     type(picker_type), pointer :: ptr => null()
   end type picker_ptr

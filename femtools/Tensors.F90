@@ -1,5 +1,5 @@
 !    Copyright (C) 2007 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -9,7 +9,7 @@
 !    Imperial College London
 !
 !    amcgsoftware@imperial.ac.uk
-!    
+!
 !    This library is free software; you can redistribute it and/or
 !    modify it under the terms of the GNU Lesser General Public
 !    License as published by the Free Software Foundation,
@@ -100,14 +100,14 @@ contains
     real, dimension(:,:,:), intent(in) :: tensor1
     real, dimension(:,:), intent(in) :: tensor2
     real, dimension(size(tensor1,1), size(tensor1,2), size(tensor2,2)) ::&
-         & product 
+         & product
 
     integer :: i
 
     forall (i=1:size(tensor1,1))
        product(i,:,:)=matmul(tensor1(i,:,:),tensor2)
     end forall
-    
+
   end function tensormul_3_2
 
   pure function tensormul_4_1(tensor1, vec, d) result(prod)

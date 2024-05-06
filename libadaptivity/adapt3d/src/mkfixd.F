@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -50,8 +50,8 @@ C
       INTEGER NELM, SZENLS, NNOD, SZSNLS, NSELM, SIZOWN, SIZLOC, SIZMTX,
      :        NHALO, NPROC, NGATH, NPRDND
 C
-      INTEGER ELMREG(NELM), ENLIST(SZENLS), ENLBAS(NELM+1), 
-     :        SNLBAS(NSELM+1), SNLIST(SZSNLS), SUROWN(SIZOWN), 
+      INTEGER ELMREG(NELM), ENLIST(SZENLS), ENLBAS(NELM+1),
+     :        SNLBAS(NSELM+1), SNLIST(SZSNLS), SUROWN(SIZOWN),
      :        NODLOC(SIZLOC), GATHER(NGATH), SCATER(NHALO),
      :        ATOSEN(NPROC), ATOREC(NPROC), PRDNDS(NPRDND),
      :        SURFID(NSELM)
@@ -78,7 +78,7 @@ C
      :     minvol, minrad, minrvl, minvrd, maxasp, maxavl, maxard,
      :     minras, minvas, L(6), maxvol, maxvrd, maxvas
       integer mxsfid, nodcnt, nusfid
-C      
+C
       integer, dimension(:), allocatable:: srfcnt
       real, dimension(:), allocatable:: srfavx, srfavy, srfavz
       integer, parameter:: MAX_SFID_STATS=1000
@@ -233,15 +233,15 @@ C
          DO I = 1, NPRDND
             j = prdnds(i)
             PRDNDS(I) = INT( NODLST(17,PRDNDS(I)) )
-            ewrite(2,*) 
+            ewrite(2,*)
      :           '  periodic renumber: ',j,prdnds(i)
          END DO
 C
       END IF
 c
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Finished new node data'
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Geom,split,int: ',cntgmy,cntspl,cntint
 C
       CNTINT = 0
@@ -516,9 +516,9 @@ C
 C
       END IF
 c
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Finished new element data'
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Geom ed, int ed: ',cntgmy,cntint
       nusfid = count(srfcnt>0)
       if(nusfid.lt.200) then
@@ -526,20 +526,20 @@ c
      :       'Surface averages  ( max id :',mxsfid,' )'
          do i = 0, MAX_SFID_STATS
             if( srfcnt(i) .gt. 0 ) then
-               ewrite(2,*) 
+               ewrite(2,*)
      :              i,srfcnt(i),srfavx(i)/srfcnt(i)/3,
      :              srfavy(i)/srfcnt(i)/3,srfavz(i)/srfcnt(i)/3
             end if
          end do
       else
-         ewrite(2,*) 
+         ewrite(2,*)
      :        'Check in MKFIXD:  NSELM, MXSFID, NUSFID =',
      :                                       nselm,mxsfid,nusfid
       end if
 C
       IF( NPROC .GT. 1 ) THEN
 C
-         ewrite(2,*) 
+         ewrite(2,*)
      :        'Working out new gather array...'
          DO I = 1, NGATH
             INOD = GATHER(I)
@@ -557,7 +557,7 @@ C
             GATHER(I) = INOD
          END DO
 C
-         ewrite(2,*) 
+         ewrite(2,*)
      :        'Working out new scatter array...'
          DO I = 1, NHALO
             INOD = SCATER(I)
@@ -569,7 +569,7 @@ C
                WRITE(0,*) '  old:',scater(i),'  new:',inod,
      :                                   ' ***TOO SMALL!!!'
             else if( debug ) then
-               ewrite(2,*) 
+               ewrite(2,*)
      :              '  old:',scater(i),'  new:',
      :              inod,nodlst(6,inod)
             end if
@@ -577,7 +577,7 @@ C
          END DO
 C
       END IF
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Checking local node ordering...'
 C
       do i = 2, 8
@@ -648,9 +648,9 @@ c         print*,'   vol,rad,asp ',avol,arad,asp
             MINRAS = ASP
          END IF
       END DO
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'VOLSUM,ASPAVE: ',VOLSUM,ASPAVE/NELM
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Maximum asp,vol,rad: ',maxasp,maxavl,maxard
       if( debug ) then
         ipos = enlbas(maxela)
@@ -663,7 +663,7 @@ c         print*,'   vol,rad,asp ',avol,arad,asp
         inod = enlist(ipos+4)
         print*,'  node 4 : ',nodx(inod),nody(inod),nodz(inod)
       end if
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Maximum vol,rad,asp: ',maxvol,maxvrd,maxvas
       if( debug ) then
         ipos = enlbas(maxelv)
@@ -676,7 +676,7 @@ c         print*,'   vol,rad,asp ',avol,arad,asp
         inod = enlist(ipos+4)
         print*,'  node 4 : ',nodx(inod),nody(inod),nodz(inod)
       end if
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Minimum vol,rad,asp: ',minvol,minvrd,minvas
       if( debug ) then
         ipos = enlbas(minelv)
@@ -689,7 +689,7 @@ c         print*,'   vol,rad,asp ',avol,arad,asp
         inod = enlist(ipos+4)
         print*,'  node 4 : ',nodx(inod),nody(inod),nodz(inod)
       end if
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Minimum rad,vol,asp: ',minrad,minrvl,minras
       if( debug ) then
         ipos = enlbas(minelr)
@@ -723,7 +723,7 @@ c
 c      print*,'ENLBAS: ',(enlbas(i),i=1,nelm+1)
 c      print*,'ENLIST: ',(enlist(i),i=1,szenls)
 c
-      ewrite(2,*) 
+      ewrite(2,*)
      :     'Finished checking local node ordering'
 C
   6   format( a, i7, a )

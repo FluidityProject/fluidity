@@ -23,8 +23,8 @@ extern "C" {
 #endif
 
 /*
-   !   _                   _          
-   !  (_)_ __   __ _ _   _(_)_ __ ___ 
+   !   _                   _
+   !  (_)_ __   __ _ _   _(_)_ __ ___
    !  | | '_ \ / _` | | | | | '__/ _ \
    !  | | | | | (_| | |_| | | | |  __/
    !  |_|_| |_|\__, |\__,_|_|_|  \___|
@@ -44,7 +44,7 @@ H5BlockHasFieldData (
 	const h5_file_t f	///< [in] file handle
 	) {
 	H5_API_ENTER (h5_err_t,
-                      "f=%p, ", 
+                      "f=%p, ",
                       (h5_file_p)f);
         H5_API_RETURN (h5b_has_field_data (f));
 }
@@ -97,7 +97,7 @@ H5BlockGetFieldInfo (
 		      "name=%p, len_name=%llu, "
 		      "field_rank=%p, field_dims=%p, elem_rank=%p, type=%p",
 		      (h5_file_p)f, (long long unsigned)idx,
-		      name, (long long unsigned)len_name, 
+		      name, (long long unsigned)len_name,
 		      field_rank, field_dims, elem_rank,
 		      type);
 	H5_API_RETURN (
@@ -310,7 +310,7 @@ static inline h5_err_t
 H5Block3dGetReducedView (
 	const h5_file_t f,		///< [in]  file handle.
 	h5_size_t* const i_start,	///< [out] start index of \c i
-	h5_size_t* const i_end,		///< [out] end index of \c i  
+	h5_size_t* const i_end,		///< [out] end index of \c i
 	h5_size_t* const j_start,	///< [out] start index of \c j
 	h5_size_t* const j_end,		///< [out] end index of \c j
 	h5_size_t* const k_start,	///< [out] start index of \c j
@@ -366,7 +366,7 @@ static inline h5_err_t
 H5Block3dGetChunkSize (
 	const h5_file_t f,		///< [in]  file handle.
 	const char* field_name, 	///< [in]  name of dataset
-	h5_size_t* const i,		///< [out] size of \c i 
+	h5_size_t* const i,		///< [out] size of \c i
 	h5_size_t* const j,		///< [out] size of \c j
 	h5_size_t* const k		///< [out] size of \c k
 	) {
@@ -446,7 +446,7 @@ H5Block3dGetGridCoords (
 /**
   Set the dimensions of each processor's block when the field is a regular
   grid.
-  
+
   A grid must be already set with \ref H5Block3dSetGrid, and all processors
   must specify the same dimensions.
 

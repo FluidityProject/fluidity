@@ -1,25 +1,25 @@
 C Copyright (C) 2006 Imperial College London and others.
-C 
+C
 C Please see the AUTHORS file in the main source directory for a full list
 C of copyright holders.
-C 
+C
 C Adrian Umpleby
 C Applied Modelling and Computation Group
 C Department of Earth Science and Engineering
 C Imperial College London
-C 
+C
 C adrian@Imperial.ac.uk
-C 
+C
 C This library is free software; you can redistribute it and/or
 C modify it under the terms of the GNU Lesser General Public
 C License as published by the Free Software Foundation; either
 C version 2.1 of the License.
-C 
+C
 C This library is distributed in the hope that it will be useful,
 C but WITHOUT ANY WARRANTY; without even the implied warranty of
 C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 C Lesser General Public License for more details.
-C 
+C
 C You should have received a copy of the GNU Lesser General Public
 C License along with this library; if not, write to the Free Software
 C Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
@@ -55,7 +55,7 @@ C
 C
       OK = .TRUE.
 C
-      ewrite(3,*) 
+      ewrite(3,*)
      :     'Into CHKGMY... ',ierr
 C
 C - Loop through edges, clearing bit four of the flag
@@ -139,9 +139,9 @@ c                  CALL SETFLG( BIGLST, NODLST, IEDG, 3, .FALSE. )
 c                     CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      if( .not. getflg(BIGLST,NODLST,iedg,2)
      :                    .or. getflg(BIGLST,NODLST,iedg,3) ) then
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Edge ',IEDG,numede,surfac,intrnl
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Geometry edge: ',i1,i2,dot,
      :                       getflg(BIGLST,NODLST,iedg,2),
      :                       getflg(BIGLST,NODLST,iedg,3)
@@ -149,9 +149,9 @@ c                     CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      end if
                   ELSE IF( SRFGMY ) THEN
                      if( .not. getflg(BIGLST,NODLST,iedg,2) ) then
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Edge ',IEDG,numede,surfac,intrnl
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Geometry edge: ',i1,i2,dot,
      :                       getflg(BIGLST,NODLST,iedg,2),
      :                       getflg(BIGLST,NODLST,iedg,3)
@@ -170,9 +170,9 @@ c                     CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      IF( ABS(DOT) .LT. CUTOFF ) THEN
 c                        CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                         if( .not. getflg(BIGLST,NODLST,iedg,2) ) then
-                           ewrite(1,*) 
+                           ewrite(1,*)
      :                          'Edge ',IEDG,numede,surfac,intrnl
-                           ewrite(1,*) 
+                           ewrite(1,*)
      :                          'Geometry edge: ',i1,i2,dot,
      :                          getflg(BIGLST,NODLST,iedg,2),
      :                          getflg(BIGLST,NODLST,iedg,3)
@@ -180,10 +180,10 @@ c                        CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                         end if
                      else
                         if( getflg(BIGLST,NODLST,iedg,2) ) then
-                           ewrite(1,*) 
+                           ewrite(1,*)
      :                          'Edge ',
      :                          IEDG,numede,surfac,intrnl
-                           ewrite(1,*) 
+                           ewrite(1,*)
      :                          'Surface edge: ',i1,i2,dot,
      :                          getflg(BIGLST,NODLST,iedg,2),
      :                          getflg(BIGLST,NODLST,iedg,3)
@@ -206,9 +206,9 @@ c                  CALL SETFLG( BIGLST, NODLST, IEDG, 3, .FALSE. )
 c                     CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                      if( .not. getflg(BIGLST,NODLST,iedg,2)
      :                    .or. getflg(BIGLST,NODLST,iedg,3) ) then
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Edge ',IEDG,numede,surfac,intrnl
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Int.geom. edge: ',i1,i2,dot,
      :                       getflg(BIGLST,NODLST,iedg,2),
      :                       getflg(BIGLST,NODLST,iedg,3)
@@ -219,7 +219,7 @@ c                     CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
      :                   getflg(BIGLST,NODLST,iedg,3) ) then
                         ewrite(1,*)
      :                       'Edge ',IEDG,numede,surfac,intrnl
-                        ewrite(1,*) 
+                        ewrite(1,*)
      :                       'Int.srf. edge: ',i1,i2,dot,
      :                       getflg(BIGLST,NODLST,iedg,2),
      :                       getflg(BIGLST,NODLST,iedg,3)
@@ -231,9 +231,9 @@ c                  CALL SETFLG( BIGLST, NODLST, IEDG, 3, .FALSE. )
 c                  CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                   if( .not. getflg(BIGLST,NODLST,iedg,2)
      :                 .or. getflg(BIGLST,NODLST,iedg,3) ) then
-                     ewrite(1,*) 
+                     ewrite(1,*)
      :                    'Edge ',IEDG,numede,surfac,intrnl
-                     ewrite(1,*) 
+                     ewrite(1,*)
      :                    'Int.geom. edge: ',i1,i2,
      :                    getflg(BIGLST,NODLST,iedg,2),
      :                    getflg(BIGLST,NODLST,iedg,3)
@@ -242,9 +242,9 @@ c                  CALL SETFLG( BIGLST, NODLST, IEDG, 2, .TRUE. )
                ELSE
 c                  CALL SETFLG( BIGLST, NODLST, IEDG, 3, .TRUE. )
                   if( .not. getflg(BIGLST,NODLST,iedg,3) ) then
-                     ewrite(1,*) 
+                     ewrite(1,*)
      :                    'Edge ',IEDG,numede,surfac,intrnl
-                     ewrite(1,*) 
+                     ewrite(1,*)
      :                    'Internal edge: ',i1,i2,
      :                    getflg(BIGLST,NODLST,iedg,2),
      :                    getflg(BIGLST,NODLST,iedg,3)
@@ -282,7 +282,7 @@ C
 C
 C - for nodes not already done, find list of surrounding elements/edges/nodes
 C
-               CALL NDCNCT( BIGLST, NODLST, NODS(I), IPTR, ELPTRS, 
+               CALL NDCNCT( BIGLST, NODLST, NODS(I), IPTR, ELPTRS,
      :                      EDPTRS, NDPTRS, NUMEDG, NUMELM )
 C
                IF( IERR .NE. 0 ) RETURN
@@ -307,7 +307,7 @@ c               CALL STNDFL(BIGLST,NODLST,NODS(I),4,.FALSE.)
                IF( I2 .GT. 2 ) THEN
 c                  CALL STNDFL(BIGLST,NODLST,NODS(I),2,.TRUE.)
                   if( .not. gtndfl(BIGLST,NODLST,nods(i),2) ) then
-                   ewrite(1,*) 
+                   ewrite(1,*)
      :                    'Geometry node: ',nods(i),
      :                    (nodlst(j,nods(i)),j=1,3),
      :                    (gtndfl(BIGLST,NODLST,nods(i),j),j=2,4)
@@ -325,7 +325,7 @@ c                  CALL STNDFL(BIGLST,NODLST,NODS(I),2,.TRUE.)
                ELSE IF( I2 .EQ. 2 ) THEN
 c                  CALL STNDFL(BIGLST,NODLST,NODS(I),4,.TRUE.)
                   if( .not. gtndfl(BIGLST,NODLST,nods(i),4) ) then
-                   ewrite(1,*) 
+                   ewrite(1,*)
      :                    'Splitter node: ',nods(i),
      :                    (nodlst(j,nods(i)),j=1,3),
      :                    (gtndfl(BIGLST,NODLST,nods(i),j),j=2,4)

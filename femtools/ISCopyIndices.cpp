@@ -14,12 +14,12 @@ extern "C" {
 void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr){
   const PetscInt *iptr;
   PetscInt n;
-  
+
   *ierr = ISGetIndices(*is, &iptr); if (*ierr) return;
   *ierr = ISGetSize(*is, &n); if (*ierr) return;
-  
+
   memcpy(iarray, iptr, sizeof(PetscInt)*n);
-  
+
   *ierr = ISRestoreIndices(*is, &iptr);
 }
 
@@ -29,14 +29,14 @@ void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr){
 
 #ifdef PETSC_USE_POINTER_CONVERSION
 #if defined(__cplusplus)
-extern "C" { 
-#endif 
+extern "C" {
+#endif
 extern void *PetscToPointer(void*);
 extern int PetscFromPointer(void *);
 extern void PetscRmPointer(void*);
 #if defined(__cplusplus)
-} 
-#endif 
+}
+#endif
 
 #else
 
@@ -60,5 +60,3 @@ void petscobjectreference_(PetscObject obj, int *__ierr ){
 void pcmgsetlevels_nocomms_(PC *pc, PetscInt *levels, int *ierr){
   *ierr = PCMGSetLevels(*pc, *levels, NULL);
 }
-
-
