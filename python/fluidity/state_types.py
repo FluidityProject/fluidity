@@ -145,6 +145,7 @@ class Field:
 
 class ScalarField(Field):
     "A scalar field"
+
     description = "ScalarField"
 
     def __init__(self, n, v, ft, op):
@@ -155,6 +156,7 @@ class ScalarField(Field):
 
 class VectorField(Field):
     "A vector field"
+
     description = "VectorField"
 
     def __init__(self, n, v, ft, op, dim):
@@ -166,6 +168,7 @@ class VectorField(Field):
 
 class TensorField(Field):
     "A tensor field"
+
     description = "VectorField"
 
     def __init__(self, n, v, ft, op, dim0, dim1):
@@ -337,6 +340,7 @@ class Polynomial:
 
 class Transform:
     "Transform with information about the detwei and Jacobian"
+
     # Note that so far only the dim == ldim == (2||3) have been tested
 
     def __init__(self, ele_num, field):

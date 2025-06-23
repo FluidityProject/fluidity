@@ -43,11 +43,7 @@ def t0_eta():
             - (delta_rho * k**2 * mu + k**2 * mu * rhog) * D * cosh(D * k) ** 2
             - (delta_rho * k * mu + k * mu * rhog) * sinh(D * k) * cosh(D * k)
             - sqrt(
-                (
-                    delta_rho**2 * k**2
-                    + 2 * delta_rho * k**2 * rhog
-                    + k**2 * rhog**2
-                )
+                (delta_rho**2 * k**2 + 2 * delta_rho * k**2 * rhog + k**2 * rhog**2)
                 * D**2
                 * cosh(D * k) ** 4
                 - 2
@@ -61,11 +57,7 @@ def t0_eta():
                 * sinh(D * k)
                 * cosh(D * k) ** 3
                 + (
-                    (
-                        delta_rho**2 * k**2
-                        - 2 * delta_rho * k**2 * rhog
-                        + k**2 * rhog**2
-                    )
+                    (delta_rho**2 * k**2 - 2 * delta_rho * k**2 * rhog + k**2 * rhog**2)
                     * D**2
                     - 4 * delta_rho * rhog
                 )
@@ -97,11 +89,7 @@ def t0_xi():
             - (delta_rho * k**2 * mu + k**2 * mu * rhog) * D * cosh(D * k) ** 2
             - (delta_rho * k * mu + k * mu * rhog) * sinh(D * k) * cosh(D * k)
             + sqrt(
-                (
-                    delta_rho**2 * k**2
-                    + 2 * delta_rho * k**2 * rhog
-                    + k**2 * rhog**2
-                )
+                (delta_rho**2 * k**2 + 2 * delta_rho * k**2 * rhog + k**2 * rhog**2)
                 * D**2
                 * cosh(D * k) ** 4
                 - 2
@@ -115,11 +103,7 @@ def t0_xi():
                 * sinh(D * k)
                 * cosh(D * k) ** 3
                 + (
-                    (
-                        delta_rho**2 * k**2
-                        - 2 * delta_rho * k**2 * rhog
-                        + k**2 * rhog**2
-                    )
+                    (delta_rho**2 * k**2 - 2 * delta_rho * k**2 * rhog + k**2 * rhog**2)
                     * D**2
                     - 4 * delta_rho * rhog
                 )
@@ -175,17 +159,12 @@ def nond_F(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     - sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -273,17 +252,12 @@ def nond_F(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     + sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -385,11 +359,7 @@ def nond_F(x, t):
                             + (delta_rho * k - k * rhog) * cosh(k) ** 2
                             - sqrt(
                                 delta_rho**2 * k**2 * sinh(k) ** 4
-                                - 2
-                                * delta_rho**2
-                                * k**2
-                                * sinh(k) ** 2
-                                * cosh(k) ** 2
+                                - 2 * delta_rho**2 * k**2 * sinh(k) ** 2 * cosh(k) ** 2
                                 + delta_rho**2 * k**2 * cosh(k) ** 4
                                 - 2 * delta_rho * k**2 * rhog * sinh(k) ** 4
                                 + 2 * delta_rho * k**2 * rhog * cosh(k) ** 4
@@ -420,11 +390,7 @@ def nond_F(x, t):
                             + (delta_rho * k - k * rhog) * cosh(k) ** 2
                             + sqrt(
                                 delta_rho**2 * k**2 * sinh(k) ** 4
-                                - 2
-                                * delta_rho**2
-                                * k**2
-                                * sinh(k) ** 2
-                                * cosh(k) ** 2
+                                - 2 * delta_rho**2 * k**2 * sinh(k) ** 2 * cosh(k) ** 2
                                 + delta_rho**2 * k**2 * cosh(k) ** 4
                                 - 2 * delta_rho * k**2 * rhog * sinh(k) ** 4
                                 + 2 * delta_rho * k**2 * rhog * cosh(k) ** 4
@@ -482,17 +448,12 @@ def nond_F(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     + sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -522,17 +483,12 @@ def nond_F(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     - sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -666,17 +622,12 @@ def nond_G(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     - sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -797,17 +748,12 @@ def nond_G(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     + sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -937,11 +883,7 @@ def nond_G(x, t):
                             + (delta_rho * k - k * rhog) * cosh(k) ** 2
                             - sqrt(
                                 delta_rho**2 * k**2 * sinh(k) ** 4
-                                - 2
-                                * delta_rho**2
-                                * k**2
-                                * sinh(k) ** 2
-                                * cosh(k) ** 2
+                                - 2 * delta_rho**2 * k**2 * sinh(k) ** 2 * cosh(k) ** 2
                                 + delta_rho**2 * k**2 * cosh(k) ** 4
                                 - 2 * delta_rho * k**2 * rhog * sinh(k) ** 4
                                 + 2 * delta_rho * k**2 * rhog * cosh(k) ** 4
@@ -972,11 +914,7 @@ def nond_G(x, t):
                             + (delta_rho * k - k * rhog) * cosh(k) ** 2
                             + sqrt(
                                 delta_rho**2 * k**2 * sinh(k) ** 4
-                                - 2
-                                * delta_rho**2
-                                * k**2
-                                * sinh(k) ** 2
-                                * cosh(k) ** 2
+                                - 2 * delta_rho**2 * k**2 * sinh(k) ** 2 * cosh(k) ** 2
                                 + delta_rho**2 * k**2 * cosh(k) ** 4
                                 - 2 * delta_rho * k**2 * rhog * sinh(k) ** 4
                                 + 2 * delta_rho * k**2 * rhog * cosh(k) ** 4
@@ -1040,17 +978,12 @@ def nond_G(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     + sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (
@@ -1106,17 +1039,12 @@ def nond_G(x, t):
                     + delta_rho * k**2
                     + k**2 * rhog
                     - sqrt(
-                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2)
-                        * sinh(k) ** 4
+                        (delta_rho**2 - 2 * delta_rho * rhog + rhog**2) * sinh(k) ** 4
                         + delta_rho**2 * k**2
                         + 2 * delta_rho * k**2 * rhog
                         + k**2 * rhog**2
                         + 2
-                        * (
-                            delta_rho**2 * k
-                            + 2 * delta_rho * k * rhog
-                            + k * rhog**2
-                        )
+                        * (delta_rho**2 * k + 2 * delta_rho * k * rhog + k * rhog**2)
                         * sinh(k)
                         * cosh(k)
                         + (

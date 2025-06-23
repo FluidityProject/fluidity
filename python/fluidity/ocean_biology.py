@@ -68,9 +68,7 @@ def pznd(state, parameters):
         G_P = (g * p_P * P_n**2 * Z_n) / (k**2 + p_P * P_n**2 + p_D * D_n**2)
 
         # Zooplankton grazing of detritus.
-        G_D = (g * (1 - p_P) * D_n**2 * Z_n) / (
-            k**2 + p_P * P_n**2 + p_D * D_n**2
-        )
+        G_D = (g * (1 - p_P) * D_n**2 * Z_n) / (k**2 + p_P * P_n**2 + p_D * D_n**2)
 
         # Death rate of phytoplankton.
         De_P = mu_P * P_n * P_n / (P_n + 0.2)
@@ -327,12 +325,7 @@ def six_component(state, parameters):
 
         # Chl growth scaling factor
         # R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n+1e-7)
-        R_P = (
-            (theta_m / theta)
-            * (Q_N + Q_A)
-            * v
-            / (v**2 + alpha**2 * I_n**2) ** 0.5
-        )
+        R_P = (theta_m / theta) * (Q_N + Q_A) * v / (v**2 + alpha**2 * I_n**2) ** 0.5
 
         # Primary production
         X_P = J * (Q_N + Q_A) * P_n
@@ -350,9 +343,7 @@ def six_component(state, parameters):
         # G_D = (g * epsilon * (1 - p_P) * D_n**2 * Z_n) / (
         #     g + epsilon * (p_P * P_n**2 + p_D * D_n**2)
         # )
-        G_D = (g * (1 - p_P) * D_n**2 * Z_n) / (
-            epsilon + (p_P * P_n**2 + p_D * D_n**2)
-        )
+        G_D = (g * (1 - p_P) * D_n**2 * Z_n) / (epsilon + (p_P * P_n**2 + p_D * D_n**2))
 
         # Death rate of phytoplankton.
         # There is an additional linear term because we have a unified model
