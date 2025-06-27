@@ -66,6 +66,13 @@ find_package(VTK REQUIRED
 
 # Check for Python 3
 find_package(Python3 REQUIRED Interpreter Development NumPy)
+option(PREPEND_FLUIDITY_PYTHONPATH "Whether to prepend CMAKE_SOURCE_PATH to PYTHONPATH in all commands" ON)
+if(PREPEND_FLUIDITY_PYTHONPATH)
+  set(FLUIDITY_PYTHON_PATH "${CMAKE_SOURCE_DIR}/python")
+  configure_file(tools/prepend-python-path.in bin/prepend-python-path @ONLY)
+  set(PYENV prepend-python-path)
+  Python3_EXECUTABLE = "prepend-python-path ${PYTHON3_EXECUTABLE}"
+endif()
 
 # # Check for OpenMP
 # find_package(OpenMP QUIET COMPONENTS Fortran)
@@ -118,118 +125,28 @@ if(EXODUSII_LIBRARY)
   message(STATUS "Found ExodusII")
 endif()
 
-# Add libspatialindex
-if(DEFINED USE_BUNDLED_LIBSPATIALINDEX)
-  FetchContent_Declare(libspatialindex
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/spatialindex-1.8.0
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-    LOG_INSTALL ON
-  )
-else()
-  FetchContent_Declare(libspatialindex
-    GIT_REPOSITORY https://github.com/libspatialindex/libspatialindex
-    GIT_TAG origin/master
-    LOG_DOWNLOAD ON
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-    LOG_INSTALL ON
-  )
+find_library(SPATIALINDEX_LIBRARY spatialindex REQUIRED)
+find_path(SPATIALINDEX_INCLUDE_DIR SpatialIndex.h PATH_SUFFIXES spatialindex REQUIRED)
+if(SPATIALINDEX_LIBRARY)
+  message(STATUS "Found SpatialIndex")
 endif()
-FetchContent_MakeAvailable(libspatialindex)
 
-# Add Judy
-if(DEFINED USE_BUNDLED_LIBJUDY)
-  # Use approach from cmake_build branch
-else()
-  ExternalProject_Add(libjudy
-    PREFIX libjudy
-    URL https://sourceforge.net/projects/judy/files/judy/Judy-1.0.5/Judy-1.0.5.tar.gz/download
-    CONFIGURE_COMMAND ./configure --enable-64-bit --prefix=<SOURCE_DIR>
-    BUILD_COMMAND make
-    BUILD_IN_SOURCE TRUE
-    INSTALL_COMMAND make install exec_prefix=<SOURCE_DIR>
-    TEST_COMMAND make check
-    TEST_BEFORE_INSTALL TRUE
-    LOG_DOWNLOAD ON
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-    LOG_INSTALL ON
-    LOG_TEST ON
-  )
+find_library(JUDY_LIBRARY Judy REQUIRED)
+find_path(JUDY_INCLUDE_DIR Judy.h REQUIRED)
+if(JUDY_LIBRARY)
+  message(STATUS "Found Judy")
 endif()
-ExternalProject_Add_Step(libjudy byproducts
-  DEPENDEES install
-  BYPRODUCTS <SOURCE_DIR>/lib/libJudy.a
-  LOG ON
-)
-ExternalProject_Get_property(libjudy SOURCE_DIR)
 
-add_library(Judy STATIC IMPORTED)
-set_target_properties(Judy
-  PROPERTIES IMPORTED_LOCATION ${SOURCE_DIR}/lib/libJudy.a
-)
-
-set(LIBJUDY_INCLUDE_DIR ${SOURCE_DIR}/src)
-
+find_library(PARMETIS_LIBRARY parmetis REQUIRED)
+find_path(PARMETIS_INCLUDE_DIR parmetis.h REQUIRED)
+if(PARMETIS_LIBRARY)
+  message(STATUS "Found Parmetis")
+endif()
+find_library(PARMETIS_LIBRARY metis REQUIRED)
 # Add Zoltan
-if(DEFINED USE_EXISTING_ZOLTAN)
-  find_library(ZOLTAN_LIBRARY zoltan HINTS ${USE_EXISTING_ZOLTAN} REQUIRED)
-  find_path(ZOLTAN_INCLUDE_DIR zoltan.h HINTS ${USE_EXISTING_ZOLTAN} REQUIRED)
+find_package(Zoltan REQUIRED)
 
-  add_library(Zoltan STATIC IMPORTED)
-  set_target_properties(Zoltan PROPERTIES IMPORTED_LOCATION ${ZOLTAN_LIBRARY})
 
-else()
-  set(ZOLTAN_CONFIGURE
-    "../libzoltan/configure --enable-f90interface"
-    " --with-gnumake --with-scotch --with-parmetis"
-  )
-
-  if(${CMAKE_C_COMPILER_VERSION} GREATER_EQUAL 10)
-    string(APPEND ZOLTAN_CONFIGURE " FCFLAGS=-fallow-argument-mismatch")
-  endif()
-
-  if(DEFINED ENV{PETSC_ARCH})
-    string(APPEND ZOLTAN_CONFIGURE
-      " --with-scotch-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include"
-      " --with-scotch-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib"
-      " --with-parmetis-incdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include"
-      " --with-parmetis-libdir=$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib"
-    )
-    else()
-    string(APPEND ZOLTAN_CONFIGURE
-      " --with-scotch-incdir=$ENV{PETSC_DIR}/include"
-      " --with-scotch-libdir=$ENV{PETSC_DIR}/lib"
-      " --with-parmetis-incdir=$ENV{PETSC_DIR}/include"
-      " --with-parmetis-libdir=$ENV{PETSC_DIR}/lib"
-    )
-  endif()
-
-  separate_arguments(ZOLTAN_CONFIGURE UNIX_COMMAND "${ZOLTAN_CONFIGURE}")
-
-  ExternalProject_Add(libzoltan
-    PREFIX Zoltan
-    GIT_REPOSITORY https://github.com/sandialabs/Zoltan
-    GIT_TAG origin/main
-    CONFIGURE_COMMAND ${ZOLTAN_CONFIGURE}
-    BUILD_COMMAND make everything
-    BUILD_BYPRODUCTS <BINARY_DIR>/src/libzoltan.a
-    INSTALL_COMMAND ""
-    LOG_DOWNLOAD ON
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-  )
-  ExternalProject_Get_property(libzoltan BINARY_DIR)
-
-  add_library(Zoltan STATIC IMPORTED)
-  add_dependencies(Zoltan libzoltan)
-  set_target_properties(Zoltan
-    PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/src/libzoltan.a
-  )
-  
-  set(ZOLTAN_INCLUDE_DIR ${BINARY_DIR}/src)
-endif()
 
 # Generate some source files
 add_custom_command(
@@ -422,8 +339,9 @@ target_include_directories(fluidity PUBLIC
 )
 target_link_libraries(fluidity
   adaptivity mba2d spatialindex vtkfortran
-  H5hutf Judy Zoltan
+  H5hutf Judy
 
+  ${ZOLTAN_LIBRARIES}
   ${HDF5_Fortran_LIBRARIES}
   ${VTK_LIBRARIES}
   ${Python3_LIBRARIES}
@@ -474,7 +392,7 @@ set_target_properties(fluidity_binary PROPERTIES OUTPUT_NAME fluidity)
 target_link_libraries(fluidity_binary fluidity)
 
 # Install Python packages included in Fluidity's repository
-add_custom_target(install_python_packages 
+add_custom_target(install_python_packages
   COMMAND ${CMAKE_MAKE_PROGRAM} fluidity_python spud_diamond spud_dxdiff spud_python
   VERBATIM
 )
