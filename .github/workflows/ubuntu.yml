@@ -108,7 +108,7 @@ jobs:
          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
           name: tests_xml_outputs
@@ -241,7 +241,7 @@ jobs:
          docker pull fluidity/actions:jammy-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:jammy-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: test_results_${{ matrix.name }}.xml
           name: tests_xml_outputs
