@@ -8,6 +8,16 @@ RUN apt-get -y update && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
+# See https://github.com/FluidityProject/fluidity/issues/388
+# workaround VTK reading bug with newer versions of libexpat1
+# https://bugs.launchpad.net/ubuntu/+source/paraview/+bug/2058415, in particular
+# https://bugs.launchpad.net/ubuntu/+source/paraview/+bug/2058415/comments/6
+# NOTE: that this downgrade of libexpat1 (which is used in many places by your OS)
+# reverts some security patches and is therefore not recommended on your desktop
+RUN curl -fsLO http://launchpadlibrarian.net/635321776/libexpat1_2.4.7-1ubuntu0.2_amd64.deb && \
+    dpkg -i libexpat1_2.4.7-1ubuntu0.2_amd64.deb
+
+
 RUN adduser fluidity sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
