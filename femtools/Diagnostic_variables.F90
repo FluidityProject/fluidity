@@ -29,8 +29,8 @@
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
-  use iso_c_binding, only: c_long
-  use ieee_arithmetic, only: ieee_value, ieee_quiet_nan
+  use, intrinsic :: iso_c_binding, only: c_long
+  use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
   use fldebug
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
 & PYTHON_FUNC_LEN, integer_size, real_size
@@ -1182,9 +1182,9 @@ contains
     buffer=constant_tag(name="StartTime", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)
 
-    call get_environment_variable(name="HOSTNAME", value=value_buffer, status=stat)
+    call hostnm(value_buffer, stat)
     if (stat /= 0) then
-      ewrite(-1, *) "GET_ENVIRONMENT_VARIABLE('HOSTNAME') returned no-zero status: ", stat
+      ewrite(-1, *) "HOSTNM returned a non-zero status: ", stat
     end if
     buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
     write(unit, '(a)') trim(buffer)

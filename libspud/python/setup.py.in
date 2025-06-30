@@ -1,0 +1,14 @@
+from setuptools import Extension, setup
+
+setup(
+    ext_modules=[
+        Extension(
+            name="libspud",
+            sources=["libspud.c"],
+            include_dirs=["@CMAKE_SOURCE_DIR@/libspud/include"],
+            library_dirs=["@CMAKE_BINARY_DIR@/lib"],
+            libraries=["spud"],
+            extra_link_args=["-Wl,--enable-new-dtags,-R@CMAKE_BINARY_DIR@/lib"],
+        )
+    ],
+)
