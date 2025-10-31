@@ -24,5 +24,8 @@ RUN make
 RUN make fltools
 RUN make manual
 
+# ensure our vtk 9.4 build is used in python vtk/vtktools
+ENV PYTHONPATH "/opt/vtk-9.4.0/lib/python3.12/site-packages/:$PYTHONPATH"
+
 # Python module 'assess' is required for some longtests
 RUN python3 -m pip install --break-system-packages assess
