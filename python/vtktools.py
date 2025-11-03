@@ -700,7 +700,7 @@ def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance=1.0e-6):
 
     for j in range(locations1.shape[1]):
         # compute the smallest possible precision given the range of this coordinate
-        epsilon = numpy.finfo(numpy.float).eps * numpy.abs(locations1[:, j]).max()
+        epsilon = numpy.finfo(numpy.float64).eps * numpy.abs(locations1[:, j]).max()
         if tolerance < epsilon:
             # the specified tolerance is smaller than possible machine precision
             # (or something else went wrong)

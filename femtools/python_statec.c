@@ -269,7 +269,7 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   int tlen=150+*statelen;
   char t[tlen];
 
-  snprintf(t, tlen, "matrix = CsrMatrix((val,col_ind - 1,row_ptr - 1), shape=(numRows,numCols)); states['%s'].csr_matrices['%s'] = matrix",statefixed,namefixed);
+  snprintf(t, tlen, "matrix = csr_matrix((val,col_ind - 1,row_ptr - 1), shape=(numRows,numCols)); states['%s'].csr_matrices['%s'] = matrix",statefixed,namefixed);
   PyRun_SimpleString(t);
 
   // Clean up

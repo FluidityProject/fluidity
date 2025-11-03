@@ -58,10 +58,6 @@ subroutine fladapt(input_basename_, input_basename_len, &
     subroutine check_options()
     end subroutine check_options
 
-#ifdef HAVE_PYTHON
-    subroutine python_init()
-    end subroutine python_init
-#endif
   end interface
 
   character(kind=c_char, len=1) :: input_basename_(*)
@@ -88,10 +84,6 @@ subroutine fladapt(input_basename_, input_basename_len, &
   end do
 
   ewrite(1, *) "In fladapt"
-
-#ifdef HAVE_PYTHON
-  call python_init()
-#endif
 
   ewrite(2, *) "Input base name: " // trim(input_basename)
   ewrite(2, *) "Output base name: " // trim(output_basename)
