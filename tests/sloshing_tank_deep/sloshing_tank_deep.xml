@@ -20,7 +20,7 @@ import numpy as np
 
 f = h5py.File('sloshing_tank_deep.detectors.h5part', 'r')
 l1 = len(f)
-fs = np.fromiter((f[f'/Step#{i}/water%FreeSurface'][0] for i in range(l1)), np.float)
+fs = np.fromiter((f[f'/Step#{i}/water%FreeSurface'][0] for i in range(l1)), np.float64)
 for i in range(l1-1, -1, -1):
   if fs[i] &gt; fs[i-1]:
     break

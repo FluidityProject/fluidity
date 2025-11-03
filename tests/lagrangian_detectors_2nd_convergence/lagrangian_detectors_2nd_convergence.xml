@@ -18,9 +18,9 @@ import h5py
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
 f = open('Xvals.npy', "r")
-X_in= np.fromfile(f,dtype=np.float)
+X_in= np.fromfile(f,dtype=np.float64)
 f = open('Yvals.npy', "r")
-Y_in= np.fromfile(f,dtype=np.float)
+Y_in= np.fromfile(f,dtype=np.float64)
 for i in range(0,100):
     X[i]=X_in[i+10]
     Y[i]=Y_in[i+10]
@@ -56,9 +56,9 @@ import h5py
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
 f = open('Xvals.npy', "r")
-X_in= np.fromfile(f,dtype=np.float)
+X_in= np.fromfile(f,dtype=np.float64)
 f = open('Yvals.npy', "r")
-Y_in= np.fromfile(f,dtype=np.float)
+Y_in= np.fromfile(f,dtype=np.float64)
 for i in range(0,100):
     X[i]=X_in[i+10]
     Y[i]=Y_in[i+10]
@@ -94,9 +94,9 @@ import h5py
 X=np.zeros(100,float)
 Y=np.zeros(100,float)
 f = open('Xvals.npy', "r")
-X_in= np.fromfile(f,dtype=np.float)
+X_in= np.fromfile(f,dtype=np.float64)
 f = open('Yvals.npy', "r")
-Y_in= np.fromfile(f,dtype=np.float)
+Y_in= np.fromfile(f,dtype=np.float64)
 for i in range(0,100):
     X[i]=X_in[i+10]
     Y[i]=Y_in[i+10]

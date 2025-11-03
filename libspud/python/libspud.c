@@ -5,15 +5,6 @@
 
 #define MAXLENGTH   2048
 
-#if PY_MAJOR_VERSION >= 3
-#define PyInt_Type PyLong_Type
-#define PyInt_Check PyLong_Check
-#define PyString_Type PyUnicode_Type
-#define PyString_AsString PyUnicode_AsUTF8
-#define PyString_Check PyUnicode_Check
-#define PyString_GET_SIZE PyUnicode_GET_SIZE
-#endif
-
 static PyObject *SpudError;
 static PyObject *SpudTypeError;
 static PyObject *SpudKeyError;
@@ -229,15 +220,15 @@ libspud_get_option_type(PyObject *self, PyObject *args)
         return (PyObject*) &PyFloat_Type;
     }
     else if (type == SPUD_INT){
-        Py_INCREF(&PyInt_Type);
-        return (PyObject*) &PyInt_Type;
+        Py_INCREF(&PyLong_Type);
+        return (PyObject*) &PyLong_Type;
     }
     else if (type == SPUD_NONE){
         Py_RETURN_NONE;
     }
     else if (type == SPUD_STRING){
-        Py_INCREF(&PyString_Type);
-        return (PyObject*) &PyString_Type;
+        Py_INCREF(&PyUnicode_Type);
+        return (PyObject*) &PyUnicode_Type;
     }
 
     PyErr_SetString(SpudError,"Error: Get option type function failed");
@@ -562,7 +553,7 @@ set_option_aux_list_doubles(PyObject *pylist, const char *key, int key_len, int 
 static PyObject*
 set_option_aux_string(PyObject *pystring, const char *key, int key_len, int type, int rank, int *shape)
 {   // this function is for setting option when the second argument is of type string
-    char *val = PyString_AsString(pystring);
+    const char *val = PyUnicode_AsUTF8(pystring);
     int outcomeSetOption = spud_set_option(key, key_len, val, type, rank, shape);
     return error_checking(outcomeSetOption, "set option aux string");
 }
@@ -703,17 +694,17 @@ libspud_set_option(PyObject *self, PyObject *args)
         error_checking(outcomeAddOption, "set option");
     } 
     
-    if (PyInt_Check(secondArg)){ //just an int
+    if (PyLong_Check(secondArg)){ //just an int
         type = SPUD_INT;
         rank = 0;
         shape[0] = -1;
         shape[1] = -1;
             
     }       
-    else if (PyString_Check(secondArg)){// a string
+    else if (PyUnicode_Check(secondArg)){// a Unicode string
         type = SPUD_STRING;
         rank = 1;
-        shape[0] = PyString_GET_SIZE(secondArg);
+        shape[0] = PyUnicode_GET_LENGTH(secondArg);
         shape[1] = -1;
     }
     else if (PyFloat_Check(secondArg)){// a double
@@ -724,7 +715,7 @@ libspud_set_option(PyObject *self, PyObject *args)
     }
     else if (PyList_Check(secondArg)){
         PyObject* listElement = PyList_GetItem(secondArg, 0);
-        if (PyInt_Check(listElement)){ //list of ints
+        if (PyLong_Check(listElement)){ //list of ints
             type = SPUD_INT;
             rank = 1;
             shape[0] = 1;
@@ -740,7 +731,7 @@ libspud_set_option(PyObject *self, PyObject *args)
             int pylistSize = PyList_GET_SIZE(secondArg);
             int pysublistSize = PyList_GET_SIZE(listElement);
             PyObject* sublistElement = PyList_GetItem(listElement, 0);
-            if (PyInt_Check(sublistElement)){ //list of lists of ints
+            if (PyLong_Check(sublistElement)){ //list of lists of ints
                 type = SPUD_INT;
             }
             else if (PyFloat_Check(sublistElement)){//list of lists of doubles
@@ -756,7 +747,7 @@ libspud_set_option(PyObject *self, PyObject *args)
         set_option_aux_scalar(secondArg, key, key_len, type, rank, shape);
     }
     else if (rank == 1){ // list or string
-        if (PyString_Check(secondArg)){ // pystring
+        if (PyUnicode_Check(secondArg)){ // pystring
             set_option_aux_string(secondArg, key, key_len, type, rank, shape);
         }
         else if (type == SPUD_INT) { // list of ints

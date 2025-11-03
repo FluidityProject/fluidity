@@ -178,22 +178,11 @@ class TensorField(Field):
 # This is an example of wrapping up a class in a try block to prevent scipy from being
 # imported
 try:
-    import scipy
-    import scipy.sparse
-
-    class CsrMatrix(scipy.sparse.csr_matrix):
-        "A csr matrix"
-
-        def __init__(self, *args, **kwargs):
-            try:
-                scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
-                self.format = "csr"
-            except TypeError:  # old version of scipy
-                pass
+    from scipy.sparse import csr_matrix
 
 except ImportError:
 
-    class CsrMatrix:
+    class csr_matrix:
         def __init__(self, *args, **kwargs):
             raise ImportError("No such module scipy.sparse")
 
