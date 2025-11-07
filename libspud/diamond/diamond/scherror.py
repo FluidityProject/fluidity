@@ -195,7 +195,7 @@ class DiamondSchemaError:
     return self.listview.get_property("visible")
 
   def get_elem_name(self, line):
-    xml = re.compile("<([/?!]?\w+)", re.VERBOSE)
+    xml = re.compile(r"<([/?!]?\w+)", re.VERBOSE)
     matches = xml.findall(line)
     return matches[0]
 
