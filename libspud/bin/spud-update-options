@@ -4,7 +4,6 @@ import glob
 import os
 import sys
 import argparse
-import string
 
 import diamond.debug as debug
 import diamond.schema as schema
@@ -57,7 +56,7 @@ for f in args.file:
     dirname = os.path.normpath(dirname)
   
     for root, dirnames, files in os.walk(dirname, topdown=True):
-      depth = string.count(root, os.path.sep)
+      depth = root.count(os.path.sep)
       for filename in glob.glob1(os.path.join(root, os.path.dirname(f)), os.path.split(f)[-1]):
         filenames.append(os.path.join(os.path.join(root, os.path.dirname(f)), filename))
         exts.add(filename.split('.')[-1])

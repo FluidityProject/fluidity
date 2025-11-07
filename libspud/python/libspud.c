@@ -351,7 +351,7 @@ spud_get_option_aux_scalar_or_string(const char *key, int key_len, int type, int
         int i;
         for (i = 0; i < size+1; i++)
           val[i] = '\0';
-          
+
         outcomeGetOption = spud_get_option(key, key_len, val);
         if (error_checking(outcomeGetOption, "get option aux scalar or string") == NULL){
             return NULL;
@@ -469,7 +469,7 @@ libspud_get_option(PyObject *self, PyObject *args)
     if (error_checking(outcomeGetOptionShape, "get option") == NULL){
         return NULL;
     }
-    
+
     if (rank == -1){ // type error
         char errormessage [MAXLENGTH];
         snprintf(errormessage, MAXLENGTH, "Error: The specified option has a different \
@@ -497,7 +497,7 @@ libspud_get_option(PyObject *self, PyObject *args)
         }
         else if (type == SPUD_INT){  //a tensor of ints
             return spud_get_option_aux_tensor_ints(key, key_len, type, rank, shape);
-        } 
+        }
     }
 
     PyErr_SetString(SpudError,"Error: Get option failed.");
@@ -604,10 +604,10 @@ set_option_aux_tensor_doubles(PyObject *pylist, const char *key, int key_len, in
     int outcomeSetOption;
 
     int size = shape[0]*shape[1];
-    
+
     double element;
     double val [size];
-    
+
     for (i = 0; i < shape[0]; i++){
         PyObject* pysublist = PyList_GetItem(pylist, i);
         for (j = 0; j < shape[1]; j++){
@@ -678,7 +678,7 @@ libspud_set_option(PyObject *self, PyObject *args)
     int shape[2];
     PyObject* firstArg;
     PyObject* secondArg;
-    
+
     if(PyTuple_GET_SIZE(args)!=2){
         PyErr_SetString(SpudError,"Error: set_option takes exactly 2 arguments.");
         return NULL;
@@ -688,19 +688,17 @@ libspud_set_option(PyObject *self, PyObject *args)
     secondArg = PyTuple_GetItem(args, 1);
     PyArg_Parse(firstArg, "s", &key);
     key_len = strlen(key);
-    
+
     if (!spud_have_option(key, key_len)){ //option does not exist yet
         int outcomeAddOption = spud_add_option(key, key_len);
         error_checking(outcomeAddOption, "set option");
-    } 
-    
+    }
     if (PyLong_Check(secondArg)){ //just an int
         type = SPUD_INT;
         rank = 0;
         shape[0] = -1;
         shape[1] = -1;
-            
-    }       
+    }
     else if (PyUnicode_Check(secondArg)){// a Unicode string
         type = SPUD_STRING;
         rank = 1;
@@ -736,13 +734,13 @@ libspud_set_option(PyObject *self, PyObject *args)
             }
             else if (PyFloat_Check(sublistElement)){//list of lists of doubles
                 type = SPUD_DOUBLE;
-            }            
+            }
             rank = 2;
             shape[0] = pylistSize;
             shape[1] = pysublistSize;
         }
     }
-    
+
     if (rank == 0){ // scalar
         set_option_aux_scalar(secondArg, key, key_len, type, rank, shape);
     }
@@ -752,10 +750,10 @@ libspud_set_option(PyObject *self, PyObject *args)
         }
         else if (type == SPUD_INT) { // list of ints
             set_option_aux_list_ints(secondArg, key, key_len, type, rank, shape);
-        }    
+        }
         else if (type == SPUD_DOUBLE){ // list of doubles
             set_option_aux_list_doubles(secondArg, key, key_len, type, rank, shape);
-        } 
+        }
     }
     else if (rank == 2){ // tensor
         if (type == SPUD_DOUBLE) { // tensor of doubles
@@ -898,5 +896,3 @@ initlibspud(void)
 #endif
 
 }
-
-

@@ -2,10 +2,10 @@ Source: spud
 Maintainer: The ICOM team <patrick.farrell@imperial.ac.uk>
 Uploaders: David Ham <david.ham@imperial.ac.uk>
 Section: science
-Priority: extra
-Build-Depends: gfortran (>=4.2), g++ (>=4.2), python3-setuptools (>= 0.6b3-1), python3-all-dev (>= 2.3.5-11), debhelper (>= 5.0.38), dh-python, texlive
+Priority: optional
+Build-Depends: gfortran (>=4.2), g++ (>=4.2), python3-setuptools (>= 39), python3-all-dev, debhelper (>= 5.0.38), dh-python, texlive
 Standards-Version: 3.8.0
-XS-Python-Version: >= 2.5
+X-Python3-Version: >= 3.6
 
 Package: spud-diamond
 Architecture: all
@@ -16,7 +16,7 @@ Conflicts: python-diamond, diamond
 Replaces: python-diamond
 Provides: ${python:Provides}
 X-Python-Version: ${python:Versions}
-Description: A schema-driven interface for writing XML documents
+Description: Schema-driven interface for writing XML documents
  Diamond is a dynamic schema-driven graphical user interface for writing
  XML documents. The interface is automatically generated from a schema
  written in RELAX NG describing an XML language. The interface is optimised
@@ -29,7 +29,7 @@ Depends: ${shlibs:Depends}, spudtools, libtinyxml-dev, ${misc:Depends}
 Recommends: spud-diamond
 Section: libdevel
 Suggests:
-Description: An automatic options system for scientific models.
+Description: Automatic options system for scientific models.
  Spud is an automatic options system which reads an xml options file 
  into a dictionary for immediate access from within the model. The xml 
  file is generated using a spud-compatible RELAX NG schema and a
@@ -43,7 +43,7 @@ Conflicts: libspud-dev (<<1.0.6)
 Replaces: libspud-dev (<<1.0.6)
 Section: science
 Suggests:
-Description: An automatic options system for scientific models.
+Description: Automatic options system for scientific models.
  Spud is an automatic options system which reads an xml options file 
  into a dictionary for immediate access from within the model. The xml 
  file is generated using a spud-compatible RELAX NG schema and a
@@ -58,7 +58,7 @@ Replaces: python-spud
 Architecture: any
 X-Python-Version: ${python:Versions}
 Depends: libspud-dev (= ${binary:Version}), ${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}
-Description: An automatic options system for scientific models (python interface).
+Description: Automatic options system for scientific models (python interface).
  Spud is an automatic options system which reads an xml options file 
  into a dictionary for immediate access from within the model. The xml 
  file is generated using a spud-compatible RELAX NG schema and a
@@ -72,6 +72,6 @@ Replaces: python-dxdiff
 Architecture: all
 X-Python-Version: ${python:Versions}
 Depends: ${python3:Depends}, ${misc:Depends}
-Description: An XML aware diff tool.
+Description: XML aware diff tool.
  DXdiff (Diamond Xml diff) is an XML aware diff tool for finding edit scripts
  between two XML files.
