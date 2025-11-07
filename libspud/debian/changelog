@@ -1,3 +1,15 @@
+spud (1.2.1) noble; urgency=medium
+
+  * noble build: fix issue with lingering .pybuild/ dir
+
+ -- Stephan Kramer <s.kramer@imperial.ac.uk>  Sat, 17 Aug 2024 15:18:51 +0100
+
+spud (1.2) UNRELEASED; urgency=medium
+
+  * Rewrite Debian/Ubuntu packaging
+
+ -- Stephan Kramer <s.kramer@imperial.ac.uk>  Tue, 25 Oct 2022 12:12:05 +0100
+
 spud (1.1.8) buster; urgency=medium
 
   * Change to python3 and remove python(2) dependecies
