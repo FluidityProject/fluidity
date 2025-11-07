@@ -22,7 +22,7 @@ RUN apt-get update && \
      apt-get clean
 
 WORKDIR /usr/local
-RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-4.14.0-Linux64.tgz | tar --strip-components=1 -zxf -
+RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
 
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 ENV OMPI_MCA_rmaps_base_oversubscribe=1
