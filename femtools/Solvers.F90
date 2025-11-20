@@ -1833,6 +1833,7 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     MatSolverType:: matsolvertype
     PetscErrorCode:: ierr
     integer :: n_local, first_local
+    integer :: i, nolevels
 
     call get_option(trim(option_path)//'/name', pctype)
 
@@ -1980,6 +1981,18 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
         call PCGAMGSetCoarseEqLim(pc, 800, ierr)
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
         call PCSetup(pc,ierr)
+
+        call PCMGGetLevels(pc, nolevels, ierr)
+        if (nolevels<1) then
+          FLAbort("Something went wrong in gamg preconditioner setup")
+        end if
+        ! set up and downsmoother to SOR (instead of new default Jacobi)
+        ! not changing coarse level (i=0)
+        do i=1, nolevels-1
+          call PCMGGetSmoother(pc, i, subksp, ierr)
+          call KSPGetPC(subksp, subpc, ierr)
+          call PCSetType(subpc, PCSOR, ierr)
+        end do
 
         call MatGetNullSpace(pmat, nullsp, ierr)
         if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
