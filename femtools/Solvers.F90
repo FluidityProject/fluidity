@@ -761,7 +761,7 @@ type(vector_field), intent(in), optional :: positions
   ! Note the explicitly-described options rcm, 1wd and natural are now not
   ! listed explicitly in the schema (but can still be used by adding the
   ! appropriate string in the solver reordering node).
-  call PetscOptionsGetString(PETSC_NULL_OPTIONS, "", "-ordering_type", ordering_type, use_reordering, ierr)
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, "-ordering_type", ordering_type, use_reordering, ierr)
   if (.not. use_reordering) then
     call get_option(trim(solver_option_path)//'/reordering[0]/name', &
       ordering_type, stat=ierr)
@@ -2036,25 +2036,30 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
     PetscErrorCode:: ierr
     integer:: i, n
 
-    call PCSetType(pc, "fieldsplit", ierr)
+    call PCSetType(pc, PCFIELDSPLIT, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR==23)
+    FLAbort("Fortran fieldsplit interface is broken in petsc 3.23")
+#endif
 
     call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
     if (n==0) then
       ! first time this pc set to type fieldplit: it's the first time we set it up,
       ! or it was previously set to a different type - in this case, PCSetType will
       ! have called PCCreate_FieldSplit which will have set n/o splits to zero
-      do i=1, size(subksps)
+      do i=1, size(petsc_numbering%gnn2unn, 2)
         index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
         call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
         call ISDestroy(index_set, ierr)
       end do
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     elseif (n/=size(subksps)) then
 
       ! if this pc is reused (and we've previously already set it up with fieldsplit)
       ! we need to check the n/o fieldsplits is the same
 
       FLAbort("PC being reused with different number of fieldsplits")
+#endif
 
     end if
 
@@ -2071,7 +2076,8 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       FLAbort("Unknown fieldsplit_type")
     end select
 
-    call pcfieldsplitgetsubksp(pc, n, subksps, ierr)
+    call PCSetup(pc, ierr)
+    call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
 
     assert(n==size(subksps))
 
