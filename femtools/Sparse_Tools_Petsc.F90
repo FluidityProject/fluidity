@@ -773,6 +773,7 @@ contains
     integer:: row, col
 
     row=matrix%row_numbering%gnn2unn(i,blocki)
+    if (row<0) return
     col=matrix%column_numbering%gnn2unn(j,blockj)
 
     call MatSetValue(matrix%M, row, col, val, ADD_VALUES, ierr)
@@ -815,6 +816,7 @@ contains
     PetscErrorCode:: ierr
 
     idxm=matrix%row_numbering%gnn2unn(i,:)
+    if (all(idxm<0)) return
     idxn=matrix%column_numbering%gnn2unn(j,:)
 
     call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
@@ -841,6 +843,7 @@ contains
 
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
+      if (all(idxm<0)) continue
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         idxn=matrix%column_numbering%gnn2unn(j,blockj)
         ! unfortunately we need a copy here to pass contiguous memory
@@ -872,6 +875,7 @@ contains
 
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
+      if (all(idxm<0)) continue
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         if (block_mask(blocki,blockj)) then
           idxn=matrix%column_numbering%gnn2unn(j,blockj)
