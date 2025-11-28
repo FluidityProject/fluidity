@@ -680,7 +680,7 @@ type(vector_field), intent(in), optional :: positions
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
-  logical:: use_reordering
+  PetscBool:: use_reordering
   real time1, time2
   integer ierr
   logical:: parallel, timing, have_cache
