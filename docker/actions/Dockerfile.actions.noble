@@ -4,7 +4,7 @@ USER root
 
 RUN apt-get -y update && \
       apt-get -y dist-upgrade && \
-      apt-get -y install sudo && \
+      apt-get -y install sudo autoconf-archive python-is-python3 pkg-config vim && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
@@ -14,9 +14,17 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 COPY . /home/fluidity
 RUN chown -R fluidity /home/fluidity
 
+RUN curl -O https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-3.24.2.tar.gz
+RUN tar -xzf petsc-3.24.2.tar.gz && mv petsc-3.24.2 /home/fluidity/external/petsc
+CHDIR /home/fluidity/external/petsc
+RUN ./configure
+RUN make PETSC_DIR=/home/fluidity/external/petsc PETSC_ARCH=arch-linux-c-debug all
+
 USER fluidity
 
 ENV VTK_INSTALL_PREFIX=/opt/vtk-9.4.0
+ENV PETSC_DIR=/home/fluidity/external/petsc PETSC_ARCH=arch-linux-c-debug
+
 RUN ./configure --enable-2d-adaptivity
 RUN make makefiles
 RUN test -z "$(git status --porcelain */Makefile.dependencies)"
