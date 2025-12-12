@@ -432,7 +432,7 @@
 
       ! Set up RHS and Solution vectors (note these are loaded later):
       b = PetscNumberingCreateVec(petsc_numbering_p)
-      call VecDuplicate(b,y,ierr) ! Duplicate vector b and form vector y
+      call FixedVecDuplicate(b,y,ierr) ! Duplicate vector b and form vector y
 
       ! Schur complement objects now fully set up. The next stage is to setup
       ! KSP and PC for the solution of Ay = b, where A = G_t*M^-1*G.

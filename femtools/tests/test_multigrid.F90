@@ -68,7 +68,7 @@ subroutine test_multigrid
         option_path="/scalar_field::Field")
   call PetscRandomCreate(MPI_COMM_FEMTOOLS, rctx, ierr)
   call PetscRandomSetFromOptions(rctx, ierr)
-  call VecDuplicate(y1, xex1, ierr)
+  call FixedVecDuplicate(y1, xex1, ierr)
   call VecSetRandom(xex1, rctx, ierr)
   call MatMult(A1, xex1, b1, ierr)
 
@@ -78,7 +78,7 @@ subroutine test_multigrid
         solver_option_path2, lstartfromzero2, &
         matrix=csr2, sfield=sfield2, &
         option_path="/scalar_field::Field")
-  call VecDuplicate(y2, xex2, ierr)
+  call FixedVecDuplicate(y2, xex2, ierr)
   call VecSetRandom(xex2, rctx, ierr)
   call MatMult(A2, xex2, b2, ierr)
 

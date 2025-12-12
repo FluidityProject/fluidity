@@ -903,7 +903,7 @@ type(vector_field), intent(in), optional :: positions
   end if
 
   b=PetscNumberingCreateVec(petsc_numbering)
-  call VecDuplicate(b, y, ierr)
+  call FixedVecDuplicate(b, y, ierr)
 
   if (timing) then
     call cpu_time(time2)
@@ -1032,7 +1032,7 @@ Mat, intent(in), optional:: rotation_matrix
   end if
 
   b=PetscNumberingCreateVec(matrix%column_numbering)
-  call VecDuplicate(b, y, ierr)
+  call FixedVecDuplicate(b, y, ierr)
 
   if (timing) then
     call cpu_time(time2)
@@ -2288,7 +2288,7 @@ subroutine petsc_monitor_setup(petsc_numbering, max_its)
 
   if (petsc_monitor_has_exact) then
 
-    call VecDuplicate(petsc_monitor_x, petsc_monitor_exact, ierr)
+    call FixedVecDuplicate(petsc_monitor_x, petsc_monitor_exact, ierr)
 
     if (ncomponents==1) then
       call field2petsc(petsc_monitor_exact_sfield, petsc_numbering, petsc_monitor_exact)
@@ -2450,7 +2450,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     ! then (re)compute the (true) residual
     call KSPGetRhs(ksp, rhs, ierr)
     call KSPGetOperators(ksp, Amat, Pmat, ierr)
-    call VecDuplicate(petsc_monitor_x, r, ierr)
+    call FixedVecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
     call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
@@ -2621,7 +2621,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    assert(i==nnulls)
 
    if (present(rotation_matrix) .and. nnulls>0) then
-     call VecDuplicate(null_space_array(1), aux_vec, ierr)
+     call FixedVecDuplicate(null_space_array(1), aux_vec, ierr)
      do i=1, nnulls
        ! rotate the null vector and store it in aux_vec
        call MatMultTranspose(rotation_matrix, null_space_array(i), aux_vec, ierr)
