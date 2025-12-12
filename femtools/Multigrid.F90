@@ -746,7 +746,7 @@ integer, optional, dimension(:), intent(out):: cluster
   call VecCopy(diag, sqrt_diag, ierr)
   call VecSqrtAbs(sqrt_diag, ierr)
   !
-  call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
+  call FixedVecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
   call VecReciprocal(inv_sqrt_diag, ierr)
   call MatDiagonalScale(A, inv_sqrt_diag, inv_sqrt_diag, ierr)
@@ -802,7 +802,7 @@ integer, optional, dimension(:), intent(out):: cluster
   ! now restore the original matrix
   ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
   ! supplying PETSC_NULL(_OBJECT) for one the vectors
-  call VecDuplicate(diag, one, ierr)
+  call FixedVecDuplicate(diag, one, ierr)
   call VecSet(one, 1.0_PetscReal_kind, ierr)
   call MatDiagonalScale(A, diag, one, ierr)
 

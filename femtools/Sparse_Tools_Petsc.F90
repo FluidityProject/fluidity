@@ -1199,10 +1199,10 @@ contains
       ! I suspect supplying bvec twice to MatZeroRowsColumns wouldn't give the
       ! right answer as the entry associated with a boundary node might be modified
       ! before being used as boundary value
-      call VecDuplicate(bvec, xvec, ierr)
+      call FixedVecDuplicate(bvec, xvec, ierr)
       call VecCopy(bvec, xvec, ierr)
       if (fix_scaling) then
-        call VecDuplicate(bvec, diag, ierr)
+        call FixedVecDuplicate(bvec, diag, ierr)
       end if
 
     else

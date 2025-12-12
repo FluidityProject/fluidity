@@ -118,6 +118,7 @@ module Petsc_Tools
   logical, public, save :: petsc_test_error_handler_called = .false.
   public petsc_test_error_handler
   public IsNullMatNullSpace
+  public FixedVecDuplicate
 
 contains
 
@@ -1538,6 +1539,19 @@ function IsNullMatNullSpace(nullsp)
     IsNullMatNullSpace = nullsp%v<= 0
 
 end function IsNullMatNullSpace
+
+subroutine FixedVecDuplicate(v, newv, ierr)
+  ! It appears that for VecSeq, petsc does not copy the options
+  ! of the duplicated vector. Ensure it does.
+  Vec, intent(in) :: v
+  Vec, intent(out) :: newv
+  PetscErrorCode :: ierr
+
+    call VecDuplicate(v, newv, ierr)
+    call VecSetOption(newv, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
+    call VecSetOption(newv, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+
+end subroutine FixedVecDuplicate
 
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools

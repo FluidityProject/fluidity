@@ -71,7 +71,7 @@ implicit none
   call MatLoad(matrix, viewer, ierr)
   call VecLoad(rhs, viewer, ierr)
   if (zero_init_guess) then
-    call VecDuplicate(rhs, x, ierr)
+    call FixedVecDuplicate(rhs, x, ierr)
   else
     call VecCreate(MPI_COMM_FEMTOOLS, x, ierr)
     if (IsParallel()) then
