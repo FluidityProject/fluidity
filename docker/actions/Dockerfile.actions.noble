@@ -4,7 +4,7 @@ USER root
 
 RUN apt-get -y update && \
       apt-get -y dist-upgrade && \
-      apt-get -y install sudo  && \
+      apt-get -y install sudo  flex bison && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
@@ -16,7 +16,7 @@ RUN curl -O https://web.cels.anl.gov/projects/petsc/download/release-snapshots/p
 RUN tar -xzf petsc-3.24.2.tar.gz && mv petsc-3.24.2 /opt/petsc
 
 WORKDIR /opt/petsc
-RUN ./configure --with-debugging=1 --with-fortran-bindings=1 --with-shared-libraries=1 --with-strict-petscerrorcode --with-bison --with-fftw --with-hdf5 --with-hwloc --with-metis --with-mumps --with-netcdf --with-pnetcdf --download-ptscotch --with-scalapack-lib=-lscalapack-openmpi --with-suitesparse --download-superlu_dist --with-zlib --download-hypre -download-hdf5
+RUN ./configure --with-debugging=1 --with-fortran-bindings=1 --with-shared-libraries=1 --with-strict-petscerrorcode --with-bison --with-fftw --with-hdf5 --with-hwloc --with-metis --with-mumps --with-netcdf --download-pnetcdf --download-ptscotch --with-scalapack-lib=-lscalapack-openmpi --with-suitesparse --download-superlu_dist --with-zlib --download-hypre -download-hdf5
 RUN make PETSC_DIR=/opt/petsc PETSC_ARCH=arch-linux-c-debug all
 
 COPY . /home/fluidity
