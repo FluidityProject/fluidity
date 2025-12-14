@@ -1031,6 +1031,7 @@ contains
                if (A%diagonal .and. bh/=bv) cycle
                ! row number in PETSc land:
                rows(1)=row_numbering%gnn2unn(i, bv)
+               if (rows(1)<0) continue
                vals => row_val_ptr(A, bv, bh, i)
 #ifdef DOUBLEP
                call MatSetValues(M, 1, rows, len, colidx(1:len), vals, &
