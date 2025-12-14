@@ -793,6 +793,7 @@ contains
     PetscErrorCode:: ierr
 
     idxm=matrix%row_numbering%gnn2unn(i,blocki)
+    if (all(idxm<0)) return
     idxn=matrix%column_numbering%gnn2unn(j,blockj)
 
     call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
