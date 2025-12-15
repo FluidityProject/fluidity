@@ -98,7 +98,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-4</real_value>
           </relative_error>
@@ -165,7 +165,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-4</real_value>
           </relative_error>
