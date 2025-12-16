@@ -29,6 +29,7 @@ WORKDIR /home/fluidity
 ENV VTK_INSTALL_PREFIX=/opt/vtk-9.4.0
 ENV PETSC_DIR=/opt/petsc
 ENV PETSC_ARCH=arch-linux-c-debug
+ENV PATH="$PETSC_DIR/$PETSC_ARCH/bin:$PATH"
 
 RUN ./configure --enable-2d-adaptivity
 RUN make makefiles
