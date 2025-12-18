@@ -4,42 +4,34 @@ USER root
 
 RUN apt-get -y update && \
       apt-get -y dist-upgrade && \
-      apt-get -y install sudo  flex bison && \
       rm -rf /var/cache/apt/archives && \
       rm -rf /var/lib/apt/lists
 
 RUN adduser fluidity sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-WORKDIR /tmp
-RUN curl -O https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-3.24.2.tar.gz
-RUN tar -xzf petsc-3.24.2.tar.gz && mv petsc-3.24.2 /opt/petsc
-
-WORKDIR /opt/petsc
-RUN ./configure --with-debugging=1 --with-fortran-bindings=1 --with-shared-libraries=1 --with-strict-petscerrorcode --with-bison --with-fftw --with-hdf5 --with-hwloc --with-metis --with-mumps --download-netcdf --download-pnetcdf --download-ptscotch --with-scalapack-lib=-lscalapack-openmpi --with-suitesparse --download-superlu_dist --with-zlib --download-hypre -download-hdf5
-RUN make PETSC_DIR=/opt/petsc PETSC_ARCH=arch-linux-c-debug all
-
 COPY . /home/fluidity
 RUN chown -R fluidity /home/fluidity
-
 
 USER fluidity
 WORKDIR /home/fluidity
 
-ENV VTK_INSTALL_PREFIX=/opt/vtk-9.4.0
-ENV PETSC_DIR=/opt/petsc
-ENV PETSC_ARCH=arch-linux-c-debug
-ENV PATH="$PETSC_DIR/$PETSC_ARCH/bin:$PATH"
-
 RUN ./configure --enable-2d-adaptivity
+# NOTE: running "make makefiles" is only needed for
+# developers that have changed any of the module use statements
+# For all other users, this step is NOT needed.
+# "make makefiles" regenerates the */Makefile.dependencies
+# which should already be committed to the repo. We do this here
+# only to check whether the regenerated files have changed from
+# the committed version, in which case the "test -z" and thus the
+# build fails. If that happens, developers should run "make makefiles" 
+# locally and commit the changes.
 RUN make makefiles
 RUN test -z "$(git status --porcelain */Makefile.dependencies)"
+
 RUN make
 RUN make fltools
 RUN make manual
-
-# ensure our vtk 9.4 build is used in python vtk/vtktools
-ENV PYTHONPATH="/opt/vtk-9.4.0/lib/python3.12/site-packages"
 
 # Python module 'assess' is required for some longtests
 RUN python3 -m pip install --break-system-packages assess

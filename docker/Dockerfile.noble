@@ -19,14 +19,18 @@ RUN apt-get update && \
      apt-get update && \
      echo "Europe/London" > /etc/timezone && \
      apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip python3-junit.xml && \
+     apt-get -y install sudo flex bison && \
      apt-get clean
 
+# Use old version of gmsh in CI to avoid mesh-sensitive tests failing
 WORKDIR /usr/local
 RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
 
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 ENV OMPI_MCA_rmaps_base_oversubscribe=1
 
+# Build vtk 9.4 instead of noble's vtk 9.2 as we need the fix for https://gitlab.kitware.com/vtk/vtk/-/issues/19258
+# (failing reading of vtk files with newer versions of expat)
 WORKDIR /root
 RUN curl -fsL https://vtk.org/files/release/9.4/VTK-9.4.0.tar.gz | tar -xzf - && \
     cd VTK-9.4.0 && \
@@ -37,6 +41,22 @@ RUN curl -fsL https://vtk.org/files/release/9.4/VTK-9.4.0.tar.gz | tar -xzf - &&
     cmake --install . && \
     cd ../.. && \
     rm -rf VTK-9.4.0
+
+# Build petsc 3.24 because noble's petsc version has an intermediate gamg with known issues
+WORKDIR /tmp
+RUN curl -O https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-3.24.2.tar.gz
+RUN tar -xzf petsc-3.24.2.tar.gz && mv petsc-3.24.2 /opt/petsc && rm petsc-3.24.2.tar.gz
+
+WORKDIR /opt/petsc
+RUN ./configure --with-debugging=1 --with-fortran-bindings=1 --with-shared-libraries=1 --with-strict-petscerrorcode --with-bison --with-fftw --with-hdf5 --with-hwloc --with-metis --with-mumps --download-netcdf --download-pnetcdf --download-ptscotch --with-scalapack-lib=-lscalapack-openmpi --with-suitesparse --download-superlu_dist --with-zlib --download-hypre -download-hdf5
+RUN make PETSC_DIR=/opt/petsc PETSC_ARCH=arch-linux-c-debug all
+
+# Environment for building fluidity with this vtk and petsc
+ENV VTK_INSTALL_PREFIX=/opt/vtk-9.4.0
+ENV PETSC_DIR=/opt/petsc
+ENV PETSC_ARCH=arch-linux-c-debug
+ENV PATH="$PETSC_DIR/$PETSC_ARCH/bin:$PATH"
+ENV PYTHONPATH="/opt/vtk-9.4.0/lib/python3.12/site-packages"
 
 # Add a Fluidity user who will be the default user for this container
 # Make sure the user has a userid matching the host system
