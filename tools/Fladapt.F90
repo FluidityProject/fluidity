@@ -57,7 +57,6 @@ subroutine fladapt(input_basename_, input_basename_len, &
   interface
     subroutine check_options()
     end subroutine check_options
-
   end interface
 
   character(kind=c_char, len=1) :: input_basename_(*)
