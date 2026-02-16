@@ -64,7 +64,13 @@ adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_s
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
-VERSION = $(shell ../bin/version-info | tr -d [:punct:])
+ifeq ($(BUILD_TOOL), cmake)
+    VERSION_INFO = ../build/bin/version-info
+else
+    VERSION_INFO = ../bin/version-info
+endif
+
+VERSION = $(shell $(VERSION_INFO) | tr -d [:punct:])
 
 fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \
@@ -72,7 +78,7 @@ fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix _tex.pdf, $(XFIG_IMAGES))  \
 	$(addsuffix .pdf, $(IMAGES))  \
 	$(addsuffix .eps, $(EPS_IMAGES))  \
-	bibliography.bib ../bin/version-info
+	bibliography.bib $(VERSION_INFO)
 	echo $(VERSION) >version.tex
 	pdflatex -shell-escape $<
 	makeindex -s index.ist $(basename $<)
@@ -97,12 +103,14 @@ ifndef NOBIBTEX
 	$(MAKE) NOBIBTEX=true --assume-new $< $@;fi
 endif
 
-../bin/version-info: version-info
+ifneq ($(BUILD_TOOL), cmake)
+    ../bin/version-info: version-info
 
-version-info:
-	@$(MAKE) -C ../tools install-version-info
+    version-info:
+		@$(MAKE) -C ../tools install-version-info
 
-.PHONY: version-info
+    .PHONY: version-info
+endif
 
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
