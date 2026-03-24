@@ -23,8 +23,9 @@ RUN apt-get update && \
      apt-get clean
 
 # Use old version of gmsh in CI to avoid mesh-sensitive tests failing
-WORKDIR /usr/local
-RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+# WORKDIR /usr/local
+# RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+gmsh --version
 
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 ENV OMPI_MCA_rmaps_base_oversubscribe=1
