@@ -20,12 +20,13 @@ RUN apt-get update && \
      echo "Europe/London" > /etc/timezone && \
      apt-get -y install fluidity-dev texlive-pstricks texlive texlive-latex-extra texlive-science python3-pip python3-junit.xml && \
      apt-get -y install sudo flex bison && \
+     apt-get -y install gmsh && \
      apt-get clean
 
 # Use old version of gmsh in CI to avoid mesh-sensitive tests failing
 # WORKDIR /usr/local
 # RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
-gmsh --version
+RUN gmsh --version
 
 ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
 ENV OMPI_MCA_rmaps_base_oversubscribe=1
