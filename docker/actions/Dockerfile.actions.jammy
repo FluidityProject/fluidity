@@ -1,4 +1,4 @@
-FROM fluidity/baseimages:jammy
+FROM fluidity/baseimages:jammy-gmsh4
 
 USER root
 
