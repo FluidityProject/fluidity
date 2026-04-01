@@ -1859,7 +1859,6 @@ AC_CONFIG_FILES([Makefile
           main/Makefile
           tools/Makefile
           tools/version-info
-          python/setup.py
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile

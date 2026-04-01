@@ -85,9 +85,6 @@ tests/tools.mk
 tools/lib
 tools/version-info
 
-## Python
-python/setup.py
-
 ## Fortran files
 diagnostics/Diagnostic_Fields_New.F90
 preprocessor/check_options.F90

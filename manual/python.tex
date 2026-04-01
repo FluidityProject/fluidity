@@ -33,9 +33,10 @@ specially installed. Ubuntu and Debian users can do so with the
 \lstinline[language=Bash]+python-numpy+ package.
 
 \fluidity\ also requires access to its own Python modules which are stored in
-the python directory in the \fluidity\ source tree. To ensure that these are
-visible to \fluidity\ at runtime, users should add this directory to the
-\lstinline[language=Bash]+PYTHONPATH+ environment variable. For example:\
+the python directory in the \fluidity\ source tree. These will be installed
+to the default Python installation along with Fluidity, but users can add this
+directory to the \lstinline[language=Bash]+PYTHONPATH+ environment variable.
+For example:\
 \begin{lstlisting}[language=Bash]
 export PYTHONPATH=<my_fluidity>/python/:$PYTHONPATH
 \end{lstlisting}%$
