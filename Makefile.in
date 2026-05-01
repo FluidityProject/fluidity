@@ -340,7 +340,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin lib
 
-clean: clean-light clean-test python_clean clean-debian
+clean: clean-light clean-test clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
