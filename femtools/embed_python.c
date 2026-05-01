@@ -43,6 +43,17 @@ USA
 #ifdef HAVE_NUMPY
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
+
+static int ensure_numpy_api(void) {
+  if (PyArray_API != NULL) {
+    return 0;
+  }
+#if NPY_ABI_VERSION < 0x02000000
+  return _import_array();
+#else
+  return PyArray_ImportNumPyAPI();
+#endif
+}
 #endif
 
 void deallocate_c_array(void *ptr) {
@@ -448,7 +459,11 @@ void set_tensor_field_from_python(char *function, int function_len, int dim,
   *stat = 1;
   return;
 #else
-  import_array();
+  if (ensure_numpy_api() < 0) {
+    PyErr_Print();
+    *stat = 1;
+    return;
+  }
 
   set_field_from_python(function, function_len, dim, nodes, NULL, x, y, z, t, NULL, stat,
 			result_dim, (void**)&result, set_tensor_result_double, NULL);
@@ -637,7 +652,11 @@ void set_field_from_python_fields(char *function, int function_len, int dim, int
 #else
   PyObject *pLocals, *pFunc, *pNames, *pT, *pdT, *pPos, *pArgs, *pKwArgs, *pResult;
 
-  import_array();
+  if (ensure_numpy_api() < 0) {
+    PyErr_Print();
+    *stat = 1;
+    return;
+  }
 
   // load the user's function as a Python object -- borrows locals
   pLocals = PyDict_New();
