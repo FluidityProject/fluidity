@@ -1,6 +1,19 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
+#ifdef HAVE_NUMPY
+static int ensure_numpy_api(void) {
+  if (PyArray_API != NULL) {
+    return 0;
+  }
+#if NPY_ABI_VERSION < 0x02000000
+  return _import_array();
+#else
+  return PyArray_ImportNumPyAPI();
+#endif
+}
+#endif
+
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_FromLong PyLong_FromLong
 #define PyString_FromString PyUnicode_FromString
@@ -47,7 +60,11 @@ void python_init_(void){
 #endif
 #ifdef HAVE_NUMPY
   // Enable use of NumPy arrays in C
-  import_array();
+  if (ensure_numpy_api() < 0) {
+    PyErr_Print();
+    fprintf(stderr, "Error: Initializing the NumPy C API failed.\n");
+    return;
+  }
 
   // Import the NumPy module in our Python interpreter
   if(PyRun_SimpleString("import numpy") == -1)
