@@ -34,12 +34,14 @@ def display_results(tests_results, error_list, skip_list):
     )
 
 
-def unittest_harness_no_output(tests):
+def unittest_harness_no_output(tests, quiet=False):
     tests_results = {"Pass": Counter(), "Warn": Counter(), "Fail": Counter()}
     error_list, skip_list = [], []
+    dot_count = 0
 
     for test in tests:
-        print(f"\t-> New test: {test.name}")
+        if not quiet:
+            print(f"\t-> New test: {test.name}")
 
         if (tests_dir / test.name).is_file() is False:
             print(f"WARNING: {test.name} not found")
@@ -64,25 +66,54 @@ def unittest_harness_no_output(tests):
             error_list.append(test.name)
             continue
 
+        non_pass_output = []
+        has_failure = False
         for test_output in test_proc.stdout.splitlines():
             try:
                 tests_results[test_output[:4]][test.name] += 1
             except KeyError:
-                print(f"\t\t\t{test_output.lstrip()}")
+                if not quiet:
+                    print(f"\t\t\t{test_output.lstrip()}")
                 continue
 
-            print(f"\t\t{test_output}")
+            if test_output[:4] in ("Warn", "Fail"):
+                has_failure = True
+                non_pass_output.append(test_output)
+
+            if not quiet:
+                print(f"\t\t{test_output}")
+
+        if quiet and has_failure:
+            if dot_count:
+                print()
+                dot_count = 0
+            print(f"\t-> Failed test: {test.name}")
+            for output_line in non_pass_output:
+                print(f"\t\t{output_line}")
+            if test_proc.stderr:
+                print(f"\t\tStderr output: {test_proc.stderr}")
+        elif quiet:
+            print(".", end="", flush=True)
+            dot_count += 1
+            if dot_count == 80:
+                print()
+                dot_count = 0
+
+    if quiet and dot_count:
+        print()
 
     display_results(tests_results, error_list, skip_list)
 
 
-def unittest_harness(tests, xml_outfile):
+def unittest_harness(tests, xml_outfile, quiet=False):
     xml_parser = TestSuite("unittest_harness")
     tests_results = {"Pass": Counter(), "Warn": Counter(), "Fail": Counter()}
     error_list, skip_list = [], []
+    dot_count = 0
 
     for test in tests:
-        print(f"\t-> New test: {test.name}")
+        if not quiet:
+            print(f"\t-> New test: {test.name}")
 
         if (tests_dir / test.name).is_file() is False:
             print(f"WARNING: {test.name} not found")
@@ -125,15 +156,23 @@ def unittest_harness(tests, xml_outfile):
             continue
 
         other_out = ""
+        non_pass_output = []
+        has_failure = False
         for test_output in test_proc.stdout.splitlines():
             try:
                 tests_results[test_output[:4]][test.name] += 1
             except KeyError:
-                print(f"\t\t\t{test_output.lstrip()}")
+                if not quiet:
+                    print(f"\t\t\t{test_output.lstrip()}")
                 other_out += test_output.lstrip() + "\n"
                 continue
 
-            print(f"\t\t{test_output}")
+            if test_output[:4] in ("Warn", "Fail"):
+                has_failure = True
+                non_pass_output.append(test_output)
+
+            if not quiet:
+                print(f"\t\t{test_output}")
 
             try:
                 # Look for the test output message enclosed between brackets
@@ -171,6 +210,25 @@ def unittest_harness(tests, xml_outfile):
                 other_out = ""
 
             xml_parser.test_cases.append(xml_entry)
+
+        if quiet and has_failure:
+            if dot_count:
+                print()
+                dot_count = 0
+            print(f"\t-> Failed test: {test.name}")
+            for output_line in non_pass_output:
+                print(f"\t\t{output_line}")
+            if test_proc.stderr:
+                print(f"\t\tStderr output: {test_proc.stderr}")
+        elif quiet:
+            print(".", end="", flush=True)
+            dot_count += 1
+            if dot_count == 80:
+                print()
+                dot_count = 0
+
+    if quiet and dot_count:
+        print()
 
     display_results(tests_results, error_list, skip_list)
 
@@ -223,6 +281,12 @@ parser.add_argument(
     help="remove the directory provided through --dir",
 )
 parser.add_argument("--efence", action="store_true", help="links against libefence")
+parser.add_argument(
+    "-q",
+    "--quiet",
+    action="store_true",
+    help="only print diagnostics for failing tests",
+)
 args = parser.parse_args()
 
 fluidity_root = Path(sys.argv[0]).resolve().parent.parent
@@ -261,6 +325,6 @@ else:
             assert (
                 float(get_distribution("junit_xml").version) >= 1.9
             ), "Please update junit_xml"
-        unittest_harness(tests, args.xml_output)
+        unittest_harness(tests, args.xml_output, args.quiet)
     else:
-        unittest_harness_no_output(tests)
+        unittest_harness_no_output(tests, args.quiet)
