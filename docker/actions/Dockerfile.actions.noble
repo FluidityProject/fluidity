@@ -1,4 +1,4 @@
-FROM fluidity/baseimages:noble
+FROM fluidity/baseimages:noble-gmsh4
 
 USER root
 

@@ -42,8 +42,8 @@ print ("Total wall time", Walltime)
     </variable>
   </variables>
   <pass_tests>
-    <test name="Max RMS close to 3.1e-3" language="python">
-assert abs(max_rms-3.1e-3) &lt; 1.5e-4
+    <test name="Max RMS close to 3.0e-3" language="python">
+assert abs(max_rms - 3.0e-3) &lt; 1.5e-4
     </test>
     <test name="Max entrainment less than 0.5" language="python">
 assert max_ent &lt; 0.5
