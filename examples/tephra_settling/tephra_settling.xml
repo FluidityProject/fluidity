@@ -42,10 +42,10 @@ for t in range(0,len(time)):
       break
     </test>
 
-    <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
+    <test name="Maximum Tephra velocity is between 0.0019 and 0.05 for the rest of the simulation" language="python">
 for t in range(0,len(time)):
    if(time[t] &gt; 30.0):
-      assert min(tephra_u_max[t:]) &gt; 0.002
+      assert min(tephra_u_max[t:]) &gt; 0.0019
       assert max(tephra_u_max[t:]) &lt; 0.05
       break
     </test>

@@ -290,6 +290,9 @@ def ReadBinaryMshV2(fileHandle, dataSize):
 
 
 def ReadBinaryMshV4(fileHandle, dataSize):
+    raise Warning("Fluidity's gmshtools does not correctly read physical surface ids "
+                  "for meshes in .msh format version 4. If these are required save your .msh-file"
+                  "in .msh format version 2 (e.g. using -format msh2 on the command line).")
     if dataSize == 4:
         sizeFormat = "i"
     elif dataSize == 8:
@@ -410,6 +413,10 @@ def ReadBinaryMshV4(fileHandle, dataSize):
             if swap:
                 sArr.byteswap()
 
+            # NOTE: these are not the physical and elementary tags
+            # that are expected in msh2 format. Physical tags
+            # can only be found by also reading in the separate
+            # "Entities" section
             ids = [entityTag, sArr[0]]
             nodes = FromGmshNodeOrder(utils.OffsetList(sArr[1:], -1), type)
             element = elements.Element(nodes, ids)
@@ -519,6 +526,9 @@ def ReadAsciiMshV2(fileHandle):
 
 
 def ReadAsciiMshV4(fileHandle):
+    raise Warning("Fluidity's gmshtools does not correctly read physical surface ids "
+                  "for meshes in .msh format version 4. If these are required save your .msh-file"
+                  "in .msh format version 2 (e.g. using -format msh2 on the command line).")
     line = ReadNonCommentLine(fileHandle)
     assert line == "$EndMeshFormat"
 
@@ -594,6 +604,10 @@ def ReadAsciiMshV4(fileHandle):
             lineSplit = line.split()
             assert len(lineSplit) == 1 + type.GetNodeCount()
 
+            # NOTE: these are not the physical and elementary tags
+            # that are expected in msh2 format. Physical tags
+            # can only be found by also reading in the separate
+            # "Entities" section
             ids = [entityTag, int(lineSplit[0])]
             nodes = FromGmshNodeOrder([int(node) - 1 for node in lineSplit[1:]], type)
             element = elements.Element(nodes, ids)
