@@ -131,12 +131,14 @@ fi
 
 if test "$found_blas" = "no"
     then
-    AC_LANG_PUSH([Fortran 77])
+  AC_LANG_PUSH([C])
     AC_MSG_NOTICE([checking the position of the stars to help find a versions of BLAS])
     ACX_BLAS([],[AC_MSG_ERROR("Cannot identify BLAS. Check that it is installed.")])
+  AC_LANG_POP([C])
 fi
-AC_LANG_PUSH([Fortran 77])
+AC_LANG_PUSH([C])
 ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
+AC_LANG_POP([C])
 
 FLIBS=`echo $FLIBS | sed 's/)//g'`
 
@@ -154,74 +156,43 @@ AC_LANG_PUSH([C++])
 AC_ARG_ENABLE(vtk,[AC_HELP_STRING([--enable-vtk],
             [Enable VTK support to build and run test cases (default: no).])])
 if test "x$enable_vtk" != "xno" ; then
-    AC_MSG_NOTICE([Checking for VTK automagic.])
-    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
-    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
-    OLD_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
-    OLD_LIBS="$LIBS"
-    LIBS="$LIBS $VTK_LIBS"
-    AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM([[
-#include <vtkVersion.h>
-#include <vtkUnstructuredGrid.h>
-                        ]],
-		[[
-                        vtkVersion::GetVTKMajorVersion();
-                        vtkUnstructuredGrid *ug=vtkUnstructuredGrid::New();
-                        ]])
-            ],
-	[
-            AC_MSG_NOTICE([VTK automagic works.])
-	    CPPFLAGS="$CPPFLAGS -DHAVE_VTK"
-            VTK=yes
-            search_for_vtk=no
-            ],
-	[
-            AC_MSG_NOTICE([No VTK automagic])
-	    search_for_vtk=yes
-	    CPPFLAGS="$OLD_CPPFLAGS"
-	    LIBS="$OLD_LIBS"
-	])
-
-    if test "x$search_for_vtk" == "xyes" ; then
-
         # Need to check what version of VTK is on the system.
 
         # User may set the install directory for VTK but use
         # the default sensible location if not.
         if test "x$VTK_INSTALL_PREFIX" == "x"; then
-            VTK_INSTALL_PREFIX=/usr/include
+            VTK_INSTALL_PREFIX=/usr
+        else
+            VTK_LIBS="${VTK_INSTALL_PREFIX}/lib"
         fi
 
+        vtk_version_files_to_check="vtkVersionQuick.h vtkVersionMacros.h vtkConfigure.h"
         # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
         vtk_version_file=""
-        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+        for i in $(ls -d $VTK_INSTALL_PREFIX/include/vtk*) $VTK_INCLUDE; do
+            for filename in $vtk_version_files_to_check; do
             # VTK 6 has a version macros file
-            if test -r $i/vtkVersionMacros.h; then
+              if test -r $i/$filename; then
                 # Get the version number from the macros file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                this_vtk_version=$(grep -m1 VTK_MAJOR_VERSION $i/$filename | sed 's/#define VTK_MAJOR_VERSION //')
                 # Use the latest version available
                 if [[ $this_vtk_version -gt $vtk_version ]]; then
                    vtk_version=$this_vtk_version
+                   vtk_minor_version=$( grep -m1 VTK_MINOR_VERSION $i/$filename | sed 's/#define VTK_MINOR_VERSION //' )
                    vtk_include_dir=$i
-                   vtk_version_file="vtkVersionMacros.h"
+                   vtk_version_file="$filename"
                 fi
-            # VTK 5 has a configure file that defined the macros
-            elif test -r $i/vtkConfigure.h; then
-                # Get the version number from the configure file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
-                # Use the latest version available
-                if [[ $this_vtk_version -gt $vtk_version ]]; then
-                   vtk_version=$this_vtk_version
-                   vtk_include_dir=$i
-                   vtk_version_file="vtkConfigure.h"
+                if [[ "${this_vtk_version}" ]]; then
+                  break
                 fi
-            else
-              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
+              fi
+            done
+            if [[ "${this_vtk_version}" ]]; then
+              break
             fi
+            AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
         done
 
         # Add to include path
@@ -239,7 +210,7 @@ if test "x$enable_vtk" != "xno" ; then
             AC_CHECK_LIB(dl, main)
             AC_CHECK_LIB(vtkCommon, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommon_main
                     AC_CHECK_LIB(vtkCommon, main, [],
                        [
@@ -283,7 +254,7 @@ if test "x$enable_vtk" != "xno" ; then
             fi
             AC_CHECK_LIB(vtkCommonCore, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommonCore_main
                     AC_CHECK_LIB(vtkCommonCore, main, [],
                        [
@@ -301,7 +272,6 @@ if test "x$enable_vtk" != "xno" ; then
             AC_CHECK_LIB(vtkCommonDataModel, main)
         fi
     fi
-fi
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H

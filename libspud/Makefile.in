@@ -51,7 +51,7 @@ VPATH = src/
 .cpp.lo:
 	./libtool --mode=compile --tag=CXX $(CXX) $(CXXFLAGS) -c $<
 
-default: libspud.la build-diamond
+default: libspud.la build-diamond build-pyspud
 
 libspud.la: $(OBJS)
 	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath @prefix@/lib 
@@ -60,6 +60,9 @@ libspud.la: $(OBJS)
 
 build-diamond:
 	cd diamond; python3 setup.py build; cd ..
+
+build-pyspud: libspud.la
+	cd python; python3 setup.py build; cd ..
 
 test: unittest
 
@@ -95,21 +98,13 @@ install-spudtools:
 	@INSTALL@ -m644 schema/spud_base.rng $(DESTDIR)@prefix@/share/spud
 
 install-diamond:
-	cd diamond;	python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+	cd diamond; python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 
 install-pyspud:
-ifeq ($(origin BUILDING_DEBIAN),undefined)
 	cd python; python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
-else
-	cd python; for python in $(shell py3versions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
-endif
 
 install-dxdiff:
-ifeq ($(origin BUILDING_DEBIAN),undefined)
 	cd dxdiff; python3 setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
-else
-	cd dxdiff; for python in $(shell py3versions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
-endif
 
 clean:
 	@cd doc; $(MAKE) clean

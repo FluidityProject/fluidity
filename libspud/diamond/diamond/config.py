@@ -30,7 +30,7 @@ dirs.append(os.path.join(os.path.expanduser('~'), ".diamond"))
 if "DIAMOND_CONFIG_PATH" in os.environ:
   dirs += reversed(os.environ["DIAMOND_CONFIG_PATH"].split(":"))
 
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read([os.path.join(path, "settings") for path in reversed(dirs)]) #reversed to load usr last
 
 try:

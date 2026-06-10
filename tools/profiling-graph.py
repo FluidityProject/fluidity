@@ -40,7 +40,6 @@ def draw_graph(times, output):
 
 
 if __name__ == "__main__":
-
     import optparse
 
     usage = "usage: %prog [--subroutines] [--output] profiling-logs"

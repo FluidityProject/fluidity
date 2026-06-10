@@ -59,6 +59,9 @@ junittest: test-binaries
 %.o:	%.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
+# ensure unittest_tools gets built first as it is used as a module in test_fspud
+test_fspud.o: unittest_tools.o
+
 # Creates a TESTNAME_main.o from test_main.cpp which calls the subroutine
 # TESTNAME, that should be a subroutine in TESTNAME.f90
 %_main.o: unittest_tools.o

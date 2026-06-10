@@ -17,17 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Build Bionic", "Build Focal", "Build Jammy" ]
+        name: [ "Build Noble", "Build Noble OMP" ]
         include:
 
-          - name: "Build Bionic"
-            release: bionic
+          - name: "Build Noble"
+            release: noble
 
-          - name: "Build Focal"
-            release: focal
-
-          - name: "Build Jammy"
-            release: jammy
+          - name: "Build Noble OMP"
+            release: noble-omp
 
     steps:
 
@@ -59,41 +56,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ "Short Bionic", "Unit Focal", "Short Focal", "Medium Focal", "Unit Jammy", "Short Jammy", "Medium Jammy" ]
+        name: [ "Unit Noble", "Short Noble", "Medium Noble" ]
         include:
 
-          - name: "Short Bionic"
-            release: bionic
-            command: "make THREADS=2 test"
-            output: "test_results.xml"
-
-          - name: "Unit Focal"
-            release: focal
+          - name: "Unit Noble"
+            release: noble
             command: "make unittest"
             output: "test_results_unittests.xml"
 
-          - name: "Short Focal"
-            release: focal
+          - name: "Short Noble"
+            release: noble
             command: "make THREADS=2 test"
             output: "test_results.xml"
 
-          - name: "Medium Focal"
-            release: focal
-            command: "make THREADS=2 mediumtest"
-            output: "test_results_medium.xml"
-
-          - name: "Unit Jammy"
-            release: jammy
-            command: "make unittest"
-            output: "test_results_unittests.xml"
-
-          - name: "Short Jammy"
-            release: jammy
-            command: "make THREADS=2 test"
-            output: "test_results.xml"
-
-          - name: "Medium Jammy"
-            release: jammy
+          - name: "Medium Noble"
+            release: noble
             command: "make THREADS=2 mediumtest"
             output: "test_results_medium.xml"
 
@@ -105,10 +82,10 @@ jobs:
          docker pull fluidity/actions:${{ matrix.release }}-${{ github.sha }}
          docker run -v $PWD:/host fluidity/actions:${{ matrix.release }}-${{ github.sha }} /bin/bash -c "${{ matrix.command }} && cp -v tests/${{ matrix.output }} /host/${{ matrix.release }}-${{ matrix.output}}"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: ${{ matrix.release }}-${{ matrix.output }}
-          name: tests_xml_outputs
+          name: $${{ matrix.release }}_$${{ matrix.output }}
 
       - name: ${{ matrix.name }} JUnit
         uses: mikepenz/action-junit-report@v3
@@ -235,13 +212,13 @@ jobs:
       - name: ${{ matrix.name }} Longtesting
         run: |
          chmod 777 .
-         docker pull fluidity/actions:jammy-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:jammy-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:noble-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:noble-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: test_results_${{ matrix.name }}.xml
-          name: tests_xml_outputs
+          name: longtests_xml_outputs_$${{ matrix.name }}
 
       - name: ${{ matrix.name }} JUnit
         uses: mikepenz/action-junit-report@v3

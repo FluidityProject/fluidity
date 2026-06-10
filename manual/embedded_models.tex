@@ -578,7 +578,7 @@ D_B(\xi) = a(\xi) n(\xi),
 \end{equation}
 respectively. Here, $\nu(\xi)$, $a(\xi)$ and $b(\xi|\xi_1)$ are the breakage kernels that define the number of particles formed after breakage, the breakage frequency, and the daughter distribution function, respectively.
 These three kernels are determined from physical models.
-The breakage frequency (also known as breakage rate) is the fraction of particles breaking per unit time and has the units \SI{}{\per\second}. It is usually modelled probabilistically.
+The breakage frequency (also known as breakage rate) is the fraction of particles breaking per unit time and has the units \unitfrac{1}{s}. It is usually modelled probabilistically.
 Binary breakage is considered in most applications, i.e. $\nu(\xi)=2$.
 The daughter distribution function $b(\xi|\xi_1)$ defines the probability of formation of particles of size $\xi$ due to the breakage of particles from class $\xi_1$. This probability density function satisfies the normalisation condition $\int_0^{\xi_1} b(\xi|\xi_1) \d \xi = 1$. \label{pagelabel:ddf_properies} For binary breakage, the relation $b((\tilde{\xi}_1-\tilde{\xi})|\tilde{\xi}_1)$ = $b(\tilde{\xi}|\tilde{\xi}_1)$ holds. Additionally, the conservation of mass imposes the following condition on the daughter distribution function: $\tilde{\xi}_1=\nu(\tilde{\xi}_1) \int_0^{\tilde{\xi}_1} \tilde{\xi} b(\tilde{\xi}|\tilde{\xi}_1) \d \tilde{\xi}$. $\tilde{\xi}$ in the above equations refers to the particle volume corresponding to the particle size $\xi$. It must be noted that the breakage functions are local, i.e. the fragments share the same spatial location as the parent particle.
 
@@ -593,7 +593,7 @@ and
 \begin{equation} \label{eq:D_C_pbe}
 D_C(\xi) =\int_0^{\infty} \beta (\xi, \xi_1) n(\xi) n(\xi_1) \d \xi_1,
 \end{equation}
-respectively, where $\beta(\xi',\xi_1)$ is the coalescence frequency for particles of sizes $\xi'$ and $\xi_1$, and it has the units \SI{}{\metre\cubed\per\second}.
+respectively, where $\beta(\xi',\xi_1)$ is the coalescence frequency for particles of sizes $\xi'$ and $\xi_1$, and it has the units $\unitfrac{m^3}{s}$.
 In general, the coalescence frequency may also depend on the spatial coordinates of the two aggregating particles and time, but for simplicity it is assumed to be a function of particle size only in this implementation.
 As for breakage, coalescence frequency is also determined from physical models.
 The parameter $\tilde{\delta}$ represents the number of times identical pairs have been considered in the interval of integration and is equal to two for binary coalescence, which is the most common scenario for dilute systems \citep{ramkrishna2000population}.

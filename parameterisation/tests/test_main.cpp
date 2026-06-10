@@ -65,7 +65,7 @@ int main(int argc, char **argv)
   }
 #endif
 #ifdef HAVE_PETSC
-  PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
+  PetscInitialize(&argc, &argv, NULL, PETSC_NULLPTR);
   PetscInitializeFortran();
 #endif
 

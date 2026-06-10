@@ -707,7 +707,11 @@ integer, optional, dimension(:), intent(out):: cluster
   PetscInt:: diagminloc
   PetscReal:: diagmin
   Vec:: sqrt_diag, inv_sqrt_diag, diag, one
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
+#else
+    MatInfo :: matrixinfo
+#endif
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
   integer:: jc, ccnt, base, end_of_range
@@ -716,7 +720,11 @@ integer, optional, dimension(:), intent(out):: cluster
   call MatGetLocalSize(A, nrows, ncols, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
   call MatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
+#else
+  nentries=int(matrixinfo%nz_used)
+#endif
   call MatGetOwnerShipRange(A, base, end_of_range, ierr)
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
@@ -738,7 +746,7 @@ integer, optional, dimension(:), intent(out):: cluster
   call VecCopy(diag, sqrt_diag, ierr)
   call VecSqrtAbs(sqrt_diag, ierr)
   !
-  call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
+  call FixedVecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
   call VecReciprocal(inv_sqrt_diag, ierr)
   call MatDiagonalScale(A, inv_sqrt_diag, inv_sqrt_diag, ierr)
@@ -794,7 +802,7 @@ integer, optional, dimension(:), intent(out):: cluster
   ! now restore the original matrix
   ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
   ! supplying PETSC_NULL(_OBJECT) for one the vectors
-  call VecDuplicate(diag, one, ierr)
+  call FixedVecDuplicate(diag, one, ierr)
   call VecSet(one, 1.0_PetscReal_kind, ierr)
   call MatDiagonalScale(A, diag, one, ierr)
 
@@ -858,7 +866,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     coarse_base=coarse_base-1
   else
     call MatCreateAIJ(MPI_COMM_SELF, nrows, ncols, nrows, ncols, &
-      0, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
+      0, dnnz, 0, PETSC_NULL_INTEGER_ARRAY, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
@@ -905,13 +913,20 @@ integer, intent(in):: base
 PetscReal, intent(in):: epsilon
 
   PetscErrorCode:: ierr
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
   PetscReal, dimension(:), allocatable:: vals(:)
   integer, dimension(:), allocatable:: cols(:)
+#else
+  PetscReal, dimension(:), pointer:: vals(:)
+  integer, dimension(:), pointer:: cols(:)
+#endif
   PetscReal aij, eps_sqrt
   integer i, j, k, p, ncols
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
   ! workspace for MatGetRow
   allocate( vals(1:size(N)), cols(1:size(n)) )
+#endif
 
   eps_sqrt=sqrt(epsilon)
 

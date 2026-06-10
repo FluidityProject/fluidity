@@ -22,12 +22,12 @@ if vtk.VTK_MAJOR_VERSION&gt;5:
 else:
   flt.SetInput(ugrid)
 
-flt.SetTriangleQualityMeasure(vtk.VTK_QUALITY_RADIUS_RATIO)
+flt.SetTriangleQualityMeasureToRadiusRatio()
 flt.Update()
 vgrid = flt.GetOutput()
 vtk_checks['radius_ratio']= vgrid.GetCellData().GetArray("Quality").GetTuple1(0)-vgrid.GetCellData().GetArray("RadiusRatio").GetTuple1(0)
 
-flt.SetTriangleQualityMeasure(vtk.VTK_QUALITY_MIN_ANGLE)
+flt.SetTriangleQualityMeasureToMinAngle()
 flt.Update()
 vgrid = flt.GetOutput()
 vtk_checks['min_angle']= vgrid.GetCellData().GetArray("Quality").GetTuple1(0)-vgrid.GetCellData().GetArray("MinAngle").GetTuple1(0)

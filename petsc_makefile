@@ -12,3 +12,10 @@
 # in ${PETSC_DIR}/lib/petsc/conf/
 include ${PETSC_DIR}/lib/petsc/conf/variables
 include ${PETSC_DIR}/lib/petsc/conf/rules
+
+# define some backwards-compatible targets
+getlinklibs:
+	@echo $(PETSC_WITH_EXTERNAL_LIB)
+
+getincludedirs:
+	@echo $(PETSC_CC_INCLUDES)

@@ -1517,8 +1517,8 @@ if test "$with_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     AC_MSG_NOTICE([Checking for VTK automagic.])
-    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
-    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE 2>/dev/null || true`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK 2>/dev/null || true`
 
     OLD_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
@@ -1555,37 +1555,38 @@ if test "$enable_vtk" != "no" ; then
         # User may set the install directory for VTK but use
         # the default sensible location if not.
         if test "x$VTK_INSTALL_PREFIX" == "x"; then
-            VTK_INSTALL_PREFIX=/usr/include
+            VTK_INSTALL_PREFIX=/usr
+        else
+            VTK_LIBS="${VTK_INSTALL_PREFIX}/lib"
         fi
 
+        vtk_version_files_to_check="vtkVersionQuick.h vtkVersionMacros.h vtkConfigure.h"
         # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
         vtk_version_file=""
-        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+        for i in $(ls -d $VTK_INSTALL_PREFIX/include/vtk*) $VTK_INCLUDE; do
+            for filename in $vtk_version_files_to_check; do
             # VTK 6 has a version macros file
-            if test -r $i/vtkVersionMacros.h; then
+              if test -r $i/$filename; then
                 # Get the version number from the macros file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                this_vtk_version=$(grep -m1 VTK_MAJOR_VERSION $i/$filename | sed 's/#define VTK_MAJOR_VERSION //')
                 # Use the latest version available
                 if [[ $this_vtk_version -gt $vtk_version ]]; then
                    vtk_version=$this_vtk_version
+                   vtk_minor_version=$( grep -m1 VTK_MINOR_VERSION $i/$filename | sed 's/#define VTK_MINOR_VERSION //' )
                    vtk_include_dir=$i
-                   vtk_version_file="vtkVersionMacros.h"
+                   vtk_version_file="$filename"
                 fi
-            # VTK 5 has a configure file that defined the macros
-            elif test -r $i/vtkConfigure.h; then
-                # Get the version number from the configure file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
-                # Use the latest version available
-                if [[ $this_vtk_version -gt $vtk_version ]]; then
-                   vtk_version=$this_vtk_version
-                   vtk_include_dir=$i
-                   vtk_version_file="vtkConfigure.h"
+                if [[ "${this_vtk_version}" ]]; then
+                  break
                 fi
-            else
-              AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
+              fi
+            done
+            if [[ "${this_vtk_version}" ]]; then
+              break
             fi
+            AC_MSG_WARN([Found VTK folder $i but could not find file to get version.])
         done
 
         # Add to include path
@@ -1603,7 +1604,7 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(dl, main)
             AC_CHECK_LIB(vtkCommon, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommon_main
                     AC_CHECK_LIB(vtkCommon, main, [],
                        [
@@ -1647,7 +1648,7 @@ if test "$enable_vtk" != "no" ; then
             fi
             AC_CHECK_LIB(vtkCommonCore, main, [],
                 [if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommonCore_main
                     AC_CHECK_LIB(vtkCommonCore, main, [],
                        [
@@ -1667,9 +1668,37 @@ if test "$enable_vtk" != "no" ; then
             AC_CHECK_LIB(vtkCommonExecutionModel, main)
             AC_CHECK_LIB(vtkIOLegacy, main)
             AC_CHECK_LIB(vtkFiltersGeneral, main)
+        else
+          # Any other version
+          AC_CHECK_LIB(vtkCommonCore-${vtk_version}.${vtk_minor_version},main,[],[if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_${vtk_version}_${vtk_minor_version}_main
+                    AC_CHECK_LIB(vtkCommonCore-${vtk_version}.${vtk_minor_version}, main, [],
+                       [
+                          AC_MSG_ERROR([Cannot find vtk installation.])
+                          exit -1
+                       ])
+                 else
+                    AC_MSG_ERROR([Cannot find vtk installation.])
+                    exit -1
+                 fi
+                ])
+            AC_CHECK_LIB(vtksys-${vtk_version}.${vtk_minor_version},main)
+            AC_CHECK_LIB(vtkIOXML-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkParallelMPI-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkIOParallel-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkIOParallelXML-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkIOCore-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkCommonDataModel-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkIOLegacy-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkFiltersGeneral-${vtk_version}.${vtk_minor_version}, main)
+            AC_CHECK_LIB(vtkFiltersVerdict-${vtk_version}.${vtk_minor_version}, main)
+
         fi
     fi
-fi
+  fi
+
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
@@ -1830,7 +1859,6 @@ AC_CONFIG_FILES([Makefile
           main/Makefile
           tools/Makefile
           tools/version-info
-          python/setup.py
           climatology/Makefile
           libmba2d/Makefile
       	  libmba3d/Makefile

@@ -440,8 +440,25 @@ start =
                                  ## Do not output this attribute to file
                                  element exclude_from_output {
                                     empty
-                                  }?,
-                                 generic_scalar_particle_attribute_choice
+                                 }?,
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_scalar_particle_attribute_choice
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_scalar_particle_attribute_choice
+                                 }
                               }|
                               ##Scalar particle attribute array.
                               element scalar_attribute_array {
@@ -452,8 +469,25 @@ start =
                                  ## Do not output this attribute to file
                                  element exclude_from_output {
                                     empty
-                                  }?,
-                                 generic_scalar_particle_attribute_array
+                                 }?,
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_scalar_particle_attribute_array
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_scalar_particle_attribute_array
+                                 }
                               }|
                               ##Vector particle attribute.
                               element vector_attribute {
@@ -462,7 +496,24 @@ start =
                                  element exclude_from_output {
                                     empty
                                  }?,
-                                 generic_vector_particle_attribute_choice
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_vector_particle_attribute_choice
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_vector_particle_attribute_choice
+                                 }
                               }|
                               ##Vector particle attribute array.
                               element vector_attribute_array {
@@ -474,7 +525,24 @@ start =
                                  element exclude_from_output {
                                     empty
                                  }?,
-                                 generic_vector_particle_attribute_array
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_vector_particle_attribute_array
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_vector_particle_attribute_array
+                                 }
                               }|
                               ##Tensor particle attribute.
                               element tensor_attribute {
@@ -483,7 +551,24 @@ start =
                                  element exclude_from_output {
                                     empty
                                  }?,
-                                 generic_tensor_particle_attribute_choice
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_tensor_particle_attribute_choice
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_tensor_particle_attribute_choice
+                                 }
                               }|
                               ##Tensor particle attribute array.
                               element tensor_attribute_array {
@@ -495,7 +580,24 @@ start =
                                  element exclude_from_output {
                                     empty
                                  }?,
-                                 generic_tensor_particle_attribute_array
+                                 ##  This field sets the attribute value either at the
+                                 ##beginning of the simulation or while
+                                 ##"initialise_during_simulation". It is not called upon
+                                 ##simulation restart from a checkpoint if an H5Part
+                                 ##file is provided in "initial_position".
+                                 ##  This field should only be strictly required in
+                                 ##conjunction with "initialise_during_simulation" when
+                                 ##the calculation of the initial attribute value must
+                                 ##be distinguished from that later on during the
+                                 ##simulation, as is the case for an initial-value
+                                 ##problem.
+                                 element initial_attribute_value {
+                                    generic_tensor_particle_attribute_array
+                                 }?,
+                                 ## This field sets the attribute value at each time step.
+                                 element attribute_value {
+                                    generic_tensor_particle_attribute_array
+                                 }
                               }
                            )+
                         }?
@@ -3842,14 +3944,12 @@ generic_scalar_particle_attribute_choice =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string }
       }
    )
 
@@ -3891,20 +3991,12 @@ generic_vector_particle_attribute_choice =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "binary"
-            }
-         }
       }
    )
 
@@ -3949,20 +4041,12 @@ generic_tensor_particle_attribute_choice =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "binary"
-            }
-         }
       }
    )
 
@@ -4006,14 +4090,12 @@ generic_scalar_particle_attribute_array =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string }
       }
    )
 
@@ -4059,20 +4141,12 @@ generic_vector_particle_attribute_array =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "binary"
-            }
-         }
       }
    )
 
@@ -4121,20 +4195,12 @@ generic_tensor_particle_attribute_array =
       ## if the store_old_attribute or store_old_field options are enabled.
       element python_fields {
          python_code,
-         ## Store attribute values from previous timestep on particles.
+         ##  Enable storing the current attribute value. It will be available in the
+         ##next time step.
+         ##  This field only has an effect if set under "attribute_value".
          element store_old_attribute {
             comment
          }?
-      }|
-      ## File containing the particle attributes in binary form
-      element from_checkpoint_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "binary"
-            }
-         }
       }
    )
 

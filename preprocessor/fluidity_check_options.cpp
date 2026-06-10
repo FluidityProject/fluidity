@@ -49,7 +49,7 @@ int main(int argc, char **argv)
   MPI_Init(&argc, &argv);
 #endif
 #ifdef HAVE_PETSC
-  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, PETSC_NULL);
+  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, PETSC_NULLPTR);
 #endif
   check_options();
 #ifdef HAVE_MPI

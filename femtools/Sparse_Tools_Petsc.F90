@@ -411,7 +411,7 @@ contains
       ! Create serial block matrix:
       call MatCreateBAIJ(MPI_COMM_SELF, element_size, &
          urows, ucols, urows, ucols, &
-         0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
+         0, dnnz, 0, PETSC_NULL_INTEGER_ARRAY, matrix%M, ierr)
 
     elseif (use_element_blocks) then
 
@@ -429,7 +429,7 @@ contains
 
       ! Create serial matrix:
       call MatCreateAIJ(MPI_COMM_SELF, urows, ucols, urows, ucols, &
-         0, dnnz, 0, PETSC_NULL_INTEGER, matrix%M, ierr)
+         0, dnnz, 0, PETSC_NULL_INTEGER_ARRAY, matrix%M, ierr)
       call MatSetBlockSizes(matrix%M, lgroup_size(1), lgroup_size(2), ierr)
 
     else
@@ -735,12 +735,20 @@ contains
     integer :: entries
     type(petsc_csr_matrix), intent(in) :: matrix
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     double precision, dimension(MAT_INFO_SIZE):: matrixinfo
+#else
+    MatInfo :: matrixinfo
+#endif
     PetscErrorCode:: ierr
 
     ! get the necessary info about the matrix:
     call MatGetInfo(matrix%M, MAT_LOCAL, matrixinfo, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     entries=matrixinfo(MAT_INFO_NZ_USED)
+#else
+    entries=int(matrixinfo%nz_used)
+#endif
 
   end function petsc_csr_entries
 
@@ -765,6 +773,7 @@ contains
     integer:: row, col
 
     row=matrix%row_numbering%gnn2unn(i,blocki)
+    if (row<0) return
     col=matrix%column_numbering%gnn2unn(j,blockj)
 
     call MatSetValue(matrix%M, row, col, val, ADD_VALUES, ierr)
@@ -784,9 +793,11 @@ contains
     PetscErrorCode:: ierr
 
     idxm=matrix%row_numbering%gnn2unn(i,blocki)
+    if (all(idxm<0)) return
     idxn=matrix%column_numbering%gnn2unn(j,blockj)
 
-    call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, real(val, kind=PetscScalar_kind), &
+    call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
+        real(reshape(val, (/ size(val) /)), kind=PetscScalar_kind), &
         ADD_VALUES, ierr)
 
     matrix%is_assembled=.false.
@@ -806,10 +817,11 @@ contains
     PetscErrorCode:: ierr
 
     idxm=matrix%row_numbering%gnn2unn(i,:)
+    if (all(idxm<0)) return
     idxn=matrix%column_numbering%gnn2unn(j,:)
 
     call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
-                  real(val, kind=PetscScalar_kind), ADD_VALUES, ierr)
+                  real(reshape(val, (/ size(val) /)), kind=PetscScalar_kind), ADD_VALUES, ierr)
 
     matrix%is_assembled=.false.
 
@@ -824,7 +836,7 @@ contains
     integer, dimension(:), intent(in) :: j
     real, dimension(:,:,:,:), intent(in) :: val
 
-    PetscScalar, dimension(size(i), size(j)):: value
+    PetscScalar, dimension(size(i)*size(j)):: value
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
@@ -832,10 +844,11 @@ contains
 
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
+      if (all(idxm<0)) cycle
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         idxn=matrix%column_numbering%gnn2unn(j,blockj)
         ! unfortunately we need a copy here to pass contiguous memory
-        value=val(blocki, blockj, :, :)
+        value=reshape(val(blocki, blockj, :, :), (/ size(value) /))
         call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
               value, ADD_VALUES, ierr)
       end do
@@ -855,7 +868,7 @@ contains
     real, dimension(:,:,:,:), intent(in) :: val
     logical, dimension(:,:), intent(in) :: block_mask
 
-    PetscScalar, dimension(size(i), size(j)):: value
+    PetscScalar, dimension(size(i)*size(j)):: value
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
@@ -863,11 +876,12 @@ contains
 
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
+      if (all(idxm<0)) cycle
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         if (block_mask(blocki,blockj)) then
           idxn=matrix%column_numbering%gnn2unn(j,blockj)
           ! unfortunately we need a copy here to pass contiguous memory
-          value=val(blocki, blockj, :, :)
+          value=reshape(val(blocki, blockj, :, :), (/ size(value) /))
           call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
                 value, ADD_VALUES, ierr)
         end if
@@ -1186,10 +1200,10 @@ contains
       ! I suspect supplying bvec twice to MatZeroRowsColumns wouldn't give the
       ! right answer as the entry associated with a boundary node might be modified
       ! before being used as boundary value
-      call VecDuplicate(bvec, xvec, ierr)
+      call FixedVecDuplicate(bvec, xvec, ierr)
       call VecCopy(bvec, xvec, ierr)
       if (fix_scaling) then
-        call VecDuplicate(bvec, diag, ierr)
+        call FixedVecDuplicate(bvec, diag, ierr)
       end if
 
     else

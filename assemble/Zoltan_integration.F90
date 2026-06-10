@@ -580,7 +580,6 @@ module zoltan_integration
        else
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "1"); assert(ierr == ZOLTAN_OK)
        end if
-       ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(target_procs)); assert(ierr == ZOLTAN_OK)
     end if
 
     if (.NOT. final_adapt_iteration) then
@@ -878,7 +877,9 @@ module zoltan_integration
        ierr = Zoltan_LB_Partition(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
           & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
           & p1_export_local_ids, p1_export_procs, export_to_part)
-       assert(ierr == ZOLTAN_OK)
+      if (ierr .ne. ZOLTAN_OK .and. ierr .ne. ZOLTAN_WARN) then
+         FLAbort("Zoltan_LB_Partition failed in zoltan_load_balance.")
+      end if
 
        ! calculate how many owned nodes we'd have after doing the planned load balancing
        num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export

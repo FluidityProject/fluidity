@@ -298,7 +298,7 @@ subroutine petsc_solve_matrix_free(x, matrix, rhs)
 
   call VecCreateSeq(MPI_COMM_SELF,size(rhs%val), b, ierr)
 
-  call VecDuplicate(b, y, ierr)
+  call FixedVecDuplicate(b, y, ierr)
 
   ! copy array into PETSc vecs
   call VecSetValues(b, size(rhs%val), &

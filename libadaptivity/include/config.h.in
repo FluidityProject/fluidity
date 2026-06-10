@@ -27,6 +27,9 @@
 /* Define if you have LAPACK library. */
 #undef HAVE_LAPACK
 
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
+
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -36,11 +39,45 @@
 /* Define to 1 if you have the `stdc++' library (-lstdc++). */
 #undef HAVE_LIBSTDC__
 
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+/* Define to 1 if you have the `vtkCommon' library (-lvtkCommon). */
+#undef HAVE_LIBVTKCOMMON
+
+/* Define to 1 if you have the `vtkCommonCore' library (-lvtkCommonCore). */
+#undef HAVE_LIBVTKCOMMONCORE
+
+/* Define to 1 if you have the `vtkCommonDataModel' library
+   (-lvtkCommonDataModel). */
+#undef HAVE_LIBVTKCOMMONDATAMODEL
+
+/* Define to 1 if you have the `vtkexpat' library (-lvtkexpat). */
+#undef HAVE_LIBVTKEXPAT
+
+/* Define to 1 if you have the `vtkFiltering' library (-lvtkFiltering). */
+#undef HAVE_LIBVTKFILTERING
+
+/* Define to 1 if you have the `vtkGraphics' library (-lvtkGraphics). */
+#undef HAVE_LIBVTKGRAPHICS
+
+/* Define to 1 if you have the `vtkIO' library (-lvtkIO). */
+#undef HAVE_LIBVTKIO
+
+/* Define to 1 if you have the `vtkIOCore' library (-lvtkIOCore). */
+#undef HAVE_LIBVTKIOCORE
+
+/* Define to 1 if you have the `vtkIOParallel' library (-lvtkIOParallel). */
+#undef HAVE_LIBVTKIOPARALLEL
+
+/* Define to 1 if you have the `vtkIOXML' library (-lvtkIOXML). */
+#undef HAVE_LIBVTKIOXML
+
+/* Define to 1 if you have the `vtkzlib' library (-lvtkzlib). */
+#undef HAVE_LIBVTKZLIB
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -75,11 +112,16 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
 /* The size of `long int', as computed by sizeof. */
 #undef SIZEOF_LONG_INT
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS

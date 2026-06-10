@@ -35,7 +35,7 @@
     real :: eps0
     character(len=999) filename, exact_sol_filename
     character(len=PYTHON_FUNC_LEN) :: func, buffer
-    logical :: vl_as, vl, no_vl, sor, vl_as_wsor
+    PetscBool :: vl_as, vl, no_vl, sor, vl_as_wsor
     logical :: file_exists
 
     call set_global_debug_level(3)
@@ -126,9 +126,11 @@
     use FLDebug
     use multigrid
     use spud
+    use petsc
     implicit none
+#include "petsc_legacy.h"
     type(state_type), intent(inout) :: state
-    logical, intent(in) :: vl_as, vl_as_wsor, vl, no_vl, sor
+    PetscBool, intent(in) :: vl_as, vl_as_wsor, vl, no_vl, sor
 
     type(vector_field), pointer :: positions
     type(scalar_field), pointer :: psi, exact
@@ -310,7 +312,7 @@
 #include "petsc_legacy.h"
 
     character(len=*), intent(out):: filename, exact_sol_filename
-    logical, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
+    PetscBool, intent(out) :: vl_as, vl, no_vl, sor, vl_as_wsor
     real, intent(out) :: eps0
 
     PetscBool:: flag

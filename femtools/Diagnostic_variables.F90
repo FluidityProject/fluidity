@@ -1184,10 +1184,11 @@ contains
 
     call get_environment_variable(name="HOSTNAME", value=value_buffer, status=stat)
     if (stat /= 0) then
-      ewrite(-1, *) "GET_ENVIRONMENT_VARIABLE('HOSTNAME') returned no-zero status: ", stat
+      ewrite(0, *) "GET_ENVIRONMENT_VARIABLE('HOSTNAME') returned no-zero status: ", stat
+    else
+      buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
+      write(unit, '(a)') trim(buffer)
     end if
-    buffer=constant_tag(name="HostName", type="string", value=trim(value_buffer))
-    write(unit, '(a)') trim(buffer)
 
     ! Constant values
     if(present_and_true(binary_format)) then

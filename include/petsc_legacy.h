@@ -7,18 +7,23 @@
 #include "petscversion.h"
 #include "petsc/finclude/petsc.h"
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
 #define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x%v, ierr)
-#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<9)
-#define MatSolverType MatSolverPackage
-#define PCFactorSetMatSolverType PCFactorSetMatSolverPackage
+#else
+#define PetscObjectReferenceWrapper(x, ierr) PetscObjectReference(x, ierr)
 #endif
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+! from 3.23 this is a parameter, so the following won't work (but is also not required)
 #ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
 #define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
 #endif
+#endif
 
-#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<15)
-#define PCCompositeAddPCType PCCompositeAddPC
-#define KSPMonitorResidual KSPMonitorDefault
-#define KSPMonitorTrueResidual KSPMonitorTrueResidualNorm
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<22)
+#define PETSC_NULL_INTEGER_ARRAY PETSC_NULL_INTEGER
+#endif
+
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<19)
+#define PETSC_NULLPTR PETSC_NULL
 #endif

@@ -535,7 +535,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_scalar_particle_attribute_choice"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_scalar_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_scalar_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="scalar_attribute_array">
                               <a:documentation>Scalar particle attribute array.</a:documentation>
@@ -551,7 +567,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_scalar_particle_attribute_array"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_scalar_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_scalar_particle_attribute_array"/>
+                              </element>
                             </element>
                             <element name="vector_attribute">
                               <a:documentation>Vector particle attribute.</a:documentation>
@@ -564,7 +596,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_vector_particle_attribute_choice"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_vector_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_vector_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="vector_attribute_array">
                               <a:documentation>Vector particle attribute array.</a:documentation>
@@ -580,7 +628,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_vector_particle_attribute_array"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_vector_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_vector_particle_attribute_array"/>
+                              </element>
                             </element>
                             <element name="tensor_attribute">
                               <a:documentation>Tensor particle attribute.</a:documentation>
@@ -593,7 +657,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_tensor_particle_attribute_choice"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_tensor_particle_attribute_choice"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_tensor_particle_attribute_choice"/>
+                              </element>
                             </element>
                             <element name="tensor_attribute_array">
                               <a:documentation>Tensor particle attribute array.</a:documentation>
@@ -609,7 +689,23 @@ This function will only be called after simulation start. To initialise starting
                                   <empty/>
                                 </element>
                               </optional>
-                              <ref name="generic_tensor_particle_attribute_array"/>
+                              <optional>
+                                <element name="initial_attribute_value">
+                                  <a:documentation>  This field sets the attribute value
+either at the beginning of the simulation or while "initialise_during_simulation". It is
+not called upon simulation restart from a checkpoint if an H5Part file is provided in
+"initial_position".
+  This field should only be strictly required in conjunction with
+"initialise_during_simulation" when the calculation of the initial attribute value must
+be distinguished from that later on during the simulation, as is the case for an
+initial-value problem.</a:documentation>
+                                  <ref name="generic_tensor_particle_attribute_array"/>
+                                </element>
+                              </optional>
+                              <element name="attribute_value">
+                                <a:documentation>This field sets the attribute value at each time step.</a:documentation>
+                                <ref name="generic_tensor_particle_attribute_array"/>
+                              </element>
                             </element>
                           </choice>
                         </oneOrMore>
@@ -4946,16 +5042,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
       </element>
     </choice>
   </define>
@@ -4999,22 +5091,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>binary</value>
-          </element>
-        </element>
       </element>
     </choice>
   </define>
@@ -5061,22 +5143,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>binary</value>
-          </element>
-        </element>
       </element>
     </choice>
   </define>
@@ -5122,16 +5194,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
       </element>
     </choice>
   </define>
@@ -5179,22 +5247,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>binary</value>
-          </element>
-        </element>
       </element>
     </choice>
   </define>
@@ -5245,22 +5303,12 @@ if the store_old_attribute or store_old_field options are enabled.</a:documentat
         <ref name="python_code"/>
         <optional>
           <element name="store_old_attribute">
-            <a:documentation>Store attribute values from previous timestep on particles.</a:documentation>
+            <a:documentation>  Enable storing the current attribute value. It will be
+available in the next time step.
+  This field only has an effect if set under "attribute_value".</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
-      </element>
-      <element name="from_checkpoint_file">
-        <a:documentation>File containing the particle attributes in binary form</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>binary</value>
-          </element>
-        </element>
       </element>
     </choice>
   </define>
@@ -6075,7 +6123,7 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed scalar fields here using the template:
                element scalar_field {
                    attribute rank { "0" },
@@ -6090,11 +6138,11 @@ lambda = 1.71/(bubble_radius)^2</a:documentation>
                       }
                    )
                }
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic scalar fields below this</a:documentation>
@@ -7302,11 +7350,11 @@ representation of velocity and an les model have been selected.</a:documentation
         </choice>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prognostic_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7327,11 +7375,11 @@ associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
         </element>
       </element>
       <!--
-        
+
         - - List of fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -7359,7 +7407,7 @@ for VelocitySource.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed vector fields here using the template:
                element vector_field {
                    attribute rank { "1" },
@@ -7374,11 +7422,11 @@ for VelocitySource.</a:documentation>
                       }
                    )
                }
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic vector fields below this</a:documentation>
@@ -7863,11 +7911,11 @@ algorithm option).</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
@@ -7901,7 +7949,7 @@ in a multimaterial simulation.</a:documentation>
         </choice>
       </element>
       <!--
-        
+
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
                    attribute rank { "2" },
@@ -7916,11 +7964,11 @@ in a multimaterial simulation.</a:documentation>
                       }
                    )
                }|
-        
+
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-        
+
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>

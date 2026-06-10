@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fluidity"
+version = "0.2"
+description = "Fluidity python files"
+requires-python = ">=3.8"
+authors = [
+    {name = "Patrick Farrell"},
+    {name = "Stephan Kramer"}
+]
+maintainers = [
+    {name = "Ben Fulton"},
+]
+license = {text = "See LICENSE file"}
+classifiers = [
+    "Development Status :: 5 - Production",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Homepage = "https://fluidity-project.org"
+Documentation = "https://figshare.com/articles/journal_contribution/Fluidity_Manual/1387713?file=2031637"
+Repository = "https://github.com/FluidityProject/fluidity"
+Issues = "https://github.com/FluidityProject/fluidity/issues"
+
+[tool.setuptools]
+packages = ["fluidity", "fluidity.diagnostics"]
+py-modules = ["fluidity_tools", "vtktools"]
+
+[tool.setuptools.package-dir]
+fluidity = "fluidity"

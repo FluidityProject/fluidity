@@ -12623,11 +12623,11 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: Using PETSC_DIR=$PETSC_DIR" >&5
 printf "%s\n" "$as_me: Using PETSC_DIR=$PETSC_DIR" >&6;}
 
-PETSC_LINK_LIBS=`make -s -f petsc_makefile_old getlinklibs 2> /dev/null || make -s -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
 # need to add -I$PWD/include/ to what we get from petsc, so we can use our own petsc_legacy.h wrapper
-PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile_old getincludedirs 2> /dev/null || make -s -f petsc_makefile getincludedirs`
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS -I$PWD/include/"
 
@@ -12809,6 +12809,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 printf "%s\n" "#define HAVE_PETSC 1" >>confdefs.h
 
+if test "0$PETSC_VERSION_MAJOR" -ge 3 -a "0$PETSC_VERSION_MINOR" -lt 19; then
+
+printf "%s\n" "#define PETSC_NULLPTR PETSC_NULL" >>confdefs.h
+
+fi
 
 
 
@@ -15188,8 +15193,8 @@ if test "$enable_VTK" = no ; then enable_vtk=no; fi
 if test "$enable_vtk" != "no" ; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: Checking for VTK automagic." >&5
 printf "%s\n" "$as_me: Checking for VTK automagic." >&6;}
-    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE`
-    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK`
+    VTK_FLAGS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=COMPILE 2>/dev/null || true`
+    VTK_LIBS=`cmake --find-package -DNAME=VTK -DCOMPILER_ID=gcc -DLANGUAGE=Fortran -DMODE=LINK 2>/dev/null || true`
 
     OLD_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $VTK_FLAGS"
@@ -15255,38 +15260,39 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         # User may set the install directory for VTK but use
         # the default sensible location if not.
         if test "x$VTK_INSTALL_PREFIX" == "x"; then
-            VTK_INSTALL_PREFIX=/usr/include
+            VTK_INSTALL_PREFIX=/usr
+        else
+            VTK_LIBS="${VTK_INSTALL_PREFIX}/lib"
         fi
 
+        vtk_version_files_to_check="vtkVersionQuick.h vtkVersionMacros.h vtkConfigure.h"
         # Loop through potential vtk installations and get the highest version number
         vtk_version=0
         vtk_include_dir=""
         vtk_version_file=""
-        for i in $(ls -d $VTK_INSTALL_PREFIX/vtk*) $VTK_INCLUDE; do
+        for i in $(ls -d $VTK_INSTALL_PREFIX/include/vtk*) $VTK_INCLUDE; do
+            for filename in $vtk_version_files_to_check; do
             # VTK 6 has a version macros file
-            if test -r $i/vtkVersionMacros.h; then
+              if test -r $i/$filename; then
                 # Get the version number from the macros file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkVersionMacros.h | sed 's/#define VTK_MAJOR_VERSION //')
+                this_vtk_version=$(grep -m1 VTK_MAJOR_VERSION $i/$filename | sed 's/#define VTK_MAJOR_VERSION //')
                 # Use the latest version available
                 if [ $this_vtk_version -gt $vtk_version ]; then
                    vtk_version=$this_vtk_version
+                   vtk_minor_version=$( grep -m1 VTK_MINOR_VERSION $i/$filename | sed 's/#define VTK_MINOR_VERSION //' )
                    vtk_include_dir=$i
-                   vtk_version_file="vtkVersionMacros.h"
+                   vtk_version_file="$filename"
                 fi
-            # VTK 5 has a configure file that defined the macros
-            elif test -r $i/vtkConfigure.h; then
-                # Get the version number from the configure file
-                this_vtk_version=$(grep VTK_MAJOR_VERSION $i/vtkConfigure.h | sed 's/#define VTK_MAJOR_VERSION //')
-                # Use the latest version available
-                if [ $this_vtk_version -gt $vtk_version ]; then
-                   vtk_version=$this_vtk_version
-                   vtk_include_dir=$i
-                   vtk_version_file="vtkConfigure.h"
+                if [ "${this_vtk_version}" ]; then
+                  break
                 fi
-            else
-              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
-printf "%s\n" "$as_me: WARNING: Found VTK folder $i but could not find file to get version." >&2;}
+              fi
+            done
+            if [ "${this_vtk_version}" ]; then
+              break
             fi
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Found VTK folder $i but could not find file to get version." >&5
+printf "%s\n" "$as_me: WARNING: Found VTK folder $i but could not find file to get version." >&2;}
         done
 
         # Add to include path
@@ -15408,7 +15414,7 @@ then :
 
 else $as_nop
   if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommon_main
                     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommon" >&5
 printf %s "checking for main in -lvtkCommon... " >&6; }
@@ -15807,7 +15813,7 @@ then :
 
 else $as_nop
   if test "x$VTK_LIBS" != "x" ; then
-                    LIBS="$LIBS -L$VTK_LIBS"
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
                     unset ac_cv_lib_vtkCommonCore_main
                     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore" >&5
 printf %s "checking for main in -lvtkCommonCore... " >&6; }
@@ -16271,9 +16277,729 @@ then :
 
 fi
 
+        else
+          # Any other version
+          as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkCommonCore-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkCommonCore-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkCommonCore-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore-${vtk_version}.${vtk_minor_version} $LIBS"
+
+else $as_nop
+  if test "x$VTK_LIBS" != "x" ; then
+                    LIBS="$LIBS -Wl,-rpath=$VTK_LIBS -L$VTK_LIBS"
+                    unset ac_cv_lib_vtkCommonCore_${vtk_version}_${vtk_minor_version}_main
+                    as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkCommonCore-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonCore-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkCommonCore-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonCore-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkCommonCore-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkCommonCore-${vtk_version}.${vtk_minor_version} $LIBS"
+
+else $as_nop
+
+                          as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                          exit -1
+
+fi
+
+                 else
+                    as_fn_error $? "Cannot find vtk installation." "$LINENO" 5
+                    exit -1
+                 fi
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtksys-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtksys-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtksys-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtksys-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtksys-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtksys-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkIOXML-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOXML-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkIOXML-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOXML-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkIOXML-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkIOXML-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkParallelMPI-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkParallelMPI-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkParallelMPI-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkParallelMPI-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkParallelMPI-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkParallelMPI-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkIOParallel-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallel-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkIOParallel-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallel-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkIOParallel-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkIOParallel-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkIOParallelXML-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOParallelXML-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkIOParallelXML-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOParallelXML-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkIOParallelXML-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkIOParallelXML-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkIOCore-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOCore-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkIOCore-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOCore-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkIOCore-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkIOCore-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkCommonDataModel-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonDataModel-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkCommonDataModel-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonDataModel-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkCommonDataModel-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkCommonDataModel-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkCommonExecutionModel-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkCommonExecutionModel-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkIOLegacy-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkIOLegacy-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkIOLegacy-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkIOLegacy-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkIOLegacy-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkIOLegacy-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkFiltersGeneral-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltersGeneral-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkFiltersGeneral-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkFiltersGeneral-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkFiltersGeneral-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkFiltersGeneral-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+            as_ac_Lib=`printf "%s\n" "ac_cv_lib_vtkFiltersVerdict-${vtk_version}.${vtk_minor_version}""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lvtkFiltersVerdict-${vtk_version}.${vtk_minor_version}" >&5
+printf %s "checking for main in -lvtkFiltersVerdict-${vtk_version}.${vtk_minor_version}... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lvtkFiltersVerdict-${vtk_version}.${vtk_minor_version}  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int main ();
+}
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main (void)
+{
+return conftest::main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_LIBvtkFiltersVerdict-${vtk_version}.${vtk_minor_version}" | $as_tr_cpp` 1
+_ACEOF
+
+  LIBS="-lvtkFiltersVerdict-${vtk_version}.${vtk_minor_version} $LIBS"
+
+fi
+
+
         fi
     fi
-fi
+  fi
+
 cat > include/vtk.h <<EOF
 #ifndef VTK_H
 #define VTK_H
@@ -16758,7 +17484,7 @@ printf "%s\n" "$ac_cv_path_GREP" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile tests/tools.mk"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile tests/tools.mk"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

@@ -42,7 +42,7 @@ implicit none
   ! options read from command-line (-prns_... options)
   character(len=4096) filename, flml
   character(len=FIELD_NAME_LEN):: field
-  logical zero_init_guess, scipy, random_rhs
+  PetscBool zero_init_guess, scipy, random_rhs
 
   PetscViewer viewer
   PetscRandom pr
@@ -71,7 +71,7 @@ implicit none
   call MatLoad(matrix, viewer, ierr)
   call VecLoad(rhs, viewer, ierr)
   if (zero_init_guess) then
-    call VecDuplicate(rhs, x, ierr)
+    call FixedVecDuplicate(rhs, x, ierr)
   else
     call VecCreate(MPI_COMM_FEMTOOLS, x, ierr)
     if (IsParallel()) then
@@ -108,7 +108,7 @@ contains
   !! in fluidity is used
   ! options read from command line:
   character(len=*), intent(in):: filename
-  logical, intent(in):: zero_init_guess, scipy
+  PetscBool, intent(in):: zero_init_guess, scipy
   ! PETSc matrix, rhs vector and initial guess vector read from matrixdump:
   Mat, intent(inout):: matrix
   Vec, intent(inout):: x, rhs
@@ -754,7 +754,7 @@ contains
     zero_init_guess, &
     scipy, random_rhs)
   character(len=*), intent(out):: filename, flml, field
-  logical, intent(out):: zero_init_guess, scipy, random_rhs
+  PetscBool, intent(out):: zero_init_guess, scipy, random_rhs
 
     PetscBool flag
     PetscErrorCode ierr

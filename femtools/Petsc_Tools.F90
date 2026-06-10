@@ -118,6 +118,7 @@ module Petsc_Tools
   logical, public, save :: petsc_test_error_handler_called = .false.
   public petsc_test_error_handler
   public IsNullMatNullSpace
+  public FixedVecDuplicate
 
 contains
 
@@ -1030,6 +1031,7 @@ contains
                if (A%diagonal .and. bh/=bv) cycle
                ! row number in PETSc land:
                rows(1)=row_numbering%gnn2unn(i, bv)
+               if (rows(1)<0) cycle
                vals => row_val_ptr(A, bv, bh, i)
 #ifdef DOUBLEP
                call MatSetValues(M, 1, rows, len, colidx(1:len), vals, &
@@ -1113,7 +1115,7 @@ contains
     end do
 
     call MatCreateAIJ(MPI_COMM_SELF, nprows, npcols, nprows, npcols, &
-      0, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+      0, nnz, 0, PETSC_NULL_INTEGER_ARRAY, M, ierr)
     call MatSetup(M, ierr)
 
     call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)
@@ -1325,16 +1327,27 @@ contains
 
     PetscErrorCode ierr
     type(csr_sparsity) :: sparsity
-    double precision, dimension(MAT_INFO_SIZE):: matrixinfo
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     PetscScalar, dimension(:), allocatable:: row_vals
-    integer, dimension(:), allocatable:: row_cols, unn2gnn
+    integer, dimension(:), allocatable:: row_cols
+    MatInfo, dimension(MAT_INFO_SIZE):: matrixinfo
+#else
+    PetscScalar, dimension(:), pointer:: row_vals
+    integer, dimension(:), pointer :: row_cols
+    MatInfo :: matrixinfo
+#endif
+    integer, dimension(:), allocatable:: unn2gnn
     integer private_columns
     integer i, j, k, ui, rows, columns, entries, ncols, offset, end_of_range
     logical parallel
 
     ! get the necessary info about the matrix:
     call MatGetInfo(matrix, MAT_LOCAL, matrixinfo, ierr)
-    entries=matrixinfo(MAT_INFO_NZ_USED)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+    entries = matrixinfo(MAT_INFO_NZ_USED)
+#else
+    entries = int(matrixinfo%nz_used)
+#endif
     ! note we're no longer using MAT_INFO for getting local n/o rows and cols
     ! as it's bugged in Petsc < 3.0 and obsoloted thereafter:
     call MatGetLocalSize(matrix, rows, columns, ierr)
@@ -1375,10 +1388,10 @@ contains
     end if
     call allocate(A, sparsity)
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+    allocate(row_cols(1:entries), row_vals(1:entries))
+#endif
     if (parallel) then
-      ! in the parallel case we first copy in a temp. buffer
-      ! and only insert the entries A_ij with both i *and* j local
-      allocate(row_cols(1:entries), row_vals(1:entries))
       j=1
       do i=0, rows-1
         sparsity%findrm(i+1)=j
@@ -1397,34 +1410,20 @@ contains
             j=j+1
           end if
         end do
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
       end do
       A%sparsity%findrm(i+1)=j
 
-      deallocate(row_cols, row_vals)
     else
       ! Serial case:
       j=1
       do i=0, rows-1
         sparsity%findrm(i+1)=j
-#ifdef DOUBLEP
-        call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
+        call MatGetRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
+        sparsity%colm(j:j+ncols-1) = row_cols(1:ncols)
+        A%val(j:j+ncols-1) = row_vals(1:ncols)
         j=j+ncols
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
-        call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
-#else
-        allocate(row_vals(size(A%val) - j + 1))
-        call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
-        A%val(j:) = row_vals
-        j=j+ncols
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
-        call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
-        deallocate(row_vals)
-#endif
+        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
       end do
       A%sparsity%findrm(i+1)=j
 
@@ -1432,6 +1431,9 @@ contains
       sparsity%colm=sparsity%colm-offset+1
 
     end if
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+    deallocate(row_cols, row_vals)
+#endif
     call deallocate(sparsity)
 
     if (present(column_numbering)) then
@@ -1535,9 +1537,22 @@ function IsNullMatNullSpace(nullsp)
     ! MatNullSpace(0) is what is returned by MatGetNullspace if no nullspace is present
     ! (because a wrapper on the output is missing, and there isn't a PETSC_NULL_MATNULLSPACE
     ! in the first place)
-    IsNullMatNullSpace = nullsp%v==-1 .or. nullsp%v==0
+    IsNullMatNullSpace = nullsp%v<= 0
 
 end function IsNullMatNullSpace
+
+subroutine FixedVecDuplicate(v, newv, ierr)
+  ! It appears that for VecSeq, petsc does not copy the options
+  ! of the duplicated vector. Ensure it does.
+  Vec, intent(in) :: v
+  Vec, intent(out) :: newv
+  PetscErrorCode :: ierr
+
+    call VecDuplicate(v, newv, ierr)
+    call VecSetOption(newv, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
+    call VecSetOption(newv, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+
+end subroutine FixedVecDuplicate
 
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools

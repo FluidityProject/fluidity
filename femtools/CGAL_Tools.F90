@@ -2,8 +2,8 @@
 module cgal_tools
 
   use fldebug
-  use fields
   use element_numbering
+  use fields
   implicit none
 
   interface

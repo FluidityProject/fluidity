@@ -14,8 +14,8 @@ mpiexec ../../bin/fluidity -v3 -l lagrangian-detectors-increasing-rotation-flred
 import h5py
 import numpy as np
 last_single_locations_error = np.zeros((2,3))
-X = np.fromfile('Xvals.npy', dtype=np.float)
-Y = np.fromfile('Yvals.npy', dtype=np.float)
+X = np.fromfile('Xvals.npy', dtype=np.float64)
+Y = np.fromfile('Yvals.npy', dtype=np.float64)
 vals_idx = [i+10 for i in [0, 50, 99]]
 
 for i in range(3):
@@ -28,8 +28,8 @@ for i in range(3):
 import h5py
 import numpy as np
 last_locations_error = np.zeros((2,100))
-X = np.fromfile('Xvals.npy', dtype=np.float)
-Y = np.fromfile('Yvals.npy', dtype=np.float)
+X = np.fromfile('Xvals.npy', dtype=np.float64)
+Y = np.fromfile('Yvals.npy', dtype=np.float64)
 
 f = h5py.File('lagrangian_detectors.particles.Steve.h5part', 'r')
 d = f['/Step#{}'.format(len(f)-1)]

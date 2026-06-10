@@ -1,0 +1,38 @@
+FROM fluidity/baseimages:noble-gmsh4
+
+USER root
+
+RUN apt-get -y update && \
+      apt-get -y dist-upgrade && \
+      rm -rf /var/cache/apt/archives && \
+      rm -rf /var/lib/apt/lists
+
+RUN adduser fluidity sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+COPY . /home/fluidity
+RUN chown -R fluidity /home/fluidity
+
+USER fluidity
+WORKDIR /home/fluidity
+
+RUN ./configure --enable-2d-adaptivity
+# NOTE: running "make makefiles" is only needed for
+# developers that have changed any of the module use statements
+# For all other users, this step is NOT needed.
+# "make makefiles" regenerates the */Makefile.dependencies
+# which should already be committed to the repo. We do this here
+# only to check whether the regenerated files have changed from
+# the committed version, in which case the "test -z" and thus the
+# build fails. If that happens, developers should run "make makefiles"
+# locally and commit the changes.
+RUN make makefiles
+RUN test -z "$(git status --porcelain */Makefile.dependencies)"
+
+RUN make
+RUN make fltools
+RUN make manual
+RUN sudo make install
+
+# Python module 'assess' is required for some longtests
+RUN python3 -m pip install --break-system-packages assess

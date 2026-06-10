@@ -680,7 +680,7 @@ type(vector_field), intent(in), optional :: positions
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
-  logical:: use_reordering
+  PetscBool:: use_reordering
   real time1, time2
   integer ierr
   logical:: parallel, timing, have_cache
@@ -761,7 +761,7 @@ type(vector_field), intent(in), optional :: positions
   ! Note the explicitly-described options rcm, 1wd and natural are now not
   ! listed explicitly in the schema (but can still be used by adding the
   ! appropriate string in the solver reordering node).
-  call PetscOptionsGetString(PETSC_NULL_OPTIONS, "", "-ordering_type", ordering_type, use_reordering, ierr)
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS, PETSC_NULL_CHARACTER, "-ordering_type", ordering_type, use_reordering, ierr)
   if (.not. use_reordering) then
     call get_option(trim(solver_option_path)//'/reordering[0]/name', &
       ordering_type, stat=ierr)
@@ -903,7 +903,7 @@ type(vector_field), intent(in), optional :: positions
   end if
 
   b=PetscNumberingCreateVec(petsc_numbering)
-  call VecDuplicate(b, y, ierr)
+  call FixedVecDuplicate(b, y, ierr)
 
   if (timing) then
     call cpu_time(time2)
@@ -1032,7 +1032,7 @@ Mat, intent(in), optional:: rotation_matrix
   end if
 
   b=PetscNumberingCreateVec(matrix%column_numbering)
-  call VecDuplicate(b, y, ierr)
+  call FixedVecDuplicate(b, y, ierr)
 
   if (timing) then
     call cpu_time(time2)
@@ -1366,7 +1366,7 @@ character(len=*), intent(in):: solver_option_path
 
 end subroutine petsc_solve_destroy_petsc_csr
 
-subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
+subroutine ConvergenceCheck(converged_reason, iterations, name, solver_option_path, &
   startfromzero, A, b, petsc_numbering, x0, vector_x0, checkconvergence, nomatrixdump)
   !!< Checks reason of convergence. If negative (not converged)
   !!< writes out a scary warning and dumps matrix (if first time),
@@ -1374,7 +1374,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   !!< (i.e. not converged due to other reasons than reaching max_its)
   !!< it sets sig_int to .true. causing the run to halt and dump
   !!< at the end of the time step.
-  integer, intent(in):: reason, iterations
+  KSPConvergedReason, intent(in):: converged_reason
+  integer, intent(in):: iterations
   !! name of the thing we're solving for, used in log output:
   character(len=*), intent(in):: name
   !! for new options path to solver options
@@ -1398,6 +1399,7 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   PetscErrorCode ierr
   character(len=30) reasons(10)
   real spin_up_time, current_time
+  integer reason
 
   reasons(1)  = "Undefined"
   reasons(2)  = "KSP_DIVERGED_NULL"
@@ -1410,6 +1412,11 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   reasons(9)  = "KSP_DIVERGED_NAN"
   reasons(10) = "KSP_DIVERGED_INDEFINITE_MAT"
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+  reason = converged_reason
+#else
+  reason = converged_reason%v  ! recover the (old style) numerical version (probably a bad idea)
+#endif
   if (reason<=0) then
      if(present_and_true(nomatrixdump)) matrixdumped = .true.
      if (present(checkconvergence)) then
@@ -1815,12 +1822,18 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
   logical, optional, intent(in) :: is_subpc
 
     KSP:: subksp
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
+    KSP:: subksps
+#else
+    KSP, dimension(:), pointer :: subksps
+#endif
     PC:: subpc
     MatNullSpace:: nullsp
     PCType:: pctype, hypretype
     MatSolverType:: matsolvertype
     PetscErrorCode:: ierr
     integer :: n_local, first_local
+    integer :: i, nolevels
 
     call get_option(trim(option_path)//'/name', pctype)
 
@@ -1882,11 +1895,19 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       ! need to call this before the subpc can be retrieved:
       call PCSetup(pc, ierr)
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>=23)
+      nullify(subksps)
+#endif
       if (pctype==PCBJACOBI) then
-        call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
+        call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksps, ierr)
       else
-        call PCASMGetSubKSP(pc, n_local, first_local, subksp, ierr)
+        call PCASMGetSubKSP(pc, n_local, first_local, subksps, ierr)
       end if
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>=23)
+      subksp = subksps(1)
+#else
+      subksp = subksps
+#endif
 
       call KSPGetPC(subksp, subpc, ierr)
       ! recursively call to setup the subpc
@@ -1908,7 +1929,15 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
        call PCSetType(pc, PCBJACOBI, ierr)
        ! need to call this before the subpc can be retrieved:
        call PCSetup(pc, ierr)
-       call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksp, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>=23)
+       nullify(subksps)
+#endif
+       call PCBJACOBIGetSubKSP(pc, n_local, first_local, subksps, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>=23)
+       subksp = subksps(1)
+#else
+       subksp = subksps
+#endif
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
 
@@ -1953,6 +1982,18 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
         ! PC setup seems to be required so that the Coarse Eq Lim option is used.
         call PCSetup(pc,ierr)
 
+        call PCMGGetLevels(pc, nolevels, ierr)
+        if (nolevels<1) then
+          FLAbort("Something went wrong in gamg preconditioner setup")
+        end if
+        ! set up and downsmoother to SOR (instead of new default Jacobi)
+        ! not changing coarse level (i=0)
+        do i=1, nolevels-1
+          call PCMGGetSmoother(pc, i, subksp, ierr)
+          call KSPGetPC(subksp, subpc, ierr)
+          call PCSetType(subpc, PCSOR, ierr)
+        end do
+
         call MatGetNullSpace(pmat, nullsp, ierr)
         if (ierr==0 .and. .not. IsNullMatNullSpace(nullsp)) then
           ! if the preconditioner matrix has a nullspace, this may still be present
@@ -1984,32 +2025,41 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
   type(petsc_numbering_type), intent(in):: petsc_numbering
 
     character(len=128):: fieldsplit_type
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     KSP, dimension(size(petsc_numbering%gnn2unn,2)):: subksps
+#else
+    KSP, dimension(:), pointer:: subksps => null()
+#endif
     Mat :: mat, pmat
     MatNullSpace :: null_space
     IS:: index_set
     PetscErrorCode:: ierr
     integer:: i, n
 
-    call PCSetType(pc, "fieldsplit", ierr)
+    call PCSetType(pc, PCFIELDSPLIT, ierr)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR==23)
+    FLAbort("Fortran fieldsplit interface is broken in petsc 3.23")
+#endif
 
     call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
     if (n==0) then
       ! first time this pc set to type fieldplit: it's the first time we set it up,
       ! or it was previously set to a different type - in this case, PCSetType will
       ! have called PCCreate_FieldSplit which will have set n/o splits to zero
-      do i=1, size(subksps)
+      do i=1, size(petsc_numbering%gnn2unn, 2)
         index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
         call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
         call ISDestroy(index_set, ierr)
       end do
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR<23)
     elseif (n/=size(subksps)) then
 
       ! if this pc is reused (and we've previously already set it up with fieldsplit)
       ! we need to check the n/o fieldsplits is the same
 
       FLAbort("PC being reused with different number of fieldsplits")
+#endif
 
     end if
 
@@ -2026,7 +2076,8 @@ subroutine create_ksp_from_options(ksp, mat, pmat, solver_option_path, parallel,
       FLAbort("Unknown fieldsplit_type")
     end select
 
-    call pcfieldsplitgetsubksp(pc, n, subksps, ierr)
+    call PCSetup(pc, ierr)
+    call PCFieldSplitGetSubKSP(pc, n, subksps, ierr)
 
     assert(n==size(subksps))
 
@@ -2237,7 +2288,7 @@ subroutine petsc_monitor_setup(petsc_numbering, max_its)
 
   if (petsc_monitor_has_exact) then
 
-    call VecDuplicate(petsc_monitor_x, petsc_monitor_exact, ierr)
+    call FixedVecDuplicate(petsc_monitor_x, petsc_monitor_exact, ierr)
 
     if (ncomponents==1) then
       call field2petsc(petsc_monitor_exact_sfield, petsc_numbering, petsc_monitor_exact)
@@ -2399,7 +2450,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     ! then (re)compute the (true) residual
     call KSPGetRhs(ksp, rhs, ierr)
     call KSPGetOperators(ksp, Amat, Pmat, ierr)
-    call VecDuplicate(petsc_monitor_x, r, ierr)
+    call FixedVecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
     call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
@@ -2570,7 +2621,7 @@ function create_null_space_from_options_vector(mat, null_space_option_path, &
    assert(i==nnulls)
 
    if (present(rotation_matrix) .and. nnulls>0) then
-     call VecDuplicate(null_space_array(1), aux_vec, ierr)
+     call FixedVecDuplicate(null_space_array(1), aux_vec, ierr)
      do i=1, nnulls
        ! rotate the null vector and store it in aux_vec
        call MatMultTranspose(rotation_matrix, null_space_array(i), aux_vec, ierr)

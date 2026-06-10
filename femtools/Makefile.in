@@ -119,6 +119,7 @@ F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
+
 .F90.o:
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS)  $(GENFLAGS) -c $<
@@ -131,6 +132,13 @@ F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
+
+# this module needs compiling without -ffast-math otherwise the is_nan checks don't work
+FCFLAGS_WITHOUT_FAST_MATH := $(shell echo "$(FCFLAGS)" | sed 's/-ffast-math//')
+Unittest_tools.o: Unittest_tools.F90
+	@echo "        FC $< without fast math"
+	$(FC) $(FCFLAGS_WITHOUT_FAST_MATH)  $(GENFLAGS) -c $<
+
 
 default: $(LIB)
 

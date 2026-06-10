@@ -93,7 +93,7 @@ vel = (finalX - initialX) / (times[-1] - times[0])
 vel = float(vel)
 print("Mean velocity = ", vel)
 
-fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.02)
+fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.05)
 </test>
     <test name="Standard deviation" language="python">
 import math

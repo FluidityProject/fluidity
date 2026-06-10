@@ -62,7 +62,6 @@ class xpath_descendant_or_self:
 
 
 class Path:
-
     ##
     # Create an Path instance from an XPath expression.
 

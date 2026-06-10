@@ -78,6 +78,11 @@ void mesh_quality_c(int* dim, int* n_nodes, int* n_elements, int* connectivity_l
   filter->SetInputData(ugrid);
 #endif
 
+#if VTK_MAJOR_VERSION >= 9 && VTK_MINOR_VERSION >= 2
+  #define VTK_QUALITY_AREA static_cast<int>(vtkMeshQuality::QualityMeasureTypes::AREA)
+  #define VTK_QUALITY_VOLUME static_cast<int>(vtkMeshQuality::QualityMeasureTypes::VOLUME)
+#endif
+
   filter->SetTriangleQualityMeasure(*measure);
   if (*measure == VTK_QUALITY_AREA) {
     filter->SetTetQualityMeasure(VTK_QUALITY_VOLUME);

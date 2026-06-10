@@ -66,9 +66,9 @@ def sort_nicely(my_list):
 
 ###################################################################
 
+
 # Reattachment length:
 def reattachment_length(filelist):
-
     print("Calculating reattachment point locations using change of x-velocity sign\n")
 
     results = []
@@ -140,9 +140,9 @@ def reattachment_length(filelist):
 
 #########################################################################
 
+
 # Velocity profiles:
 def meanvelo(file, x, y):
-
     print("\nRunning velocity profile script on files at times...\n")
 
     # create array of points. Correct for origin not at step.

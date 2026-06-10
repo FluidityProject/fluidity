@@ -137,7 +137,6 @@ def pnode(fnode):
     nbnodes = 0
 
     for line in fnode:
-
         if line[0] == "#":
             continue
         else:
@@ -220,7 +219,6 @@ def peles(fele):
     count = 0
     nbeles = 0
     for line in fele:
-
         if line[0] == "#":
             continue
         else:
