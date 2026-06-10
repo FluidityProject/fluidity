@@ -547,7 +547,7 @@ install: default fltools
 	cp -R schemas $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	$(SED) 's/$${datadir}/$(subst /,\/,$(datadir))/g' schemas/flml.in > $(DESTDIR)$(datadir)/diamond/schemata/flml
-	cd python ; python3 setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cd python ; python3 -m pip install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS .
 	cp -R examples $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec $(SED) -i "s/\.\.\/\.\.\/bin\///" '{}' \;
