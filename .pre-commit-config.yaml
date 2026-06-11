@@ -29,7 +29,7 @@ repos:
     -   id: isort
         args: ["--profile", "black", "--filter-files"]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.6.0
+    rev: v3.21.2
     hooks:
     -   id: pyupgrade
 -   repo: https://github.com/PyCQA/flake8
