@@ -45,10 +45,13 @@ USA
 #include "numpy/arrayobject.h"
 
 static int ensure_numpy_api(void) {
+  // check if the numpy API is loaded, and return 0 if it is
   if (PyArray_API != NULL) {
     return 0;
   }
-#if NPY_ABI_VERSION < 0x02000000
+
+  // otherwise call the relevant import function to load the API
+  #if NPY_ABI_VERSION < 0x02000000
   return _import_array();
 #else
   return PyArray_ImportNumPyAPI();
