@@ -1,404 +1,386 @@
-dnl @synopsis ACX_BLAS([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
-dnl
-dnl This macro looks for a library that implements the BLAS
-dnl linear-algebra interface (see http://www.netlib.org/blas/).
-dnl On success, it sets the BLAS_LIBS output variable to
-dnl hold the requisite library linkages.
-dnl
-dnl To link with BLAS, you should link with:
-dnl
-dnl 	$BLAS_LIBS $LIBS $FCLIBS
-dnl
-dnl in that order.  FCLIBS is the output variable of the
-dnl AC_FC_LIBRARY_LDFLAGS macro (called if necessary by ACX_BLAS),
-dnl and is sometimes necessary in order to link with FC libraries.
-dnl Users will also need to use AC_FC_DUMMY_MAIN (see the autoconf
-dnl manual), for the same reason.
-dnl
-dnl Many libraries are searched for, from ATLAS to CXML to ESSL.
-dnl The user may also use --with-blas=<lib> in order to use some
-dnl specific BLAS library <lib>.  In order to link successfully,
-dnl however, be aware that you will probably need to use the same
-dnl Fortran compiler (which can be set via the FC env. var.) as
-dnl was used to compile the BLAS library.
-dnl
-dnl ACTION-IF-FOUND is a list of shell commands to run if a BLAS
-dnl library is found, and ACTION-IF-NOT-FOUND is a list of commands
-dnl to run it if it is not found.  If ACTION-IF-FOUND is not specified,
-dnl the default action will define HAVE_BLAS.
-dnl
-dnl This macro requires autoconf 2.50 or later.
-dnl
-dnl @version $Id: aclocal.m4 7146 2008-07-22 22:40:14Z pfarrell $
-dnl @author Steven G. Johnson <stevenj@alum.mit.edu>
-dnl
-dnl Modified by Jonas Juselius <jonas@iki.fi>
-dnl
-AC_DEFUN([ACX_BLAS], [
-AC_PREREQ(2.59)
+# ===========================================================================
+#         https://www.gnu.org/software/autoconf-archive/ax_blas.html
+# ===========================================================================
+#
+# SYNOPSIS
+#
+#   AX_BLAS([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
+#
+# DESCRIPTION
+#
+#   This macro looks for a library that implements the BLAS linear-algebra
+#   interface (see http://www.netlib.org/blas/). On success, it sets the
+#   BLAS_LIBS output variable to hold the requisite library linkages.
+#
+#   To link with BLAS, you should link with:
+#
+#     $BLAS_LIBS $LIBS $FLIBS
+#
+#   in that order. FLIBS is the output variable of the
+#   AC_F77_LIBRARY_LDFLAGS macro (called if necessary by AX_BLAS), and is
+#   sometimes necessary in order to link with F77 libraries. Users will also
+#   need to use AC_F77_DUMMY_MAIN (see the autoconf manual), for the same
+#   reason.
+#
+#   Many libraries are searched for, from ATLAS to CXML to ESSL. The user
+#   may also use --with-blas=<lib> in order to use some specific BLAS
+#   library <lib>. In order to link successfully, however, be aware that you
+#   will probably need to use the same Fortran compiler (which can be set
+#   via the F77 env. var.) as was used to compile the BLAS library.
+#
+#   ACTION-IF-FOUND is a list of shell commands to run if a BLAS library is
+#   found, and ACTION-IF-NOT-FOUND is a list of commands to run it if it is
+#   not found. If ACTION-IF-FOUND is not specified, the default action will
+#   define HAVE_BLAS.
+#
+# LICENSE
+#
+#   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
+#   Copyright (c) 2019 Geoffrey M. Oxberry <goxberry@gmail.com>
+#
+#   This program is free software: you can redistribute it and/or modify it
+#   under the terms of the GNU General Public License as published by the
+#   Free Software Foundation, either version 3 of the License, or (at your
+#   option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+#   Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+#   As a special exception, the respective Autoconf Macro's copyright owner
+#   gives unlimited permission to copy, distribute and modify the configure
+#   scripts that are the output of Autoconf when processing the Macro. You
+#   need not follow the terms of the GNU General Public License when using
+#   or distributing such scripts, even though portions of the text of the
+#   Macro appear in them. The GNU General Public License (GPL) does govern
+#   all other use of the material that constitutes the Autoconf Macro.
+#
+#   This special exception to the GPL applies to versions of the Autoconf
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
 
-acx_blas_ok=no
-acx_blas_save_LIBS="$LIBS"
-acx_blas_save_LDFLAGS="$LDFLAGS"
-acx_blas_save_FFLAGS="$FFLAGS"
-acx_blas_libs=""
-acx_blas_dir=""
+#serial 21
+
+AU_ALIAS([ACX_BLAS], [AX_BLAS])
+AC_DEFUN([AX_BLAS], [
+AC_PREREQ([2.55])
+AC_REQUIRE([AC_F77_LIBRARY_LDFLAGS])
+AC_REQUIRE([AC_CANONICAL_HOST])
+ax_blas_ok=no
 
 AC_ARG_WITH(blas,
-	[AC_HELP_STRING([--with-blas=<lib>], [use BLAS library <lib>])])
-
+	[AS_HELP_STRING([--with-blas=<lib>], [use BLAS library <lib>])])
 case $with_blas in
 	yes | "") ;;
-	no) acx_blas_ok=disable ;;
-	-l* | */* | *.a | *.so | *.so.* | *.o) acx_blas_libs="$with_blas" ;;
-	*) acx_blas_libs="-l$with_blas" ;;
-esac
-
-AC_ARG_WITH(blas_dir,
-	[AC_HELP_STRING([--with-blas-dir=<dir>], [look for BLAS library in <dir>])])
-
-case $with_blas_dir in
-      yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_blas_dir"
-	      acx_blas_dir="$with_blas_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_blas_dir"
-	      acx_blas_dir="-L$with_blas_dir" ;;
-esac
-
-# Are we linking from C?
-case "$ac_ext" in
-  f*|F*) sgemm="sgemm" ;;
-  *)
-   AC_FC_FUNC([sgemm])
-   LIBS="$LIBS $FCLIBS"
-   ;;
-esac
-
-# If --with-blas is defined, then look for THIS AND ONLY THIS blas lib
-if test $acx_blas_ok = no; then
-case $with_blas in
-    ""|yes) ;;
-	*) save_LIBS="$LIBS"; LIBS="$acx_blas_libs $LIBS"
-	AC_MSG_CHECKING([for $sgemm in $acx_blas_libs])
-	AC_TRY_LINK_FUNC($sgemm, [acx_blas_ok=yes])
-	AC_MSG_RESULT($acx_blas_ok)
-	LIBS="$save_LIBS"
-	acx_blas_ok=specific
+	no) ax_blas_ok=disable ;;
+	-* | */* | *.a | *.so | *.so.* | *.dylib | *.dylib.* | *.o)
+		BLAS_LIBS="$with_blas"
 	;;
+	*) BLAS_LIBS="-l$with_blas" ;;
 esac
-fi
+
+# Get fortran linker names of BLAS functions to check for.
+AC_F77_FUNC(sgemm)
+AC_F77_FUNC(dgemm)
+
+ax_blas_save_LIBS="$LIBS"
+LIBS="$LIBS $FLIBS"
 
 # First, check BLAS_LIBS environment variable
-if test $acx_blas_ok = no; then
+if test $ax_blas_ok = no; then
 if test "x$BLAS_LIBS" != x; then
 	save_LIBS="$LIBS"; LIBS="$BLAS_LIBS $LIBS"
 	AC_MSG_CHECKING([for $sgemm in $BLAS_LIBS])
-	AC_TRY_LINK_FUNC($sgemm, [acx_blas_ok=yes; acx_blas_libs=$BLAS_LIBS])
-	AC_MSG_RESULT($acx_blas_ok)
+	AC_LINK_IFELSE([AC_LANG_CALL([], [$sgemm])], [ax_blas_ok=yes], [BLAS_LIBS=""])
+	AC_MSG_RESULT($ax_blas_ok)
 	LIBS="$save_LIBS"
 fi
 fi
 
 # BLAS linked to by default?  (happens on some supercomputers)
-if test $acx_blas_ok = no; then
-	AC_MSG_CHECKING([for builtin $sgemm])
-	AC_TRY_LINK_FUNC($sgemm, [acx_blas_ok=yes])
-	AC_MSG_RESULT($acx_blas_ok)
+if test $ax_blas_ok = no; then
+	save_LIBS="$LIBS"; LIBS="$LIBS"
+	AC_MSG_CHECKING([if $sgemm is being linked in already])
+	AC_LINK_IFELSE([AC_LANG_CALL([], [$sgemm])], [ax_blas_ok=yes])
+	AC_MSG_RESULT($ax_blas_ok)
+	LIBS="$save_LIBS"
 fi
 
-# Intel mkl BLAS. Unfortunately some of Intel's blas routines are
-# in their lapack library...
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_def, $sgemm,
-	[acx_blas_ok=yes; acx_blas_libs="-lmkl_def -lm"],
-	[],[-lm])
-fi
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(mkl_ipf, $sgemm,
-	[acx_blas_ok=yes; acx_blas_libs="-lmkl_ipf -lguide -lm"],
-	[],[-lguide -lm])
-fi
-if test $acx_blas_ok = no; then
-        AC_CHECK_LIB(mkl_em64t, $sgemm,
-        [acx_blas_ok=yes; acx_blas_libs="-lmkl_em64t -lguide -liomp5"],
-        [],[-lguide -liomp5])
-fi
-# check for older mkl
-if test $acx_blas_ok = no; then
-	AC_MSG_NOTICE([trying Intel MKL < 7:])
-	unset ac_cv_lib_mkl_def_sgemm
-	AC_CHECK_LIB(mkl_lapack, lsame, [
-	    acx_lapack_ok=yes;
-		AC_CHECK_LIB(mkl_def, $sgemm,
-			[acx_blas_ok=yes;
-			acx_blas_libs="-lmkl_def -lmkl_lapack -lm -lpthread"],
-			[],[-lm -lpthread
-		])
-	])
-	AC_MSG_NOTICE([Intel MKL < 7... $acx_blas_ok])
+# BLAS linked to by flexiblas? (Default on FC33+ and RHEL9+)
+
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(flexiblas, $sgemm, [ax_blas_ok=yes
+			                BLAS_LIBS="-lflexiblas"])
 fi
 
-# BLAS in ACML (pgi)
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(acml, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lacml"])
+# BLAS in OpenBLAS library? (http://xianyi.github.com/OpenBLAS/)
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(openblas, $sgemm, [ax_blas_ok=yes
+			                BLAS_LIBS="-lopenblas"])
 fi
 
 # BLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(f77blas, $sgemm,
-		[acx_blas_ok=yes; acx_blas_libs="-lf77blas -latlas"],
-		[], [-latlas])
-fi
-
-# ia64-hp-hpux11.22 BLAS library?
-if test $acx_blas_ok = no; then
-        AC_CHECK_LIB(veclib, $sgemm,
-		[acx_blas_ok=yes; acx_blas_libs="-lveclib8"])
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(atlas, ATL_xerbla,
+		[AC_CHECK_LIB(f77blas, $sgemm,
+		[AC_CHECK_LIB(cblas, cblas_dgemm,
+			[ax_blas_ok=yes
+			 BLAS_LIBS="-lcblas -lf77blas -latlas"],
+			[], [-lf77blas -latlas])],
+			[], [-latlas])])
 fi
 
 # BLAS in PhiPACK libraries? (requires generic BLAS lib, too)
-if test $acx_blas_ok = no; then
-    AC_MSG_NOTICE([trying PhiPACK:])
+if test $ax_blas_ok = no; then
 	AC_CHECK_LIB(blas, $sgemm,
-		[AC_CHECK_LIB(dgemm, dgemm,
-			[AC_CHECK_LIB(sgemm, $sgemm,
-			[acx_blas_ok=yes; acx_blas_libs="-lsgemm -ldgemm -lblas"],
+		[AC_CHECK_LIB(dgemm, $dgemm,
+		[AC_CHECK_LIB(sgemm, $sgemm,
+			[ax_blas_ok=yes; BLAS_LIBS="-lsgemm -ldgemm -lblas"],
 			[], [-lblas])],
-		[], [-lblas])
-	])
-    AC_MSG_NOTICE([PhiPACK... $acx_blas_ok])
+			[], [-lblas])])
+fi
+
+# BLAS in Intel MKL library?
+if test $ax_blas_ok = no; then
+	# MKL for gfortran
+	if test x"$ac_cv_fc_compiler_gnu" = xyes; then
+		# 64 bit
+		if test $host_cpu = x86_64; then
+			AC_CHECK_LIB(mkl_gf_lp64, $sgemm,
+			[ax_blas_ok=yes;BLAS_LIBS="-lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread"],,
+			[-lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread])
+		# 32 bit
+		elif test $host_cpu = i686; then
+			AC_CHECK_LIB(mkl_gf, $sgemm,
+				[ax_blas_ok=yes;BLAS_LIBS="-lmkl_gf -lmkl_sequential -lmkl_core -lpthread"],,
+				[-lmkl_gf -lmkl_sequential -lmkl_core -lpthread])
+		fi
+	# MKL for other compilers (Intel, PGI, ...?)
+	else
+		# 64-bit
+		if test $host_cpu = x86_64; then
+			AC_CHECK_LIB(mkl_intel_lp64, $sgemm,
+				[ax_blas_ok=yes;BLAS_LIBS="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread"],,
+				[-lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread])
+		# 32-bit
+		elif test $host_cpu = i686; then
+			AC_CHECK_LIB(mkl_intel, $sgemm,
+				[ax_blas_ok=yes;BLAS_LIBS="-lmkl_intel -lmkl_sequential -lmkl_core -lpthread"],,
+				[-lmkl_intel -lmkl_sequential -lmkl_core -lpthread])
+		fi
+	fi
+fi
+# Old versions of MKL
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(mkl, $sgemm, [ax_blas_ok=yes;BLAS_LIBS="-lmkl -lguide -lpthread"],,[-lguide -lpthread])
+fi
+
+# BLAS in Apple vecLib library?
+if test $ax_blas_ok = no; then
+	save_LIBS="$LIBS"; LIBS="-framework Accelerate $LIBS"
+	AC_MSG_CHECKING([for $sgemm in -framework Accelerate])
+	AC_LINK_IFELSE([AC_LANG_CALL([], [$sgemm])], [ax_blas_ok=yes;BLAS_LIBS="-framework Accelerate"])
+	AC_MSG_RESULT($ax_blas_ok)
+	LIBS="$save_LIBS"
 fi
 
 # BLAS in Alpha CXML library?
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(cxml, $sgemm, [acx_blas_ok=yes;acx_blas_libs="-lcxml"])
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(cxml, $sgemm, [ax_blas_ok=yes;BLAS_LIBS="-lcxml"])
 fi
 
 # BLAS in Alpha DXML library? (now called CXML, see above)
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(dxml, $sgemm, [acx_blas_ok=yes;acx_blas_libs="-ldxml"])
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(dxml, $sgemm, [ax_blas_ok=yes;BLAS_LIBS="-ldxml"])
 fi
 
 # BLAS in Sun Performance library?
-if test $acx_blas_ok = no; then
+if test $ax_blas_ok = no; then
 	if test "x$GCC" != xyes; then # only works with Sun CC
 		AC_CHECK_LIB(sunmath, acosp,
 			[AC_CHECK_LIB(sunperf, $sgemm,
-        			[acx_blas_libs="-xlic_lib=sunperf -lsunmath"
-                    acx_blas_ok=yes],[],[-lsunmath])
-		])
+				[BLAS_LIBS="-xlic_lib=sunperf -lsunmath"
+                                 ax_blas_ok=yes],[],[-lsunmath])])
 	fi
 fi
 
 # BLAS in SCSL library?  (SGI/Cray Scientific Library)
-if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(scs, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lscs"])
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(scs, $sgemm, [ax_blas_ok=yes; BLAS_LIBS="-lscs"])
 fi
 
 # BLAS in SGIMATH library?
-if test $acx_blas_ok = no; then
+if test $ax_blas_ok = no; then
 	AC_CHECK_LIB(complib.sgimath, $sgemm,
-		     [acx_blas_ok=yes; acx_blas_libs="-lcomplib.sgimath"])
+		     [ax_blas_ok=yes; BLAS_LIBS="-lcomplib.sgimath"])
 fi
 
 # BLAS in IBM ESSL library? (requires generic BLAS lib, too)
-if test $acx_blas_ok = no; then
-    unset ac_cv_lib_blas_sgemm
-	AC_MSG_NOTICE([trying IBM ESSL:])
+if test $ax_blas_ok = no; then
 	AC_CHECK_LIB(blas, $sgemm,
 		[AC_CHECK_LIB(essl, $sgemm,
-			[acx_blas_ok=yes; acx_blas_libs="-lessl -lblas"],
-			[], [-lblas])
-	])
-	AC_MSG_NOTICE([IBM ESSL... $acx_blas_ok])
+			[ax_blas_ok=yes; BLAS_LIBS="-lessl -lblas"],
+			[], [-lblas $FLIBS])])
 fi
 
 # Generic BLAS library?
-if test $acx_blas_ok = no; then
-    unset ac_cv_lib_blas_sgemm
-	AC_CHECK_LIB(blas, $sgemm, [acx_blas_ok=yes; acx_blas_libs="-lblas"])
+if test $ax_blas_ok = no; then
+	AC_CHECK_LIB(blas, $sgemm, [ax_blas_ok=yes; BLAS_LIBS="-lblas"])
 fi
 
-# blas on SGI/CRAY
-if test $acx_blas_ok = no; then
-    unset ac_cv_lib_blas_sgemm
-	AC_CHECK_LIB(blas, $sgemm,
-	[acx_blas_ok=yes; acx_blas_libs="-lblas -lcraylibs"],[],[-lcraylibs])
-fi
-
-# Check for vecLib framework (Darwin)
-if test $acx_blas_ok = no; then
-	save_LIBS="$LIBS"; LIBS="-framework vecLib $LIBS"
-	AC_MSG_CHECKING([for $sgemm in vecLib])
-	AC_TRY_LINK_FUNC($sgemm, [acx_blas_ok=yes; acx_blas_libs="-framework vecLib"])
-	AC_MSG_RESULT($acx_blas_ok)
-	LIBS="$save_LIBS"
-fi
-
-BLAS_LIBS="$acx_blas_libs"
 AC_SUBST(BLAS_LIBS)
 
-LIBS="$acx_blas_save_LIBS"
-LDFLAGS="$acx_blas_save_LDFLAGS $acx_blas_dir"
+LIBS="$ax_blas_save_LIBS"
 
-test x"$acx_blas_ok" = xspecific && acx_blas_ok=yes
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
-if test x"$acx_blas_ok" = xyes; then
+if test x"$ax_blas_ok" = xyes; then
         ifelse([$1],,AC_DEFINE(HAVE_BLAS,1,[Define if you have a BLAS library.]),[$1])
         :
 else
-        acx_blas_ok=no
+        ax_blas_ok=no
         $2
 fi
-])dnl ACX_BLAS
+])dnl AX_BLAS
+# ===========================================================================
+#        https://www.gnu.org/software/autoconf-archive/ax_lapack.html
+# ===========================================================================
+#
+# SYNOPSIS
+#
+#   AX_LAPACK([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
+#
+# DESCRIPTION
+#
+#   This macro looks for a library that implements the LAPACK linear-algebra
+#   interface (see http://www.netlib.org/lapack/). On success, it sets the
+#   LAPACK_LIBS output variable to hold the requisite library linkages.
+#
+#   To link with LAPACK, you should link with:
+#
+#     $LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS
+#
+#   in that order. BLAS_LIBS is the output variable of the AX_BLAS macro,
+#   called automatically. FLIBS is the output variable of the
+#   AC_F77_LIBRARY_LDFLAGS macro (called if necessary by AX_BLAS), and is
+#   sometimes necessary in order to link with F77 libraries. Users will also
+#   need to use AC_F77_DUMMY_MAIN (see the autoconf manual), for the same
+#   reason.
+#
+#   The user may also use --with-lapack=<lib> in order to use some specific
+#   LAPACK library <lib>. In order to link successfully, however, be aware
+#   that you will probably need to use the same Fortran compiler (which can
+#   be set via the F77 env. var.) as was used to compile the LAPACK and BLAS
+#   libraries.
+#
+#   ACTION-IF-FOUND is a list of shell commands to run if a LAPACK library
+#   is found, and ACTION-IF-NOT-FOUND is a list of commands to run it if it
+#   is not found. If ACTION-IF-FOUND is not specified, the default action
+#   will define HAVE_LAPACK.
+#
+# LICENSE
+#
+#   Copyright (c) 2009 Steven G. Johnson <stevenj@alum.mit.edu>
+#   Copyright (c) 2019 Geoffrey M. Oxberry <goxberry@gmail.com>
+#
+#   This program is free software: you can redistribute it and/or modify it
+#   under the terms of the GNU General Public License as published by the
+#   Free Software Foundation, either version 3 of the License, or (at your
+#   option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+#   Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+#   As a special exception, the respective Autoconf Macro's copyright owner
+#   gives unlimited permission to copy, distribute and modify the configure
+#   scripts that are the output of Autoconf when processing the Macro. You
+#   need not follow the terms of the GNU General Public License when using
+#   or distributing such scripts, even though portions of the text of the
+#   Macro appear in them. The GNU General Public License (GPL) does govern
+#   all other use of the material that constitutes the Autoconf Macro.
+#
+#   This special exception to the GPL applies to versions of the Autoconf
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
 
-dnl @synopsis ACX_LAPACK([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
-dnl
-dnl This macro looks for a library that implements the LAPACK
-dnl linear-algebra interface (see http://www.netlib.org/lapack/).
-dnl On success, it sets the LAPACK_LIBS output variable to
-dnl hold the requisite library linkages.
-dnl
-dnl To link with LAPACK, you should link with:
-dnl
-dnl 	$LAPACK_LIBS $BLAS_LIBS $LIBS
-dnl
-dnl in that order.  BLAS_LIBS is the output variable of the ACX_BLAS
-dnl macro, called automatically.  FLIBS is the output variable of the
-dnl AC_F77_LIBRARY_LDFLAGS macro (called if necessary by ACX_BLAS),
-dnl and is sometimes necessary in order to link with F77 libraries.
-dnl Users will also need to use AC_F77_DUMMY_MAIN (see the autoconf
-dnl manual), for the same reason.
-dnl
-dnl The user may also use --with-lapack=<lib> in order to use some
-dnl specific LAPACK library <lib>.  In order to link successfully,
-dnl however, be aware that you will probably need to use the same
-dnl Fortran compiler (which can be set via the F77 env. var.) as
-dnl was used to compile the LAPACK and BLAS libraries.
-dnl
-dnl ACTION-IF-FOUND is a list of shell commands to run if a LAPACK
-dnl library is found, and ACTION-IF-NOT-FOUND is a list of commands
-dnl to run it if it is not found.  If ACTION-IF-FOUND is not specified,
-dnl the default action will define HAVE_LAPACK.
-dnl
-dnl @version $Id: aclocal.m4 7146 2008-07-22 22:40:14Z pfarrell $
-dnl @author Steven G. Johnson <stevenj@alum.mit.edu>
-dnl
-AC_DEFUN([ACX_LAPACK], [
-AC_REQUIRE([ACX_BLAS])
-acx_lapack_ok=no
-acx_lapack_save_LIBS="$LIBS"
-acx_lapack_save_LDFLAGS="$LDFLAGS"
-acx_lapack_save_FFLAGS="$FFLAGS"
-acx_lapack_libs=""
-acx_lapack_dir=""
+#serial 10
+
+AU_ALIAS([ACX_LAPACK], [AX_LAPACK])
+AC_DEFUN([AX_LAPACK], [
+AC_REQUIRE([AX_BLAS])
+ax_lapack_ok=no
 
 AC_ARG_WITH(lapack,
-	[AC_HELP_STRING([--with-lapack=<lib>], [use LAPACK library <lib>])])
-
+        [AS_HELP_STRING([--with-lapack=<lib>], [use LAPACK library <lib>])])
 case $with_lapack in
-	yes | "") ;;
-	no) acx_lapack_ok=disable ;;
-	-l* | */* | *.a | *.so | *.so.* | *.o) acx_lapack_libs="$with_lapack" ;;
-	*) acx_lapack_libs="-l$with_lapack" ;;
+        yes | "") ;;
+        no) ax_lapack_ok=disable ;;
+        -* | */* | *.a | *.so | *.so.* | *.dylib | *.dylib.* | *.o)
+                 LAPACK_LIBS="$with_lapack"
+        ;;
+        *) LAPACK_LIBS="-l$with_lapack" ;;
 esac
 
-AC_ARG_WITH(lapack_dir,
-	[AC_HELP_STRING([--with-lapack-dir=<dir>], [look for LAPACK library in <dir>])])
-
-case $with_lapack_dir in
-      yes | no | "") ;;
-     -L*) LDFLAGS="$LDFLAGS $with_lapack_dir"
-	      acx_lapack_dir="$with_lapack_dir" ;;
-      *) LDFLAGS="$LDFLAGS -L$with_lapack_dir"
-	      acx_lapack_dir="-L$with_lapack_dir" ;;
-esac
+# Get fortran linker name of LAPACK function to check for.
+AC_F77_FUNC(cheev)
 
 # We cannot use LAPACK if BLAS is not found
-if test "x$acx_blas_ok" != xyes; then
-	acx_lapack_ok=noblas
-fi
-
-# add BLAS to libs
-LIBS="$BLAS_LIBS $LIBS"
-
-# Are we linking from C?
-case "$ac_ext" in
-  f*|F*) dsyev="dsyev" ;;
-  *)
-   AC_FC_FUNC([dsyev])
-   LIBS="$LIBS $FCLIBS"
-   ;;
-esac
-
-# If --with-lapack is defined, then look for THIS AND ONLY THIS lapack lib
-if test $acx_lapack_ok = no; then
-case $with_lapack in
-    ""|yes) ;;
-	*) save_LIBS="$LIBS"; LIBS="$acx_lapack_libs $LIBS"
-	AC_MSG_CHECKING([for $dsyev in $acx_lapack_libs])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes])
-	AC_MSG_RESULT($acx_lapack_ok)
-	LIBS="$save_LIBS"
-	acx_lapack_ok=yes
-	;;
-esac
+if test "x$ax_blas_ok" != xyes; then
+        ax_lapack_ok=noblas
+        LAPACK_LIBS=""
 fi
 
 # First, check LAPACK_LIBS environment variable
-if test $acx_lapack_ok = no; then
 if test "x$LAPACK_LIBS" != x; then
-	save_LIBS="$LIBS"; LIBS="$LAPACK_LIBS $LIBS"
-	AC_MSG_CHECKING([for $dsyev in $LAPACK_LIBS])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes;
-	     acx_lapack_libs=$LAPACK_LIBS])
-	AC_MSG_RESULT($acx_lapack_ok)
-	LIBS="$save_LIBS"
-fi
-fi
-
-# Intel MKL LAPACK?
-if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(mkl_lapack, $dsyev,
-	[acx_lapack_ok=yes; acx_lapack_libs="-lmkl_lapack -lguide"],
-	[],[])
-fi
-
-# Sun sunperf?
-if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(sunperf, $dsyev,
-	[acx_lapack_ok=yes; acx_lapack_libs="-lsunperf"],
-	[],[])
+        save_LIBS="$LIBS"; LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
+        AC_MSG_CHECKING([for $cheev in $LAPACK_LIBS])
+        AC_LINK_IFELSE([AC_LANG_CALL([], [$cheev])], [ax_lapack_ok=yes], [LAPACK_LIBS=""])
+        AC_MSG_RESULT($ax_lapack_ok)
+        LIBS="$save_LIBS"
+        if test $ax_lapack_ok = no; then
+                LAPACK_LIBS=""
+        fi
 fi
 
 # LAPACK linked to by default?  (is sometimes included in BLAS lib)
-if test $acx_lapack_ok = no; then
-	AC_MSG_CHECKING([for $dsyev in BLAS library])
-	AC_TRY_LINK_FUNC($dsyev, [acx_lapack_ok=yes; acx_lapack_libs=""])
-	AC_MSG_RESULT($acx_lapack_ok)
+if test $ax_lapack_ok = no; then
+        save_LIBS="$LIBS"; LIBS="$LIBS $BLAS_LIBS $FLIBS"
+        AC_CHECK_FUNC($cheev, [ax_lapack_ok=yes])
+        LIBS="$save_LIBS"
 fi
 
 # Generic LAPACK library?
-if test $acx_lapack_ok = no; then
-	AC_CHECK_LIB(lapack, $dsyev,
-		[acx_lapack_ok=yes; acx_lapack_libs="-llapack"], [], [])
-fi
-
-LAPACK_LIBS="$LAPACK_LIBS $acx_lapack_libs"
-LIBS="$acx_lapack_save_LIBS"
-LDFLAGS="$acx_lapack_save_LDFLAGS $acx_lapack_dir"
+for lapack in lapack lapack_rs6k; do
+        if test $ax_lapack_ok = no; then
+                save_LIBS="$LIBS"; LIBS="$BLAS_LIBS $LIBS"
+                AC_CHECK_LIB($lapack, $cheev,
+                    [ax_lapack_ok=yes; LAPACK_LIBS="-l$lapack"], [], [$FLIBS])
+                LIBS="$save_LIBS"
+        fi
+done
 
 AC_SUBST(LAPACK_LIBS)
 
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
-if test x"$acx_lapack_ok" = xyes; then
+if test x"$ax_lapack_ok" = xyes; then
         ifelse([$1],,AC_DEFINE(HAVE_LAPACK,1,[Define if you have LAPACK library.]),[$1])
         :
 else
-        acx_lapack_ok=no
+        ax_lapack_ok=no
         $2
 fi
-])dnl ACX_LAPACK
+])dnl AX_LAPACK
+
 dnl ----------------------------------------------------------------------------
 dnl check for the required PETSc library
 dnl ----------------------------------------------------------------------------

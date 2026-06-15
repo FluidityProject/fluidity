@@ -131,12 +131,14 @@ fi
 
 if test "$found_blas" = "no"
     then
-    AC_LANG_PUSH([Fortran 77])
+  AC_LANG_PUSH([C])
     AC_MSG_NOTICE([checking the position of the stars to help find a versions of BLAS])
     ACX_BLAS([],[AC_MSG_ERROR("Cannot identify BLAS. Check that it is installed.")])
+  AC_LANG_POP([C])
 fi
-AC_LANG_PUSH([Fortran 77])
+AC_LANG_PUSH([C])
 ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
+AC_LANG_POP([C])
 
 FLIBS=`echo $FLIBS | sed 's/)//g'`
 
