@@ -37,7 +37,3 @@ RUN make
 RUN make fltools
 RUN make manual
 RUN sudo make install
-
-
-
-
