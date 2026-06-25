@@ -16,6 +16,10 @@ RUN chown -R fluidity /home/fluidity
 USER fluidity
 WORKDIR /home/fluidity
 
+# Python module 'assess' is required for some longtests
+# Also install numpy to make sure we can work with NumPy 2.0
+RUN python3 -m pip install --break-system-packages assess numpy
+
 RUN ./configure --enable-2d-adaptivity
 # NOTE: running "make makefiles" is only needed for
 # developers that have changed any of the module use statements
@@ -34,5 +38,6 @@ RUN make fltools
 RUN make manual
 RUN sudo make install
 
-# Python module 'assess' is required for some longtests
-RUN python3 -m pip install --break-system-packages assess
+
+
+
