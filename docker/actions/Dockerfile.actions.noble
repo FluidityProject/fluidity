@@ -35,4 +35,4 @@ RUN make manual
 RUN sudo make install
 
 # Python module 'assess' is required for some longtests
-RUN python3 -m pip install --break-system-packages assess
+RUN python3 -m pip install --break-system-packages "numpy<2" assess 
