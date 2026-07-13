@@ -69,7 +69,11 @@ iter_op_get_obj_type (
         const H5L_info_t* info
         ) {
 	herr_t herr;
+#if H5_VERSION_GE(1, 12, 0)
+	H5O_info1_t objinfo;
+#else
 	H5O_info_t objinfo;
+#endif
 
 	if (info->type == H5L_TYPE_EXTERNAL) {
 		char* buf = h5_calloc (1, info->u.val_size);
@@ -110,10 +114,17 @@ iter_op_get_obj_type (
 			        name);
 			return H5O_TYPE_UNKNOWN;
 		}
+#if H5_VERSION_GE(1, 12, 0)
+		herr = H5Oget_info1(obj_id, &objinfo);
+	}
+	else { // H5L_TYPE_HARD
+		herr = H5Oget_info_by_name1(g_id, name, &objinfo, H5P_DEFAULT);
+#else
 		herr = H5Oget_info(obj_id, &objinfo);
 	}
 	else { // H5L_TYPE_HARD
 		herr = H5Oget_info_by_name(g_id, name, &objinfo, H5P_DEFAULT);
+#endif
 	}
 
 	if (herr < 0) {

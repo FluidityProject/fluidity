@@ -655,10 +655,18 @@ test_open_objects(h5_file_t file, int max_objects)
 		hid_t *list = malloc(sizeof(hid_t)*nopen);
 		H5Fget_obj_ids(hfile, H5F_OBJ_ALL, nopen, list);
 
+#if H5_VERSION_GE(1, 12, 0)
+		H5O_info1_t info;
+#else
 		H5O_info_t info;
+#endif
 		int i;
 		for (i=0; i<nopen; i++) {
+#if H5_VERSION_GE(1, 12, 0)
+			H5Oget_info1(list[i], &info);
+#else
 			H5Oget_info(list[i], &info);
+#endif
 			switch (info.type) {
 			case H5O_TYPE_GROUP:
 				TestErrPrintf("obj%d has type GROUP\n", i);
