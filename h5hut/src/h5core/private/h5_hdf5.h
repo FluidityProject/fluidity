@@ -1292,8 +1292,13 @@ hdf5_close_file (
 		for (ssize_t i = 0; i < max_objs; i++) {
 			hid_t object_id = obj_id_list [i];
 			h5_debug ("Open object: %lld", (long long)object_id);
+#if H5_VERSION_GE(1, 12, 0)
+			H5O_info1_t object_info;
+			if (H5Oget_info1 (object_id, &object_info) < 0)
+#else
 			H5O_info_t object_info;
 			if (H5Oget_info (object_id, &object_info) < 0)
+#endif
 				continue;
 			switch (object_info.type) {
 			case H5O_TYPE_GROUP:
