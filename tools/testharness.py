@@ -2,6 +2,7 @@
 import glob
 import multiprocessing
 import os.path
+import re
 import sys
 import time
 import traceback
@@ -312,8 +313,13 @@ class TestHarness:
             # when calling genpbs, genpbs should take care of inserting the right
             # -n <NPROCS> magic
             if not self.genpbs:
-                s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
-
+                # only add -n <NPROCS> if the command line doesn't already specify
+                # a number of tasks for mpiexec; leave an explicit -n as-is rather
+                # than overriding it (some mpiexec implementations resolve
+                # duplicate -n flags unpredictably, silently running with the
+                # wrong number of processes)
+                if not re.search(r"mpiexec\s+-n\s+\d+", s):
+                    s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
             return s
 
         return f
