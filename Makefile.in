@@ -441,8 +441,8 @@ distclean: clean
 
 test: serialtest
 
-serialtest: fltools bin/$(FLUIDITY)
-	@cd tests; ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
+serialtest: fltools bin/$(FLUIDITY) spudtools
+	@cd tests; PATH="$(CURDIR)/bin:$$PATH" ../bin/testharness -x test_results.xml -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual spudtools
 	@cd tests; ../bin/testharness -x test_results_medium.xml -l medium $(EXCLUDE_TAGS) -n $(THREADS)
