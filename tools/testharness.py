@@ -319,7 +319,9 @@ class TestHarness:
                 # duplicate -n flags unpredictably, silently running with the
                 # wrong number of processes)
                 if not re.search(r"mpiexec\s+-n\s+\d+", s):
-                    s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
+                    s = s.replace(
+                        "mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs}
+                    )
             return s
 
         return f
