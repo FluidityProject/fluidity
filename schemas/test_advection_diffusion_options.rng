@@ -828,7 +828,7 @@ alternating directions. Devised by C.Pain.</a:documentation>
               <element name="interior_penalty">
                 <a:documentation>Classical interior penalty scheme
 see, e.g., SIAM Journal on Numerical Analysis
-Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+Vol. 39, No. 5 (2002), pp. 1749-1779</a:documentation>
                 <element name="penalty_parameter">
                   <a:documentation>Penalty_parameter
 The penalty term Int [u][v] dS on element boundaries
@@ -1262,35 +1262,6 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
     </optional>
     <optional>
       <element name="tensor_field">
-        <a:documentation>Elastic parameters for elastic and visco-elastic materials
-For a linearly elastic solid
-In legacy elastic solids were run with SOLIDS = 2 from solidity_options.inp.
-In gem ONEMU and CONMU = .TRUE.
-and RMUPZZ taken as the isotropic Young`s modulus
-UNDER DEVELOPMENT
- - currently only works for lagrangian meshes
- - only single materials tested so far
- - momentum equations assembled in solid3d so not all
-   discretisation options above are valid</a:documentation>
-        <attribute name="name">
-          <value>Elasticity</value>
-        </attribute>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="prescribed_values_tensor_field"/>
-          </element>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
-        </choice>
-      </element>
-    </optional>
-    <optional>
-      <element name="tensor_field">
         <a:documentation>SurfaceTension</a:documentation>
         <attribute name="name">
           <value>SurfaceTension</value>
@@ -1312,7 +1283,7 @@ UNDER DEVELOPMENT
           <optional>
             <element name="solver">
               <a:documentation>Solver options are necessary if you're not lumping your mass or if you're field isn't dg</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
           </optional>
           <optional>
@@ -1323,56 +1294,6 @@ UNDER DEVELOPMENT
           </optional>
           <ref name="diagnostic_tensor_field"/>
         </element>
-      </element>
-    </optional>
-    <optional>
-      <element name="scalar_field">
-        <a:documentation>Cohesion for plastic materials
-UNDER DEVELOPMENT
- - currently only works for lagrangian meshes
- - only single materials tested so far
- - momentum equations assembled in solid3d so not all
-   discretisation options above are valid</a:documentation>
-        <attribute name="name">
-          <value>Cohesion</value>
-        </attribute>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="prescribed_scalar_field_no_adapt"/>
-          </element>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-        </choice>
-      </element>
-    </optional>
-    <optional>
-      <element name="scalar_field">
-        <a:documentation>Friction Angle for plastic materials
-UNDER DEVELOPMENT
- - currently only works for lagrangian meshes
- - only single materials tested so far
- - momentum equations assembled in solid3d so not all
-   discretisation options above are valid</a:documentation>
-        <attribute name="name">
-          <value>FrictionAngle</value>
-        </attribute>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="prescribed_scalar_field_no_adapt"/>
-          </element>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-        </choice>
       </element>
     </optional>
     <ref name="prognostic_vector_output_options"/>
@@ -1389,7 +1310,7 @@ UNDER DEVELOPMENT
   <define name="prognostic_scalar_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <choice>
       <element name="initial_condition">
@@ -1744,7 +1665,7 @@ Make sure you've not lumped your mass in the velocity spatial_discretisation if 
                   <value>FullMassMatrix</value>
                 </attribute>
                 <element name="solver">
-                  <ref name="linear_solver_options_sym"/>
+                  <ref name="linear_solver_options_sym_scalar"/>
                 </element>
               </element>
               <element name="inner_matrix">
@@ -1805,7 +1726,7 @@ or if density varies a lot or if not using a Boussinesque approximation)</a:docu
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <zeroOrMore>
       <choice>
@@ -1899,7 +1820,7 @@ want this.</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <zeroOrMore>
       <choice>
@@ -1973,7 +1894,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     -->
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <!-- Alas, no initial_condition either, so we'd better not checkpointing it... -->
     <element name="exclude_from_checkpointing">
@@ -2135,7 +2056,7 @@ formulations</a:documentation>
     <optional>
       <element name="solver">
         <a:documentation>Solver options are necessary if you're not lumping your mass or if you're field isn't dg</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </optional>
     <optional>
@@ -2157,7 +2078,7 @@ formulations</a:documentation>
   <define name="diagnostic_gradient_vector_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
@@ -2184,7 +2105,7 @@ formulations</a:documentation>
   <define name="diagnostic_fe_divergence_scalar_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
+      <ref name="linear_solver_options_sym_scalar"/>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_scalar_stat_options"/>
@@ -2277,7 +2198,7 @@ for ABL simulations use a log profile</a:documentation>
           <a:documentation>Reynolds stresses profile
 
 usually a function of height,
-assumes that the remaining stresses are negligible </a:documentation>
+assumes that the remaining stresses are negligible</a:documentation>
           <ref name="input_choice_real"/>
         </element>
       </element>
@@ -2797,7 +2718,7 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -2832,7 +2753,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_convergence">
-          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -2882,7 +2803,7 @@ i.e. excluding the components</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="exclude_from_steady_state">
-          <a:documentation>Exclude this field entirely from convergence testing and file </a:documentation>
+          <a:documentation>Exclude this field entirely from convergence testing and file</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
@@ -2946,7 +2867,7 @@ fields.</a:documentation>
             <ref name="real_dim_symmetric_tensor"/>
           </element>
           <element name="solver">
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
         </element>
       </element>
@@ -2961,7 +2882,7 @@ fields.</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
             <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
@@ -3034,7 +2955,7 @@ Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
         <element name="scalar_field">
           <attribute name="rank">
             <value>0</value>
@@ -3115,7 +3036,7 @@ Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
             <element name="vector_field">
               <attribute name="rank">
                 <value>1</value>
@@ -3173,7 +3094,7 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
             <element name="vector_field">
               <attribute name="rank">
                 <value>1</value>
@@ -3231,7 +3152,7 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
             <element name="tensor_field">
               <attribute name="rank">
                 <value>2</value>
@@ -3289,7 +3210,7 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
 one specifies the absolute interpolation
 error in the units of the field that is
 being adapted, e.g. you can specify
-the error to be 1.3 units </a:documentation>
+the error to be 1.3 units</a:documentation>
             <element name="tensor_field">
               <attribute name="rank">
                 <value>2</value>
@@ -3947,8 +3868,7 @@ Requires a continuous mesh.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>PhaseVolumeFraction:
-Required in porous_media problem type</a:documentation>
+        <a:documentation>PhaseVolumeFraction:</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -3965,22 +3885,6 @@ Required in porous_media problem type</a:documentation>
             <ref name="prescribed_scalar_field"/>
           </element>
         </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Electrical Potential:
-Required in electrokinetic, electrothermal
-and electrochemical problems
-(sub-option of porous_media problem type)</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ElectricalPotential</value>
-        </attribute>
-        <element name="prognostic">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prognostic_scalar_field"/>
-        </element>
       </element>
       <!--
         Insert new prognostic scalar fields here using the template:
@@ -4073,7 +3977,7 @@ Requires a diagnostic bulk Cohesion field
         </choice>
       </element>
       <!--
-
+        
         Insert new prescribed scalar fields here using the template:
                element scalar_field {
                    attribute rank { "0" },
@@ -4088,11 +3992,11 @@ Requires a diagnostic bulk Cohesion field
                       }
                    )
                }
-
+        
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased. An example is Tidal Range.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic scalar fields below this</a:documentation>
@@ -4323,24 +4227,6 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidConcentration</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>This scalar field is meant to replace DENTRAF.
 Basically, if you use new options, DENTRAF is no longer needed
 No repointing is done from this field to DENTRAF.</a:documentation>
@@ -4353,82 +4239,6 @@ No repointing is done from this field to DENTRAF.</a:documentation>
         <element name="diagnostic">
           <ref name="internal_algorithm"/>
           <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to
-Visualize the solids and MaterialVolumeFraction together</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>VisualizeSolidFluid</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to
-Visualize the solid_Concentration</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>VisualizeSolid</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Solid_configuration to
-map  the solid_Concentration from particle mesh to
-the fluid mesh.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleScalar</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to
-visualize functional values before iterations start.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalBegin</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Add field to be used by Explicit_ALE to
-visualize functional values at each iteration.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalIter</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
           <ref name="diagnostic_scalar_field"/>
         </element>
       </element>
@@ -4830,7 +4640,7 @@ strong Dirichlet boundary condition of 0 on all boundaries.</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <element name="solver">
               <a:documentation>Solver</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
             <ref name="diagnostic_scalar_field"/>
           </element>
@@ -4851,30 +4661,6 @@ Limitations:
         </attribute>
         <attribute name="name">
           <value>Speed</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Volume of the vehicles
-
-used in Traffic Modelling</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidPhase</value>
-        </attribute>
-        <attribute name="raplaces">
-          <value>IDENT = -42</value>
         </attribute>
         <choice>
           <element name="diagnostic">
@@ -4990,13 +4776,13 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.                  </a:documentation>
+less accurate but faster and might give smoother result.</a:documentation>
                 <empty/>
               </element>
             </optional>
             <optional>
               <element name="solver">
-                <ref name="linear_solver_options_sym"/>
+                <ref name="linear_solver_options_sym_scalar"/>
               </element>
             </optional>
             <ref name="diagnostic_scalar_field"/>
@@ -5556,22 +5342,22 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         - - List of fields that are primarily prognostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prognostic_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
         <empty/>
       </element>
       <!--
-
+        
         - - List of fields that are primarily prescribed,
            but can be aliased. An example is Maximum bed shear stress.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
@@ -5880,97 +5666,6 @@ Limitations:
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Solid Velocity field.  Used to generate the momentum source </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidVelocity</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleVector</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>ParticleForce</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>SolidForce</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>VelocityPlotForSolids</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Same as Solid Velocity field but it is on the Particle mesh.
-It is used to map the velocities coming from an external program like
-FEMDEM or DEM to the fluid mesh. </a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>FunctionalGradient</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>LinearMomentum field.
  p = \rho*u
 (where p is the linear momentum, \rho the density and u the velocity)</a:documentation>
@@ -6121,13 +5816,13 @@ of this field is continuous.</a:documentation>
             <optional>
               <element name="lump_mass">
                 <a:documentation>Lump the mass matrix of the galerkin projection
-less accurate but faster and might give smoother result.                  </a:documentation>
+less accurate but faster and might give smoother result.</a:documentation>
                 <empty/>
               </element>
             </optional>
             <optional>
               <element name="solver">
-                <ref name="linear_solver_options_sym"/>
+                <ref name="linear_solver_options_sym_scalar"/>
               </element>
             </optional>
             <ref name="diagnostic_vector_field"/>
@@ -6157,7 +5852,7 @@ is necessary.</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <optional>
               <element name="solver">
-                <ref name="linear_solver_options_sym"/>
+                <ref name="linear_solver_options_sym_scalar"/>
               </element>
             </optional>
             <ref name="diagnostic_vector_field"/>
@@ -6244,11 +5939,11 @@ This diagnostic depends on ImbalancedVelocity.</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         - - Second is a list of tensor fields that are primarily prescribed,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
@@ -6294,7 +5989,7 @@ in a multimaterial simulation.</a:documentation>
         </choice>
       </element>
       <!--
-
+        
         Insert new prescribed tensor fields here using the template:
                element tensor_field {
                    attribute rank { "2" },
@@ -6309,11 +6004,11 @@ in a multimaterial simulation.</a:documentation>
                       }
                    )
                }|
-
+        
         - - Last is a list of fields that are primarily diagnostic,
            but can be aliased.
         - - The list is in order of most frequently used.
-
+        
       -->
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
@@ -6651,7 +6346,7 @@ http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/P
     </choice>
     <ref name="generic_solver_options"/>
   </define>
-  <define name="linear_solver_options_sym">
+  <define name="linear_solver_options_sym_scalar">
     <choice>
       <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
 Given are the most frequently used methods. The solution is done
@@ -6835,7 +6530,7 @@ http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/P
     <ref name="generic_solver_options"/>
   </define>
   <!--
-    this is a copy linear_solver_options_sym, but with preconditioner "ksp"
+    this is a copy linear_solver_options_sym_scalar, but with preconditioner "ksp"
     removed to avoid infinite recursion
   -->
   <define name="pc_ksp_solver_options">
@@ -7255,7 +6950,7 @@ higher order solution is pivotted.
   <define name="temporal_discontinuous_galerkin_options">
     <element name="discontinuous_galerkin">
       <a:documentation>This enables DG-specific timestepping options, such as
-explicit advection subcycling. </a:documentation>
+explicit advection subcycling.</a:documentation>
       <optional>
         <choice>
           <element name="maximum_courant_number_per_subcycle">
@@ -7546,111 +7241,6 @@ velocity.</a:documentation>
           <ref name="upwind_value_options"/>
         </optional>
         <ref name="cv_face_cfl_number_options"/>
-      </element>
-    </choice>
-  </define>
-  <!--
-    Select the type of dynamic control to be used
-    Note: DEM and FEMDEM require the respective libraries
-    to be compiled.
-  -->
-  <define name="input_solid_dynamics_choice">
-    <choice>
-      <element name="dynamic_type">
-        <a:documentation>Obtain values from point and radius file.
-
-First line of file is free to use (for comments)
-Second line must contain the number of particles
-Third and fourth line are again for comments.
-Following lines include 10 columns, corresponding to
-the particle's x, y, and z positions, followed by the radius, then
-velocities in x, y, and z directions, followed by angular velocities
-in the x, y, and z directions.</a:documentation>
-        <attribute name="name">
-          <value>from_input_file</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Two python scripts must be provided. The script is cycled over each particle.
-One script for particle position (output is tuple of position coords)
-Second script is for particle radius (output is tuple of position coords)
-Third script is for particle translational velocity.
-Fourth script is for particle angular velocity. (Note: particles
-have a no slip boundary condition at the surface, so this angular velocity
-WILL matter to the flow.)
-Python functions should be of the form:
- def val(X, t):
-   Function code
-   return # Return value
-where X is a tuple of length geometry dimension.
-   X[0] contains the number of the particle (in real format)</a:documentation>
-        <attribute name="name">
-          <value>python_script</value>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <attribute name="name">
-          <value>use_simple_dynamics</value>
-        </attribute>
-        <element name="set_bottom">
-          <ref name="real"/>
-        </element>
-        <element name="set_xmin">
-          <ref name="real"/>
-        </element>
-        <element name="set_ymin">
-          <ref name="real"/>
-        </element>
-        <element name="set_zmin">
-          <ref name="real"/>
-        </element>
-        <element name="set_xmax">
-          <ref name="real"/>
-        </element>
-        <element name="set_ymax">
-          <ref name="real"/>
-        </element>
-        <element name="set_zmax">
-          <ref name="real"/>
-        </element>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using y3D to model dynamics. Filename of input file for y3D must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_y3D</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using femdem 2D to model dynamics. Filename of input file must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_2Dfemdem</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="dynamic_type">
-        <a:documentation>Using femdem 3D to model dynamics. Filename of input file must
-be specified.</a:documentation>
-        <attribute name="name">
-          <value>use_3Dfemdem</value>
-        </attribute>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="quad2lin">
-          <attribute name="file_name">
-            <data type="string"/>
-          </attribute>
-        </element>
       </element>
     </choice>
   </define>
@@ -8032,7 +7622,7 @@ divided by the total volume of the domain</a:documentation>
 (continuous galerkin) or within the control volume (control_volumes).</a:documentation>
           <optional>
             <element name="normalise">
-              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain  </a:documentation>
+              <a:documentation>if select normalise the volume fractions will be divided by the total volume of the domain</a:documentation>
               <empty/>
             </element>
           </optional>
@@ -8043,7 +7633,7 @@ divided by the total volume of the domain</a:documentation>
 e.g. the values 0 1 2 3 will return 4 bins
 and the fraction of the field in each bin with,
 0&lt;=field&lt;1, 1&lt;=field&lt;2, 2&lt;=field&lt;3, 3&lt;=field,
-will be calculated. </a:documentation>
+will be calculated.</a:documentation>
         <ref name="real_vector"/>
       </element>
       <optional>
@@ -8061,7 +7651,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>
@@ -8266,13 +7856,6 @@ Whatever field is selected must be present.</a:documentation>
           </element>
         </choice>
       </element>
-      <element name="equation">
-        <a:documentation>Option to solve for electrical potential from
-electrokinetic, electrochemical or electrothermal sources </a:documentation>
-        <attribute name="name">
-          <value>ElectricalPotential</value>
-        </attribute>
-      </element>
     </choice>
   </define>
   <define name="inner_element_scalar">
@@ -8392,17 +7975,17 @@ If you enable this you MUST enable the /geometry/ocean_boundaries option too</a:
     <element name="ocean_biology">
       <a:documentation>Model of biological processes in the ocean.</a:documentation>
       <element name="pznd">
-        <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
+        <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus.</a:documentation>
         <choice>
           <element name="source_and_sink_algorithm">
             <a:documentation>Python code specifying the source and sink relationships
 between the biological tracers. This is usually achieved by
-importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
+importing fluidity.ocean_biology and calling a scheme from there.</a:documentation>
             <ref name="python_code"/>
           </element>
           <element name="disable_sources_and_sinks">
             <a:documentation>Do not calculate sources and sinks.
-This option is generally only useful for testing. </a:documentation>
+This option is generally only useful for testing.</a:documentation>
             <empty/>
           </element>
         </choice>
@@ -8502,7 +8085,7 @@ This option is generally only useful for testing. </a:documentation>
       <element name="discontinuous_galerkin">
         <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
-galerkin formulation will result. </a:documentation>
+galerkin formulation will result.</a:documentation>
         <empty/>
       </element>
     </element>
@@ -8787,7 +8370,7 @@ deviations to nodes that have less than their bounds.</a:documentation>
 This method requires the inversion of a mass matrix. Note that
 conservation properties are affected by the tolerance of the
 linear solve.</a:documentation>
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
           <element name="lump_mass_matrix">
             <a:documentation>Lump the mass matrix on the left hand side of the galerkin projection.
@@ -8889,7 +8472,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!                  </a:documentation>
+vector fields, such as pressure to incompressible velocity!</a:documentation>
               <attribute name="name">
                 <value>Pressure</value>
               </attribute>
@@ -8903,7 +8486,7 @@ options too and it must be on the same mesh as used for the
 solenoidal projection above.
 
 Note well: this only really makes sense for scalar fields linked to nondivergent
-vector fields, such as pressure to incompressible velocity!                  </a:documentation>
+vector fields, such as pressure to incompressible velocity!</a:documentation>
               <attribute name="name">
                 <data type="string" datatypeLibrary=""/>
               </attribute>
@@ -8914,7 +8497,7 @@ vector fields, such as pressure to incompressible velocity!                  </a
         <element name="solver">
           <a:documentation>Solver options for the linear solve.
 This method requires the inversion of a projection matrix.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
       </element>
     </element>
@@ -8932,7 +8515,7 @@ interpolation, it will be balanced afterwards also.
 Note well: this only makes sense for velocity.</a:documentation>
       <element name="solver">
         <a:documentation>The solver options for computing the balanced velocity to subtract.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>

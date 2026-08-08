@@ -390,7 +390,7 @@ this option to these these internal algorithms.</a:documentation>
       <optional>
         <element name="solver">
           <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
       </optional>
     </element>
@@ -408,7 +408,7 @@ this option to these these internal algorithms.</a:documentation>
       <optional>
         <element name="solver">
           <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
       </optional>
     </element>
@@ -432,7 +432,7 @@ The length scale is alpha*local element width (a scalar)
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -455,7 +455,7 @@ The length scale is alpha*local element width (a scalar)
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -478,7 +478,7 @@ The length scale is alpha*local element width (a scalar)
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -501,7 +501,7 @@ The length scale is alpha*local element size (a tensor).
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -524,7 +524,7 @@ The length scale is alpha*local element size (a tensor).
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -547,7 +547,7 @@ The length scale is alpha*local element size (a tensor).
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -788,7 +788,7 @@ the finite element C^T matrix.</a:documentation>
         <element name="solver">
           <a:documentation>Consistent mass Galerkin projection of divergence. Requires
 solver options.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
         <element name="lump_mass">
           <a:documentation>Lumped mass Galerkin projection of divergence</a:documentation>
@@ -1117,7 +1117,7 @@ all boundaries.</a:documentation>
       </optional>
       <element name="solver">
         <a:documentation>Linear solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
@@ -1190,7 +1190,7 @@ Automatic when not using P1P1.</a:documentation>
       </optional>
       <element name="solver">
         <a:documentation>Linear solver options.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
+        <ref name="linear_solver_options_sym_scalar"/>
       </element>
     </element>
   </define>
