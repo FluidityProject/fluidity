@@ -270,7 +270,7 @@ class vtu:
         values."""
         npoints = self.ugrid.GetNumberOfPoints()
         for i in range(npoints):
-            (x, y, z) = self.ugrid.GetPoint(i)
+            x, y, z = self.ugrid.GetPoint(i)
             new_x = eval(projection_x)
             new_y = eval(projection_y)
             new_z = eval(projection_z)
@@ -282,7 +282,7 @@ class vtu:
         npoints = self.ugrid.GetNumberOfPoints()
 
         for i in range(npoints):
-            (x, y, z) = self.ugrid.GetPoint(i)
+            x, y, z = self.ugrid.GetPoint(i)
             newX = f(numpy.array([x, y, z]), t=0)
             self.ugrid.GetPoints().SetPoint(i, newX[0], newX[1], newX[2])
 
@@ -294,7 +294,7 @@ class vtu:
         earth_radius = 6378000.0
 
         for i in range(npoints):
-            (x, y, z) = self.ugrid.GetPoint(i)
+            x, y, z = self.ugrid.GetPoint(i)
 
             r = math.sqrt(x * x + y * y + z * z)
             depth = r - earth_radius

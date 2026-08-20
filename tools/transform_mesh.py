@@ -23,7 +23,7 @@ optparser.set_usage(
     "%prog '(x,y,1000*z)' mesh.\n"
 )
 
-(options, argv) = optparser.parse_args()
+options, argv = optparser.parse_args()
 
 if len(argv) != 2:
     optparser.print_help()

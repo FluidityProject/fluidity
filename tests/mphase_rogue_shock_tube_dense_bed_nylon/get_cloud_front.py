@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-   Python script to measure the position of the particle cloud front in
-   simulations of the shock tube experiment by Rogue et al. (1998).
-   Written by Christian Jacobs.
+Python script to measure the position of the particle cloud front in
+simulations of the shock tube experiment by Rogue et al. (1998).
+Written by Christian Jacobs.
 """
 
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ f = open("upper.prn")
 experimental_times = []
 experimental_positions = []
 for line in f:
-    (t, p) = line.split("\t")
+    t, p = line.split("\t")
     experimental_times.append(float(t))
     experimental_positions.append(float(p) * 100)
 f.close()
@@ -85,7 +85,7 @@ f = open("lower.prn")
 experimental_times = []
 experimental_positions = []
 for line in f:
-    (t, p) = line.split("\t")
+    t, p = line.split("\t")
     experimental_times.append(float(t))
     experimental_positions.append(float(p) * 100)
 f.close()

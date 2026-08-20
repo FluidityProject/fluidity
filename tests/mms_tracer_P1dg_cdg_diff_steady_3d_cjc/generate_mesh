@@ -13,7 +13,7 @@ optparser = OptionParser(
     + """typical edge length 1.0/layers.""",
 )
 
-(options, argv) = optparser.parse_args()
+options, argv = optparser.parse_args()
 
 # try:
 layers = float(argv[0])

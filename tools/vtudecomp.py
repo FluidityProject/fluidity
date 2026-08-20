@@ -4,6 +4,7 @@
 """
 Tool to decompose a vtu using a given decomposed gmsh mesh
 """
+
 import glob
 import optparse
 import os

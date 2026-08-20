@@ -62,13 +62,9 @@ for module in module_list:
     )
 
 # Ensure that the subroutine is legal in the trivial case.
-output.write(
-    safe_decode(
-        """
+output.write(safe_decode("""
    continue
-   """
-    )
-)
+   """))
 
 for module in module_list:
     output.write(safe_decode("  call " + module + "_register_diagnostic\n"))

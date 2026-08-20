@@ -65,7 +65,7 @@ parser.add_option(
     help="output 3d coordinates.",
 )
 
-(options, argv) = parser.parse_args()
+options, argv = parser.parse_args()
 
 try:
     left = float(argv[0])
@@ -110,22 +110,18 @@ eles = [(i + 1, i + 2) for i in range(len(nodes) - 1)]
 # Write the mesh file in Gmsh format
 meshfile = open(name + ".msh", "w")
 
-meshfile.write(
-    """$MeshFormat
+meshfile.write("""$MeshFormat
 2.2 0 8
 $EndMeshFormat
 $Nodes
-"""
-)
+""")
 meshfile.write("%d\n" % (len(nodes)))
 
 for n in range(len(nodes)):
     meshfile.write("%d %.15f 0 0 \n" % (n + 1, nodes[n]))
-meshfile.write(
-    """$EndNodes
+meshfile.write("""$EndNodes
 $Elements
-"""
-)
+""")
 meshfile.write("%d\n" % (len(eles) + 2))
 # Mark first and last node
 meshfile.write("1 15 2 1 1 1\n")

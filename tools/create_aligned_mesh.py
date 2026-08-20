@@ -46,7 +46,7 @@ optparser.set_usage(
     + "Ox,Oy,Oz is the origin (defaults to 0,0,0)."
 )
 
-(options, argv) = optparser.parse_args()
+options, argv = optparser.parse_args()
 
 if len(argv) < 7:
     optparser.print_help()
