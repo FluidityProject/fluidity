@@ -4,7 +4,7 @@ import vtktools
 tolerance = 1.0e-12
 u = vtktools.vtu("shelf_0.vtu")
 location = u.GetLocations()
-(ilen, jlen) = location.shape
+ilen, jlen = location.shape
 
 for i in range(ilen):
     if location[i, 0] + tolerance < 0.0:

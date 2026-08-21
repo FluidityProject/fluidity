@@ -15,6 +15,7 @@
 """
 Tools for dealing with .poly files.
 """
+
 import copy
 import os
 import subprocess

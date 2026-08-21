@@ -249,7 +249,7 @@ if __name__ == "__main__":
         default=os.path.dirname(os.path.realpath(__file__)) + "/../*/*.F90",
     )
 
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
 
     tree, namelist = build_trees(glob.glob(options.path))
     out = print_misplaced(tree, namelist, options.silent or options.graph, args)

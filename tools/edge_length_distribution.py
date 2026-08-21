@@ -210,7 +210,7 @@ def PlotCumulative(edge_lengths_all, options):
 
 optparser = usage()
 
-(options, args) = optparser.parse_args()
+options, args = optparser.parse_args()
 
 if len(args) < 1:
     optparser.print_help()
@@ -234,21 +234,17 @@ if options.plot_only is True:
     try:
         time_log = open("edge_length_distribution_plots/time.log")
     except OSError:
-        print(
-            """
+        print("""
 No file 'edge_length_distribution_plots/time.log'
-Try running WITHOUT option --plotonly"""
-        )
+Try running WITHOUT option --plotonly""")
         sys.exit(1)
 
     try:
         edge_lengths_log = open("edge_length_distribution_plots/edge_lengths.log")
     except OSError:
-        print(
-            """
+        print("""
 No file 'edge_length_distribution_plots/edge_lengths.log'
-Try running WITHOUT option --plotonly"""
-        )
+Try running WITHOUT option --plotonly""")
         sys.exit(1)
 
     time = []

@@ -7,6 +7,7 @@ Many thanks to Prabhu for ScalarCutPlane and TransformData.
 Wouldn't have been able to code this otherwise.
 
 """
+
 from traits.api import Button, Instance
 from traitsui.api import Group, Item, View
 from tvtk.api import tvtk

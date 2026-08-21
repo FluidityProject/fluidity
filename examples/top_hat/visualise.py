@@ -6,11 +6,9 @@ import pylab
 try:
     import vtktools
 except ImportError:
-    sys.stderr.write(
-        """You need to add the path to <FLUIDITY_SOURCE_LOCATION>/python/
+    sys.stderr.write("""You need to add the path to <FLUIDITY_SOURCE_LOCATION>/python/
 to your PYTHONPATH environment variable, e.g.:
-  export PYTHONPATH=$PYTHONPATH:$HOME/svn/fluidity/python/\n"""
-    )
+  export PYTHONPATH=$PYTHONPATH:$HOME/svn/fluidity/python/\n""")
     sys.exit(1)
 
 # open one of the vtus output by fluidity

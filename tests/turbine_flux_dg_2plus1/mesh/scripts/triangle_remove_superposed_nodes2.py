@@ -71,14 +71,12 @@ from sets import Set
 
 ########################################################################################
 if not len(sys.argv) == 3:
-    print(
-        """Usage: seperate_internal_boundary.py file boundary_id
+    print("""Usage: seperate_internal_boundary.py file boundary_id
 
 output fixed .ele and .node file with removed superposed nodes on the given boundary
 
 The nodes have to have a distance less than 1e-8 to be considered as superposed
-The outout files will be have the suffix nosup"""
-    )
+The outout files will be have the suffix nosup""")
 
     exit()
 

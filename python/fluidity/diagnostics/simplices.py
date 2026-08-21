@@ -19,6 +19,7 @@
 """
 Tools for dealing with tetrahedra
 """
+
 import unittest
 
 import fluidity.diagnostics.calc as calc

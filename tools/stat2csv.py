@@ -8,6 +8,7 @@
 """
 stat to csv convertor for Fluidity output stat files.
 """
+
 import getopt
 import os
 import sys

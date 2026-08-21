@@ -4,6 +4,7 @@
 """
 Script to combine pvtus into vtus
 """
+
 import optparse
 
 import fluidity.diagnostics.debug as debug

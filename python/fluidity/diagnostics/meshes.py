@@ -15,6 +15,7 @@
 """
 Finite element mesh classes
 """
+
 import unittest
 
 import fluidity.diagnostics.bounds as bounds

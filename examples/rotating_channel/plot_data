@@ -7,11 +7,9 @@ import pylab
 
 
 def usage():
-    print(
-        """plot_data <layers>
+    print("""plot_data <layers>
 
-    <layers> is a space-separated list of layer counts."""
-    )
+    <layers> is a space-separated list of layer counts.""")
 
 
 try:

@@ -15,6 +15,7 @@
 """
 Tools for dealing with GiD files
 """
+
 import copy
 import os
 import tempfile

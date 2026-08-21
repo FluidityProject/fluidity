@@ -35,7 +35,7 @@ for vtu in range(len(args.input_vtu)):
 
     npoints = vtu_object.ugrid.GetNumberOfPoints()
     for i in range(npoints):
-        (x, y, z) = vtu_object.ugrid.GetPoint(i)
+        x, y, z = vtu_object.ugrid.GetPoint(i)
         radius = sqrt(x**2 + y**2 + z**2)
         theta = acos(z / radius)
         phi = atan(y / x)

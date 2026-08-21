@@ -14,9 +14,7 @@ from time import process_time
 
 
 def display_results(tests_results, error_list, skip_list):
-    print(
-        cleandoc(
-            f"""
+    print(cleandoc(f"""
                    ###########
                    # Results #
                    ###########
@@ -29,9 +27,7 @@ def display_results(tests_results, error_list, skip_list):
                    \tErrors: {len(error_list)}
                    \t\t{error_list}\n
                    \tSkipped: {len(skip_list)}
-                   \t\t{skip_list}"""
-        )
-    )
+                   \t\t{skip_list}"""))
 
 
 def unittest_harness_no_output(tests):

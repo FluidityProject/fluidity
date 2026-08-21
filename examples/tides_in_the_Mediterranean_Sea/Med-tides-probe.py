@@ -75,7 +75,7 @@ pts = array(
 )
 
 M2amp = u.ProbeData(pts, "M2amp")
-(ilen, jlen) = M2amp.shape
+ilen, jlen = M2amp.shape
 S2amp = u.ProbeData(pts, "S2amp")
 K1amp = u.ProbeData(pts, "K1amp")
 O1amp = u.ProbeData(pts, "O1amp")
