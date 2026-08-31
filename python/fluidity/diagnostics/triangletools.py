@@ -15,6 +15,7 @@
 """
 Tools for dealing with triangle files
 """
+
 import os
 import sys
 import tempfile

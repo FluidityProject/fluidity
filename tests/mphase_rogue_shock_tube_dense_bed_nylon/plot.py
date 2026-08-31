@@ -285,7 +285,7 @@ experimental_p_downstream = numpy.zeros(225)
 f = open("pressure_upstream.prn")
 i = 0
 for line in f:
-    (t, p) = line.split("\t")
+    t, p = line.split("\t")
     experimental_t_upstream[i] = t
     experimental_p_upstream[i] = p
     i += 1
@@ -293,7 +293,7 @@ f.close()
 f = open("pressure_downstream.prn")
 i = 0
 for line in f:
-    (t, p) = line.split("\t")
+    t, p = line.split("\t")
     experimental_t_downstream[i] = t
     experimental_p_downstream[i] = p
     i += 1

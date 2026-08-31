@@ -13,7 +13,7 @@ optparser = OptionParser(
     + """number of layers and width.""",
 )
 
-(options, argv) = optparser.parse_args()
+options, argv = optparser.parse_args()
 
 # try:
 layers = float(argv[0])

@@ -15,6 +15,7 @@
 """
 Finite element element classes
 """
+
 import unittest
 
 import fluidity.diagnostics.debug as debug

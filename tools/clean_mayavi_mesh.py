@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     optparser.set_defaults(dir=".", project="")
 
-    (options, argv) = optparser.parse_args()
+    options, argv = optparser.parse_args()
 
     try:
         infile = argv[0]

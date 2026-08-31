@@ -203,7 +203,7 @@ def plot_theory():
 def plot_stored_results():
     import pickle
 
-    (dx, error) = pickle.load(open("error_results"))
+    dx, error = pickle.load(open("error_results"))
 
     plot_results(dx, error)
 

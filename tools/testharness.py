@@ -480,7 +480,7 @@ class TestHarness:
             try:
                 # pull a test number from the queue
                 test_id = queue.get(timeout=0.1)
-                (dir, test) = self.tests[test_id]
+                dir, test = self.tests[test_id]
             except Queue.Empty:
                 # If the queue is empty, we're done.
                 sys.stdout = main_stdout
@@ -596,7 +596,7 @@ if __name__ == "__main__":
         dest="exit_fails",
         help="Return failure count on exit",
     )
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
 
     if len(args) > 0:
         parser.error("Too many arguments.")

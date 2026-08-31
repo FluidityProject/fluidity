@@ -12,7 +12,7 @@ optparser = OptionParser(
     description="""Generate the mesh files for a given resolution.""",
 )
 
-(options, argv) = optparser.parse_args()
+options, argv = optparser.parse_args()
 
 try:
     NN = int(argv[0])

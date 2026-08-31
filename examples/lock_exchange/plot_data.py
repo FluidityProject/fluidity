@@ -15,12 +15,10 @@ from fluidity_tools import stat_parser
 def Froudenumber(flmlname):
     print("\n********** Calculating the Froude number\n")
     # warn user about assumptions
-    print(
-        """Froude number calculations makes three assumptions:
+    print("""Froude number calculations makes three assumptions:
 i) domain height = 0.1m
 ii) mid point domain is at x = 0.4
-iii) initial temperature difference is 1.0 degC"""
-    )
+iii) initial temperature difference is 1.0 degC""")
     domainheight = 0.1
     domainmid = 0.4
     rho_zero, T_zero, alpha, g = le_tools.Getconstantsfromflml(flmlname)
@@ -184,11 +182,9 @@ iii) initial temperature difference is 1.0 degC"""
 def mixing(flmlname):
     print("\n********** Calculating the mixing diagnostics\n")
     # warn user about assumptions
-    print(
-        """Background potential energy calculations makes two assumptions:
+    print("""Background potential energy calculations makes two assumptions:
 i) domain height = 0.1m
-ii) initial temperature difference is 1.0 degC"""
-    )
+ii) initial temperature difference is 1.0 degC""")
     domainheight = 0.1
     rho_zero, T_zero, alpha, g = le_tools.Getconstantsfromflml(flmlname)
 

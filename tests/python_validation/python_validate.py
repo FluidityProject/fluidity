@@ -11,6 +11,7 @@ Script to attempt to validate python files and code snippets in the Fluidity cod
 against python3 syntax.
 
 """
+
 import argparse
 import ast
 import os

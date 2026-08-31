@@ -160,7 +160,7 @@ def erturk_u(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
     norm = 0.0
     for i in range(ilen):
         diff = pts[i][3] - velocity[i][0]
@@ -217,7 +217,7 @@ def erturk_v(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
     norm = 0.0
     for i in range(ilen):
         diff = pts[i][3] - velocity[i][1]
@@ -269,7 +269,7 @@ def botella_u(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
     norm = 0.0
     for i in range(ilen):
         diff = pts[i][3] - velocity[i][0]
@@ -320,7 +320,7 @@ def botella_v(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
 
     norm = 0.0
     for i in range(ilen):
@@ -372,7 +372,7 @@ def botella_p1(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
     pressure = u.ProbeData(pts, "Pressure")
 
     pts0 = np.array(
@@ -430,7 +430,7 @@ def botella_p2(NN):
     )
 
     velocity = u.ProbeData(pts, "Velocity")
-    (ilen, jlen) = velocity.shape
+    ilen, jlen = velocity.shape
     pressure = u.ProbeData(pts, "Pressure")
 
     pts0 = np.array(
