@@ -2,6 +2,7 @@
 """
 Generate square meshes with random interior nodes
 """
+
 import copy
 import getopt
 import os

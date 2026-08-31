@@ -61,14 +61,12 @@ class FieldOperations(Filter):
         "z-component",
         "Python function",
     )
-    custom_function = Code(
-        """
+    custom_function = Code("""
 # Define a single-line operation in terms of
 # the variable 'inputs' which is an array of
 # input arrays. math and numpy are imported.
 # The operation must return a single array.
-"""
-    )
+""")
 
     # Input and output fields
     scale_factor = Float(1.0)

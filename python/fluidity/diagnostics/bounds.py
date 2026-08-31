@@ -15,6 +15,7 @@
 """
 Geometric bounds utilities
 """
+
 import unittest
 
 import fluidity.diagnostics.calc as calc

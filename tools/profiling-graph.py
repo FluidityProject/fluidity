@@ -54,7 +54,7 @@ if __name__ == "__main__":
     parser.add_option(
         "-o", "--output", dest="output", default="times.svg", help="output file"
     )
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
     # get subs, files, output
     subs = options.subs.split(",")
     if len(args) > 0:

@@ -231,7 +231,7 @@ def handle_options():
         default=False,
     )
 
-    (options, argv) = optparser.parse_args()
+    options, argv = optparser.parse_args()
 
     return options
 

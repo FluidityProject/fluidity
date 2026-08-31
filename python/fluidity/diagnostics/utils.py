@@ -15,6 +15,7 @@
 """
 Some useful utility functions
 """
+
 import copy
 import time
 import unittest
