@@ -36,6 +36,7 @@
     use data_structures
     use sparse_tools
     use fields
+    use field_options
     use petsc_tools
     use signal_vars
     use sparse_tools_petsc
@@ -60,7 +61,7 @@
 
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
-      state, inner_mesh, auxiliary_matrix)
+      state, inner_mesh, option_path, inner_option_path, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -74,11 +75,12 @@
       ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
-      type(csr_matrix), intent(inout) :: pmat
+      type(csr_matrix), pointer, intent(inout) :: pmat
       type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
+      character(len=*), optional, intent(in) :: option_path, inner_option_path
       ! p1-p1 stabilization matrix or free surface terms:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
 
@@ -87,6 +89,7 @@
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
 
       character(len=OPTION_PATH_LEN) solver_option_path, name
+      character(len=OPTION_PATH_LEN) l_option_path, l_inner_option_path
       integer literations
       type(petsc_numbering_type) petsc_numbering
       logical lstartfromzero
@@ -99,11 +102,25 @@
       ewrite(2,*) 'Ignoring setting from solver option.'
       lstartfromzero=.true.
 
+      if(present(option_path)) then
+        l_option_path = option_path
+      else
+        l_option_path = x%option_path
+      end if
+
+      if(present(inner_option_path)) then
+        l_inner_option_path = inner_option_path
+      else
+        l_inner_option_path = trim(complete_field_path(l_option_path))//&
+              "/scheme/use_projection_method"//&
+              "/full_schur_complement/inner_matrix[0]"
+      end if
+
       ! Convert matrices to PETSc format, setup PETSc object and PETSc numbering, then
       ! Build Schur complement and set KSP.
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
-           lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
+           lstartfromzero,inner_m,ctp_m,ct_m,l_option_path,l_inner_option_path,pmat, &
            rhs, velocity, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
@@ -118,7 +135,7 @@
       end if
 
       ewrite(2,*) 'Entering Core PETSc Solve'
-      ! Solve Ay = b using KSP and PC. Also check convergence. We call this the inner solve.
+      ! Solve Ay = b using KSP and PC. Also check convergence.
       call petsc_solve_core(y, A, b, ksp, petsc_numbering, solver_option_path, lstartfromzero, &
            literations, sfield=x, x0=x%val, nomatrixdump=.true.)
 
@@ -136,7 +153,7 @@
 
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
-         lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
+         lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,inner_option_path,preconditioner_matrix,rhs, &
          velocity, state, inner_mesh, auxiliary_matrix)
 
 !--------------------------------------------------------------------------------------------------------
@@ -170,11 +187,11 @@
       ! Fluidity RHS:
       type(scalar_field), intent(inout) :: rhs
       ! Preconditioner matrix:
-      type(csr_matrix), intent(inout) :: preconditioner_matrix
+      type(csr_matrix), pointer, intent(inout) :: preconditioner_matrix
       ! Stabilization matrix:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
-      ! Option path:
-      character(len=*), intent(in):: option_path
+      ! Option paths:
+      character(len=*), intent(in):: option_path, inner_option_path
       type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
@@ -201,39 +218,36 @@
       Mat S ! PETSc Stabilization matrix (auxiliary_matrix)
       Mat pmat ! PETSc preconditioning matrix
 
-      character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
+      character(len=OPTION_PATH_LEN) :: inner_solver_option_path
       integer, dimension(:,:), pointer :: save_gnn2unn
       type(integer_set), dimension(velocity%dim):: boundary_row_set
-      integer reference_node, i, rotation_stat
-      logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
+      integer reference_node, i, rotation_stat, ref_stat
+      logical parallel, have_auxiliary_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
 
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
-      inner_option_path= trim(option_path)//&
-              "/prognostic/scheme/use_projection_method&
-              &/full_schur_complement/inner_matrix[0]"
 
       if (have_option(trim(option_path)//'/name')) then
          call get_option(trim(option_path)//'/name', name)
-         ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving for: ', trim(name)
+         ewrite(1,*) 'Inside petsc_solve_full_projection, solving for: ', trim(name)
       else
-         ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving using option_path: ', trim(option_path)
+         ewrite(1,*) 'Inside petsc_solve_full_projection, solving using option_path: ', trim(option_path)
          name=option_path
       end if
 
-      ! Are we applying a reference pressure node?
-      apply_reference_node = have_option(trim(option_path)//&
-                 '/prognostic/reference_node')
-      apply_reference_node_from_coordinates = have_option(trim(option_path)//&
-                 '/prognostic/reference_coordinates')
+      ! Are we applying a reference node?
+      apply_reference_node = have_option(trim(complete_field_path(option_path, stat=ref_stat))//&
+          &"/reference_node")
+      apply_reference_node_from_coordinates = have_option(trim(complete_field_path(option_path, stat=ref_stat))//&
+          &"/reference_coordinates")
 
       ! If so, impose reference pressure node:
       if(apply_reference_node) then
 
-         call get_option(trim(option_path)//&
-              '/prognostic/reference_node', reference_node)
+         call get_option(trim(complete_field_path(option_path, stat=ref_stat))//&
+              '/reference_node', reference_node)
          if (GetProcNo()==1) then
             ewrite(2,*) 'Imposing_reference_pressure_node'
             allocate(ghost_nodes(1:1))
@@ -277,17 +291,18 @@
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
            group_size=inner_m%row_numbering%group_size, &
            halo=div_matrix_comp%sparsity%column_halo)
-      call allocate(petsc_numbering_p, &
-           nnodes=block_size(div_matrix_comp,1), nfields=1, &
-           halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
-
-           ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
-           ! - same question about the nnodes use of the rows of the block of the divergence matrix?
-           ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?
-           ! this definitely appears to be inappropriate for the auxiliary matrix (hence there's a new one added
-           ! below) so two questions:
-           ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
-           ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
+      ! the preconditioner matrix might have a second order halo, which it will need if it's present
+      ! so let's use that if it's available to set up the petsc numbering
+      if(associated(preconditioner_matrix)) then
+        call allocate(petsc_numbering_p, &
+             nnodes=block_size(div_matrix_comp,1), nfields=1, &
+             halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+      else
+      ! if it's not available though we should default to the first order halo from the div matrix
+        call allocate(petsc_numbering_p, &
+             nnodes=block_size(div_matrix_comp,1), nfields=1, &
+             halo=div_matrix_comp%sparsity%row_halo, ghost_nodes=ghost_nodes)
+      end if
 
       ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m
       ! corresponding to dirichlet bcs have not been zeroed
@@ -419,12 +434,7 @@
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
-      ! Assemble preconditioner matrix in petsc format (if required):
-      have_preconditioner_matrix=.not.(have_option(trim(option_path)//&
-              "/prognostic/scheme/use_projection_method&
-              &/full_schur_complement/preconditioner_matrix::NoPreconditionerMatrix"))
-
-      if(have_preconditioner_matrix) then
+      if(associated(preconditioner_matrix)) then
          pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
       else
          pmat=A
@@ -451,7 +461,7 @@
       call MatDestroy(G_t_comp,ierr) ! Destroy Compressible Divergence Operator.
       call MatDestroy(G_t_incomp, ierr) ! Destroy Incompressible Divergence Operator.
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
-      if(have_preconditioner_matrix) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
+      if(associated(preconditioner_matrix)) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
 
       call deallocate( petsc_numbering_u )

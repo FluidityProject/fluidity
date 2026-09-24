@@ -18,7 +18,7 @@ The length scale is alpha*local element width (a scalar)
             </element>
           </optional>
           <element name="solver">
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
         </element>
       </element>
@@ -1717,7 +1717,7 @@ Automatic when not using P1P1.</a:documentation>
           </optional>
           <element name="solver">
             <a:documentation>Solver options for the conservative potential calculation</a:documentation>
-            <ref name="linear_solver_options_sym"/>
+            <ref name="linear_solver_options_sym_scalar"/>
           </element>
           <choice>
             <element name="galerkin_projection">
@@ -1801,7 +1801,7 @@ residual</a:documentation>
                 </choice>
                 <element name="solver">
                   <a:documentation>Solver options for the decomposition</a:documentation>
-                  <ref name="linear_solver_options_sym"/>
+                  <ref name="linear_solver_options_sym_scalar"/>
                 </element>
                 <ref name="comment"/>
               </element>
@@ -1872,7 +1872,7 @@ functions.</a:documentation>
             <element name="solver">
               <a:documentation>Solver options for the geopressure conservative potential
 calculation</a:documentation>
-              <ref name="linear_solver_options_sym"/>
+              <ref name="linear_solver_options_sym_scalar"/>
             </element>
             <choice>
               <element name="galerkin_projection">
@@ -2078,7 +2078,7 @@ Defaults to computer precision if unspecified.</a:documentation>
 This method requires the inversion of a mass matrix. Note that
 conservation properties are affected by the tolerance of the
 linear solve.</a:documentation>
-          <ref name="linear_solver_options_sym"/>
+          <ref name="linear_solver_options_sym_scalar"/>
         </element>
         <element name="lump_mass_matrix">
           <a:documentation>Lump the mass matrix on the left hand side of the galerkin projection.

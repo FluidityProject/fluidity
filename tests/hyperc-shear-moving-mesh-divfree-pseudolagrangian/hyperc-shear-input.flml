@@ -110,9 +110,9 @@
         <enforce_discrete_properties>
           <solenoidal>
             <interpolated_field>
-              <discontinuous>
+              <continuous>
                 <lump_mass_matrix/>
-              </discontinuous>
+              </continuous>
             </interpolated_field>
             <lagrange_multiplier>
               <mesh name="PressureMesh"/>

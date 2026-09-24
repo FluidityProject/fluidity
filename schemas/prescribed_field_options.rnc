@@ -1,4 +1,3 @@
-# Default child of prescribed scalar field
 # This is a choice of ways of inputing the prescribed field
 prescribed_scalar_field =
    (

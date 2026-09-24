@@ -3072,7 +3072,7 @@ diagnostic_cv_gradient_vector_field =
       }?,
       ## Solver options are necessary if you're not lumping your mass or if you're field isn't dg
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       }?,
       ## Normalise the gradient by its magnitude
       element normalise {
@@ -3092,7 +3092,7 @@ diagnostic_gradient_vector_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       diagnostic_output_options,
       diagnostic_vector_stat_options,
@@ -3121,7 +3121,7 @@ diagnostic_fe_divergence_scalar_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_sym
+         linear_solver_options_sym_scalar
       },
       diagnostic_output_options,
       diagnostic_scalar_stat_options,
@@ -4365,7 +4365,7 @@ scalar_field_choice =
                   )+,
                   ## Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   },
                   prognostic_scalar_output_options,
                   prognostic_scalar_stat_options,
@@ -5545,7 +5545,7 @@ scalar_field_choice =
                   velocity_mesh_choice,
                   ## Solver
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   },
                   diagnostic_scalar_field
                }|
@@ -5651,7 +5651,7 @@ scalar_field_choice =
                      empty
                   }?,
                   element solver {
-                    linear_solver_options_sym
+                    linear_solver_options_sym_scalar
                   }?,
                   diagnostic_scalar_field
                }|
@@ -5789,7 +5789,7 @@ scalar_field_choice =
                   }?,
                   diagnostic_scalar_field_no_adapt,
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   }
                }
             )
@@ -5809,7 +5809,7 @@ scalar_field_choice =
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt,
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   }
                }
             )
@@ -6016,7 +6016,7 @@ vector_field_choice =
                   internal_algorithm,
                   mesh_choice,
                   element solver {
-                     linear_solver_options_sym
+                     linear_solver_options_sym_scalar
                   },
                   diagnostic_vector_field
                }|
@@ -6263,7 +6263,7 @@ vector_field_choice =
                      empty
                   }?,
                   element solver {
-                  linear_solver_options_sym
+                  linear_solver_options_sym_scalar
                   }?,
                   diagnostic_vector_field
                }|
@@ -7565,18 +7565,60 @@ solenoidal_options =
       element interpolated_field {
         (
           element continuous {
-            ## Lump the mass matrix for the assembly of the projection matrix
-            ## (not for the initial galerkin projection)
-            ##
-            ## Required when using interpolating continuous fields
-            element lump_mass_matrix {
-              ## Lump on the submesh.
-              ## This only works for simplex meshes and is only
-              ## strictly valid on 2d meshes.
-              element use_submesh {
-                empty
-              }?
-            }
+            (
+              ## Solver options for the (inner) solve.
+              element full_schur_complement {
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C).
+                ## Use the full mass matrix (the only option).
+                element inner_matrix {
+                  attribute name { "FullMassMatrix" },
+                  ## Solver options to solve the inner (mass) matrix in the schur complement solve, also used
+                  ## to solve the correction solve afterwards.
+                  element solver {
+                    linear_solver_options_sym_scalar
+                  }
+                },
+                (
+                  ## Specify the preconditioner matrix to use on the schur complement.
+                  ##
+                  ## Assemble a Schur Complement using a lumped mass inner matrix.
+                  element preconditioner_matrix {
+                    attribute name { "LumpedSchurComplement" },
+                    element lump_on_submesh {
+                      empty
+                    }?
+                  }|
+                  ## Specify the preconditioner matrix to use on the schur complement.
+                  ##
+                  ## DiagonalSchurComplement = C_P^T * [(M)_diagonal]^-1 * C
+                  element preconditioner_matrix {
+                    attribute name { "DiagonalSchurComplement" },
+                    empty
+                  }|
+                  ## Specify the preconditioner matrix to use on the schur complement.
+                  ##
+                  ## Lagrange Mass Matrix.
+                  element preconditioner_matrix {
+                    attribute name { "LagrangeMassMatrix" },
+                    empty
+                  }|
+                  ## Specify the preconditioner matrix to use on the schur complement.
+                  element preconditioner_matrix {
+                    attribute name { "NoPreconditionerMatrix" },
+                    empty
+                  }
+                )
+              }|
+              ## Lump the mass matrix for the assembly of the projection matrix
+              element lump_mass_matrix {
+                ## Lump on the submesh.
+                ## This only works for simplex meshes and is only
+                ## strictly valid on 2d meshes.
+                element use_submesh {
+                  empty
+                }?
+              }
+            )
           }|
           element discontinuous {
             ## Lump the mass matrix for the assembly of the projection matrix
@@ -7620,9 +7662,20 @@ solenoidal_options =
             }
           )
         },
-        element reference_node {
-          integer
-        }?,
+        (
+           ## Reference node (node at which lagrange multiplier = 0). Note that the node number must be less than the total number of nodes.
+           ## If running in parallel, the node number must be less than the total number of nodes of the first processor.
+           ## ** Note - it is also an option to remove the null-space of the residual vector. This
+           ## option is available under solvers
+           element reference_node {
+              integer
+           }|
+           ## Input coordinates of desired reference node. If a node does not exist at these
+           ## coordinates, the nearest vertex will be selected.
+           element reference_coordinates {
+              real_dim_vector
+           }
+        )?,
         ## **UNDER DEVELOPMENT**
         ## This searches the CMC matrix diagonal looking for nodes that are less than the maximum value time epsilon(0.0) (i.e. nodes that are effectively zero).
         ## It then zeros that row and column and places a one on the diagonal and a zero on the rhs.
@@ -7657,10 +7710,10 @@ solenoidal_options =
             empty
           }
         )?,
-        ## Solver options for the linear solve.
+        ## Solver options for the (outer) linear solve.
         ## This method requires the inversion of a projection matrix.
         element solver {
-          linear_solver_options_sym
+          linear_solver_options_sym_scalar
         }
       }
     }

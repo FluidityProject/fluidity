@@ -64,7 +64,7 @@ mesh_info =
             element solver {
                ## Solver is used to apply projections to div-conforming
                ## space, and in elliptic solvers
-               linear_solver_options_sym
+               linear_solver_options_sym_scalar
             }
          }?,
          ## Make mesh periodic
