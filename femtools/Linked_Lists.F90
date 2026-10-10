@@ -353,6 +353,11 @@ contains
     deallocate(node)
     prev_node%next => null()
     list%length = list%length - 1
+    if (list%length == 0) then
+      list%lastnode => null()
+    else
+      list%lastnode => prev_node
+    end if
   end function ipop_last
 
   function ifetch(list, j)
