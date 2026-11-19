@@ -825,20 +825,11 @@ ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_
 CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
 
 # Metis, ParMetis
-AC_MSG_CHECKING([if we can compile and link without using -lparmetis])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-]], [[
-METIS_PartGraphKway();
-ParMETIS_V3_AdaptiveRepart();
-]])],[
-AC_MSG_RESULT([yes])
-AC_DEFINE(HAVE_LIBMETIS, [1])
-AC_DEFINE(HAVE_LIBPARMETIS, [1])
-],[
-AC_MSG_RESULT([no])
 ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
-ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
-])
+ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [],
+  [AC_MSG_ERROR([ParMETIS with ParMETIS_V3_AdaptiveRepart is required. PT-Scotch's ParMETIS compatibility library does not provide this function.])])
+ACX_lib_automagic(parmetis, ParMETIS_V3_PartKway, [AC_DEFINE(HAVE_LIBPARMETIS, [1])],
+  [AC_MSG_ERROR([ParMETIS with ParMETIS_V3_PartKway is required.])])
 AC_CHECK_HEADERS([parmetis.h])
 AS_IF([test "x$ac_cv_header_parmetis_h" = "xyes" ],
 	    [
