@@ -530,6 +530,10 @@ tested with version 3.1.1; \fluidity does NOT work correctly with version 4.x) i
 partitioning, and can be downloaded from
 \url{http://glaros.dtc.umn.edu/gkhome/fsroot/sw/parmetis/OLD}
 
+Configure requires both \texttt{ParMETIS\_V3\_AdaptiveRepart} and
+\texttt{ParMETIS\_V3\_PartKway}. PT-Scotch's ParMETIS compatibility library
+does not provide the former and is not sufficient.
+
 ParMetis is built in the source directory with:
 
 \begin{lstlisting}[language=bash]
