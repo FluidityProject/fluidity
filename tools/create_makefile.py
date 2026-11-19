@@ -166,8 +166,9 @@ def generate_dependencies(fortran):
             obj = os.path.splitext(f)[0] + ".o"
             os.system("rm " + obj + " 2>/dev/null || true")
 
+            # -MD retains compiler include flags in Open MPI 5's wrapper.
             process = subprocess.Popen(
-                ["make", f"GENFLAGS=-cpp -M -MF {obj}_dependencies", f"{obj}"]
+                ["make", f"GENFLAGS=-cpp -MD -MF {obj}_dependencies", f"{obj}"]
             )
             if process.wait() == 0:
                 this_deps = dependency_list(
@@ -231,7 +232,7 @@ def handle_options():
         default=False,
     )
 
-    (options, argv) = optparser.parse_args()
+    options, argv = optparser.parse_args()
 
     return options
 
