@@ -1,4 +1,4 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import os.path
 
 module1 = Extension('libspud', sources = ['libspud.c'], libraries=["spud"], library_dirs=[os.path.abspath("..")], include_dirs=[os.path.abspath("../include")])
