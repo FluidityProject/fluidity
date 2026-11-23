@@ -545,7 +545,7 @@ contains
        write(string, "("//lformat//",'x + ',"//lformat//")") reverse(poly%coefs)
     case default
        write(outformat, "(a,i0,a)") "(",poly%degree-1,"("//trim(lformat) &
-        //",'x^',i0,' + ')"//trim(lformat)//",'x + ',"//trim(lformat)//")"
+        //",'x^',i0,' + '),"//trim(lformat)//",'x + ',"//trim(lformat)//")"
 
        write(string, outformat) r_i(size(r_i):1:-1), poly%coefs(2), poly%coefs(1)
     end select
