@@ -1,0 +1,98 @@
+# DockerFile for a Fludity development container
+
+FROM ubuntu:resolute AS zoltan-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Rebuild Ubuntu's package with the Fortran interface required by Fluidity.
+# Keep the remaining Ubuntu build options, including disabled ParMETIS support.
+RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources && \
+    apt-get update && \
+    apt-get -y install --no-install-recommends build-essential dpkg-dev && \
+    apt-get -y build-dep --arch-only trilinos
+
+WORKDIR /tmp/trilinos-build
+RUN apt-get source trilinos && \
+    cd trilinos-* && \
+    # GCC 15 rejects passing a pointer-to-volatile to Zoltan_Destroy.
+    sed -i '/^void Zfw_Destroy(/,/^}/s/volatile struct Zoltan_Struct/struct Zoltan_Struct/' packages/zoltan/src/fort/cwrap.c && \
+    sed -i '/-DTrilinos_ENABLE_Zoltan:BOOL=ON/a\     -DZoltan_ENABLE_F90INTERFACE:BOOL=ON \\' debian/rules && \
+    sed -i '1s/)/+fluidity1)/' debian/changelog && \
+    DEB_BUILD_OPTIONS="nocheck nodoc" dpkg-buildpackage -B -uc -us -j2
+
+# Use a Resolute base image
+FROM ubuntu:resolute
+
+# This DockerFile is looked after by
+LABEL maintainer="Stephan Kramer <s.kramer@imperial.ac.uk>"
+
+# Installs shouldn't expect input
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install the Ubuntu Resolute packages previously provided by fluidity-dev.
+# SPUD, Supermesh, Python Future, and Triangle are unavailable in the archive.
+RUN apt-get update && \
+     apt-get -y dist-upgrade && \
+     echo "Europe/London" > /etc/timezone && \
+     apt-get -y install \
+       autoconf automake ca-certificates cmake curl g++ gfortran ghostscript git \
+       libgoogle-perftools-dev libarpack2-dev libblas-dev libboost-python-dev \
+       libexodusii-dev libglib2.0-dev libgmp10 liblapack-dev libmpfr6 \
+       libnetcdf-dev libnetcdff-dev libnetpbm-dev libpetsc-real-dev \
+       libqhull-dev libtool libudunits2-dev libvtk9-dev libxml2-utils \
+       libtrilinos-zoltan-dev m4 openmpi-bin \
+       python3-dev python3-h5py python3-junit.xml python3-lxml \
+       python3-matplotlib python3-meshio python3-numpy python3-scipy \
+       python3-sympy python3-uncertainties python3-vtk9 tcsh time trang \
+       fig2dev valgrind \
+       texlive-pstricks texlive texlive-latex-extra texlive-science \
+       python3-pip python3-setuptools && \
+     apt-get -y install sudo flex bison && \
+     apt-get -y install gmsh && \
+     apt-get clean
+
+# Fluidity requires ParMETIS 3.x, not PT-Scotch's partial compatibility API.
+RUN curl -fL https://papers.karypis.org/glaros/files/sw/parmetis/OLD/ParMetis-3.1.1.tar.gz -o /tmp/ParMetis-3.1.1.tar.gz && \
+    echo "44ed920e4ff5cec8755eb06fd05ecbb2bc3eccd7ab943b9d38d0fd2a21f30d5c  /tmp/ParMetis-3.1.1.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/ParMetis-3.1.1.tar.gz -C /tmp && \
+    # GCC 15 defaults to C23; this release requires the legacy C dialect.
+    make -C /tmp/ParMetis-3.1.1/METISLib -j2 COPTIONS="-DNDEBUG -std=gnu89" && \
+    make -C /tmp/ParMetis-3.1.1/ParMETISLib -j2 COPTIONS="-DNDEBUG -std=gnu89" && \
+    install -d /opt/parmetis-3.1.1/lib /opt/parmetis-3.1.1/include && \
+    install -m 644 /tmp/ParMetis-3.1.1/libparmetis.a /tmp/ParMetis-3.1.1/libmetis.a /opt/parmetis-3.1.1/lib/ && \
+    install -m 644 /tmp/ParMetis-3.1.1/parmetis.h /opt/parmetis-3.1.1/include/ && \
+    rm -r /tmp/ParMetis-3.1.1 /tmp/ParMetis-3.1.1.tar.gz
+
+ENV CPPFLAGS="-I/opt/parmetis-3.1.1/include"
+ENV LDFLAGS="-L/opt/parmetis-3.1.1/lib"
+
+COPY --from=zoltan-builder /tmp/trilinos-build/libtrilinos-zoltan-*.deb /tmp/zoltan-packages/
+RUN apt-get update && \
+    apt-get -y install /tmp/zoltan-packages/*.deb && \
+    apt-mark hold libtrilinos-zoltan-dev libtrilinos-zoltan-16.1 && \
+    printf 'program test_zoltan\n use zoltan\nend program test_zoltan\n' > /tmp/test_zoltan.f90 && \
+    mpif90 -I/usr/include -I/usr/include/trilinos /tmp/test_zoltan.f90 -ltrilinos_zoltan -o /tmp/test_zoltan && \
+    /tmp/test_zoltan && \
+    rm /tmp/test_zoltan.f90 /tmp/test_zoltan && \
+    rm -r /tmp/zoltan-packages && \
+    apt-get clean
+
+# Use old version of gmsh in CI to avoid mesh-sensitive tests failing
+# WORKDIR /usr/local
+# RUN curl -fsL https://gmsh.info/bin/Linux/gmsh-2.16.0-Linux64.tgz | tar --strip-components=1 -zxf -
+RUN gmsh --version
+
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV OMPI_MCA_rmaps_base_oversubscribe=1
+
+# Add a Fluidity user who will be the default user for this container
+# Make sure the user has a userid matching the host system
+# -- pass this as an argument at build time
+ARG userid=1000
+# if this uid already exists (starting from ubuntu base image this can
+# only be user `ubuntu` with uid=1000) remove it
+RUN getent passwd $userid && deluser ubuntu
+RUN adduser --disabled-password --gecos "" -u $userid fluidity
+
+USER fluidity
+WORKDIR /home/fluidity
