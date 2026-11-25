@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - main
+      - resolute_updates
   pull_request:
     branches:
       - main
-      - resolute_updates
 
 jobs:
 
