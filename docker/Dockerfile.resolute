@@ -4,19 +4,37 @@ FROM ubuntu:resolute AS zoltan-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Rebuild Ubuntu's package with the Fortran interface required by Fluidity.
-# Keep the remaining Ubuntu build options, including disabled ParMETIS support.
+# Rebuild Ubuntu's package with the Fortran interface and ParMETIS support
+# required by Fluidity. Zoltan2 requires ParMETIS >= 4.0.3, so keep 3.1.1
+# disabled there.
 RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources && \
     apt-get update && \
-    apt-get -y install --no-install-recommends build-essential dpkg-dev && \
+    apt-get -y install --no-install-recommends build-essential ca-certificates curl dpkg-dev && \
     apt-get -y build-dep --arch-only trilinos
+
+RUN curl -fL https://papers.karypis.org/glaros/files/sw/parmetis/OLD/ParMetis-3.1.1.tar.gz -o /tmp/ParMetis-3.1.1.tar.gz && \
+    echo "44ed920e4ff5cec8755eb06fd05ecbb2bc3eccd7ab943b9d38d0fd2a21f30d5c  /tmp/ParMetis-3.1.1.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/ParMetis-3.1.1.tar.gz -C /tmp && \
+    # GCC 15 defaults to C23; this release requires the legacy C dialect.
+    make -C /tmp/ParMetis-3.1.1/METISLib -j2 COPTIONS="-DNDEBUG -std=gnu89 -fPIC" && \
+    make -C /tmp/ParMetis-3.1.1/ParMETISLib -j2 COPTIONS="-DNDEBUG -std=gnu89 -fPIC" && \
+    install -d /opt/parmetis-3.1.1/lib /opt/parmetis-3.1.1/include && \
+    install -m 644 /tmp/ParMetis-3.1.1/libparmetis.a /tmp/ParMetis-3.1.1/libmetis.a /opt/parmetis-3.1.1/lib/ && \
+    install -m 644 /tmp/ParMetis-3.1.1/parmetis.h /tmp/ParMetis-3.1.1/METISLib/metis.h /opt/parmetis-3.1.1/include/ && \
+    rm -r /tmp/ParMetis-3.1.1 /tmp/ParMetis-3.1.1.tar.gz
 
 WORKDIR /tmp/trilinos-build
 RUN apt-get source trilinos && \
     cd trilinos-* && \
     # GCC 15 rejects passing a pointer-to-volatile to Zoltan_Destroy.
     sed -i '/^void Zfw_Destroy(/,/^}/s/volatile struct Zoltan_Struct/struct Zoltan_Struct/' packages/zoltan/src/fort/cwrap.c && \
+    # ParMETIS 3.1.1 omits the bundled METIS_NodeND declaration from its public header.
+    sed -i '/#include "parmetis_interface.h"/a\void METIS_NodeND(int *, idxtype *, idxtype *, int *, int *, idxtype *, idxtype *);' packages/zoltan/src/tpls/parmetis_interface.c && \
     sed -i '/-DTrilinos_ENABLE_Zoltan:BOOL=ON/a\     -DZoltan_ENABLE_F90INTERFACE:BOOL=ON \\' debian/rules && \
+    sed -i '/-DTrilinos_ENABLE_Zoltan:BOOL=ON/a\     -DZoltan_ENABLE_ParMETIS:BOOL=ON \\' debian/rules && \
+    sed -i '/-DTrilinos_ENABLE_Zoltan2:BOOL=ON/a\     -DZoltan2_ENABLE_ParMETIS:BOOL=OFF \\' debian/rules && \
+    sed -i '/-DTrilinos_ENABLE_Zoltan2:BOOL=ON/a\     -DZoltan2Core_ENABLE_ParMETIS:BOOL=OFF \\' debian/rules && \
+    sed -i 's|-DTPL_ENABLE_ParMETIS:BOOL=OFF|-DTPL_ENABLE_ParMETIS:BOOL=ON -DParMETIS_INCLUDE_DIRS:PATH=/opt/parmetis-3.1.1/include -DParMETIS_LIBRARY_DIRS:PATH=/opt/parmetis-3.1.1/lib|' debian/rules && \
     sed -i '1s/)/+fluidity1)/' debian/changelog && \
     DEB_BUILD_OPTIONS="nocheck nodoc" dpkg-buildpackage -B -uc -us -j2
 
@@ -51,18 +69,7 @@ RUN apt-get update && \
      apt-get -y install gmsh && \
      apt-get clean
 
-# Fluidity requires ParMETIS 3.x, not PT-Scotch's partial compatibility API.
-RUN curl -fL https://papers.karypis.org/glaros/files/sw/parmetis/OLD/ParMetis-3.1.1.tar.gz -o /tmp/ParMetis-3.1.1.tar.gz && \
-    echo "44ed920e4ff5cec8755eb06fd05ecbb2bc3eccd7ab943b9d38d0fd2a21f30d5c  /tmp/ParMetis-3.1.1.tar.gz" | sha256sum -c - && \
-    tar -xzf /tmp/ParMetis-3.1.1.tar.gz -C /tmp && \
-    # GCC 15 defaults to C23; this release requires the legacy C dialect.
-    make -C /tmp/ParMetis-3.1.1/METISLib -j2 COPTIONS="-DNDEBUG -std=gnu89" && \
-    make -C /tmp/ParMetis-3.1.1/ParMETISLib -j2 COPTIONS="-DNDEBUG -std=gnu89" && \
-    install -d /opt/parmetis-3.1.1/lib /opt/parmetis-3.1.1/include && \
-    install -m 644 /tmp/ParMetis-3.1.1/libparmetis.a /tmp/ParMetis-3.1.1/libmetis.a /opt/parmetis-3.1.1/lib/ && \
-    install -m 644 /tmp/ParMetis-3.1.1/parmetis.h /opt/parmetis-3.1.1/include/ && \
-    rm -r /tmp/ParMetis-3.1.1 /tmp/ParMetis-3.1.1.tar.gz
-
+COPY --from=zoltan-builder /opt/parmetis-3.1.1 /opt/parmetis-3.1.1
 ENV CPPFLAGS="-I/opt/parmetis-3.1.1/include"
 ENV LDFLAGS="-L/opt/parmetis-3.1.1/lib"
 

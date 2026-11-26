@@ -234,8 +234,8 @@ jobs:
       - name: ${{ matrix.name }} Longtesting
         run: |
          chmod 777 .
-         docker pull fluidity/actions:noble-${{ github.sha }}
-         docker run -v $PWD:/host fluidity/actions:noble-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
+         docker pull fluidity/actions:resolute-${{ github.sha }}
+         docker run -v $PWD:/host fluidity/actions:resolute-${{ github.sha }} /bin/bash -c "git clone https://github.com/fluidityproject/longtests && bin/testharness -x test_results_${{ matrix.name }}.xml -f ${{ matrix.name }}.xml && cp -v test_results_${{ matrix.name }}.xml /host"
 
       - uses: actions/upload-artifact@v7
         with:
