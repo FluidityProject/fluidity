@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import functools
 import glob
 import multiprocessing
 import os.path
@@ -24,6 +25,31 @@ try:
     import Queue
 except ImportError:
     import queue as Queue
+
+
+def _modify_command_line(s, flucmd, valgrind, genpbs, nprocs):
+    if flucmd not in [None, "fluidity"]:
+        s = s.replace("fluidity ", flucmd + " ")
+
+    if valgrind:
+        s = (
+            "valgrind --tool=memcheck --leak-check=full -v"
+            + " --show-reachable=yes --num-callers=8 --error-limit=no "
+            + "--log-file=test.log "
+            + s
+        )
+
+    # when calling genpbs, genpbs should take care of inserting the right
+    # -n <NPROCS> magic
+    if not genpbs:
+        # only add -n <NPROCS> if the command line doesn't already specify
+        # a number of tasks for mpiexec; leave an explicit -n as-is rather
+        # than overriding it (some mpiexec implementations resolve
+        # duplicate -n flags unpredictably, silently running with the
+        # wrong number of processes)
+        if not re.search(r"mpiexec\s+-n\s+\d+", s):
+            s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
+    return s
 
 
 try:
@@ -297,34 +323,13 @@ class TestHarness:
     def modify_command_line(self, nprocs):
         flucmd = self.decide_fluidity_command()
         print(flucmd)
-
-        def f(s):
-            if flucmd not in [None, "fluidity"]:
-                s = s.replace("fluidity ", flucmd + " ")
-
-            if self.valgrind:
-                s = (
-                    "valgrind --tool=memcheck --leak-check=full -v"
-                    + " --show-reachable=yes --num-callers=8 --error-limit=no "
-                    + "--log-file=test.log "
-                    + s
-                )
-
-            # when calling genpbs, genpbs should take care of inserting the right
-            # -n <NPROCS> magic
-            if not self.genpbs:
-                # only add -n <NPROCS> if the command line doesn't already specify
-                # a number of tasks for mpiexec; leave an explicit -n as-is rather
-                # than overriding it (some mpiexec implementations resolve
-                # duplicate -n flags unpredictably, silently running with the
-                # wrong number of processes)
-                if not re.search(r"mpiexec\s+-n\s+\d+", s):
-                    s = s.replace(
-                        "mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs}
-                    )
-            return s
-
-        return f
+        return functools.partial(
+            _modify_command_line,
+            flucmd=flucmd,
+            valgrind=self.valgrind,
+            genpbs=self.genpbs,
+            nprocs=nprocs,
+        )
 
     def log(self, str):
         if self.verbose is True:
@@ -480,7 +485,7 @@ class TestHarness:
             try:
                 # pull a test number from the queue
                 test_id = queue.get(timeout=0.1)
-                (dir, test) = self.tests[test_id]
+                dir, test = self.tests[test_id]
             except Queue.Empty:
                 # If the queue is empty, we're done.
                 sys.stdout = main_stdout
@@ -596,7 +601,7 @@ if __name__ == "__main__":
         dest="exit_fails",
         help="Return failure count on exit",
     )
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
 
     if len(args) > 0:
         parser.error("Too many arguments.")
