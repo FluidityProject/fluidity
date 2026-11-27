@@ -49,6 +49,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install the Ubuntu Resolute packages previously provided by fluidity-dev.
 # SPUD, Supermesh, Python Future, and Triangle are unavailable in the archive.
+# Triangle and Python Future are no longer needed, and Spud is installed with
+# Fluidity,
 RUN apt-get update && \
      apt-get -y dist-upgrade && \
      echo "Europe/London" > /etc/timezone && \
@@ -59,7 +61,7 @@ RUN apt-get update && \
        libnetcdf-dev libnetcdff-dev libnetpbm-dev libpetsc-real-dev \
        libqhull-dev libtool libudunits2-dev libvtk9-dev libxml2-utils \
        libtrilinos-zoltan-dev m4 openmpi-bin \
-       python3-dev python3-h5py python3-junit.xml python3-lxml \
+       python3-dev python3-gi python3-h5py python3-junit.xml python3-lxml \
        python3-matplotlib python3-meshio python3-numpy python3-scipy \
        python3-sympy python3-uncertainties python3-vtk9 tcsh time trang \
        fig2dev valgrind \

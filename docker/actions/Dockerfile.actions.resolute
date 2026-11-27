@@ -31,6 +31,7 @@ RUN test -z "$(git status --porcelain */Makefile.dependencies)"
 RUN make
 RUN make fltools
 RUN make manual
+RUN make spudtools
 RUN sudo make install
 
 # Python module 'assess' is required for some longtests
