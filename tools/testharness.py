@@ -42,13 +42,13 @@ def _modify_command_line(s, flucmd, valgrind, genpbs, nprocs):
     # when calling genpbs, genpbs should take care of inserting the right
     # -n <NPROCS> magic
     if not genpbs:
-        # only add -n <NPROCS> if the command line doesn't already specify
-        # a number of tasks for mpiexec; leave an explicit -n as-is rather
-        # than overriding it (some mpiexec implementations resolve
-        # duplicate -n flags unpredictably, silently running with the
-        # wrong number of processes)
-        if not re.search(r"mpiexec\s+-n\s+\d+", s):
-            s = s.replace("mpiexec ", "mpiexec -n %(nprocs)d " % {"nprocs": nprocs})
+        # Check each invocation separately, since a command can use different
+        # process counts for repartitioning and for the simulation.
+        s = re.sub(
+            r"\bmpiexec[ \t]+(?!-n(?:p)?[ \t]+\d+(?=[ \t\r\n;&|]|$))",
+            lambda match: f"{match.group()}-n {nprocs} ",
+            s,
+        )
     return s
 
 
